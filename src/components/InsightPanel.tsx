@@ -1,7 +1,7 @@
-import { AlertTriangle, ArrowRight, BarChart3, BookOpenCheck, Check, GitBranch, MessageSquareText, Target } from 'lucide-react'
+import { AlertTriangle, ArrowRight, BarChart3, BookOpenCheck, Check, MessageSquareText, Paperclip, Target } from 'lucide-react'
 import { CLAIM_CATEGORY_LABELS, type ResumeClaim } from '@/domain/resume-schema'
 import type { Mode } from '@/types'
-import { verifiabilityToRisk } from '@/lib/risk'
+import { claimRisk } from '@/lib/risk'
 
 type CurrentQuestion = { question: string; intent: string } | null
 
@@ -24,7 +24,7 @@ export function InsightPanel({
   turnCount,
   onStartInterview,
 }: InsightPanelProps) {
-  const risk = verifiabilityToRisk(selected.verifiability)
+  const risk = claimRisk(selected.askLikelihood, selected.evidenceStrength)
 
   return (
     <aside className="insight-panel">
@@ -32,9 +32,12 @@ export function InsightPanel({
       {mode === 'audit' ? (
         <>
           <section className="confidence-block">
-            <span>可验证难度</span>
-            <div className="confidence-value"><strong>{selected.verifiability}%</strong><small>{risk.label}</small></div>
-            <div className="meter"><i style={{ width: `${selected.verifiability}%` }} /></div>
+            <span>被追问概率</span>
+            <div className="confidence-value"><strong>{selected.askLikelihood}%</strong><small>{risk.label}</small></div>
+            <div className="meter"><i style={{ width: `${selected.askLikelihood}%` }} /></div>
+            <span className="meter-sub">证据完整度</span>
+            <div className="confidence-value"><strong>{selected.evidenceStrength}%</strong><small>{selected.evidenceStrength >= 60 ? '较充分' : '偏薄弱'}</small></div>
+            <div className="meter"><i className="meter-evidence" style={{ width: `${selected.evidenceStrength}%` }} /></div>
           </section>
 
           <section className="evidence-section">
@@ -58,7 +61,7 @@ export function InsightPanel({
             <ArrowRight size={16} />
           </button>
 
-          <a className="repo-link" href="https://github.com/MIU-MA" target="_blank" rel="noreferrer"><GitBranch size={14} />关联 GitHub 证据 <ArrowRight size={13} /></a>
+          <div className="repo-link"><Paperclip size={14} /><div><strong>补充证明材料</strong><small>数据口径、复盘记录、同事或客户证言、可复现的统计方法等</small></div></div>
         </>
       ) : (
         <>
@@ -87,7 +90,7 @@ export function InsightPanel({
           )}
           <section className="interview-tip">
             <strong>回答建议</strong>
-            <p>不要只解释概念。按“为什么选择 &rarr; 如何实现 &rarr; 遇到什么异常 &rarr; 怎样验证”的顺序回答。</p>
+            <p>按“背景与目标 &rarr; 你的角色与关键决策 &rarr; 主要挑战 &rarr; 结果与验证”的顺序回答，给出可验证的数据或案例。</p>
           </section>
         </>
       )}

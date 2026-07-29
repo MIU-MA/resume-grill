@@ -4,6 +4,7 @@ import {
   type ResumeAnalysis,
   type ResumeClaim,
 } from '@/domain/resume-schema'
+import { sanitizeCoverage } from '@/lib/coverage'
 import { nextQuestionSchema, type InterviewTurn, type NextQuestion } from '@/domain/interview-schema'
 
 // 当未配置模型时使用：不真正理解语义，但从上传文本中抽取真实句子作为声明，
@@ -107,9 +108,43 @@ function hasNumber(s: string): boolean {
   return /\d/.test(s)
 }
 
-function verifiabilityFor(category: ClaimCategory, numbered: boolean, index: number): number {
+// 噪声过滤：剔除不像「可验证声明」的片段——纯标题行、公司+职位+日期行、小标题、纯日期段。
+// 避免「高级销售经理」「XX 科技 销售经理 2021」这类被当作声明。
+const SECTION_LABELS = ['工作经历', '教育背景', '项目经验', '专业技能', '技能', '工作经历：', '实习经历', '自我评价', '荣誉奖项']
+
+function isNoise(s: string): boolean {
+  const v = s.replace(/[:：：]$/, '').trim()
+  if (SECTION_LABELS.some((label) => v === label || v === label.replace(/[:：]$/, ''))) return true
+  // 纯日期段（如 2021-2023 / 2019年 至今）
+  if (/^[\d年月.\-/至到至今\s]+$/.test(v) && v.length <= 16) return true
+  // 公司 + 职位 + 年份行：含年份且无动词/成果关键词的短行
+  if (hasNumber(v) && /\d{4}/.test(v) && v.length <= 24) {
+    const hasAction = CATEGORY_RULES.some((r) => r.keywords.some((k) => v.includes(k)))
+    if (!hasAction) return true
+  }
+  // 过短（疑似姓名/单字段）
+  if (v.length < 8) return true
+  return false
+}
+
+// 质量分：含数字、含成果/规模关键词的声明优先级更高，长度适中更佳。
+function qualityScore(s: string): number {
+  let score = 0
+  if (hasNumber(s)) score += 4
+  for (const rule of CATEGORY_RULES) {
+    if (rule.keywords.some((k) => s.includes(k))) score += 3
+  }
+  // 长度过短或过长都降权，14-40 字最佳
+  if (s.length >= 14 && s.length <= 40) score += 2
+  else if (s.length > 60) score -= 1
+  return score
+}
+
+// 产出双指标：askLikelihood（被追问概率）+ evidenceStrength（证据完整度）。
+// 规则示例下无法真正判读证据，故 evidenceStrength 偏低，且随句内数字密度小幅上调。
+function metricsFor(category: ClaimCategory, numbered: boolean, index: number): { askLikelihood: number; evidenceStrength: number } {
   const jitter = (index * 7) % 10
-  const base: Record<ClaimCategory, number> = {
+  const askBase: Record<ClaimCategory, number> = {
     achievement: numbered ? 86 : 74,
     scale: numbered ? 82 : 66,
     responsibility: 68,
@@ -117,30 +152,46 @@ function verifiabilityFor(category: ClaimCategory, numbered: boolean, index: num
     ability: 48,
     honor: 32,
   }
-  return Math.min(96, base[category] + jitter)
+  // 数字声明证据略好（至少有可量化的依据），纯描述证据弱
+  const evidenceBase: Record<ClaimCategory, number> = {
+    achievement: numbered ? 34 : 22,
+    scale: numbered ? 36 : 24,
+    responsibility: 28,
+    skill: 30,
+    ability: 18,
+    honor: numbered ? 38 : 26,
+  }
+  return {
+    askLikelihood: Math.min(96, askBase[category] + jitter),
+    evidenceStrength: Math.min(60, evidenceBase[category] + (jitter % 6)),
+  }
 }
 
 export function mockAnalyze(rawText: string, sourceFile: string): ResumeAnalysis {
   const role = detectRole(rawText)
   const candidate = detectCandidate(rawText)
-  const sentences = splitSentences(rawText)
+  const sentences = splitSentences(rawText).filter((s) => !isNoise(s))
 
-  // 偏好含数字或关键词的句子作为声明
-  const claimSentences = sentences
-    .filter((s) => hasNumber(s) || CATEGORY_RULES.some((r) => r.keywords.some((k) => s.includes(k))))
-    .slice(0, 6)
-  const pool = claimSentences.length > 0 ? claimSentences : sentences.slice(0, 3)
+  // 按质量分排序后取前 6 条作为声明，避免出现顺序靠前的低价值片段挤掉真正有量化成果的声明。
+  const ranked = sentences
+    .map((s) => ({ s, score: qualityScore(s) }))
+    .sort((a, b) => b.score - a.score)
+  const pool = ranked.slice(0, 6).map((r) => r.s)
+  // 质量全为 0 时退化为前 3 条，保证不空
+  const finalPool = pool.length > 0 ? pool : sentences.slice(0, 3)
 
-  const claims: ResumeClaim[] = pool.map((quote, index) => {
+  const claims: ResumeClaim[] = finalPool.map((quote, index) => {
     const category = detectCategory(quote)
     const tpl = CATEGORY_TEMPLATES[category]
+    const m = metricsFor(category, hasNumber(quote), index)
     return {
       quote,
       title: quote.length > 14 ? `${quote.slice(0, 14)}…` : quote,
       category,
       role,
-      verifiability: verifiabilityFor(category, hasNumber(quote), index),
-      evidence: ['简历中提及该表述'],
+      askLikelihood: m.askLikelihood,
+      evidenceStrength: m.evidenceStrength,
+      evidence: hasNumber(quote) ? ['简历中已给出量化数据'] : ['简历中提及该表述'],
       evidenceGaps: tpl.gaps,
       initialQuestion: tpl.question,
       evaluationPoints: tpl.points,
@@ -156,7 +207,8 @@ export function mockAnalyze(rawText: string, sourceFile: string): ResumeAnalysis
             title: '示例声明',
             category: 'ability',
             role,
-            verifiability: 50,
+            askLikelihood: 50,
+            evidenceStrength: 20,
             evidence: [],
             evidenceGaps: ['简历文本过短或格式无法识别'],
             initialQuestion: '能详细说说这段经历吗？',
@@ -187,8 +239,11 @@ export function mockNextQuestion(
   const vague = lastAnswer.trim().length < 12 || /不知道|不清楚|没用过|没参与/.test(lastAnswer)
 
   const followIndex = turns.length - 1 // 已回答轮数对应第几条 followUp
-  const covered = claim.evaluationPoints.slice(0, Math.min(turns.length, claim.evaluationPoints.length))
-  const missing = claim.evaluationPoints.filter((p) => !covered.includes(p))
+  // 覆盖清洗：covered/missing 只取自 evaluationPoints，保证是子集。
+  const { covered, missing } = sanitizeCoverage(
+    claim.evaluationPoints.slice(0, Math.min(turns.length, claim.evaluationPoints.length)),
+    claim.evaluationPoints,
+  )
 
   if (vague && followIndex < tpl.followUps.length) {
     return nextQuestionSchema.parse({
@@ -217,4 +272,30 @@ export function mockNextQuestion(
     coveredPoints: covered,
     missingPoints: missing,
   })
+}
+
+// 无模型时的会话总结回落：按声明类型模板与要点覆盖情况，产出结论与改写建议。
+export function mockSummarize(
+  claim: ResumeClaim,
+  turns: InterviewTurn[],
+  covered: string[],
+  missing: string[],
+): { finalSummary: string; rewriteSuggestion: string } {
+  const answered = turns.length
+  const coverage = claim.evaluationPoints.length > 0 ? Math.round((covered.length / claim.evaluationPoints.length) * 100) : 0
+  const tpl = CATEGORY_TEMPLATES[claim.category]
+
+  const strong = covered.length > 0 ? `已能说清：${covered.join('、')}；` : ''
+  const weak = missing.length > 0 ? `仍未说清：${missing.join('、')}。` : '主要要点已基本覆盖。'
+
+  const finalSummary =
+    answered === 0
+      ? '本轮未作答，建议补充后再判断该声明是否经得起追问。'
+      : `经 ${answered} 轮追问，覆盖度约 ${coverage}%。${strong}${weak}`
+
+  // 改写建议：把证据缺口转成简历里应补充的要素，给出可直接采用的句式骨架。
+  const toFill = missing.length > 0 ? missing : tpl.gaps
+  const rewriteSuggestion = `建议改写为含可验证要素的版本，补齐：${toFill.join('、')}。\n参考骨架：「${claim.quote.replace(/[。.]$/, '')}——（在此补充基线/统计口径/时间窗口/个人贡献占比），最终（在此补充验证方式与结果）。」`
+
+  return { finalSummary, rewriteSuggestion }
 }

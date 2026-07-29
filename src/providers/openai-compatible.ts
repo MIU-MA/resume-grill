@@ -1,4 +1,5 @@
 import type { ZodType } from 'zod'
+import { assertAllowedBaseUrl } from '@/lib/url-guard'
 
 export type LlmConfig = {
   baseUrl: string
@@ -29,16 +30,32 @@ export function resolveLlmConfig(client?: { baseUrl?: string; apiKey?: string; m
 }
 
 // 调用 OpenAI 兼容接口并按 schema 校验结构化输出。
+// options.signal 控制超时；options.maxTokens 限制输出长度，避免超长回答拉高费用。
 export async function llmStructured<T>(
   systemPrompt: string,
   userPrompt: string,
   schema: ZodType<T>,
   config?: LlmConfig | null,
+  options?: { signal?: AbortSignal; maxTokens?: number },
 ): Promise<T> {
   const resolved = config ?? getLlmConfig()
   if (!resolved) {
     throw new Error('LLM 未配置：请在设置中填写 baseUrl / apiKey / model，或在服务端 .env.local 配置环境变量。')
   }
+
+  // SSRF 防护：拒绝内网/保留地址与未授权白名单外的 Base URL（服务端 fetch 前拦截）。
+  await assertAllowedBaseUrl(resolved.baseUrl)
+
+  const body: Record<string, unknown> = {
+    model: resolved.model,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    response_format: { type: 'json_object' },
+    temperature: 0.3,
+  }
+  if (options?.maxTokens) body.max_tokens = options.maxTokens
 
   let res: Response
   try {
@@ -48,17 +65,13 @@ export async function llmStructured<T>(
         'Content-Type': 'application/json',
         Authorization: `Bearer ${resolved.apiKey}`,
       },
-      body: JSON.stringify({
-        model: resolved.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        response_format: { type: 'json_object' },
-        temperature: 0.3,
-      }),
+      body: JSON.stringify(body),
+      signal: options?.signal,
     })
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      throw new Error('模型请求超时，请稍后重试或缩短输入。')
+    }
     // 网络层失败：连接不可达 / Base URL 错误 / 证书问题
     throw new Error(`无法连接模型服务（${resolved.baseUrl}）：请检查 Base URL 是否可达或网络连接。`)
   }

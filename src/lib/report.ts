@@ -1,5 +1,5 @@
 import { CLAIM_CATEGORY_LABELS, type ResumeAnalysis } from '@/domain/resume-schema'
-import { verifiabilityToRisk } from '@/lib/risk'
+import { claimRisk } from '@/lib/risk'
 
 export function buildReport(analysis: ResumeAnalysis): string {
   const lines = [
@@ -13,13 +13,14 @@ export function buildReport(analysis: ResumeAnalysis): string {
   ]
 
   for (const claim of analysis.claims) {
-    const risk = verifiabilityToRisk(claim.verifiability)
+    const risk = claimRisk(claim.askLikelihood, claim.evidenceStrength)
     lines.push(
       `## ${claim.title}`,
       '',
       `- 类型：${CLAIM_CATEGORY_LABELS[claim.category]}`,
       `- 简历原文：${claim.quote}`,
-      `- 可验证难度：${claim.verifiability}/100（${risk.label}）`,
+      `- 被追问概率：${claim.askLikelihood}/100`,
+      `- 证据完整度：${claim.evidenceStrength}/100（${risk.label}）`,
       `- 证据缺口：${claim.evidenceGaps.join('；') || '无'}`,
       `- 评估要点：${claim.evaluationPoints.join('；')}`,
       '',

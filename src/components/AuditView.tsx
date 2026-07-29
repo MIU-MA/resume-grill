@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ArrowRight, BookOpenCheck, ChevronDown, CircleHelp, Code2, Flame, MessageSquareText } from 'lucide-react'
 import { CLAIM_CATEGORY_LABELS, type ClaimCategory, type ResumeAnalysis, type ResumeClaim } from '@/domain/resume-schema'
-import { verifiabilityToRisk, type AuditStats } from '@/lib/risk'
+import { claimRisk, type AuditStats } from '@/lib/risk'
 
 const CATEGORY_BLURB: Record<ClaimCategory, string> = {
   skill: '技能声明需要说明使用场景与深度，而非罗列名词。',
@@ -21,14 +21,14 @@ type AuditViewProps = {
 
 export function AuditView({ analysis, selected, stats, onStartInterview }: AuditViewProps) {
   const [expanded, setExpanded] = useState(true)
-  const risk = verifiabilityToRisk(selected.verifiability)
+  const risk = claimRisk(selected.askLikelihood, selected.evidenceStrength)
 
   return (
     <main className="audit-main">
       <section className="summary-strip">
-        <div><span>综合风险</span><strong className="metric-danger">{stats.avgVerifiability}</strong><small>/ 100</small></div>
+        <div><span>被追问概率(均)</span><strong className="metric-danger">{stats.avgAskLikelihood}</strong><small>/ 100</small></div>
         <div><span>简历声明</span><strong>{stats.claimCount}</strong><small>条</small></div>
-        <div><span>高风险声明</span><strong>{stats.highRiskCount}</strong><small>条</small></div>
+        <div><span>薄弱声明</span><strong>{stats.weakClaimCount}</strong><small>条</small></div>
         <div><span>待补证据</span><strong>{stats.totalGaps}</strong><small>处</small></div>
       </section>
 
@@ -40,7 +40,7 @@ export function AuditView({ analysis, selected, stats, onStartInterview }: Audit
             <p>{CATEGORY_BLURB[selected.category]}</p>
           </div>
           <div className={`risk-badge ${risk.color}`}>
-            <Flame size={14} />{risk.label} · {selected.verifiability}
+            <Flame size={14} />{risk.label} · {selected.askLikelihood}
           </div>
         </div>
         <blockquote>

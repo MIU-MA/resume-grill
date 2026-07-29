@@ -1,6 +1,6 @@
 import { ShieldAlert } from 'lucide-react'
 import { CLAIM_CATEGORY_LABELS, type ResumeAnalysis } from '@/domain/resume-schema'
-import { verifiabilityToRisk } from '@/lib/risk'
+import { claimRisk } from '@/lib/risk'
 
 type ClaimSidebarProps = {
   analysis: ResumeAnalysis
@@ -25,7 +25,7 @@ export function ClaimSidebar({ analysis, selectedIndex, onSelect }: ClaimSidebar
       </div>
       <div className="claim-list">
         {analysis.claims.map((claim, index) => {
-          const risk = verifiabilityToRisk(claim.verifiability)
+          const risk = claimRisk(claim.askLikelihood, claim.evidenceStrength)
           return (
             <button key={index} type="button" className={`claim-item ${selectedIndex === index ? 'active' : ''}`} onClick={() => onSelect(index)}>
               <span className={`risk-dot ${risk.color}`} />
@@ -33,7 +33,7 @@ export function ClaimSidebar({ analysis, selectedIndex, onSelect }: ClaimSidebar
                 <small>{CLAIM_CATEGORY_LABELS[claim.category]}</small>
                 <strong>{claim.title}</strong>
               </span>
-              <span className={`claim-score ${risk.color}`}>{claim.verifiability}</span>
+              <span className={`claim-score ${risk.color}`}>{claim.askLikelihood}</span>
             </button>
           )
         })}

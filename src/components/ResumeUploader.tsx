@@ -64,7 +64,7 @@ export function ResumeUploader({ analyzing, error, onAnalyze, envConfigured, cli
         <div className="uploader-eyebrow">RESUME DRILL</div>
         <h1>找出经不起追问的简历声明</h1>
         <p className="uploader-sub">
-          不是根据岗位随机生成八股，而是验证你简历里的每一句技术 / 成果 / 职责声明是否经得起追问。
+          不是根据岗位随机生成八股，而是验证你简历里的每一句成果 / 职责 / 技能声明是否经得起追问。
           简历在浏览器本地解析，不会上传永久存储。
         </p>
 

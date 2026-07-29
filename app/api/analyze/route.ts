@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { llmAnalysisSchema, resumeAnalysisSchema } from '@/domain/resume-schema'
 import { ANALYZE_SYSTEM_PROMPT, buildAnalyzeUserPrompt } from '@/lib/prompts'
+import { ANALYZE_TIMEOUT, MAX_RAWTEXT, getClientIp, rateLimit, withTimeout } from '@/lib/server-limits'
 import { llmStructured, resolveLlmConfig } from '@/providers/openai-compatible'
 import { mockAnalyze } from '@/providers/mock'
 
 const requestSchema = z.object({
-  rawText: z.string().min(1, '简历文本不能为空'),
+  rawText: z.string().min(1, '简历文本不能为空').max(MAX_RAWTEXT, `简历文本过长，请控制在 ${MAX_RAWTEXT} 字以内`),
   sourceFile: z.string(),
   // 可选：前端在设置页填入的 Key；未填则回落服务端 env，再无则走规则示例。
   llm: z
@@ -19,6 +20,12 @@ const requestSchema = z.object({
 })
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request)
+  const limit = rateLimit(ip)
+  if (!limit.ok) {
+    return NextResponse.json({ error: `请求过于频繁，请 ${limit.retryAfter} 秒后再试` }, { status: 429 })
+  }
+
   let body: z.infer<typeof requestSchema>
   try {
     body = requestSchema.parse(await request.json())
@@ -35,6 +42,7 @@ export async function POST(request: Request) {
         buildAnalyzeUserPrompt(body.rawText),
         llmAnalysisSchema,
         config,
+        { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 2000 },
       )
       const analysis = resumeAnalysisSchema.parse({
         ...partial,

@@ -30,8 +30,10 @@ export const resumeClaimSchema = z.object({
   category: claimCategorySchema,
   // 对应岗位 / 职能
   role: z.string(),
-  // 可验证难度 0-100：越高表示越难在面试中自证（越红）
-  verifiability: z.number().min(0).max(100),
+  // 被追问概率 0-100：越高越可能在面试中被深挖（含数字的成果/规模声明通常偏高）
+  askLikelihood: z.number().min(0).max(100),
+  // 证据完整度 0-100：越高表示简历中已提供的证据越充分、越稳固
+  evidenceStrength: z.number().min(0).max(100),
   // 简历中已经提供的证据
   evidence: z.array(z.string()),
   // 证据缺口：容易被追问的地方

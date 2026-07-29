@@ -18,7 +18,8 @@ export const ANALYZE_SYSTEM_PROMPT = `你是一名资深简历面试官。任务
 - title：不超过 14 字的短标题
 - category：skill | responsibility | achievement | scale | ability | honor 之一
 - role：该声明对应的岗位或职能
-- verifiability：可验证难度 0-100，越高越难在面试中自证（含数字的成果/规模声明通常偏高）
+- askLikelihood：被追问概率 0-100，越高越可能在面试中被深挖（含数字的成果/规模声明通常偏高）
+- evidenceStrength：证据完整度 0-100，越高表示简历中已提供的证据越充分、越稳固（只有空泛描述而无数据/口径/出处时偏低）
 - evidence：简历中已提供的证据
 - evidenceGaps：容易被追问的证据缺口 2-4 条
 - initialQuestion：首轮追问
@@ -31,7 +32,7 @@ export const ANALYZE_SYSTEM_PROMPT = `你是一名资深简历面试官。任务
 - claims：声明数组
 
 严格输出单个 JSON 对象，结构：
-{ "candidate": string, "role": string, "summary": string, "claims": [ { "quote": string, "title": string, "category": "skill|responsibility|achievement|scale|ability|honor", "role": string, "verifiability": number, "evidence": string[], "evidenceGaps": string[], "initialQuestion": string, "evaluationPoints": string[] } ] }`
+{ "candidate": string, "role": string, "summary": string, "claims": [ { "quote": string, "title": string, "category": "skill|responsibility|achievement|scale|ability|honor", "role": string, "askLikelihood": number, "evidenceStrength": number, "evidence": string[], "evidenceGaps": string[], "initialQuestion": string, "evaluationPoints": string[] } ] }`
 
 export function buildAnalyzeUserPrompt(rawText: string): string {
   return `请分析以下简历文本，sourceFile 字段由调用方回填，你无需输出：\n\n${rawText}`
@@ -50,8 +51,8 @@ export const INTERVIEW_SYSTEM_PROMPT = `你是一名资深面试官，正在对�
 - question：下一问（isFinal 为 true 时可给结束语）
 - intent：这一问在验证什么
 - isFinal：是否结束本轮
-- coveredPoints：截至目前回答已覆盖的要点（来自该声明的 evaluationPoints）
-- missingPoints：仍缺失、建议补充的要点`
+- coveredPoints：截至目前回答已覆盖的要点，必须且只能取自该声明的 evaluationPoints，不得新增或改写要点
+- missingPoints：仍缺失、建议补充的要点（同样取自 evaluationPoints）`
 
 export function buildInterviewUserPrompt(claim: ResumeClaim, turns: InterviewTurn[]): string {
   const history = turns
@@ -64,7 +65,8 @@ export function buildInterviewUserPrompt(claim: ResumeClaim, turns: InterviewTur
         quote: claim.quote,
         category: claim.category,
         role: claim.role,
-        verifiability: claim.verifiability,
+        askLikelihood: claim.askLikelihood,
+        evidenceStrength: claim.evidenceStrength,
         evidenceGaps: claim.evidenceGaps,
         evaluationPoints: claim.evaluationPoints,
       },

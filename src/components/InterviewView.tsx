@@ -50,7 +50,7 @@ export function InterviewView({
       <div className="progress-track"><span style={{ width: `${coverage}%` }} /></div>
 
       <div className="interview-stage">
-        <div className="interviewer-label"><MessageSquareText size={14} />技术面试官 · 动态追问</div>
+        <div className="interviewer-label"><MessageSquareText size={14} />面试官 · 动态追问</div>
         {currentQuestion && (
           <>
             <h1>{currentQuestion.question}</h1>

@@ -114,11 +114,13 @@ blockquote span { position: absolute; left: 13px; top: 13px; color: var(--faint)
 .insight-heading { height: 42px; display: flex; align-items: center; gap: 7px; padding: 0 16px; border-bottom: 1px solid var(--line); color: #3e484e; font-size: 10px; }
 .confidence-block { padding: 16px; border-bottom: 1px solid var(--line); }
 .confidence-block > span { color: var(--muted); font-size: 9px; }
+.confidence-block .meter-sub { display: block; margin-top: 12px; }
 .confidence-value { display: flex; align-items: baseline; gap: 6px; margin-top: 5px; }
 .confidence-value strong { font-size: 20px; }
 .confidence-value small { color: var(--faint); font-size: 8px; }
 .meter { height: 5px; overflow: hidden; margin-top: 9px; background: #e9edef; border-radius: 4px; }
 .meter i { display: block; height: 100%; background: var(--blue); border-radius: inherit; }
+.meter .meter-evidence { background: var(--green); }
 .evidence-section { padding: 14px 16px; border-bottom: 1px solid var(--line); }
 .evidence-section h3, .risk-bars h3, .keyword-section h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 9px; color: #465057; font-size: 9px; }
 .evidence-section h3 svg { color: var(--green); }
@@ -139,9 +141,10 @@ blockquote span { position: absolute; left: 13px; top: 13px; color: var(--faint)
 .start-interview small { display: block; margin: 5px 0 0 23px; color: #aeb8bd; font-size: 8px; }
 .start-interview > svg { position: absolute; right: 12px; top: 24px; color: #b9c1c5; }
 .mobile-start-interview { display: none; }
-.repo-link { height: 37px; display: flex; align-items: center; gap: 7px; margin: 0 12px; padding: 0 9px; color: #59656c; font-size: 8px; text-decoration: none; border: 1px solid var(--line); border-radius: 5px; }
-.repo-link svg:last-child { margin-left: auto; }
-.repo-link:hover { color: var(--blue); border-color: #aebfe4; }
+.repo-link { display: flex; align-items: center; gap: 8px; margin: 0 12px; padding: 9px; color: #59656c; background: #f8f9fa; border: 1px solid var(--line); border-radius: 5px; }
+.repo-link svg { flex: none; color: var(--muted); }
+.repo-link strong { display: block; color: #4a535a; font-size: 9px; }
+.repo-link small { display: block; margin-top: 2px; color: var(--faint); font-size: 8px; line-height: 1.5; }
 
 .analysis-loading { min-height: 560px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .scan-document { width: 80px; height: 96px; position: relative; display: grid; place-items: center; color: #74818a; background: white; border: 1px solid var(--line-strong); border-radius: 5px; overflow: hidden; }
