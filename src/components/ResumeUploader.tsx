@@ -100,10 +100,10 @@ export function ResumeUploader({ analyzing, error, onExtracted, envConfigured, c
           />
           {analyzing ? <Loader2 size={22} className="animate-spin text-faint" /> : <Upload size={22} className="text-faint transition-colors duration-[160ms]" />}
           <strong className="text-[13px] font-650 text-[#30373c]">{analyzing ? '解析中…' : '点击上传 PDF / 文本简历'}</strong>
-          <small className="text-faint text-[10px]">{fileName ?? '支持 .pdf / .txt / .md'}</small>
+          <small className="text-faint text-[11px]">{fileName ?? '支持 .pdf / .txt / .md'}</small>
         </label>
 
-        <div className="my-5 flex items-center gap-3 text-faint text-[10px] before:flex-1 before:h-px before:bg-line after:flex-1 after:h-px after:bg-line">或</div>
+        <div className="my-5 flex items-center gap-3 text-faint text-[11px] before:flex-1 before:h-px before:bg-line after:flex-1 after:h-px after:bg-line">或</div>
 
         <textarea
           className="w-full min-h-[120px] resize-y rounded-lg border border-line-strong bg-white p-3 text-xs leading-relaxed text-[#283136] placeholder:text-faint focus:border-brand focus:outline-brand"
@@ -119,7 +119,7 @@ export function ResumeUploader({ analyzing, error, onExtracted, envConfigured, c
           </Button>
           <button
             type="button"
-            className="bg-transparent text-muted text-[10px] hover:text-ink transition-colors"
+            className="bg-transparent text-muted text-[11px] hover:text-ink transition-colors"
             disabled={analyzing}
             onClick={() => onExtracted({ text: SAMPLE_RESUME, pageCount: 1, charCount: SAMPLE_RESUME.length }, '示例简历.txt')}
           >
@@ -127,7 +127,7 @@ export function ResumeUploader({ analyzing, error, onExtracted, envConfigured, c
           </button>
         </div>
 
-        {error && <p className="mt-4 rounded-[0_4px_4px_0] border-l-[3px] border-red bg-red-soft px-3 py-[9px] text-[11px] leading-[1.55] text-[#a13232]">{error}</p>}
+        {error && <p className="mt-4 rounded-[0_4px_4px_0] border-l-[3px] border-red bg-red-soft px-3 py-[9px] text-[12px] leading-[1.55] text-[#a13232]">{error}</p>}
       </div>
     </div>
   )

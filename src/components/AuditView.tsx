@@ -48,19 +48,19 @@ export function AuditView({ analysis, selectedIndex, stats, onSelect, onStartInt
         <div className="flex items-center gap-2 text-[13px]">
           <Flame size={16} className="text-red" />
           <strong className="text-[#252d32]">{stats.weakClaimCount}</strong>
-          <span className="text-muted text-[10px]">薄弱声明</span>
+          <span className="text-muted text-[11px]">薄弱声明</span>
         </div>
         <div className="flex items-center gap-2 text-[13px]">
           <span className="text-amber font-750">⚠</span>
           <strong className="text-[#252d32]">{stats.totalGaps}</strong>
-          <span className="text-muted text-[10px]">待补证据</span>
+          <span className="text-muted text-[11px]">待补证据</span>
         </div>
         <div className="flex items-center gap-2 text-[13px]">
           <span className="text-green font-750">✓</span>
           <strong className="text-[#252d32]">{stats.claimCount - stats.weakClaimCount}</strong>
-          <span className="text-muted text-[10px]">较稳固</span>
+          <span className="text-muted text-[11px]">较稳固</span>
         </div>
-        <div className="ml-auto flex items-center gap-1.5 text-muted text-[9px]">
+        <div className="ml-auto flex items-center gap-1.5 text-muted text-[10px]">
           <span>被追问概率均值</span>
           <strong className="text-[#252d32] text-[13px]">{stats.avgAskLikelihood}</strong>
           <span>/ 100</span>
@@ -73,7 +73,7 @@ export function AuditView({ analysis, selectedIndex, stats, onSelect, onStartInt
           <div key={section} className="mb-6">
             <div className="flex items-center justify-between mb-2">
               <h2 className="m-0 text-[13px] font-bold text-[#232b30]">{section}</h2>
-              <span className="text-faint text-[9px]">{groupClaims.length} 条声明</span>
+              <span className="text-faint text-[10px]">{groupClaims.length} 条声明</span>
             </div>
             <div className="flex flex-col gap-2">
               {groupClaims.map(({ claim, index }: ClaimEntry) => {
@@ -92,14 +92,14 @@ export function AuditView({ analysis, selectedIndex, stats, onSelect, onStartInt
                       <span className={`size-2 rounded-full flex-none ${RISK_DOT[r.color]}`} />
                       <div className="flex min-w-0 flex-1 flex-col">
                         <div className="flex items-center gap-2">
-                          <small className="text-faint text-[8px]">{CLAIM_CATEGORY_LABELS[claim.category]} · {claim.role}</small>
-                          <span className={`rounded px-1.5 py-px text-[8px] font-650 ${RISK_BADGE[r.color]}`}>{r.label}</span>
+                          <small className="text-faint text-[10px]">{CLAIM_CATEGORY_LABELS[claim.category]} · {claim.role}</small>
+                          <span className={`rounded px-1.5 py-px text-[10px] font-650 ${RISK_BADGE[r.color]}`}>{r.label}</span>
                         </div>
-                        <strong className="text-[12px] font-650 text-[#30373c] mt-0.5">{claim.title}</strong>
+                        <strong className="text-[13px] font-650 text-[#30373c] mt-0.5">{claim.title}</strong>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <span className="text-[11px] font-600 text-[#252d32]">{claim.askLikelihood}%</span>
-                        <span className="text-faint text-[8px]">追问概率</span>
+                        <span className="text-[12px] font-600 text-[#252d32]">{claim.askLikelihood}%</span>
+                        <span className="text-faint text-[10px]">追问概率</span>
                       </div>
                       <ChevronDown size={14} className={`text-muted ml-1 transition-transform duration-200 flex-none ${isActive ? 'rotate-180' : ''}`} />
                     </button>
@@ -107,26 +107,26 @@ export function AuditView({ analysis, selectedIndex, stats, onSelect, onStartInt
                     {/* 展开详情 */}
                     {isActive && (
                       <div className="border-t border-line px-4 pb-4 pt-3">
-                        <blockquote className="relative m-0 mb-4 border-l-[3px] border-[#9eabb3] bg-[#f5f7f8] py-2 pl-3 text-[10px] leading-[1.6] text-[#4f5960]">
+                        <blockquote className="relative m-0 mb-4 border-l-[3px] border-[#9eabb3] bg-[#f5f7f8] py-2 pl-3 text-[11px] leading-[1.6] text-[#4f5960]">
                           “{claim.quote}”
                         </blockquote>
 
                         <div className="mb-4">
-                          <div className="flex items-center gap-2 mb-1 text-[9px] font-700 text-[#414b51]"><BookOpenCheck size={12} className="text-brand" />首轮追问</div>
-                          <p className="m-0 text-[10px] text-[#2d353a] leading-[1.5]">{claim.initialQuestion}</p>
+                          <div className="flex items-center gap-2 mb-1 text-[10px] font-700 text-[#414b51]"><BookOpenCheck size={12} className="text-brand" />首轮追问</div>
+                          <p className="m-0 text-[11px] text-[#2d353a] leading-[1.5]">{claim.initialQuestion}</p>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 mb-4">
                           <div>
-                            <div className="flex items-center gap-2 mb-1 text-[9px] font-700 text-[#414b51]"><CircleHelp size={12} className="text-brand" />证据缺口</div>
-                            {claim.evidenceGaps.length === 0 ? <p className="m-0 text-faint text-[9px]">—</p> : claim.evidenceGaps.map((g: string) => (
-                              <p key={g} className="relative my-1 pl-2.5 text-muted text-[9px] leading-[1.5] before:absolute before:left-0 before:top-[5px] before:size-1 before:rounded-full before:bg-amber">{g}</p>
+                            <div className="flex items-center gap-2 mb-1 text-[10px] font-700 text-[#414b51]"><CircleHelp size={12} className="text-brand" />证据缺口</div>
+                            {claim.evidenceGaps.length === 0 ? <p className="m-0 text-faint text-[10px]">—</p> : claim.evidenceGaps.map((g: string) => (
+                              <p key={g} className="relative my-1 pl-2.5 text-muted text-[10px] leading-[1.5] before:absolute before:left-0 before:top-[5px] before:size-1 before:rounded-full before:bg-amber">{g}</p>
                             ))}
                           </div>
                           <div>
-                            <div className="flex items-center gap-2 mb-1 text-[9px] font-700 text-[#414b51]"><BookOpenCheck size={12} className="text-green" />评估要点</div>
+                            <div className="flex items-center gap-2 mb-1 text-[10px] font-700 text-[#414b51]"><BookOpenCheck size={12} className="text-green" />评估要点</div>
                             {claim.evaluationPoints.map((p) => (
-                              <p key={p} className="relative my-1 pl-2.5 text-muted text-[9px] leading-[1.5] before:absolute before:left-0 before:top-[5px] before:size-1 before:rounded-full before:bg-[#8ea09a]">{p}</p>
+                              <p key={p} className="relative my-1 pl-2.5 text-muted text-[10px] leading-[1.5] before:absolute before:left-0 before:top-[5px] before:size-1 before:rounded-full before:bg-[#8ea09a]">{p}</p>
                             ))}
                           </div>
                         </div>

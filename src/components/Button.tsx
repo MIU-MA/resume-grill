@@ -15,8 +15,8 @@ const BASE =
   'inline-flex items-center justify-center gap-[7px] rounded-[5px] cursor-pointer transition-[background,border-color,color,transform] duration-[160ms] disabled:cursor-not-allowed disabled:opacity-42'
 
 const VARIANT: Record<Variant, string> = {
-  primary: 'h-8 px-3 text-[11px] font-650 text-white bg-brand hover:bg-[#194ebc]',
-  secondary: 'h-8 px-3 text-[11px] font-650 text-[#3e474d] bg-white border border-line-strong hover:bg-[#f0f3f5]',
+  primary: 'h-8 px-3 text-[12px] font-650 text-white bg-brand hover:bg-[#194ebc]',
+  secondary: 'h-8 px-3 text-[12px] font-650 text-[#3e474d] bg-white border border-line-strong hover:bg-[#f0f3f5]',
 }
 
 const SIZE: Record<Size, string> = {

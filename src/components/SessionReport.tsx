@@ -47,16 +47,16 @@ export function SessionReport({ analysis, sessions, onBack, onExport, onRedo, on
   return (
     <main className="min-w-0 bg-canvas">
       <div className="flex h-[46px] items-center justify-between bg-white px-6 border-b border-line">
-        <button type="button" className="flex items-center gap-[6px] bg-transparent text-muted text-[9px] hover:text-ink" onClick={onBack}><ArrowLeft size={15} />返回</button>
-        <span className="text-muted font-mono text-[9px] font-600">会话报告 · 已完成 {doneCount} · 进行中 {inProgressCount}</span>
+        <button type="button" className="flex items-center gap-[6px] bg-transparent text-muted text-[10px] hover:text-ink" onClick={onBack}><ArrowLeft size={15} />返回</button>
+        <span className="text-muted font-mono text-[10px] font-600">会话报告 · 已完成 {doneCount} · 进行中 {inProgressCount}</span>
       </div>
 
       <section className="bg-surface border-b border-line px-[30px] pt-7 pb-[22px]">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-[5px] text-brand text-[9px] font-750 uppercase">简历改写报告</div>
+            <div className="flex items-center gap-[5px] text-brand text-[10px] font-750 uppercase">简历改写报告</div>
             <h1 className="mt-[6px] mb-[6px] text-[20px] text-[#182025]">{analysis.candidate} · {analysis.role}</h1>
-            <p className="m-0 max-w-[640px] text-muted text-[10px] leading-[1.6]">{analysis.summary}</p>
+            <p className="m-0 max-w-[640px] text-muted text-[11px] leading-[1.6]">{analysis.summary}</p>
           </div>
           <Button variant="primary" onClick={onExport}><FileDown size={14} />导出完整报告</Button>
         </div>
@@ -71,36 +71,36 @@ export function SessionReport({ analysis, sessions, onBack, onExport, onRedo, on
               <div className="flex items-center gap-[9px]">
                 <span className={`size-[6px] rounded-full ${RISK_DOT[risk.color]}`} />
                 <div className="flex min-w-0 flex-col">
-                  <small className="text-faint text-[8px]">{CLAIM_CATEGORY_LABELS[claim.category]} · {claim.role}</small>
-                  <strong className="text-[10px] font-650 text-[#30373c]">{claim.title}</strong>
+                  <small className="text-faint text-[10px]">{CLAIM_CATEGORY_LABELS[claim.category]} · {claim.role}</small>
+                  <strong className="text-[11px] font-650 text-[#30373c]">{claim.title}</strong>
                 </div>
-                <span className={`ml-auto rounded px-2 py-[3px] text-[9px] font-650 ${STATUS_BADGE[status]}`}>{STATUS_LABEL[status]}</span>
+                <span className={`ml-auto rounded px-2 py-[3px] text-[10px] font-650 ${STATUS_BADGE[status]}`}>{STATUS_LABEL[status]}</span>
               </div>
 
-              <blockquote className="m-0 my-3 border-l-[3px] border-[#9eabb3] bg-[#f5f7f8] px-3 py-[10px] text-[10px] leading-[1.6] text-[#4f5960]">“{claim.quote}”</blockquote>
+              <blockquote className="m-0 my-3 border-l-[3px] border-[#9eabb3] bg-[#f5f7f8] px-3 py-[10px] text-[11px] leading-[1.6] text-[#4f5960]">“{claim.quote}”</blockquote>
 
               {session ? (
                 <div className="mt-3 flex flex-col gap-3">
-                  <div className="flex gap-[14px] text-muted text-[9px]">
+                  <div className="flex gap-[14px] text-muted text-[10px]">
                     <span>{session.turns.length} 轮</span>
                     <span>覆盖 {session.coveredPoints.length}/{claim.evaluationPoints.length} 要点</span>
                   </div>
                   {session.finalSummary && (
                     <div>
-                      <h3 className="flex items-center gap-[6px] m-0 mb-[6px] text-[9px] text-[#465057]"><Check size={13} className="text-green" />结论</h3>
-                      <p className="m-0 text-muted text-[9px] leading-[1.6]">{session.finalSummary}</p>
+                      <h3 className="flex items-center gap-[6px] m-0 mb-[6px] text-[10px] text-[#465057]"><Check size={13} className="text-green" />结论</h3>
+                      <p className="m-0 text-muted text-[10px] leading-[1.6]">{session.finalSummary}</p>
                     </div>
                   )}
                   {session.missingPoints.length > 0 && (
                     <div>
-                      <h3 className="flex items-center gap-[6px] m-0 mb-[6px] text-[9px] text-[#465057]"><AlertTriangle size={13} className="text-amber" />仍缺失</h3>
-                      <p className="m-0 text-muted text-[9px] leading-[1.6]">{session.missingPoints.join('；')}</p>
+                      <h3 className="flex items-center gap-[6px] m-0 mb-[6px] text-[10px] text-[#465057]"><AlertTriangle size={13} className="text-amber" />仍缺失</h3>
+                      <p className="m-0 text-muted text-[10px] leading-[1.6]">{session.missingPoints.join('；')}</p>
                     </div>
                   )}
                   {session.rewriteSuggestion && (
                     <div>
-                      <h3 className="m-0 mb-[6px] text-[9px] text-[#465057]">改写建议</h3>
-                      <pre className="m-0 whitespace-pre-wrap break-words rounded-[4px] border border-[#cfe6da] bg-[#f1f7f3] px-3 py-[10px] text-[9px] leading-[1.7] text-[#2a3328]">{session.rewriteSuggestion}</pre>
+                      <h3 className="m-0 mb-[6px] text-[10px] text-[#465057]">改写建议</h3>
+                      <pre className="m-0 whitespace-pre-wrap break-words rounded-[4px] border border-[#cfe6da] bg-[#f1f7f3] px-3 py-[10px] text-[10px] leading-[1.7] text-[#2a3328]">{session.rewriteSuggestion}</pre>
                     </div>
                   )}
                   <div className="flex gap-2">

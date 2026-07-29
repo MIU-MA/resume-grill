@@ -48,6 +48,7 @@ function App() {
   const [interviewHint, setInterviewHint] = useState(false)
   const [toast, setToast] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   // 当前 LLM 模式：本地 Key / 服务端 Key / 规则示例
   const [envConfigured, setEnvConfigured] = useState(false)
@@ -320,7 +321,7 @@ function App() {
   return (
     <div className="min-h-screen bg-canvas">
       {toast && (
-        <div className="fixed top-[70px] left-1/2 z-50 flex max-w-[520px] -translate-x-1/2 items-center gap-2 rounded-[5px] border border-[#b9dfcd] bg-[#f0faf5] px-[11px] py-[9px] text-[9px] text-[#24553f] shadow-[0_8px_26px_rgba(27,40,34,.13)]" role="status">
+        <div className="fixed top-[70px] left-1/2 z-50 flex max-w-[520px] -translate-x-1/2 items-center gap-2 rounded-[5px] border border-[#b9dfcd] bg-[#f0faf5] px-[11px] py-[9px] text-[10px] text-[#24553f] shadow-[0_8px_26px_rgba(27,40,34,.13)]" role="status">
           <Check size={15} />
           <span>{toast}</span>
           <button type="button" className="ml-[6px] grid place-items-center bg-transparent p-0 text-[#658273] cursor-pointer" onClick={() => setToast('')} aria-label="关闭提示"><X size={14} /></button>
@@ -355,7 +356,7 @@ function App() {
           }}
         />
       ) : (
-        <div className="grid grid-cols-[1fr_280px] max-md2:grid-cols-[1fr]">
+        <div className={`grid ${sidebarOpen ? 'grid-cols-[1fr_280px]' : 'grid-cols-[1fr]'} max-md2:grid-cols-[1fr]`}>
           {mode === 'audit' ? (
             <AuditView
               analysis={analysis}
@@ -395,6 +396,8 @@ function App() {
             missing={missing}
             turnCount={turns.length}
             onStartInterview={startInterview}
+            sidebarOpen={sidebarOpen}
+            onToggleSidebar={() => setSidebarOpen((v) => !v)}
           />
         </div>
       )}
