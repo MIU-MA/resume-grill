@@ -27,7 +27,7 @@ export function InsightPanel({
   const risk = claimRisk(selected.askLikelihood, selected.evidenceStrength)
 
   return (
-    <aside className="border-l border-line bg-surface min-h-[calc(100vh-58px)] max-md2:hidden">
+    <aside className="border-l border-line bg-surface overflow-y-auto max-md2:hidden" style={{ maxHeight: 'calc(100vh - 54px)' }}>
       <div className="flex h-[42px] items-center gap-[7px] border-b border-line px-4 text-[10px] text-[#3e484e]"><BarChart3 size={15} /><strong>{mode === 'audit' ? '风险依据' : '本轮状态'}</strong></div>
       {mode === 'audit' ? (
         <>

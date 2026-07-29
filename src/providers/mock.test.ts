@@ -55,6 +55,7 @@ const baseClaim: ResumeClaim = {
   title: 't',
   category: 'achievement',
   role: '销售',
+  sourceSection: '工作经历',
   askLikelihood: 90,
   evidenceStrength: 25,
   evidence: [],

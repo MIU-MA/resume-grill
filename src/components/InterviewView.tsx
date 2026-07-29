@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { AlertTriangle, ArrowLeft, ArrowRight, Check, CircleHelp, Loader2, MessageSquareText, Sparkles } from 'lucide-react'
 import type { ResumeClaim } from '@/domain/resume-schema'
 import type { InterviewTurn } from '@/domain/interview-schema'
@@ -22,6 +23,40 @@ type InterviewViewProps = {
   onBackToAudit: () => void
 }
 
+// 聊天气泡：面试官（左对齐，中性灰）
+function InterviewerBubble({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-2.5 max-w-[85%]">
+      <div className="grid size-7 place-items-center rounded-full bg-[#e7ecef] text-[#28343a] flex-none mt-0.5">
+        <MessageSquareText size={13} />
+      </div>
+      <div className="rounded-xl rounded-tl-[4px] bg-[#f0f3f5] px-3.5 py-2.5 text-[12px] leading-[1.55] text-[#30373c]">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// 用户气泡（右对齐，品牌色）
+function UserBubble({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex justify-end">
+      <div className="max-w-[85%] rounded-xl rounded-tr-[4px] bg-brand px-3.5 py-2.5 text-[12px] leading-[1.55] text-white">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// 系统消息（居中，浅色）
+function SystemMsg({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex justify-center">
+      <span className="rounded-full bg-[#eef1f2] px-3 py-1 text-faint text-[9px]">{children}</span>
+    </div>
+  )
+}
+
 export function InterviewView({
   selected,
   turns,
@@ -41,75 +76,127 @@ export function InterviewView({
   const totalPoints = selected.evaluationPoints.length
   const coverage = totalPoints > 0 ? Math.round((covered.length / totalPoints) * 100) : 0
   const roundLabel = done ? `已完成 ${turns.length} 轮` : `第 ${turns.length + 1} 轮`
+  const chatEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [turns.length, currentQuestion])
 
   return (
-    <main className="min-w-0 bg-canvas min-h-[calc(100vh-58px)]">
-      <div className="flex h-[46px] items-center justify-between bg-white px-6 border-b border-line">
-        <button type="button" className="flex items-center gap-[6px] bg-transparent text-muted text-[9px] hover:text-ink" onClick={onBackToAudit}><ArrowLeft size={15} />返回风险报告</button>
-        <span className="text-muted font-mono text-[9px] font-600">模拟追问 · {roundLabel}</span>
+    <main className="flex flex-col min-w-0 bg-canvas" style={{ maxHeight: 'calc(100vh - 54px)' }}>
+      {/* 顶部栏 */}
+      <div className="flex h-[44px] items-center justify-between border-b border-line bg-white px-5 flex-none">
+        <button type="button" className="flex items-center gap-1.5 bg-transparent text-muted text-[10px] hover:text-ink" onClick={onBackToAudit}>
+          <ArrowLeft size={14} />返回
+        </button>
+        <div className="flex items-center gap-2 text-center min-w-0">
+          <strong className="text-[11px] text-[#1a2024] truncate max-w-[200px]">{selected.title}</strong>
+          <span className="text-faint text-[9px] flex-none">· {roundLabel}</span>
+        </div>
       </div>
-      <div className="h-[3px] bg-[#e4e8ea]"><span className="block h-full bg-brand transition-[width] duration-300" style={{ width: `${coverage}%` }} /></div>
+      <div className="h-[3px] bg-[#e4e8ea] flex-none"><span className="block h-full bg-brand transition-[width] duration-300" style={{ width: `${coverage}%` }} /></div>
 
-      <div className="mx-auto max-w-[760px] px-[38px] pt-[54px] pb-[70px] max-md1:px-[18px] max-md1:pt-[34px] max-md1:pb-[50px]">
-        <div className="flex items-center gap-[6px] text-brand text-[9px] font-750 uppercase"><MessageSquareText size={14} />面试官 · 动态追问</div>
-        {currentQuestion && (
-          <>
-            <h1 className="mt-3 mb-[9px] max-w-[700px] text-[24px] leading-[1.45] text-[#172026] max-md1:text-[20px]">{currentQuestion.question}</h1>
-            <p className="m-0 text-muted text-[10px]">这道题在验证：{currentQuestion.intent}</p>
-          </>
-        )}
-
-        <label className="mt-[29px] block">
-          <span className="mb-[7px] block text-[9px] font-750 text-[#404a50]">你的回答</span>
-          <textarea
-            className="w-full min-h-[178px] resize-y rounded-md border border-line-strong bg-white px-[15px] pt-[14px] pb-[30px] text-[11px] leading-[1.7] text-[#283136] disabled:bg-[#f8f9fa]"
-            value={answer}
-            onChange={(event) => onAnswerChange(event.target.value)}
-            disabled={loading || done}
-            placeholder="按真实面试的方式回答。先说结论，再结合项目说明取舍和实现细节…"
-          />
-          <small className="relative float-right -mt-[26px] mr-3 text-faint text-[8px]">{answer.length} 字</small>
-        </label>
-
-        {!done ? (
-          <div className="mt-3 flex items-center justify-between">
-            <Button variant="secondary" onClick={onToggleHint}><CircleHelp size={14} />{showHint ? '隐藏提示' : '查看提示'}</Button>
-            <Button variant="primary" size="large" disabled={answer.trim().length < 8 || loading} onClick={onSubmit}>
-              {loading ? <Loader2 size={15} className="animate-spin" /> : null}
-              {loading ? '生成下一问…' : '提交回答'}
-              {!loading && <ArrowRight size={15} />}
-            </Button>
+      {/* 聊天区 — 可滚动 */}
+      <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="mx-auto max-w-[640px] flex flex-col gap-3">
+          {/* 系统消息：声明原文 */}
+          <SystemMsg>正在验证声明</SystemMsg>
+          <div className="rounded-lg border border-line bg-white px-3.5 py-2.5 text-[11px] leading-[1.6] text-[#4f5960]">
+            “{selected.quote}”
           </div>
-        ) : (
-          <div className="mt-3 flex items-center justify-end gap-3">
-            <span className="text-green text-[9px]">本轮追问已完成</span>
-            <Button variant="primary" size="large" onClick={onFinish}>完成本轮<ArrowRight size={15} /></Button>
-          </div>
-        )}
 
-        {showHint && !done && (
-          <div className="mt-[14px] flex gap-[10px] rounded-[5px] border border-[#ead5ae] bg-amber-soft p-3 text-[#72521e]">
-            <Sparkles size={15} className="flex-none" />
-            <div><strong className="block text-[9px]">回答应覆盖</strong><p className="m-0 mt-1 text-[9px]">{selected.evaluationPoints.join('、')}</p></div>
-          </div>
-        )}
-
-        {(turns.length > 0 || done) && (
-          <section className="mt-5 grid grid-cols-[122px_1fr] rounded-md border border-line bg-white max-md1:grid-cols-1">
-            <div className="flex min-h-[170px] flex-col items-center justify-center border-r border-line max-md1:min-h-[110px] max-md1:border-r-0 max-md1:border-b">
-              <strong className="text-brand text-[34px] leading-none">{covered.length}</strong>
-              <span className="text-faint text-[9px]">/ {totalPoints} 要点</span>
-              <small className="mt-[10px] rounded bg-brand-soft px-[7px] py-[3px] text-brand text-[8px]">已覆盖 {coverage}%</small>
+          {/* 历史对话 */}
+          {turns.map((turn, i) => (
+            <div key={i} className="flex flex-col gap-3">
+              <InterviewerBubble>{turn.question}</InterviewerBubble>
+              <UserBubble>{turn.answer}</UserBubble>
             </div>
-            <div className="p-4 px-[18px]">
-              <h3 className="m-0 mb-[7px] text-[9px] text-[#4e585e]">回答命中</h3>
-              {covered.length === 0 && <p className="text-amber text-[9px]">暂无命中要点，继续回答试试。</p>}
-              {covered.map((point) => <p className="flex items-start gap-[7px] my-[6px] text-muted text-[9px] leading-[1.45]" key={point}><Check size={13} className="mt-px flex-none text-green" />{point}</p>)}
-              {missing.length > 0 && <h3 className="mt-3 mb-[7px] text-[9px] text-[#4e585e]">建议补充</h3>}
-              {missing.map((point) => <p className="flex items-start gap-[7px] my-[6px] text-muted text-[9px] leading-[1.45]" key={point}><AlertTriangle size={13} className="mt-px flex-none text-amber" />{point}</p>)}
+          ))}
+
+          {/* 当前追问 */}
+          {currentQuestion && !done && (
+            <InterviewerBubble>{currentQuestion.question}</InterviewerBubble>
+          )}
+
+          {/* 完成消息 */}
+          {done && (
+            <SystemMsg>本轮追问已完成 · 覆盖 {covered.length}/{totalPoints} 要点 · {coverage}%</SystemMsg>
+          )}
+
+          {/* 覆盖进度提示 */}
+          {turns.length > 0 && (
+            <div className="flex flex-col gap-1.5 pt-1">
+              <div className="flex flex-wrap gap-1.5">
+                {selected.evaluationPoints.map((point) => (
+                  <span
+                    key={point}
+                    className={`rounded px-2 py-0.5 text-[8px] ${covered.includes(point) ? 'text-green bg-green-soft' : 'text-faint bg-[#eef1f2]'}`}
+                  >
+                    {covered.includes(point) && <Check size={10} className="inline mr-1" />}
+                    {point}
+                  </span>
+                ))}
+              </div>
+              {missing.length > 0 && (
+                <p className="flex items-start gap-1 text-[9px] text-amber">
+                  <AlertTriangle size={11} className="mt-0.5 flex-none" />
+                  建议补充：{missing.slice(0, 3).join('、')}
+                </p>
+              )}
             </div>
-          </section>
-        )}
+          )}
+
+          <div ref={chatEndRef} />
+        </div>
+      </div>
+
+      {/* 底部输入栏 */}
+      <div className="border-t border-line bg-white px-5 py-3 flex-none">
+        <div className="mx-auto max-w-[640px]">
+          {!done ? (
+            <div className="flex gap-2">
+              <div className="flex-1 flex flex-col gap-1.5">
+                <textarea
+                  className="w-full resize-none rounded-lg border border-line-strong bg-white px-3 py-2 text-[11px] leading-[1.6] text-[#283136] placeholder:text-faint min-h-[52px] max-h-[120px]"
+                  value={answer}
+                  onChange={(event) => onAnswerChange(event.target.value)}
+                  disabled={loading || done}
+                  placeholder="按真实面试的方式回答…"
+                  rows={2}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                      event.preventDefault()
+                      if (answer.trim().length >= 8 && !loading) onSubmit()
+                    }
+                  }}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Button variant="primary" className="h-full px-4 flex-col gap-1" disabled={answer.trim().length < 8 || loading} onClick={onSubmit}>
+                  {loading ? <Loader2 size={14} className="animate-spin" /> : <ArrowRight size={14} />}
+                  <span className="text-[9px]">{loading ? '…' : '发送'}</span>
+                </Button>
+                <Button variant="secondary" className="h-8 px-2" onClick={onToggleHint}>
+                  <CircleHelp size={12} />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center">
+              <Button variant="primary" size="large" onClick={onFinish}>完成本轮<ArrowRight size={15} /></Button>
+            </div>
+          )}
+
+          {showHint && !done && (
+            <div className="mt-2 flex gap-2 rounded-md border border-[#ead5ae] bg-amber-soft p-2.5 text-[#72521e]">
+              <Sparkles size={14} className="flex-none mt-0.5" />
+              <div>
+                <strong className="block text-[9px]">回答应覆盖</strong>
+                <p className="m-0 mt-0.5 text-[9px] leading-[1.45]">{selected.evaluationPoints.join('、')}</p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </main>
   )

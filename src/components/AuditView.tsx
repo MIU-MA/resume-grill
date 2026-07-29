@@ -1,16 +1,12 @@
-import { useState } from 'react'
-import { ArrowRight, BookOpenCheck, ChevronDown, CircleHelp, ClipboardList, Code2, Flame, MessageSquareText } from 'lucide-react'
-import { CLAIM_CATEGORY_LABELS, type ClaimCategory, type ResumeAnalysis, type ResumeClaim } from '@/domain/resume-schema'
+import { BookOpenCheck, ChevronDown, CircleHelp, ClipboardList, Flame, MessageSquareText } from 'lucide-react'
+import { CLAIM_CATEGORY_LABELS, type ResumeAnalysis, type ResumeClaim } from '@/domain/resume-schema'
 import { claimRisk, type AuditStats, type RiskMeta } from '@/lib/risk'
 import { Button } from '@/components/Button'
 
-const CATEGORY_BLURB: Record<ClaimCategory, string> = {
-  skill: '技能声明需要说明使用场景与深度，而非罗列名词。',
-  responsibility: '职责声明要区分“负责”的具体决策范围与边界。',
-  achievement: '成果声明通常需要量化基线、统计口径与个人贡献。',
-  scale: '规模声明要说明统计方式、周期与可比基准。',
-  ability: '能力声明需要可复述的具体案例，而非形容词。',
-  honor: '荣誉声明要说明级别、含金量与个人贡献。',
+const RISK_DOT: Record<RiskMeta['color'], string> = {
+  red: 'bg-red shadow-[0_0_0_3px_var(--color-red-soft)]',
+  amber: 'bg-amber shadow-[0_0_0_3px_var(--color-amber-soft)]',
+  green: 'bg-green shadow-[0_0_0_3px_var(--color-green-soft)]',
 }
 
 const RISK_BADGE: Record<RiskMeta['color'], string> = {
@@ -19,105 +15,139 @@ const RISK_BADGE: Record<RiskMeta['color'], string> = {
   green: 'text-[#1e6545] bg-green-soft',
 }
 
+type ClaimEntry = { claim: ResumeClaim; index: number }
+type SectionGroup = { section: string; claims: ClaimEntry[] }
+
+function groupBySection(claims: ResumeClaim[]): SectionGroup[] {
+  const map = new Map<string, { claim: ResumeClaim; index: number }[]>()
+  claims.forEach((claim, index) => {
+    const sec = claim.sourceSection || '其他'
+    if (!map.has(sec)) map.set(sec, [])
+    map.get(sec)!.push({ claim, index })
+  })
+  // 维持每组首次出现的顺序
+  return [...map.entries()].map(([section, claims]) => ({ section, claims }))
+}
+
 type AuditViewProps = {
   analysis: ResumeAnalysis
-  selected: ResumeClaim
+  selectedIndex: number
   stats: AuditStats
+  onSelect: (index: number) => void
   onStartInterview: () => void
   onReport: () => void
 }
 
-export function AuditView({ analysis, selected, stats, onStartInterview, onReport }: AuditViewProps) {
-  const [expanded, setExpanded] = useState(true)
-  const risk = claimRisk(selected.askLikelihood, selected.evidenceStrength)
+export function AuditView({ analysis, selectedIndex, stats, onSelect, onStartInterview, onReport }: AuditViewProps) {
+  const sections = groupBySection(analysis.claims)
 
   return (
-    <main className="min-w-0 bg-canvas">
-      <section className="md3:grid-cols-4 max-md1:grid-cols-2 grid grid-cols-4 bg-white border-b border-line max-md1:h-auto">
-        <div className="grid grid-cols-[auto_auto_1fr] content-center gap-x-1 border-r border-line px-[18px] py-0 h-[76px] max-md1:min-h-[62px] max-md1:border-b">
-          <span className="col-span-full text-muted text-[9px] mb-[2px]">被追问概率(均)</span>
-          <strong className="text-red text-[20px] leading-none">{stats.avgAskLikelihood}</strong>
-          <small className="self-end pb-px text-faint text-[8px]">/ 100</small>
+    <main className="min-w-0 bg-canvas overflow-y-auto" style={{ maxHeight: 'calc(100vh - 54px)' }}>
+      {/* 风险摘要条 */}
+      <div className="flex items-center gap-6 border-b border-line bg-white px-6 py-3">
+        <div className="flex items-center gap-2 text-[13px]">
+          <Flame size={16} className="text-red" />
+          <strong className="text-[#252d32]">{stats.weakClaimCount}</strong>
+          <span className="text-muted text-[10px]">薄弱声明</span>
         </div>
-        <div className="grid grid-cols-[auto_auto_1fr] content-center gap-x-1 border-r border-line px-[18px] py-0 h-[76px] max-md1:min-h-[62px] max-md1:border-b">
-          <span className="col-span-full text-muted text-[9px] mb-[2px]">简历声明</span>
-          <strong className="text-[#252d32] text-[20px] leading-none">{stats.claimCount}</strong>
-          <small className="self-end pb-px text-faint text-[8px]">条</small>
+        <div className="flex items-center gap-2 text-[13px]">
+          <span className="text-amber font-750">⚠</span>
+          <strong className="text-[#252d32]">{stats.totalGaps}</strong>
+          <span className="text-muted text-[10px]">待补证据</span>
         </div>
-        <div className="grid grid-cols-[auto_auto_1fr] content-center gap-x-1 border-r border-line px-[18px] py-0 h-[76px] max-md1:min-h-[62px] max-md1:border-b max-md1:border-r-0">
-          <span className="col-span-full text-muted text-[9px] mb-[2px]">薄弱声明</span>
-          <strong className="text-[#252d32] text-[20px] leading-none">{stats.weakClaimCount}</strong>
-          <small className="self-end pb-px text-faint text-[8px]">条</small>
+        <div className="flex items-center gap-2 text-[13px]">
+          <span className="text-green font-750">✓</span>
+          <strong className="text-[#252d32]">{stats.claimCount - stats.weakClaimCount}</strong>
+          <span className="text-muted text-[10px]">较稳固</span>
         </div>
-        <div className="grid grid-cols-[auto_auto_1fr] content-center gap-x-1 px-[18px] py-0 h-[76px] max-md1:min-h-[62px] max-md1:border-r-0">
-          <span className="col-span-full text-muted text-[9px] mb-[2px]">待补证据</span>
-          <strong className="text-[#252d32] text-[20px] leading-none">{stats.totalGaps}</strong>
-          <small className="self-end pb-px text-faint text-[8px]">处</small>
+        <div className="ml-auto flex items-center gap-1.5 text-muted text-[9px]">
+          <span>被追问概率均值</span>
+          <strong className="text-[#252d32] text-[13px]">{stats.avgAskLikelihood}</strong>
+          <span>/ 100</span>
         </div>
-      </section>
+      </div>
 
-      <section className="bg-surface border-b border-line px-[30px] py-7 pb-6 max-md1:px-5">
-        <div className="flex items-center gap-[5px] text-brand text-[9px] font-750 uppercase"><Code2 size={13} />{CLAIM_CATEGORY_LABELS[selected.category]} · {selected.role}</div>
-        <div className="flex items-start justify-between gap-5 mt-2 max-md1:flex-col">
-          <div>
-            <h1 className="m-0 text-[21px] leading-[1.25] text-[#182025] max-md1:text-[19px]">{selected.title}</h1>
-            <p className="m-0 mt-[7px] max-w-[650px] text-muted text-[10px] leading-[1.6]">{CATEGORY_BLURB[selected.category]}</p>
+      {/* 声明列表 — 按段分组 */}
+      <div className="px-6 pt-5 pb-10">
+        {sections.map(({ section, claims: groupClaims }) => (
+          <div key={section} className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="m-0 text-[13px] font-bold text-[#232b30]">{section}</h2>
+              <span className="text-faint text-[9px]">{groupClaims.length} 条声明</span>
+            </div>
+            <div className="flex flex-col gap-2">
+              {groupClaims.map(({ claim, index }: ClaimEntry) => {
+                const r = claimRisk(claim.askLikelihood, claim.evidenceStrength)
+                const isActive = index === selectedIndex
+                return (
+                  <article
+                    key={index}
+                    className={`rounded-md border bg-white transition-colors ${isActive ? 'border-brand ring-1 ring-brand/20' : 'border-line hover:border-line-strong'}`}
+                  >
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left"
+                      onClick={() => onSelect(index)}
+                    >
+                      <span className={`size-2 rounded-full flex-none ${RISK_DOT[r.color]}`} />
+                      <div className="flex min-w-0 flex-1 flex-col">
+                        <div className="flex items-center gap-2">
+                          <small className="text-faint text-[8px]">{CLAIM_CATEGORY_LABELS[claim.category]} · {claim.role}</small>
+                          <span className={`rounded px-1.5 py-px text-[8px] font-650 ${RISK_BADGE[r.color]}`}>{r.label}</span>
+                        </div>
+                        <strong className="text-[12px] font-650 text-[#30373c] mt-0.5">{claim.title}</strong>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[11px] font-600 text-[#252d32]">{claim.askLikelihood}%</span>
+                        <span className="text-faint text-[8px]">追问概率</span>
+                      </div>
+                      <ChevronDown size={14} className={`text-muted ml-1 transition-transform duration-200 flex-none ${isActive ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {/* 展开详情 */}
+                    {isActive && (
+                      <div className="border-t border-line px-4 pb-4 pt-3">
+                        <blockquote className="relative m-0 mb-4 border-l-[3px] border-[#9eabb3] bg-[#f5f7f8] py-2 pl-3 text-[10px] leading-[1.6] text-[#4f5960]">
+                          “{claim.quote}”
+                        </blockquote>
+
+                        <div className="mb-4">
+                          <div className="flex items-center gap-2 mb-1 text-[9px] font-700 text-[#414b51]"><BookOpenCheck size={12} className="text-brand" />首轮追问</div>
+                          <p className="m-0 text-[10px] text-[#2d353a] leading-[1.5]">{claim.initialQuestion}</p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1 text-[9px] font-700 text-[#414b51]"><CircleHelp size={12} className="text-brand" />证据缺口</div>
+                            {claim.evidenceGaps.length === 0 ? <p className="m-0 text-faint text-[9px]">—</p> : claim.evidenceGaps.map((g: string) => (
+                              <p key={g} className="relative my-1 pl-2.5 text-muted text-[9px] leading-[1.5] before:absolute before:left-0 before:top-[5px] before:size-1 before:rounded-full before:bg-amber">{g}</p>
+                            ))}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-1 text-[9px] font-700 text-[#414b51]"><BookOpenCheck size={12} className="text-green" />评估要点</div>
+                            {claim.evaluationPoints.map((p) => (
+                              <p key={p} className="relative my-1 pl-2.5 text-muted text-[9px] leading-[1.5] before:absolute before:left-0 before:top-[5px] before:size-1 before:rounded-full before:bg-[#8ea09a]">{p}</p>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Button variant="primary" size="large" className="h-[34px]" onClick={onStartInterview}>
+                            <MessageSquareText size={14} />开始模拟拷打
+                          </Button>
+                          <Button variant="secondary" className="h-[34px]" onClick={onReport}>
+                            <ClipboardList size={13} />会话报告
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </article>
+                )
+              })}
+            </div>
           </div>
-          <div className={`flex h-7 flex-none items-center gap-[5px] rounded px-[9px] text-[9px] font-750 ${RISK_BADGE[risk.color]}`}>
-            <Flame size={14} />{risk.label} · {selected.askLikelihood}
-          </div>
-        </div>
-        <blockquote className="relative m-0 mt-[18px] border-l-[3px] border-[#9eabb3] bg-[#f5f7f8] px-[14px] py-3 pl-[82px] text-[10px] leading-[1.6] text-[#4f5960] max-md1:pl-[13px] max-md1:pt-8">
-          <span className="absolute left-[13px] top-[13px] text-faint text-[8px] font-750 uppercase max-md1:top-[10px]">简历原文</span>
-          “{selected.quote}”
-        </blockquote>
-      </section>
-
-      <section className="px-[30px] pt-6 pb-9 max-md1:px-5">
-        <div className="flex items-end justify-between gap-5 mb-3">
-          <div>
-            <h2 className="m-0 text-[13px] text-[#232b30]">首轮追问</h2>
-            <p className="m-0 mt-1 text-muted text-[9px]">后续问题会在模拟面试中根据你的回答动态生成，而非随机抽取。</p>
-          </div>
-          <span className="text-faint text-[9px]">动态追问</span>
-        </div>
-        <div className="border-t border-line-strong bg-white">
-          <article className={`border-b border-line ${expanded ? '[&_button]:bg-[#f7f9fa]' : ''}`}>
-            <button type="button" className="grid w-full min-h-[58px] grid-cols-[28px_minmax(0,1fr)_18px] items-center gap-[11px] bg-white px-[13px] py-[9px] text-left hover:bg-[#fafbfb]" onClick={() => setExpanded((v) => !v)}>
-              <span className={`grid size-[25px] place-items-center rounded-full border font-mono text-[9px] font-650 ${expanded ? 'border-[#27343b] bg-[#27343b] text-white' : 'border-line-strong text-muted'}`}>1</span>
-              <span className="flex min-w-0 flex-col gap-[3px]">
-                <small className="text-faint text-[8px]">首轮追问</small>
-                <strong className="text-[10px] font-650 leading-[1.45] text-[#2d353a]">{selected.initialQuestion}</strong>
-              </span>
-              <ChevronDown size={16} className={`text-[#8a949a] transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
-            </button>
-            {expanded && (
-              <div className="md3:grid-cols-[1fr_1.4fr] grid grid-cols-[1fr_1.4fr] gap-5 bg-[#f7f9fa] px-[52px] pb-[15px] max-md3:grid-cols-1 max-md3:gap-[10px] max-md1:pl-[52px] max-md1:pr-4">
-                <div className="flex items-start gap-2">
-                  <CircleHelp size={14} className="mt-[2px] flex-none text-brand" />
-                  <p className="m-0 text-muted text-[9px] leading-[1.55]"><span className="block text-[#414b51] font-750 mb-[2px]">考察意图</span>验证这条声明是否经得起追问。</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <BookOpenCheck size={14} className="mt-[2px] flex-none text-brand" />
-                  <p className="m-0 text-muted text-[9px] leading-[1.55]"><span className="block text-[#414b51] font-750 mb-[2px]">回答应覆盖</span>{selected.evaluationPoints.join('；')}</p>
-                </div>
-              </div>
-            )}
-          </article>
-        </div>
-      </section>
-
-      <button type="button" className="md2:hidden relative mb-[18px] ml-5 mr-5 block w-[calc(100%-40px)] min-h-[65px] rounded-md bg-[#1d272c] px-[34px] py-3 pl-[13px] text-left text-white max-md1:ml-3 max-md1:mr-3 max-md1:w-[calc(100%-24px)]" onClick={onStartInterview}>
-        <span className="flex items-center gap-[7px]"><MessageSquareText size={16} /><b className="text-[10px]">开始模拟拷打</b></span>
-        <small className="mt-[5px] ml-[23px] block text-[8px] text-[#aeb8bd]">从首轮追问开始，回答后继续动态追问</small>
-        <ArrowRight size={16} className="absolute right-3 top-6 text-[#b9c1c5]" />
-      </button>
-
-      <Button variant="secondary" className="mx-[30px] mb-[18px]" onClick={onReport}>
-        <ClipboardList size={14} />查看会话报告与改写建议
-      </Button>
-
-      <p className="m-0 px-[30px] pt-[18px] pb-[30px] text-muted text-[10px] leading-[1.6]">{analysis.summary}</p>
+        ))}
+      </div>
     </main>
   )
 }

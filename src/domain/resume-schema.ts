@@ -30,6 +30,8 @@ export const resumeClaimSchema = z.object({
   category: claimCategorySchema,
   // 对应岗位 / 职能
   role: z.string(),
+  // 该声明出自简历哪一段（如 "工作经历" / "项目经验" / "技能"），用于分析页分组展示
+  sourceSection: z.string(),
   // 被追问概率 0-100：越高越可能在面试中被深挖（含数字的成果/规模声明通常偏高）
   askLikelihood: z.number().min(0).max(100),
   // 证据完整度 0-100：越高表示简历中已提供的证据越充分、越稳固

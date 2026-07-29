@@ -104,6 +104,21 @@ function detectCandidate(text: string): string {
   return firstLine.length <= 12 ? firstLine : firstLine.slice(0, 12)
 }
 
+function detectSourceSection(text: string, quote: string): string {
+  const idx = text.indexOf(quote)
+  if (idx < 0) return '其他'
+  const before = text.slice(0, idx).split('\n')
+  for (let i = before.length - 1; i >= 0; i--) {
+    const line = before[i].trim()
+    if (!line) continue
+    // 段标题通常短且带冒号或为常见标题
+    if (/[:：]$/.test(line) && line.length <= 20) return line.replace(/[:：]$/, '')
+    if (/^(工作经历|项目经验|教育背景|实习经历|技能|荣誉奖项|自我介绍|个人总结|语言能力|证书)$/.test(line)) return line
+    if (/^(经历|经验|项目|技能|教育|荣誉|证书|奖项|总结|简介|能力)$/.test(line)) return line
+  }
+  return '其他'
+}
+
 function hasNumber(s: string): boolean {
   return /\d/.test(s)
 }
@@ -184,11 +199,13 @@ export function mockAnalyze(rawText: string, sourceFile: string): ResumeAnalysis
     const category = detectCategory(quote)
     const tpl = CATEGORY_TEMPLATES[category]
     const m = metricsFor(category, hasNumber(quote), index)
+    const section = detectSourceSection(rawText, quote)
     return {
       quote,
       title: quote.length > 14 ? `${quote.slice(0, 14)}…` : quote,
       category,
       role,
+      sourceSection: section,
       askLikelihood: m.askLikelihood,
       evidenceStrength: m.evidenceStrength,
       evidence: hasNumber(quote) ? ['简历中已给出量化数据'] : ['简历中提及该表述'],
@@ -207,6 +224,7 @@ export function mockAnalyze(rawText: string, sourceFile: string): ResumeAnalysis
             title: '示例声明',
             category: 'ability',
             role,
+            sourceSection: '其他',
             askLikelihood: 50,
             evidenceStrength: 20,
             evidence: [],

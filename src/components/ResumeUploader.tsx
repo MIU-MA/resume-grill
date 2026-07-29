@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { FileText, Loader2, Sparkles, Upload, FileSearch } from 'lucide-react'
+import { FileText, Loader2, Upload, FileSearch, Settings } from 'lucide-react'
 import { ModelSettings } from '@/components/ModelSettings'
 import { extractTextFromFile, type ExtractedText } from '@/lib/pdf'
 import { Button } from '@/components/Button'
@@ -34,6 +34,7 @@ type ResumeUploaderProps = {
 export function ResumeUploader({ analyzing, error, onExtracted, envConfigured, clientConfigured, onClientChanged }: ResumeUploaderProps) {
   const [paste, setPaste] = useState('')
   const [fileName, setFileName] = useState<string | null>(null)
+  const [showSettings, setShowSettings] = useState(false)
 
   const handleFile = async (file?: File) => {
     if (!file) return
@@ -52,36 +53,42 @@ export function ResumeUploader({ analyzing, error, onExtracted, envConfigured, c
     if (text.length > 0) onExtracted({ text, pageCount: 1, charCount: text.length }, '粘贴文本')
   }
 
-  const handleSample = () => {
-    onExtracted({ text: SAMPLE_RESUME, pageCount: 1, charCount: SAMPLE_RESUME.length }, '示例简历.txt')
-  }
-
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-canvas px-5 py-10">
-      <div className="mb-6 flex items-center gap-[10px]">
-        <div className="grid size-[30px] place-items-center rounded-[5px] text-white bg-[#1b2328]"><FileSearch size={20} /></div>
-        <div>
-          <strong className="text-[15px] leading-[1.3]">简历拷打机</strong>
-          <span className="block text-faint text-[9px] uppercase">Resume Drill</span>
+      {/* 设置入口 — 右上角浮动齿轮 */}
+      <button
+        type="button"
+        onClick={() => setShowSettings((v) => !v)}
+        className="fixed top-4 right-4 z-20 grid size-9 place-items-center rounded-full border border-line bg-white text-muted hover:bg-[#f0f3f5] transition-colors"
+        aria-label="模型设置"
+      >
+        <Settings size={16} />
+      </button>
+
+      {/* 模型设置浮层 */}
+      {showSettings && (
+        <div className="fixed top-14 right-4 z-30 w-[380px] max-w-[calc(100vw-40px)]">
+          <ModelSettings
+            envConfigured={envConfigured}
+            clientConfigured={clientConfigured}
+            onClientChanged={() => {
+              onClientChanged()
+              setShowSettings(false)
+            }}
+          />
+        </div>
+      )}
+
+      <div className="mb-8 flex flex-col items-center gap-4">
+        <div className="grid size-11 place-items-center rounded-xl text-white bg-[#1b2328]"><FileSearch size={22} /></div>
+        <div className="text-center">
+          <strong className="block text-[22px] font-bold tracking-tight text-[#182025] leading-[1.2]">上传你的简历</strong>
+          <span className="mt-1 block text-muted text-xs">Resume Grill — 找出经不起追问的声明</span>
         </div>
       </div>
 
-      <div className="w-full max-w-[540px] rounded-[4px] border border-line border-t-[3px] border-t-brand bg-surface px-7 pt-7 pb-[26px] shadow-[0_1px_0_var(--color-line),0_8px_24px_rgba(27,40,34,.04)]">
-        <div className="mb-[6px] text-brand text-[9px] font-750 tracking-[0.08em]">RESUME DRILL</div>
-        <h1 className="m-0 mb-[7px] text-[17px] font-bold leading-[1.4] text-[#182025]">找出经不起追问的简历声明</h1>
-        <p className="m-0 mb-5 text-muted text-[11px] leading-[1.65]">
-          不是根据岗位随机生成八股，而是验证你简历里的每一句成果 / 职责 / 技能声明是否经得起追问。
-          简历在浏览器本地解析，不会上传永久存储。
-        </p>
-
-        <ModelSettings
-          envConfigured={envConfigured}
-          clientConfigured={clientConfigured}
-          onClientChanged={onClientChanged}
-        />
-
-        <div className="mt-1 mb-2 flex items-center gap-[5px] text-muted text-[9px] font-700 uppercase"><Upload size={12} className="text-faint" />上传简历</div>
-        <label className="flex min-h-[132px] cursor-pointer flex-col items-center justify-center gap-[7px] rounded-[4px] border border-dashed border-line-strong bg-[#fafbfb] px-5 py-[22px] text-center transition-[border-color,background,color] duration-[160ms] hover:border-brand hover:bg-brand-soft hover:[&_svg]:text-brand">
+      <div className="w-full max-w-[480px]">
+        <label className="flex min-h-[128px] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line-strong bg-white px-6 py-6 text-center transition-[border-color,background,color] duration-[160ms] hover:border-brand hover:bg-brand-soft hover:[&_svg]:text-brand">
           <input
             type="file"
             accept=".pdf,.txt,.md"
@@ -91,31 +98,36 @@ export function ResumeUploader({ analyzing, error, onExtracted, envConfigured, c
               if (file) handleFile(file).catch(() => undefined)
             }}
           />
-          {analyzing ? <Loader2 size={24} className="animate-spin text-faint" /> : <Upload size={24} className="text-faint transition-colors duration-[160ms]" />}
-          <strong className="text-[12px] font-650 text-[#30373c]">{analyzing ? '正在解析与提取声明…' : '点击上传 PDF / 文本简历'}</strong>
-          <small className="text-faint text-[9px]">{fileName ?? '支持 .pdf / .txt / .md，.doc 暂不支持'}</small>
+          {analyzing ? <Loader2 size={22} className="animate-spin text-faint" /> : <Upload size={22} className="text-faint transition-colors duration-[160ms]" />}
+          <strong className="text-[13px] font-650 text-[#30373c]">{analyzing ? '解析中…' : '点击上传 PDF / 文本简历'}</strong>
+          <small className="text-faint text-[10px]">{fileName ?? '支持 .pdf / .txt / .md'}</small>
         </label>
 
-        <div className="my-4 flex items-center gap-3 text-faint text-[9px] before:flex-1 before:h-px before:bg-line after:flex-1 after:h-px after:bg-line"><span>或粘贴文本</span></div>
+        <div className="my-5 flex items-center gap-3 text-faint text-[10px] before:flex-1 before:h-px before:bg-line after:flex-1 after:h-px after:bg-line">或</div>
 
         <textarea
-          className="w-full min-h-[104px] resize-y rounded-[4px] border border-line-strong bg-white p-[11px] text-[11px] leading-[1.7] text-[#283136] focus:border-brand focus:outline-2 focus:outline-brand focus:outline-offset-[-1px]"
+          className="w-full min-h-[120px] resize-y rounded-lg border border-line-strong bg-white p-3 text-xs leading-relaxed text-[#283136] placeholder:text-faint focus:border-brand focus:outline-brand"
           placeholder={SAMPLE_RESUME.slice(0, 80) + '…'}
           value={paste}
           onChange={(event) => setPaste(event.target.value)}
           disabled={analyzing}
         />
 
-        <div className="mt-4 flex items-center justify-end gap-[9px]">
-          <Button variant="secondary" disabled={analyzing} onClick={handleSample}>
-            <Sparkles size={14} />使用示例简历
+        <div className="mt-5 flex flex-col items-center gap-3">
+          <Button variant="primary" size="large" className="w-full h-11 text-sm" disabled={analyzing || paste.trim().length === 0} onClick={handlePaste}>
+            开始压力测试
           </Button>
-          <Button variant="primary" size="large" disabled={analyzing || paste.trim().length === 0} onClick={handlePaste}>
-            <FileText size={14} />分析粘贴文本
-          </Button>
+          <button
+            type="button"
+            className="bg-transparent text-muted text-[10px] hover:text-ink transition-colors"
+            disabled={analyzing}
+            onClick={() => onExtracted({ text: SAMPLE_RESUME, pageCount: 1, charCount: SAMPLE_RESUME.length }, '示例简历.txt')}
+          >
+            <FileText size={11} className="inline mr-1" />使用示例简历
+          </button>
         </div>
 
-        {error && <p className="mt-[14px] rounded-[0_3px_3px_0] border-l-[3px] border-red bg-red-soft px-3 py-[9px] text-[10px] leading-[1.55] text-[#a13232]">{error}</p>}
+        {error && <p className="mt-4 rounded-[0_4px_4px_0] border-l-[3px] border-red bg-red-soft px-3 py-[9px] text-[11px] leading-[1.55] text-[#a13232]">{error}</p>}
       </div>
     </div>
   )

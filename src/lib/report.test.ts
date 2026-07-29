@@ -14,6 +14,7 @@ const analysis: ResumeAnalysis = {
       title: '销售额提升 30%',
       category: 'achievement',
       role: '销售',
+      sourceSection: '工作经历',
       askLikelihood: 90,
       evidenceStrength: 25,
       evidence: ['简历中提及该表述'],

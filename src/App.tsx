@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { Check, X } from 'lucide-react'
 import { AuditView } from '@/components/AuditView'
-import { ClaimSidebar } from '@/components/ClaimSidebar'
 import { ExtractedTextReview } from '@/components/ExtractedTextReview'
 import { InsightPanel } from '@/components/InsightPanel'
 import { InterviewView } from '@/components/InterviewView'
@@ -330,7 +329,6 @@ function App() {
 
       <Topbar
         analysis={analysis}
-        analyzing={analyzing}
         llmMode={llmMode}
         onReplaceResume={replaceResume}
         onRerun={() => handleConfirmText(analysis.rawText, analysis.sourceFile)}
@@ -357,14 +355,13 @@ function App() {
           }}
         />
       ) : (
-        <div className="md2:grid-cols-[210px_minmax(0,1fr)] md3:grid-cols-[264px_minmax(520px,1fr)_300px] max-md1:block grid min-h-[calc(100vh-58px)] grid-cols-[264px_minmax(520px,1fr)_300px]">
-          <ClaimSidebar analysis={analysis} selectedIndex={selectedIndex} onSelect={selectClaim} />
-
+        <div className="grid grid-cols-[1fr_280px] max-md2:grid-cols-[1fr]">
           {mode === 'audit' ? (
             <AuditView
               analysis={analysis}
-              selected={selected}
+              selectedIndex={selectedIndex}
               stats={stats}
+              onSelect={selectClaim}
               onStartInterview={startInterview}
               onReport={goReport}
             />

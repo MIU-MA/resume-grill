@@ -18,6 +18,7 @@ export const ANALYZE_SYSTEM_PROMPT = `你是一名资深简历面试官。任务
 - title：不超过 14 字的短标题
 - category：skill | responsibility | achievement | scale | ability | honor 之一
 - role：该声明对应的岗位或职能
+- sourceSection：该声明出自简历的哪一段标题，如 "工作经历"、"项目经验"、"教育背景"、"技能" 等。根据简历实际结构推断，不要编造不存在的段名。没有明确段落时填 "其他"。
 - askLikelihood：被追问概率 0-100，越高越可能在面试中被深挖（含数字的成果/规模声明通常偏高）
 - evidenceStrength：证据完整度 0-100，越高表示简历中已提供的证据越充分、越稳固（只有空泛描述而无数据/口径/出处时偏低）
 - evidence：简历中已提供的证据
@@ -32,7 +33,7 @@ export const ANALYZE_SYSTEM_PROMPT = `你是一名资深简历面试官。任务
 - claims：声明数组
 
 严格输出单个 JSON 对象，结构：
-{ "candidate": string, "role": string, "summary": string, "claims": [ { "quote": string, "title": string, "category": "skill|responsibility|achievement|scale|ability|honor", "role": string, "askLikelihood": number, "evidenceStrength": number, "evidence": string[], "evidenceGaps": string[], "initialQuestion": string, "evaluationPoints": string[] } ] }`
+{ "candidate": string, "role": string, "summary": string, "claims": [ { "quote": string, "title": string, "category": "skill|responsibility|achievement|scale|ability|honor", "role": string, "sourceSection": string, "askLikelihood": number, "evidenceStrength": number, "evidence": string[], "evidenceGaps": string[], "initialQuestion": string, "evaluationPoints": string[] } ] }`
 
 export function buildAnalyzeUserPrompt(rawText: string): string {
   return `请分析以下简历文本，sourceFile 字段由调用方回填，你无需输出：\n\n${rawText}`
