@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { FileText, Loader2, Sparkles, Upload, FileSearch } from 'lucide-react'
 import { ModelSettings } from '@/components/ModelSettings'
-import { extractTextFromFile } from '@/lib/pdf'
+import { extractTextFromFile, type ExtractedText } from '@/lib/pdf'
 
 const SAMPLE_RESUME = `张明
 高级销售经理 | 5 年 B2B 销售经验
@@ -24,13 +24,13 @@ YY集团 销售代表 2019-2021
 type ResumeUploaderProps = {
   analyzing: boolean
   error: string | null
-  onAnalyze: (rawText: string, sourceFile: string) => void
+  onExtracted: (extracted: ExtractedText, sourceFile: string) => void
   envConfigured: boolean
   clientConfigured: boolean
   onClientChanged: () => void
 }
 
-export function ResumeUploader({ analyzing, error, onAnalyze, envConfigured, clientConfigured, onClientChanged }: ResumeUploaderProps) {
+export function ResumeUploader({ analyzing, error, onExtracted, envConfigured, clientConfigured, onClientChanged }: ResumeUploaderProps) {
   const [paste, setPaste] = useState('')
   const [fileName, setFileName] = useState<string | null>(null)
 
@@ -38,16 +38,22 @@ export function ResumeUploader({ analyzing, error, onAnalyze, envConfigured, cli
     if (!file) return
     setFileName(file.name)
     try {
-      const text = await extractTextFromFile(file)
-      onAnalyze(text, file.name)
+      const extracted = await extractTextFromFile(file)
+      onExtracted(extracted, file.name)
     } catch (e) {
-      onAnalyze('', file.name)
+      // 提取失败：带空文本进入确认页，让用户看到错误并重传
+      onExtracted({ text: '', pageCount: 0, charCount: 0 }, file.name)
       throw e
     }
   }
 
   const handlePaste = () => {
-    if (paste.trim().length > 0) onAnalyze(paste.trim(), '粘贴文本')
+    const text = paste.trim()
+    if (text.length > 0) onExtracted({ text, pageCount: 1, charCount: text.length }, '粘贴文本')
+  }
+
+  const handleSample = () => {
+    onExtracted({ text: SAMPLE_RESUME, pageCount: 1, charCount: SAMPLE_RESUME.length }, '示例简历.txt')
   }
 
   return (
@@ -101,7 +107,7 @@ export function ResumeUploader({ analyzing, error, onAnalyze, envConfigured, cli
         />
 
         <div className="uploader-actions">
-          <button type="button" className="button secondary" disabled={analyzing} onClick={() => onAnalyze(SAMPLE_RESUME, '示例简历.txt')}>
+          <button type="button" className="button secondary" disabled={analyzing} onClick={handleSample}>
             <Sparkles size={14} />使用示例简历
           </button>
           <button type="button" className="button primary large" disabled={analyzing || paste.trim().length === 0} onClick={handlePaste}>

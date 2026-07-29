@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowRight, BookOpenCheck, ChevronDown, CircleHelp, Code2, Flame, MessageSquareText } from 'lucide-react'
+import { ArrowRight, BookOpenCheck, ChevronDown, CircleHelp, ClipboardList, Code2, Flame, MessageSquareText } from 'lucide-react'
 import { CLAIM_CATEGORY_LABELS, type ClaimCategory, type ResumeAnalysis, type ResumeClaim } from '@/domain/resume-schema'
 import { claimRisk, type AuditStats } from '@/lib/risk'
 
@@ -17,9 +17,10 @@ type AuditViewProps = {
   selected: ResumeClaim
   stats: AuditStats
   onStartInterview: () => void
+  onReport: () => void
 }
 
-export function AuditView({ analysis, selected, stats, onStartInterview }: AuditViewProps) {
+export function AuditView({ analysis, selected, stats, onStartInterview, onReport }: AuditViewProps) {
   const [expanded, setExpanded] = useState(true)
   const risk = claimRisk(selected.askLikelihood, selected.evidenceStrength)
 
@@ -78,6 +79,10 @@ export function AuditView({ analysis, selected, stats, onStartInterview }: Audit
         <span><MessageSquareText size={16} /><b>开始模拟拷打</b></span>
         <small>从首轮追问开始，回答后继续动态追问</small>
         <ArrowRight size={16} />
+      </button>
+
+      <button type="button" className="button secondary report-entry" onClick={onReport}>
+        <ClipboardList size={14} />查看会话报告与改写建议
       </button>
 
       <p className="audit-summary">{analysis.summary}</p>

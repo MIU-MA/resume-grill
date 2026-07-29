@@ -1,4 +1,4 @@
-import { Download, FileText, Loader2, RefreshCw, Target, Upload } from 'lucide-react'
+import { ClipboardList, Download, FileText, Loader2, RefreshCw, Target, Upload } from 'lucide-react'
 import type { ResumeAnalysis } from '@/domain/resume-schema'
 
 type LlmMode = { label: string; cls: 'local' | 'env' | 'mock' } | null
@@ -10,9 +10,10 @@ type TopbarProps = {
   onReplaceResume: () => void
   onRerun: () => void
   onExport: () => void
+  onReport: () => void
 }
 
-export function Topbar({ analysis, analyzing, llmMode, onReplaceResume, onRerun, onExport }: TopbarProps) {
+export function Topbar({ analysis, analyzing, llmMode, onReplaceResume, onRerun, onExport, onReport }: TopbarProps) {
   return (
     <header className="topbar">
       <div className="brand-block">
@@ -31,6 +32,7 @@ export function Topbar({ analysis, analyzing, llmMode, onReplaceResume, onRerun,
         <span className={`mode-chip ${llmMode?.cls ?? ''}`}>
           <i />{llmMode ? llmMode.label : '检测中…'}
         </span>
+        <button type="button" className="button secondary" onClick={onReport}><ClipboardList size={14} />会话报告</button>
         <button type="button" className="button secondary" onClick={onReplaceResume}><Upload size={14} />替换简历</button>
         <button type="button" className="icon-button" title="重新分析" onClick={onRerun} disabled={analyzing}>{analyzing ? <Loader2 size={15} className="spin" /> : <RefreshCw size={15} />}</button>
         <button type="button" className="button primary" onClick={onExport}><Download size={14} />导出报告</button>

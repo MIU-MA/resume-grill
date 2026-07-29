@@ -78,3 +78,31 @@ export function buildInterviewUserPrompt(claim: ResumeClaim, turns: InterviewTur
     history || '（尚未开始，请基于 initialQuestion 给出第一个追问或确认方向）',
   ].join('\n')
 }
+
+export const SUMMARIZE_SYSTEM_PROMPT = `你是一名资深面试官，刚结束对候选人简历中一条声明的追问。请基于对话历史，给出结论与可直接采用的简历改写建议。
+
+严格输出单个 JSON 对象：
+{ "finalSummary": string, "rewriteSuggestion": string }
+- finalSummary：这条声明是否经得起追问的结论。说明覆盖度、仍缺失的要点、风险所在，2-4 句。
+- rewriteSuggestion：给出一版改写后的简历表述（可直接采用），并把缺失的可验证要素补进去；不要泛泛而谈，要具体到句式。`
+
+export function buildSummarizeUserPrompt(
+  claim: ResumeClaim,
+  turns: InterviewTurn[],
+  covered: string[],
+  missing: string[],
+): string {
+  const history = turns
+    .map((t, i) => `第 ${i + 1} 轮\n问：${t.question}\n答：${t.answer}`)
+    .join('\n\n')
+  return [
+    '声明：',
+    JSON.stringify({ quote: claim.quote, category: claim.category, evaluationPoints: claim.evaluationPoints }, null, 2),
+    '',
+    '已覆盖要点：' + (covered.join('、') || '无'),
+    '缺失要点：' + (missing.join('、') || '无'),
+    '',
+    '对话历史：',
+    history || '（无）',
+  ].join('\n')
+}

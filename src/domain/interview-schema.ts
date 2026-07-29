@@ -21,3 +21,24 @@ export const nextQuestionSchema = z.object({
   missingPoints: z.array(z.string()),
 })
 export type NextQuestion = z.infer<typeof nextQuestionSchema>
+
+// /api/summarize 的响应：一轮追问结束后的结论与改写建议
+export const sessionSummarySchema = z.object({
+  finalSummary: z.string(),
+  rewriteSuggestion: z.string(),
+})
+export type SessionSummary = z.infer<typeof sessionSummarySchema>
+
+// 单条声明的完整面试会话：在内存与 IndexedDB 中保存，退出后可恢复。
+export const interviewSessionSchema = z.object({
+  // 关联的声明 quote（作为 claimId，避免引入额外 id）
+  claimId: z.string(),
+  turns: z.array(interviewTurnSchema),
+  coveredPoints: z.array(z.string()),
+  missingPoints: z.array(z.string()),
+  finalSummary: z.string(),
+  rewriteSuggestion: z.string(),
+  // 进行中 / 已完成
+  status: z.enum(['in_progress', 'done']),
+})
+export type InterviewSession = z.infer<typeof interviewSessionSchema>

@@ -4,29 +4,36 @@ import { useEffect, useState } from 'react'
 import { Check, X } from 'lucide-react'
 import { AuditView } from '@/components/AuditView'
 import { ClaimSidebar } from '@/components/ClaimSidebar'
+import { ExtractedTextReview } from '@/components/ExtractedTextReview'
 import { InsightPanel } from '@/components/InsightPanel'
 import { InterviewView } from '@/components/InterviewView'
 import { ResumeUploader } from '@/components/ResumeUploader'
+import { SessionReport } from '@/components/SessionReport'
 import { Topbar } from '@/components/Topbar'
-import type { ResumeAnalysis } from '@/domain/resume-schema'
-import type { InterviewTurn, NextQuestion } from '@/domain/interview-schema'
-import { downloadReport } from '@/lib/report'
+import type { ResumeAnalysis, ResumeClaim } from '@/domain/resume-schema'
+import type { InterviewSession, InterviewTurn, NextQuestion, SessionSummary } from '@/domain/interview-schema'
+import { downloadFullReport } from '@/lib/report'
 import { computeStats } from '@/lib/risk'
 import type { LlmSettings } from '@/lib/settings'
 import { getLlmSettings, hasClientLlm } from '@/lib/settings'
+import type { ExtractedText } from '@/lib/pdf'
+import { newRecordId, saveRecord, upsertSession } from '@/lib/storage'
 import type { Mode } from '@/types'
 import './App.css'
 
 const FIRST_INTENT = '首轮追问，验证这条声明是否经得起追问。'
 
 type LlmMode = { label: string; cls: 'local' | 'env' | 'mock' }
+type Phase = 'upload' | 'review' | 'workspace'
 
 function App() {
+  const [phase, setPhase] = useState<Phase>('upload')
   const [analysis, setAnalysis] = useState<ResumeAnalysis | null>(null)
+  const [pendingExtracted, setPendingExtracted] = useState<{ extracted: ExtractedText; sourceFile: string } | null>(null)
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [mode, setMode] = useState<Mode>('audit')
 
-  // 面试会话状态
+  // 面试会话状态（当前选中声明的活跃追问）
   const [turns, setTurns] = useState<InterviewTurn[]>([])
   const [currentQuestion, setCurrentQuestion] = useState<{ question: string; intent: string } | null>(null)
   const [covered, setCovered] = useState<string[]>([])
@@ -34,6 +41,10 @@ function App() {
   const [answer, setAnswer] = useState('')
   const [interviewLoading, setInterviewLoading] = useState(false)
   const [interviewDone, setInterviewDone] = useState(false)
+
+  // 各声明的会话记录（claimId -> session），退出后保留，支撑会话报告
+  const [sessions, setSessions] = useState<Record<string, InterviewSession>>({})
+  const [recordId, setRecordId] = useState<string | null>(null)
 
   const [analyzing, setAnalyzing] = useState(false)
   const [interviewHint, setInterviewHint] = useState(false)
@@ -72,7 +83,14 @@ function App() {
     window.setTimeout(() => setToast(''), duration)
   }
 
-  const handleAnalyze = async (rawText: string, sourceFile: string) => {
+  // 上传/粘贴/示例：先进入文本确认页，再分析
+  const handleExtracted = (extracted: ExtractedText, sourceFile: string) => {
+    setPendingExtracted({ extracted, sourceFile })
+    setError(null)
+    setPhase('review')
+  }
+
+  const handleConfirmText = async (rawText: string, sourceFile: string) => {
     if (!rawText.trim()) {
       setError('没有提取到简历文本，请换一份文件或直接粘贴文本。')
       return
@@ -95,6 +113,12 @@ function App() {
       setAnalysis(data)
       setSelectedIndex(0)
       setMode('audit')
+      setSessions({})
+      setPhase('workspace')
+      // 新建持久化记录
+      const id = newRecordId(data)
+      setRecordId(id)
+      saveRecord({ id, analysis: data, sessions: {}, updatedAt: Date.now() }).catch(() => undefined)
       showToast(`已载入「${data.candidate}」的简历，识别到 ${data.claims.length} 条可验证声明。`)
     } catch (e) {
       setError(e instanceof Error ? e.message : '分析失败')
@@ -105,14 +129,32 @@ function App() {
 
   const replaceResume = () => {
     setAnalysis(null)
+    setPendingExtracted(null)
+    setSessions({})
+    setRecordId(null)
     setError(null)
     setMode('audit')
+    setPhase('upload')
   }
 
   const selectClaim = (index: number) => {
     setSelectedIndex(index)
     setMode('audit')
-    resetInterview()
+    // 若该声明已有进行中的会话，恢复到该会话状态；否则重置
+    const claim = analysis?.claims[index]
+    const existing = claim ? sessions[claim.quote] : undefined
+    if (existing && existing.status === 'in_progress') {
+      setTurns(existing.turns)
+      const lastQ = existing.turns[existing.turns.length - 1]?.question ?? claim?.initialQuestion ?? ''
+      setCurrentQuestion({ question: lastQ, intent: '恢复上次进行中的追问。' })
+      setCovered(existing.coveredPoints)
+      setMissing(existing.missingPoints)
+      setAnswer('')
+      setInterviewDone(false)
+      setInterviewHint(false)
+    } else {
+      resetInterview()
+    }
   }
 
   const resetInterview = () => {
@@ -132,6 +174,13 @@ function App() {
     setCurrentQuestion({ question: selected.initialQuestion, intent: FIRST_INTENT })
     setMissing(selected.evaluationPoints)
     window.scrollTo({ top: 0, left: 0 })
+  }
+
+  const persistSession = (claim: ResumeClaim, session: InterviewSession) => {
+    setSessions((prev) => ({ ...prev, [claim.quote]: session }))
+    if (recordId && analysis) {
+      upsertSession(recordId, analysis, session).catch(() => undefined)
+    }
   }
 
   const submitAnswer = async () => {
@@ -160,14 +209,69 @@ function App() {
       setCovered(data.coveredPoints)
       setMissing(data.missingPoints)
       setCurrentQuestion({ question: data.question, intent: data.intent })
+      // 持久化进行中的会话
+      persistSession(selected, {
+        claimId: selected.quote,
+        turns: newTurns,
+        coveredPoints: data.coveredPoints,
+        missingPoints: data.missingPoints,
+        finalSummary: '',
+        rewriteSuggestion: '',
+        status: 'in_progress',
+      })
       if (data.isFinal) {
-        setInterviewDone(true)
-        showToast('本轮追问已完成，建议优先补齐未命中的要点。')
+        await finalizeSession(selected, newTurns, data.coveredPoints, data.missingPoints)
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : '生成下一问失败')
     } finally {
       setInterviewLoading(false)
+    }
+  }
+
+  // isFinal 时调用 summarize 生成结论与改写建议，落盘为 done 会话
+  const finalizeSession = async (
+    claim: ResumeClaim,
+    finalTurns: InterviewTurn[],
+    coveredPts: string[],
+    missingPts: string[],
+  ) => {
+    setInterviewDone(true)
+    try {
+      const llm = getLlmSettings()
+      const body: { claim: typeof claim; turns: InterviewTurn[]; covered: string[]; missing: string[]; llm?: LlmSettings } = {
+        claim,
+        turns: finalTurns,
+        covered: coveredPts,
+        missing: missingPts,
+      }
+      if (llm) body.llm = llm
+      const res = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = (await res.json()) as SessionSummary | { error: string }
+      let summary: SessionSummary
+      if (!res.ok || 'error' in data) {
+        // 总结失败不阻断流程，给一个占位结论
+        summary = { finalSummary: '总结生成失败，请稍后重试。', rewriteSuggestion: '' }
+      } else {
+        summary = data
+      }
+      const session: InterviewSession = {
+        claimId: claim.quote,
+        turns: finalTurns,
+        coveredPoints: coveredPts,
+        missingPoints: missingPts,
+        finalSummary: summary.finalSummary,
+        rewriteSuggestion: summary.rewriteSuggestion,
+        status: 'done',
+      }
+      persistSession(claim, session)
+      showToast('本轮追问已完成，可在「会话报告」查看结论与改写建议。')
+    } catch {
+      showToast('总结生成失败，但会话已保存。')
     }
   }
 
@@ -178,12 +282,36 @@ function App() {
     }
   }
 
-  if (!analysis || !selected || !stats) {
+  // 会话报告：跳到 report 视图
+  const goReport = () => {
+    setMode('report')
+    window.scrollTo({ top: 0, left: 0 })
+  }
+
+  const exportFull = () => {
+    if (!analysis) return
+    downloadFullReport(analysis, sessions)
+  }
+
+  // landing 上传页
+  if (phase === 'upload' || !analysis || !selected || !stats) {
+    if (phase === 'review' && pendingExtracted) {
+      return (
+        <ExtractedTextReview
+          sourceFile={pendingExtracted.sourceFile}
+          extracted={pendingExtracted.extracted}
+          analyzing={analyzing}
+          error={error}
+          onConfirm={handleConfirmText}
+          onBack={replaceResume}
+        />
+      )
+    }
     return (
       <ResumeUploader
         analyzing={analyzing}
         error={error}
-        onAnalyze={handleAnalyze}
+        onExtracted={handleExtracted}
         envConfigured={envConfigured}
         clientConfigured={clientConfigured}
         onClientChanged={refreshClientLlm}
@@ -206,52 +334,74 @@ function App() {
         analyzing={analyzing}
         llmMode={llmMode}
         onReplaceResume={replaceResume}
-        onRerun={() => handleAnalyze(analysis.rawText, analysis.sourceFile)}
-        onExport={() => downloadReport(analysis)}
+        onRerun={() => handleConfirmText(analysis.rawText, analysis.sourceFile)}
+        onExport={exportFull}
+        onReport={goReport}
       />
 
-      <div className="workspace">
-        <ClaimSidebar analysis={analysis} selectedIndex={selectedIndex} onSelect={selectClaim} />
+      {mode === 'report' ? (
+        <SessionReport
+          analysis={analysis}
+          sessions={sessions}
+          onBack={() => setMode('audit')}
+          onExport={exportFull}
+          onRedo={(claim) => {
+            const idx = analysis.claims.findIndex((c) => c.quote === claim.quote)
+            if (idx >= 0) {
+              setSelectedIndex(idx)
+              startInterview()
+            }
+          }}
+          onSelect={(claim) => {
+            const idx = analysis.claims.findIndex((c) => c.quote === claim.quote)
+            if (idx >= 0) selectClaim(idx)
+          }}
+        />
+      ) : (
+        <div className="workspace">
+          <ClaimSidebar analysis={analysis} selectedIndex={selectedIndex} onSelect={selectClaim} />
 
-        {mode === 'audit' ? (
-          <AuditView
-            analysis={analysis}
+          {mode === 'audit' ? (
+            <AuditView
+              analysis={analysis}
+              selected={selected}
+              stats={stats}
+              onStartInterview={startInterview}
+              onReport={goReport}
+            />
+          ) : (
+            <InterviewView
+              selected={selected}
+              turns={turns}
+              currentQuestion={currentQuestion}
+              covered={covered}
+              missing={missing}
+              answer={answer}
+              loading={interviewLoading}
+              done={interviewDone}
+              showHint={interviewHint}
+              onAnswerChange={setAnswer}
+              onToggleHint={() => setInterviewHint((v) => !v)}
+              onSubmit={submitAnswer}
+              onFinish={nextOrFinish}
+              onBackToAudit={() => {
+                setMode('audit')
+                resetInterview()
+              }}
+            />
+          )}
+
+          <InsightPanel
+            mode={mode}
             selected={selected}
-            stats={stats}
-            onStartInterview={startInterview}
-          />
-        ) : (
-          <InterviewView
-            selected={selected}
-            turns={turns}
             currentQuestion={currentQuestion}
             covered={covered}
             missing={missing}
-            answer={answer}
-            loading={interviewLoading}
-            done={interviewDone}
-            showHint={interviewHint}
-            onAnswerChange={setAnswer}
-            onToggleHint={() => setInterviewHint((v) => !v)}
-            onSubmit={submitAnswer}
-            onFinish={nextOrFinish}
-            onBackToAudit={() => {
-              setMode('audit')
-              resetInterview()
-            }}
+            turnCount={turns.length}
+            onStartInterview={startInterview}
           />
-        )}
-
-        <InsightPanel
-          mode={mode}
-          selected={selected}
-          currentQuestion={currentQuestion}
-          covered={covered}
-          missing={missing}
-          turnCount={turns.length}
-          onStartInterview={startInterview}
-        />
-      </div>
+        </div>
+      )}
     </div>
   )
 }

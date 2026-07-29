@@ -271,7 +271,11 @@ blockquote span { position: absolute; left: 13px; top: 13px; color: var(--faint)
 .paste-area:focus { outline: 2px solid var(--blue); outline-offset: -1px; border-color: var(--blue); }
 .uploader-actions { display: flex; align-items: center; justify-content: flex-end; gap: 9px; margin-top: 16px; }
 .uploader-error { margin: 14px 0 0; padding: 9px 12px; color: #a13232; background: var(--red-soft); border-left: 3px solid var(--red); border-radius: 0 3px 3px 0; font-size: 10px; line-height: 1.55; }
+.extract-meta { display: flex; align-items: center; gap: 14px; margin: 0 0 12px; color: var(--muted); font-size: 10px; }
+.extract-meta span { display: inline-flex; align-items: center; gap: 5px; }
+.extract-area { min-height: 260px; }
 .audit-summary { margin: 0; padding: 18px 30px 30px; color: var(--muted); font-size: 10px; line-height: 1.6; }
+.report-entry { margin: 0 30px 18px; }
 .keyword-section span.tag-covered { color: var(--green); background: var(--green-soft); }
 
 /* LLM mode chip：本地 Key / 服务端 Key / 规则示例 */
@@ -304,3 +308,29 @@ blockquote span { position: absolute; left: 13px; top: 13px; color: var(--faint)
 @media (max-width: 620px) {
   .topbar-actions .mode-chip { display: none; }
 }
+
+/* SessionReport */
+.report-overview { padding: 28px 30px 22px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.report-overview-head { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+.report-overview h1 { margin: 6px 0 6px; color: #182025; font-size: 20px; }
+.report-overview p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.6; max-width: 640px; }
+.report-claims { display: flex; flex-direction: column; gap: 14px; padding: 22px 30px 40px; }
+.report-claim { padding: 18px 20px; background: white; border: 1px solid var(--line); border-radius: 6px; }
+.report-claim.in_progress { border-left: 3px solid var(--blue); }
+.report-claim.done { border-left: 3px solid var(--green); }
+.report-claim.todo { border-left: 3px solid var(--line-strong); }
+.report-claim-head { display: flex; align-items: center; gap: 9px; }
+.report-claim-head .risk-dot { margin-top: 0; }
+.report-status { margin-left: auto; padding: 3px 8px; border-radius: 3px; font-size: 9px; font-weight: 650; }
+.report-status.done { color: var(--green); background: var(--green-soft); }
+.report-status.in_progress { color: var(--blue); background: var(--blue-soft); }
+.report-status.todo { color: var(--faint); background: #eef1f2; }
+.report-quote { position: static; margin: 12px 0; padding: 10px 12px; color: #4f5960; background: #f5f7f8; border-left: 3px solid #9eabb3; font-size: 10px; line-height: 1.6; }
+.report-session { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; }
+.report-meta { display: flex; gap: 14px; color: var(--muted); font-size: 9px; }
+.report-block h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; color: #465057; font-size: 9px; }
+.report-block p { margin: 0; color: var(--muted); font-size: 9px; line-height: 1.6; }
+.report-block.rewrite pre { margin: 0; padding: 10px 12px; color: #2a3328; background: #f1f7f3; border: 1px solid #cfe6da; border-radius: 4px; font-family: inherit; font-size: 9px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+.report-block.gaps h3 svg { color: var(--amber); }
+.report-actions { display: flex; gap: 8px; }
+.report-actions .button { height: 30px; padding: 0 12px; }
