@@ -61,7 +61,8 @@ export function ResumeUploader({ analyzing, error, onAnalyze, envConfigured, cli
       </div>
 
       <div className="uploader-card">
-        <h1>上传一份简历，找出经不起追问的声明</h1>
+        <div className="uploader-eyebrow">RESUME DRILL</div>
+        <h1>找出经不起追问的简历声明</h1>
         <p className="uploader-sub">
           不是根据岗位随机生成八股，而是验证你简历里的每一句技术 / 成果 / 职责声明是否经得起追问。
           简历在浏览器本地解析，不会上传永久存储。
@@ -73,6 +74,7 @@ export function ResumeUploader({ analyzing, error, onAnalyze, envConfigured, cli
           onClientChanged={onClientChanged}
         />
 
+        <div className="uploader-section-label"><Upload size={12} />上传简历</div>
         <label className="dropzone">
           <input
             type="file"
@@ -83,12 +85,12 @@ export function ResumeUploader({ analyzing, error, onAnalyze, envConfigured, cli
               if (file) handleFile(file).catch(() => undefined)
             }}
           />
-          {analyzing ? <Loader2 size={26} className="spin" /> : <Upload size={26} />}
+          {analyzing ? <Loader2 size={24} className="spin" /> : <Upload size={24} />}
           <strong>{analyzing ? '正在解析与提取声明…' : '点击上传 PDF / 文本简历'}</strong>
           <small>{fileName ?? '支持 .pdf / .txt / .md，.doc 暂不支持'}</small>
         </label>
 
-        <div className="uploader-divider"><span>或粘贴简历文本</span></div>
+        <div className="uploader-divider"><span>或粘贴文本</span></div>
 
         <textarea
           className="paste-area"
