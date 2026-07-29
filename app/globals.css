@@ -1,34 +1,53 @@
+@import 'tailwindcss';
+
+/* 设计 token：映射为 Tailwind 主题，可用 bg-surface / text-muted / border-line 等语义类。
+   颜色命名避开 Tailwind 默认 blue/red/green，用语义名（brand 表示主蓝）。 */
+@theme {
+  --color-ink: #1a2024;
+  --color-muted: #687179;
+  --color-faint: #949ca3;
+  --color-line: #dde2e5;
+  --color-line-strong: #cfd5d9;
+  --color-surface: #ffffff;
+  --color-canvas: #f3f5f6;
+  --color-brand: #215dd8;
+  --color-brand-soft: #eaf0fd;
+  --color-red: #c94848;
+  --color-red-soft: #fbebeb;
+  --color-amber: #b86b13;
+  --color-amber-soft: #fff3df;
+  --color-green: #287a55;
+  --color-green-soft: #e9f6ef;
+
+  /* 自定义断点（min-first）。原 CSS 为 max-width 桌面优先，迁移时反转：移动端样式为基础，md1/md2/md3 叠加桌面。 */
+  --breakpoint-md1: 620px;
+  --breakpoint-md2: 860px;
+  --breakpoint-md3: 1100px;
+
+  /* scan 动画用于分析页加载 */
+  --animate-scan: scan 1.3s ease-in-out infinite alternate;
+}
+
+@keyframes scan {
+  to { top: 80px; }
+}
+
 :root {
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: #1a2024;
   background: #f3f5f6;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  --ink: #1a2024;
-  --muted: #687179;
-  --faint: #949ca3;
-  --line: #dde2e5;
-  --line-strong: #cfd5d9;
-  --surface: #ffffff;
-  --canvas: #f3f5f6;
-  --blue: #215dd8;
-  --blue-soft: #eaf0fd;
-  --red: #c94848;
-  --red-soft: #fbebeb;
-  --amber: #b86b13;
-  --amber-soft: #fff3df;
-  --green: #287a55;
-  --green-soft: #e9f6ef;
 }
 
 * { box-sizing: border-box; }
 html, body { min-width: 320px; min-height: 100%; margin: 0; }
-body { min-height: 100vh; background: var(--canvas); }
+body { min-height: 100vh; background: var(--color-canvas); }
 button, textarea, input { font: inherit; }
 button { border: 0; }
 button:focus-visible, textarea:focus-visible, a:focus-visible {
-  outline: 2px solid var(--blue);
+  outline: 2px solid var(--color-brand);
   outline-offset: 2px;
 }
 ::selection { background: #cfdcff; color: #101b31; }

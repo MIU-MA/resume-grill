@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { FileText, Loader2, Sparkles, Upload, FileSearch } from 'lucide-react'
 import { ModelSettings } from '@/components/ModelSettings'
 import { extractTextFromFile, type ExtractedText } from '@/lib/pdf'
+import { Button } from '@/components/Button'
 
 const SAMPLE_RESUME = `张明
 高级销售经理 | 5 年 B2B 销售经验
@@ -41,7 +42,6 @@ export function ResumeUploader({ analyzing, error, onExtracted, envConfigured, c
       const extracted = await extractTextFromFile(file)
       onExtracted(extracted, file.name)
     } catch (e) {
-      // 提取失败：带空文本进入确认页，让用户看到错误并重传
       onExtracted({ text: '', pageCount: 0, charCount: 0 }, file.name)
       throw e
     }
@@ -57,19 +57,19 @@ export function ResumeUploader({ analyzing, error, onExtracted, envConfigured, c
   }
 
   return (
-    <div className="uploader">
-      <div className="uploader-brand">
-        <div className="brand-mark"><FileSearch size={20} /></div>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-canvas px-5 py-10">
+      <div className="mb-6 flex items-center gap-[10px]">
+        <div className="grid size-[30px] place-items-center rounded-[5px] text-white bg-[#1b2328]"><FileSearch size={20} /></div>
         <div>
-          <strong>简历拷打机</strong>
-          <span>Resume Drill</span>
+          <strong className="text-[15px] leading-[1.3]">简历拷打机</strong>
+          <span className="block text-faint text-[9px] uppercase">Resume Drill</span>
         </div>
       </div>
 
-      <div className="uploader-card">
-        <div className="uploader-eyebrow">RESUME DRILL</div>
-        <h1>找出经不起追问的简历声明</h1>
-        <p className="uploader-sub">
+      <div className="w-full max-w-[540px] rounded-[4px] border border-line border-t-[3px] border-t-brand bg-surface px-7 pt-7 pb-[26px] shadow-[0_1px_0_var(--color-line),0_8px_24px_rgba(27,40,34,.04)]">
+        <div className="mb-[6px] text-brand text-[9px] font-750 tracking-[0.08em]">RESUME DRILL</div>
+        <h1 className="m-0 mb-[7px] text-[17px] font-bold leading-[1.4] text-[#182025]">找出经不起追问的简历声明</h1>
+        <p className="m-0 mb-5 text-muted text-[11px] leading-[1.65]">
           不是根据岗位随机生成八股，而是验证你简历里的每一句成果 / 职责 / 技能声明是否经得起追问。
           简历在浏览器本地解析，不会上传永久存储。
         </p>
@@ -80,8 +80,8 @@ export function ResumeUploader({ analyzing, error, onExtracted, envConfigured, c
           onClientChanged={onClientChanged}
         />
 
-        <div className="uploader-section-label"><Upload size={12} />上传简历</div>
-        <label className="dropzone">
+        <div className="mt-1 mb-2 flex items-center gap-[5px] text-muted text-[9px] font-700 uppercase"><Upload size={12} className="text-faint" />上传简历</div>
+        <label className="flex min-h-[132px] cursor-pointer flex-col items-center justify-center gap-[7px] rounded-[4px] border border-dashed border-line-strong bg-[#fafbfb] px-5 py-[22px] text-center transition-[border-color,background,color] duration-[160ms] hover:border-brand hover:bg-brand-soft hover:[&_svg]:text-brand">
           <input
             type="file"
             accept=".pdf,.txt,.md"
@@ -91,31 +91,31 @@ export function ResumeUploader({ analyzing, error, onExtracted, envConfigured, c
               if (file) handleFile(file).catch(() => undefined)
             }}
           />
-          {analyzing ? <Loader2 size={24} className="spin" /> : <Upload size={24} />}
-          <strong>{analyzing ? '正在解析与提取声明…' : '点击上传 PDF / 文本简历'}</strong>
-          <small>{fileName ?? '支持 .pdf / .txt / .md，.doc 暂不支持'}</small>
+          {analyzing ? <Loader2 size={24} className="animate-spin text-faint" /> : <Upload size={24} className="text-faint transition-colors duration-[160ms]" />}
+          <strong className="text-[12px] font-650 text-[#30373c]">{analyzing ? '正在解析与提取声明…' : '点击上传 PDF / 文本简历'}</strong>
+          <small className="text-faint text-[9px]">{fileName ?? '支持 .pdf / .txt / .md，.doc 暂不支持'}</small>
         </label>
 
-        <div className="uploader-divider"><span>或粘贴文本</span></div>
+        <div className="my-4 flex items-center gap-3 text-faint text-[9px] before:flex-1 before:h-px before:bg-line after:flex-1 after:h-px after:bg-line"><span>或粘贴文本</span></div>
 
         <textarea
-          className="paste-area"
+          className="w-full min-h-[104px] resize-y rounded-[4px] border border-line-strong bg-white p-[11px] text-[11px] leading-[1.7] text-[#283136] focus:border-brand focus:outline-2 focus:outline-brand focus:outline-offset-[-1px]"
           placeholder={SAMPLE_RESUME.slice(0, 80) + '…'}
           value={paste}
           onChange={(event) => setPaste(event.target.value)}
           disabled={analyzing}
         />
 
-        <div className="uploader-actions">
-          <button type="button" className="button secondary" disabled={analyzing} onClick={handleSample}>
+        <div className="mt-4 flex items-center justify-end gap-[9px]">
+          <Button variant="secondary" disabled={analyzing} onClick={handleSample}>
             <Sparkles size={14} />使用示例简历
-          </button>
-          <button type="button" className="button primary large" disabled={analyzing || paste.trim().length === 0} onClick={handlePaste}>
+          </Button>
+          <Button variant="primary" size="large" disabled={analyzing || paste.trim().length === 0} onClick={handlePaste}>
             <FileText size={14} />分析粘贴文本
-          </button>
+          </Button>
         </div>
 
-        {error && <p className="uploader-error">{error}</p>}
+        {error && <p className="mt-[14px] rounded-[0_3px_3px_0] border-l-[3px] border-red bg-red-soft px-3 py-[9px] text-[10px] leading-[1.55] text-[#a13232]">{error}</p>}
       </div>
     </div>
   )

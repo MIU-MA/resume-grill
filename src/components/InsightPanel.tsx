@@ -27,70 +27,76 @@ export function InsightPanel({
   const risk = claimRisk(selected.askLikelihood, selected.evidenceStrength)
 
   return (
-    <aside className="insight-panel">
-      <div className="insight-heading"><BarChart3 size={15} /><strong>{mode === 'audit' ? '风险依据' : '本轮状态'}</strong></div>
+    <aside className="border-l border-line bg-surface min-h-[calc(100vh-58px)] max-md2:hidden">
+      <div className="flex h-[42px] items-center gap-[7px] border-b border-line px-4 text-[10px] text-[#3e484e]"><BarChart3 size={15} /><strong>{mode === 'audit' ? '风险依据' : '本轮状态'}</strong></div>
       {mode === 'audit' ? (
         <>
-          <section className="confidence-block">
-            <span>被追问概率</span>
-            <div className="confidence-value"><strong>{selected.askLikelihood}%</strong><small>{risk.label}</small></div>
-            <div className="meter"><i style={{ width: `${selected.askLikelihood}%` }} /></div>
-            <span className="meter-sub">证据完整度</span>
-            <div className="confidence-value"><strong>{selected.evidenceStrength}%</strong><small>{selected.evidenceStrength >= 60 ? '较充分' : '偏薄弱'}</small></div>
-            <div className="meter"><i className="meter-evidence" style={{ width: `${selected.evidenceStrength}%` }} /></div>
+          <section className="border-b border-line p-4">
+            <span className="text-muted text-[9px]">被追问概率</span>
+            <div className="mt-[5px] flex items-baseline gap-[6px]"><strong className="text-[20px]">{selected.askLikelihood}%</strong><small className="text-faint text-[8px]">{risk.label}</small></div>
+            <div className="mt-[9px] h-[5px] overflow-hidden rounded bg-[#e9edef]"><i className="block h-full rounded bg-brand" style={{ width: `${selected.askLikelihood}%` }} /></div>
+            <span className="mt-3 block text-muted text-[9px]">证据完整度</span>
+            <div className="mt-[5px] flex items-baseline gap-[6px]"><strong className="text-[20px]">{selected.evidenceStrength}%</strong><small className="text-faint text-[8px]">{selected.evidenceStrength >= 60 ? '较充分' : '偏薄弱'}</small></div>
+            <div className="mt-[9px] h-[5px] overflow-hidden rounded bg-[#e9edef]"><i className="block h-full rounded bg-green" style={{ width: `${selected.evidenceStrength}%` }} /></div>
           </section>
 
-          <section className="evidence-section">
-            <h3><Check size={13} />已有证据</h3>
-            {selected.evidence.length === 0 ? <p>简历中未提供明确证据</p> : selected.evidence.map((item) => <p key={item}>{item}</p>)}
+          <section className="border-b border-line px-4 py-[14px]">
+            <h3 className="flex items-center gap-[6px] m-0 mb-[9px] text-[9px] text-[#465057]"><Check size={13} className="text-green" />已有证据</h3>
+            {selected.evidence.length === 0 ? <p className="m-0 text-muted text-[8px]">简历中未提供明确证据</p> : selected.evidence.map((item) => <p className="relative my-[6px] pl-[11px] text-muted text-[8px] leading-[1.5] before:absolute before:left-0 before:top-[5px] before:size-1 before:rounded-full before:bg-[#8ea09a]" key={item}>{item}</p>)}
           </section>
 
-          <section className="evidence-section gaps">
-            <h3><AlertTriangle size={13} />容易被追问</h3>
-            {selected.evidenceGaps.map((item) => <p key={item}>{item}</p>)}
+          <section className="border-b border-line px-4 py-[14px]">
+            <h3 className="flex items-center gap-[6px] m-0 mb-[9px] text-[9px] text-[#465057]"><AlertTriangle size={13} className="text-amber" />容易被追问</h3>
+            {selected.evidenceGaps.map((item) => <p className="relative my-[6px] pl-[11px] text-muted text-[8px] leading-[1.5] before:absolute before:left-0 before:top-[5px] before:size-1 before:rounded-full before:bg-amber" key={item}>{item}</p>)}
           </section>
 
-          <section className="evidence-section">
-            <h3><BookOpenCheck size={13} />评估要点</h3>
-            {selected.evaluationPoints.map((point) => <p key={point}>{point}</p>)}
+          <section className="border-b border-line px-4 py-[14px]">
+            <h3 className="flex items-center gap-[6px] m-0 mb-[9px] text-[9px] text-[#465057]"><BookOpenCheck size={13} className="text-green" />评估要点</h3>
+            {selected.evaluationPoints.map((point) => <p className="relative my-[6px] pl-[11px] text-muted text-[8px] leading-[1.5] before:absolute before:left-0 before:top-[5px] before:size-1 before:rounded-full before:bg-[#8ea09a]" key={point}>{point}</p>)}
           </section>
 
-          <button type="button" className="start-interview" onClick={onStartInterview}>
-            <span><MessageSquareText size={16} /><b>开始模拟拷打</b></span>
-            <small>从首轮追问开始，回答后继续动态追问</small>
-            <ArrowRight size={16} />
+          <button type="button" className="relative mb-3 ml-3 mr-3 block w-[calc(100%-24px)] min-h-[65px] rounded-md bg-[#1d272c] px-[34px] py-3 pl-[13px] text-left text-white hover:bg-[#131a1e]" onClick={onStartInterview}>
+            <span className="flex items-center gap-[7px]"><MessageSquareText size={16} /><b className="text-[10px]">开始模拟拷打</b></span>
+            <small className="mt-[5px] ml-[23px] block text-[8px] text-[#aeb8bd]">从首轮追问开始，回答后继续动态追问</small>
+            <ArrowRight size={16} className="absolute right-3 top-6 text-[#b9c1c5]" />
           </button>
 
-          <div className="repo-link"><Paperclip size={14} /><div><strong>补充证明材料</strong><small>数据口径、复盘记录、同事或客户证言、可复现的统计方法等</small></div></div>
+          <div className="mx-3 mb-3 flex items-center gap-2 rounded-[5px] border border-line bg-[#f8f9fa] p-[9px]">
+            <Paperclip size={14} className="flex-none text-muted" />
+            <div>
+              <strong className="block text-[9px] text-[#4a535a]">补充证明材料</strong>
+              <small className="mt-[2px] block text-faint text-[8px] leading-[1.5]">数据口径、复盘记录、同事或客户证言、可复现的统计方法等</small>
+            </div>
+          </div>
         </>
       ) : (
         <>
-          <section className="interview-status">
-            <span className="status-orbit"><MessageSquareText size={19} /></span>
-            <strong>{selected.title}</strong>
-            <p>当前正在进行第 {turnCount + 1} 层追问 · {CLAIM_CATEGORY_LABELS[selected.category]}</p>
+          <section className="flex flex-col items-center border-b border-line px-[14px] pt-[22px] pb-[18px] text-center">
+            <span className="mb-[10px] grid size-[42px] place-items-center rounded-full bg-brand-soft text-brand"><MessageSquareText size={19} /></span>
+            <strong className="max-w-[220px] text-[10px]">{selected.title}</strong>
+            <p className="m-0 mt-1 text-muted text-[8px]">当前正在进行第 {turnCount + 1} 层追问 · {CLAIM_CATEGORY_LABELS[selected.category]}</p>
           </section>
-          <section className="evidence-section">
-            <h3><Target size={13} />面试官关注点</h3>
-            <p>{currentQuestion?.intent ?? '准备开始追问…'}</p>
+          <section className="border-b border-line px-4 py-[14px]">
+            <h3 className="flex items-center gap-[6px] m-0 mb-[9px] text-[9px] text-[#465057]"><Target size={13} className="text-brand" />面试官关注点</h3>
+            <p className="m-0 text-muted text-[8px]">{currentQuestion?.intent ?? '准备开始追问…'}</p>
           </section>
-          <section className="keyword-section">
-            <h3>评估要点覆盖</h3>
-            <div>
+          <section className="border-b border-line px-4 py-[14px]">
+            <h3 className="m-0 mb-[9px] text-[9px] text-[#465057]">评估要点覆盖</h3>
+            <div className="flex flex-wrap gap-[5px]">
               {selected.evaluationPoints.map((point) => (
-                <span key={point} className={covered.includes(point) ? 'tag-covered' : ''}>{point}</span>
+                <span key={point} className={`rounded px-[6px] py-1 text-[8px] ${covered.includes(point) ? 'text-green bg-green-soft' : 'text-[#526069] bg-[#eef1f3]'}`}>{point}</span>
               ))}
             </div>
           </section>
           {missing.length > 0 && (
-            <section className="evidence-section gaps">
-              <h3><AlertTriangle size={13} />建议补充</h3>
-              {missing.map((item) => <p key={item}>{item}</p>)}
+            <section className="border-b border-line px-4 py-[14px]">
+              <h3 className="flex items-center gap-[6px] m-0 mb-[9px] text-[9px] text-[#465057]"><AlertTriangle size={13} className="text-amber" />建议补充</h3>
+              {missing.map((item) => <p className="relative my-[6px] pl-[11px] text-muted text-[8px] leading-[1.5] before:absolute before:left-0 before:top-[5px] before:size-1 before:rounded-full before:bg-amber" key={item}>{item}</p>)}
             </section>
           )}
-          <section className="interview-tip">
-            <strong>回答建议</strong>
-            <p>按“背景与目标 &rarr; 你的角色与关键决策 &rarr; 主要挑战 &rarr; 结果与验证”的顺序回答，给出可验证的数据或案例。</p>
+          <section className="m-3 rounded-[5px] border border-[#eadcc2] bg-[#fff8eb] p-3 text-[#5d4b2d]">
+            <strong className="text-[9px]">回答建议</strong>
+            <p className="m-0 mt-[5px] text-[8px] leading-[1.55]">按“背景与目标 &rarr; 你的角色与关键决策 &rarr; 主要挑战 &rarr; 结果与验证”的顺序回答，给出可验证的数据或案例。</p>
           </section>
         </>
       )}

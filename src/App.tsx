@@ -19,7 +19,6 @@ import { getLlmSettings, hasClientLlm } from '@/lib/settings'
 import type { ExtractedText } from '@/lib/pdf'
 import { newRecordId, saveRecord, upsertSession } from '@/lib/storage'
 import type { Mode } from '@/types'
-import './App.css'
 
 const FIRST_INTENT = '首轮追问，验证这条声明是否经得起追问。'
 
@@ -320,12 +319,12 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="min-h-screen bg-canvas">
       {toast && (
-        <div className="toast" role="status">
+        <div className="fixed top-[70px] left-1/2 z-50 flex max-w-[520px] -translate-x-1/2 items-center gap-2 rounded-[5px] border border-[#b9dfcd] bg-[#f0faf5] px-[11px] py-[9px] text-[9px] text-[#24553f] shadow-[0_8px_26px_rgba(27,40,34,.13)]" role="status">
           <Check size={15} />
           <span>{toast}</span>
-          <button type="button" onClick={() => setToast('')} aria-label="关闭提示"><X size={14} /></button>
+          <button type="button" className="ml-[6px] grid place-items-center bg-transparent p-0 text-[#658273] cursor-pointer" onClick={() => setToast('')} aria-label="关闭提示"><X size={14} /></button>
         </div>
       )}
 
@@ -358,7 +357,7 @@ function App() {
           }}
         />
       ) : (
-        <div className="workspace">
+        <div className="md2:grid-cols-[210px_minmax(0,1fr)] md3:grid-cols-[264px_minmax(520px,1fr)_300px] max-md1:block grid min-h-[calc(100vh-58px)] grid-cols-[264px_minmax(520px,1fr)_300px]">
           <ClaimSidebar analysis={analysis} selectedIndex={selectedIndex} onSelect={selectClaim} />
 
           {mode === 'audit' ? (
