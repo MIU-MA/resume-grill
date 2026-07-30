@@ -9,7 +9,7 @@ import { getLlmSettings } from '@/lib/settings'
 type Callbacks = {
   onError: (msg: string) => void
   onToast: (msg: string) => void
-  onSessionSaved: (claimContent: string, session: InterviewSession) => void
+  onSessionSaved: (claimId: string, session: InterviewSession) => void
 }
 
 export function useInterview(envConfigured: boolean, { onError, onToast, onSessionSaved }: Callbacks) {
@@ -40,7 +40,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
     }
     setLoading(true); onError('')
     try {
-      const cacheKey = claim.content
+      const cacheKey = claim.id
       let claimAnalysis = cache.current.get(cacheKey) ?? null
       if (!claimAnalysis) {
         const llm = getLlmSettings()
@@ -72,11 +72,11 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       if (!res.ok || 'error' in data) {
         finalResult = { confidence: 0, risk: 'medium', canExplain: [], cannotExplain: ['总结生成失败'], suggestions: [], rewriteSuggestion: '' }
       } else { finalResult = data }
-      onSessionSaved(claim.content, {
-        id: claim.content,
+      onSessionSaved(claim.id, {
+        id: `${claim.id}:v${version}`,
         claimContent: rewriteContent ?? claim.content,
         rounds: finalRounds,
-        claimAnalysis: cache.current.get(claim.content)!,
+        claimAnalysis: cache.current.get(claim.id)!,
         finalResult,
         status: 'done',
         version,
@@ -87,10 +87,10 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
 
   const submit = useCallback(async (claim: ResumeClaim) => {
     if (!currentQuestion || loading || done) return
-    if (answer.trim().length < 8) return
+    if (!answer.trim()) return
     setLoading(true)
     try {
-      const claimAnalysis = cache.current.get(claim.content)
+      const claimAnalysis = cache.current.get(claim.id)
       if (!claimAnalysis) throw new Error('声明分析未找到，请重新开始追问')
       const llm = getLlmSettings()
       const body: any = { claim, question: currentQuestion, answer, rounds, verifyPoints: claimAnalysis.verifyPoints, trapPoints: claimAnalysis.trapPoints }

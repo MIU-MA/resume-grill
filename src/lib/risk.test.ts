@@ -3,6 +3,7 @@ import { computeStats, RISK_META } from './risk'
 import type { ResumeClaim } from '@/domain/resume-schema'
 
 const claim = (interviewRisk: 'high' | 'medium' | 'low', gaps = 1): ResumeClaim => ({
+  id: `claim-${interviewRisk}`,
   content: 'q',
   title: 't',
   category: 'achievement',

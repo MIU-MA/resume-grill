@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { FileText, Upload } from 'lucide-react'
+import { ArrowRight, FileText, Trash2, Upload } from 'lucide-react'
 import { SettingsPopover } from '@/components/SettingsPopover'
 import { extractTextFromFile, type ExtractedText } from '@/lib/pdf'
 import { Button } from '@/components/Button'
+import type { SavedRecord } from '@/lib/storage'
 
 const SAMPLE_RESUME = `xxx
 全栈工程师 | 4 年 Web 开发经验
@@ -41,9 +42,13 @@ type ResumeUploaderProps = {
   envConfigured: boolean
   clientConfigured: boolean
   onClientChanged: () => void
+  savedRecords: SavedRecord[]
+  loadingRecords: boolean
+  onOpenSaved: (record: SavedRecord) => void
+  onDeleteSaved: (id: string) => Promise<void>
 }
 
-export function ResumeUploader({ analyzing, error, onExtracted, envConfigured, clientConfigured, onClientChanged }: ResumeUploaderProps) {
+export function ResumeUploader({ analyzing, error, onExtracted, envConfigured, clientConfigured, onClientChanged, savedRecords, loadingRecords, onOpenSaved, onDeleteSaved }: ResumeUploaderProps) {
   const [tab, setTab] = useState<Tab>('file')
   const [paste, setPaste] = useState('')
   const [fileName, setFileName] = useState<string | null>(null)
@@ -69,6 +74,11 @@ export function ResumeUploader({ analyzing, error, onExtracted, envConfigured, c
     if (text.length > 0) onExtracted({ text, pageCount: 1, charCount: text.length }, '粘贴文本')
   }
 
+  const handleDelete = async (record: SavedRecord) => {
+    if (!window.confirm(`确定删除「${record.analysis.candidate}」的本地记录吗？`)) return
+    await onDeleteSaved(record.id)
+  }
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-5 py-10">
       <SettingsPopover envConfigured={envConfigured} clientConfigured={clientConfigured} onClientChanged={onClientChanged} open={settingsOpen} onOpenChange={setSettingsOpen} />
@@ -80,7 +90,8 @@ export function ResumeUploader({ analyzing, error, onExtracted, envConfigured, c
         </p>
       </div>
 
-      <div className="w-full max-w-[480px]">
+      <div className="w-full max-w-[720px]">
+        <div className="mx-auto max-w-[480px]">
         {/* Tab */}
         <div className="flex border-b border-border mb-6">
           {(['file', 'paste'] as Tab[]).map((t) => (
@@ -137,7 +148,61 @@ export function ResumeUploader({ analyzing, error, onExtracted, envConfigured, c
         <p className="mt-8 text-center text-text-tertiary text-[13px]">
           当前：OpenAI Compatible API · <button type="button" className="text-brand hover:underline" onClick={() => setSettingsOpen(true)}>配置模型</button>
         </p>
+        </div>
+
+        {(loadingRecords || savedRecords.length > 0) && (
+          <section className="mt-10 border-t border-border pt-7" aria-labelledby="saved-resumes-title">
+            <div className="mb-3 flex items-end justify-between gap-4 px-1">
+              <div>
+                <h2 id="saved-resumes-title" className="text-[15px] font-bold text-text-primary">本地简历</h2>
+                <p className="mt-1 text-[12px] text-text-tertiary">分析结果和测试记录仅保存在当前浏览器</p>
+              </div>
+              {!loadingRecords && <span className="text-[12px] text-text-tertiary">{savedRecords.length} 份</span>}
+            </div>
+
+            {loadingRecords ? (
+              <div className="flex h-20 items-center justify-center text-[13px] text-text-tertiary">正在读取本地记录…</div>
+            ) : (
+              <div className="space-y-2">
+                {savedRecords.map((record) => {
+                  const completed = Object.values(record.sessions).flat().filter((session) => session.status === 'done').length
+                  return (
+                    <div key={record.id} className="flex items-center gap-3 rounded-lg border border-border bg-white px-4 py-3 shadow-[0_1px_3px_rgba(16,24,40,0.04)]">
+                      <div className="grid size-9 flex-none place-items-center rounded-lg bg-surface-soft text-text-tertiary">
+                        <FileText size={17} />
+                      </div>
+                      <button type="button" className="min-w-0 flex-1 bg-transparent text-left" onClick={() => onOpenSaved(record)}>
+                        <span className="flex items-center gap-2">
+                          <strong className="truncate text-[13px] text-text-primary">{record.analysis.candidate}</strong>
+                          <span className="truncate text-[12px] text-text-tertiary">{record.analysis.role}</span>
+                        </span>
+                        <span className="mt-1 block truncate text-[11px] text-text-tertiary">
+                          {record.analysis.sourceFile} · {record.analysis.claims.length} 条声明 · 已完成 {completed} 次测试 · {formatUpdatedAt(record.updatedAt)}
+                        </span>
+                      </button>
+                      <button type="button" className="grid size-8 flex-none place-items-center rounded-lg text-text-tertiary hover:bg-danger-soft hover:text-danger" onClick={() => handleDelete(record)} title="删除本地记录" aria-label={`删除 ${record.analysis.candidate} 的本地记录`}>
+                        <Trash2 size={14} />
+                      </button>
+                      <button type="button" className="grid size-8 flex-none place-items-center rounded-lg text-text-tertiary hover:bg-surface-hover hover:text-brand" onClick={() => onOpenSaved(record)} title="继续查看" aria-label={`继续查看 ${record.analysis.candidate} 的简历`}>
+                        <ArrowRight size={15} />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </section>
+        )}
       </div>
     </div>
   )
+}
+
+function formatUpdatedAt(timestamp: number): string {
+  return new Intl.DateTimeFormat('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(timestamp)
 }

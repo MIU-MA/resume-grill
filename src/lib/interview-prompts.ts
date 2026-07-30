@@ -4,13 +4,13 @@ import type { InterviewRound } from '@/domain/interview-schema'
 
 // ── analyze-claim: 生成验证目标和陷阱 ──
 
-export const ANALYZE_CLAIM_SYSTEM = `你是一名10年经验的技术面试官。你的目标不是考察知识点，而是判断候选人是否真实完成过简历中的经历。
+export const ANALYZE_CLAIM_SYSTEM = `你是一名资深结构化面试官。请根据候选人的目标岗位切换到对应的业务语境。你的目标不是考察背诵知识，而是判断候选人是否真实完成过简历中的经历。
 
 分析以下声明，输出需要验证的要点和常见陷阱。
 
 - 验证要点(verifyPoints): 面试中必须确认的具体要素，每条标注重要性(high/medium/low)
 - 陷阱(trapPoints): 候选人可能的表面回答——只会说概念、用工具名、没有具体行为——如果回答落入这些模式说明没有真实经历
-- level: 该声明涉及的技术领域标识(如 frontend/backend/系统设计/销售/管理 等)
+- level: 该声明涉及的岗位领域标识(如 frontend/backend/产品/销售/运营/管理 等)
 
 严格输出 JSON: { "level": string, "verifyPoints": [{ "point": string, "importance": "high|medium|low" }], "trapPoints": string[] }`
 
@@ -23,7 +23,7 @@ export const INTERVIEW_START_SYSTEM = `你是一名面试官，正在验证候�
 规则：
 1. 问题必须针对声明内容，不是泛泛的"你怎么做X"
 2. 优先问过程：当时发现什么问题、怎么确认、做了什么决策
-3. 不问背诵题(如"React.memo的原理是什么")
+3. 不问脱离经历的知识背诵题
 4. 只问一个问题
 
 严格输出 JSON: { "question": string, "intent": string }`
@@ -34,11 +34,12 @@ export const INTERVIEW_CONTINUE_SYSTEM = `你是一名面试官。先评估上�
 
 评估阶段：
 - 回答能证明什么(coveredPoints)，仍然缺失什么(missingPoints)
+- coveredPoints 只能逐字引用用户提供的“允许返回的评估要点”，不能改写或新增
 - score: 回答质量 0-100。有具体数据/案例/决策过程 → 60+；只有概念/工具名/空洞描述 → 30-；完全回避/乱答 → 0
 
 追问阶段：
 - 基于评估结果生成下一问，直击 missingPoints 里的漏洞
-- 如果回答落入常见陷阱(只会说用memo/useCallback/React.lazy等，但不解释why)，要求补充具体原因和指标
+- 如果回答落入常见陷阱（只列术语、工具或流程，但不解释具体行为与依据），要求补充原因、过程和可验证结果
 - 如果回答已有足够细节，转向下一个未验证的高重要性验证点
 - 如果不确定(回答含糊)，问澄清问题
 - 一般3-5轮后结束(isFinal=true)，给出结束语
@@ -62,6 +63,7 @@ export function buildInterviewStartUser(claim: ResumeClaim, verifyPoints: { poin
   return [
     '声明的原始内容：',
     claim.content,
+    `岗位 / 职能：${claim.role}`,
     '',
     '需要验证的要点：',
     verifyPoints.map((v) => `[${v.importance}] ${v.point}`).join('\n'),
@@ -69,7 +71,7 @@ export function buildInterviewStartUser(claim: ResumeClaim, verifyPoints: { poin
 }
 
 export function buildInterviewContinueUser(
-  claimContent: string,
+  claim: ResumeClaim,
   question: string,
   answer: string,
   rounds: InterviewRound[],
@@ -81,7 +83,11 @@ export function buildInterviewContinueUser(
     .join('\n\n')
   return [
     '声明的原始内容：',
-    claimContent,
+    claim.content,
+    `岗位 / 职能：${claim.role}`,
+    '',
+    '允许返回的评估要点（coveredPoints 必须逐字取自这里）：',
+    claim.evaluationPoints.join('\n'),
     '',
     '验证要点(尚未完全覆盖)：',
     verifyPoints.map((v) => `[${v.importance}] ${v.point}`).join('\n'),

@@ -22,8 +22,8 @@ export const CLAIM_CATEGORY_LABELS: Record<ClaimCategory, string> = {
 export const riskLevelSchema = z.enum(['high', 'medium', 'low'])
 export type RiskLevel = z.infer<typeof riskLevelSchema>
 
-// 单条可验证的简历声明
-export const resumeClaimSchema = z.object({
+// LLM 只负责生成声明内容，稳定 ID 由应用侧补充，避免把模型输出当作数据主键。
+export const llmResumeClaimSchema = z.object({
   // 简历原文片段（声明内容）
   content: z.string(),
   // 短标题，用于列表与卡片展示
@@ -47,7 +47,37 @@ export const resumeClaimSchema = z.object({
   // 评估应覆盖的要点（用作自检清单）
   evaluationPoints: z.array(z.string()),
 })
+
+// 单条可验证的简历声明
+export const resumeClaimSchema = llmResumeClaimSchema.extend({
+  id: z.string().min(1),
+})
 export type ResumeClaim = z.infer<typeof resumeClaimSchema>
+
+function hashClaim(value: string): string {
+  let hash = 0x811c9dc5
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return (hash >>> 0).toString(36)
+}
+
+export function createClaimId(
+  claim: Pick<ResumeClaim, 'content' | 'sourceSection'>,
+  sourceIndex: number,
+): string {
+  return `claim-${sourceIndex + 1}-${hashClaim(`${claim.sourceSection}\n${claim.content}`)}`
+}
+
+export function attachClaimIds(
+  claims: z.infer<typeof llmResumeClaimSchema>[],
+): ResumeClaim[] {
+  return claims.map((claim, index) => ({
+    ...claim,
+    id: createClaimId(claim, index),
+  }))
+}
 
 // 一次简历分析的完整结构
 export const resumeAnalysisSchema = z.object({
@@ -65,6 +95,6 @@ export const llmAnalysisSchema = z.object({
   candidate: z.string(),
   role: z.string(),
   summary: z.string(),
-  claims: z.array(resumeClaimSchema).min(1),
+  claims: z.array(llmResumeClaimSchema).min(1),
 })
 export type LlmAnalysis = z.infer<typeof llmAnalysisSchema>

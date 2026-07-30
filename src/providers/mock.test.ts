@@ -43,4 +43,21 @@ describe('mockAnalyze', () => {
     expect(contents.some((q) => q.replace(/[:：]$/, '') === '工作经历')).toBe(false)
     expect(contents.some((q) => /季度销售额提升30%/.test(q))).toBe(true)
   })
+
+  it('个人信息、求职意向和联系方式不作为声明', () => {
+    const a = mockAnalyze(
+      '张明\n性别：男\n电话：13800138000\n邮箱：zhang@example.com\n求职意向：销售经理\n- 负责重点客户续约，续约率提升20%',
+      'r.txt',
+    )
+    expect(a.claims).toHaveLength(1)
+    expect(a.claims[0].content).toContain('续约率提升20%')
+  })
+
+  it('技术能力章节保留为技能声明', () => {
+    const a = mockAnalyze(
+      '李华\n前端工程师\n技术能力\n前端：TypeScript、React、Vue 3、Next.js\n工程化：Docker、GitHub Actions',
+      'resume.txt',
+    )
+    expect(a.claims.some((claim) => claim.category === 'skill' && claim.content.includes('TypeScript'))).toBe(true)
+  })
 })

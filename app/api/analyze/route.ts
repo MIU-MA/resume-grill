@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { llmAnalysisSchema, resumeAnalysisSchema } from '@/domain/resume-schema'
+import { attachClaimIds, llmAnalysisSchema, resumeAnalysisSchema } from '@/domain/resume-schema'
 import { ANALYZE_SYSTEM_PROMPT, buildAnalyzeUserPrompt } from '@/lib/prompts'
 import { ANALYZE_TIMEOUT, MAX_RAWTEXT, getClientIp, rateLimit, withTimeout } from '@/lib/server-limits'
 import { llmStructured, resolveLlmConfig } from '@/providers/openai-compatible'
 import { mockAnalyze } from '@/providers/mock'
+import { isExcludedClaimContent } from '@/lib/claim-filter'
+import { extractResumeClaimCandidates, isClaimGroundedInRawText, matchClaimCandidate } from '@/lib/resume-structure'
 
 const requestSchema = z.object({
   rawText: z.string().min(1, '简历文本不能为空').max(MAX_RAWTEXT, `简历文本过长，请控制在 ${MAX_RAWTEXT} 字以内`),
@@ -35,6 +37,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    const candidates = extractResumeClaimCandidates(body.rawText)
     const config = resolveLlmConfig(body.llm ?? null)
     if (config) {
       const partial = await llmStructured(
@@ -44,8 +47,28 @@ export async function POST(request: Request) {
         config,
         { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 2000 },
       )
+      const filteredClaims = partial.claims.flatMap((claim) => {
+        if (isExcludedClaimContent(claim.content)) return []
+        const source = matchClaimCandidate(claim.content, candidates)
+        if (!source && !isClaimGroundedInRawText(claim.content, body.rawText)) return []
+        return [{
+          ...claim,
+          sourceSection: (source?.sourceSection ?? claim.sourceSection.trim()) || '经历内容',
+        }]
+      })
+      const seen = new Set<string>()
+      const uniqueClaims = filteredClaims.filter((claim) => {
+        const key = `${claim.sourceSection}\n${claim.content.replace(/\s+/g, '')}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      if (uniqueClaims.length === 0) {
+        throw new Error('未识别到可验证的经历陈述，请检查简历正文是否包含具体职责、行动或成果。')
+      }
       const analysis = resumeAnalysisSchema.parse({
         ...partial,
+        claims: attachClaimIds(uniqueClaims),
         sourceFile: body.sourceFile,
         rawText: body.rawText,
       })

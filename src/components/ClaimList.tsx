@@ -18,10 +18,11 @@ const RISK_CLS: Record<string, string> = {
 type ClaimListProps = {
   analysis: ResumeAnalysis
   selectedIndex: number
+  preparedClaimIds: string[]
   onSelect: (index: number) => void
 }
 
-export function ClaimList({ analysis, selectedIndex, onSelect }: ClaimListProps) {
+export function ClaimList({ analysis, selectedIndex, preparedClaimIds, onSelect }: ClaimListProps) {
   const [filter, setFilter] = useState<RiskLevel | 'all'>('all')
 
   const visible = analysis.claims
@@ -56,14 +57,17 @@ export function ClaimList({ analysis, selectedIndex, onSelect }: ClaimListProps)
             const isActive = originalIndex === selectedIndex
             return (
               <button
-                key={originalIndex}
+                key={claim.id}
                 type="button"
                 onClick={() => onSelect(originalIndex)}
                 className={`w-full text-left rounded-[10px] px-3 py-3 transition-colors block border ${isActive ? 'border-brand/30 bg-brand-soft shadow-[inset_3px_0_0_#2563eb]' : 'border-transparent bg-transparent hover:bg-surface-soft hover:border-border'}`}
               >
                 <div className="flex items-center justify-between gap-3 mb-2">
                   <span className={`inline-flex items-center gap-2 min-h-6 rounded-full px-2.5 text-[11px] font-bold before:content-[''] before:size-1.5 before:rounded-full before:bg-current ${RISK_CLS[claim.interviewRisk]}`}>{risk.label}</span>
-                  <span className="text-text-tertiary text-[11px] font-mono">{String(originalIndex + 1).padStart(2, '0')}</span>
+                  <span className="flex items-center gap-2 text-text-tertiary text-[11px]">
+                    {preparedClaimIds.includes(claim.id) && <span className="font-semibold text-success">已准备</span>}
+                    <span className="font-mono">{String(originalIndex + 1).padStart(2, '0')}</span>
+                  </span>
                 </div>
                 <div className="text-[14px] leading-[1.55] font-[650] text-text-primary mb-2">{claim.content}</div>
                 <div className="text-text-tertiary text-[12px] leading-[1.5]">{CLAIM_CATEGORY_LABELS[claim.category]} · {claim.evidenceGap[0] || '证据较为充分'}</div>

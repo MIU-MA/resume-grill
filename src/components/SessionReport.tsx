@@ -13,7 +13,7 @@ type SessionReportProps = {
 
 export function SessionReport({ analysis, sessions, onRewrite }: SessionReportProps) {
   const sessionList = analysis.claims.map((claim) => {
-    const list = sessions[claim.content] ?? []
+    const list = sessions[claim.id] ?? []
     const latest = list[list.length - 1]
     return { claim, sessions: list, latest, status: latest?.status ?? 'todo' }
   })
@@ -66,7 +66,7 @@ export function SessionReport({ analysis, sessions, onRewrite }: SessionReportPr
             {doneSessions.map(({ claim, latest }) => {
               const r = latest!.finalResult!
               return (
-                <div key={claim.content} className="bg-white border border-border rounded-xl overflow-hidden">
+                <div key={claim.id} className="bg-white border border-border rounded-xl overflow-hidden">
                   <div className="flex items-center justify-between gap-4 px-4 py-3 bg-surface-soft border-b border-border">
                     <span className="text-[13px] font-bold">{claim.title}</span>
                     <span className="text-text-tertiary text-[12px]">可信度 {r.confidence}/5</span>

@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { resumeClaimSchema } from '@/domain/resume-schema'
 import { interviewRoundSchema, interviewContinueSchema } from '@/domain/interview-schema'
 import { INTERVIEW_CONTINUE_SYSTEM, buildInterviewContinueUser } from '@/lib/interview-prompts'
+import { sanitizeCoverage } from '@/lib/coverage'
 import { INTERVIEW_TIMEOUT, getClientIp, rateLimit, withTimeout } from '@/lib/server-limits'
 import { llmStructured, resolveLlmConfig } from '@/providers/openai-compatible'
 
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
     const result = await llmStructured(
       INTERVIEW_CONTINUE_SYSTEM,
       buildInterviewContinueUser(
-        body.claim.content,
+        body.claim,
         body.question,
         body.answer,
         body.rounds,
@@ -54,7 +55,18 @@ export async function POST(request: Request) {
       config,
       { signal: withTimeout(INTERVIEW_TIMEOUT), maxTokens: 800 },
     )
-    return NextResponse.json(result)
+    const coverage = sanitizeCoverage(
+      result.evaluation.coveredPoints,
+      body.claim.evaluationPoints,
+    )
+    return NextResponse.json({
+      ...result,
+      evaluation: {
+        ...result.evaluation,
+        coveredPoints: coverage.covered,
+        missingPoints: coverage.missing,
+      },
+    })
   } catch (error) {
     const message = error instanceof Error ? error.message : '生成下一问失败'
     return NextResponse.json({ error: message }, { status: 500 })

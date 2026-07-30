@@ -136,13 +136,13 @@ export function InterviewView({
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' && !event.shiftKey) {
                       event.preventDefault()
-                      if (answer.trim().length >= 8 && !loading) onSubmit()
+                      if (answer.trim().length > 0 && !loading) onSubmit()
                     }
                   }}
                 />
                 <div className="flex items-center justify-between">
                   <span className="text-text-tertiary text-[12px]">Shift + Enter 换行 · 建议 80–300 字</span>
-                  <Button variant="primary" size="large" disabled={answer.trim().length < 8 || loading} onClick={onSubmit} loading={loading}>
+                  <Button variant="primary" size="large" disabled={answer.trim().length === 0 || loading} onClick={onSubmit} loading={loading}>
                     提交回答
                   </Button>
                 </div>

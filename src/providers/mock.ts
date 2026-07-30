@@ -1,10 +1,12 @@
 import {
   resumeAnalysisSchema,
+  createClaimId,
   type ClaimCategory,
   type ResumeAnalysis,
   type ResumeClaim,
   type RiskLevel,
 } from '@/domain/resume-schema'
+import { buildStructuredResumeInput, extractLooseClaimCandidates, extractResumeClaimCandidates } from '@/lib/resume-structure'
 
 // 当未配置模型时使用：不真正理解语义，但从上传文本中抽取真实句子作为声明，
 // 让无 Key 演示也能反映候选人、岗位与文件名的真实变化。
@@ -79,55 +81,26 @@ function detectRole(text: string): string {
   return '通用岗位'
 }
 
-function detectCategory(sentence: string): ClaimCategory {
+function detectCategory(sentence: string, sourceSection: string): ClaimCategory {
+  if (/技能|技术|专业能力|competenc|skills?/i.test(sourceSection)) return 'skill'
   for (const rule of CATEGORY_RULES) {
     if (rule.keywords.some((k) => sentence.includes(k))) return rule.category
   }
   return 'responsibility'
 }
 
-function splitSentences(text: string): string[] {
-  return text
-    .split(/[。；;\n\r\t]/)
-    .map((s) => s.trim())
-    .filter((s) => s.length >= 6)
-}
-
 function detectCandidate(text: string): string {
-  const firstLine = text.split(/\n/).map((s) => s.trim()).find((s) => s.length > 0)
-  if (!firstLine) return '候选人'
-  return firstLine.length <= 12 ? firstLine : firstLine.slice(0, 12)
-}
-
-function detectSourceSection(text: string, content: string): string {
-  const idx = text.indexOf(content)
-  if (idx < 0) return '其他'
-  const before = text.slice(0, idx).split('\n')
-  for (let i = before.length - 1; i >= 0; i--) {
-    const line = before[i].trim()
-    if (!line) continue
-    if (/[:：]$/.test(line) && line.length <= 20) return line.replace(/[:：]$/, '')
-    if (/^(工作经历|项目经验|项目经历|教育背景|实习经历|技能|专业技能|荣誉奖项|自我介绍|个人总结)$/.test(line)) return line
-  }
-  return '其他'
+  const identity = buildStructuredResumeInput(text).identity
+  const name = identity.find((line) => line.length <= 12 && !/[：:\d@]/.test(line))
+  return name || '候选人'
 }
 
 function hasNumber(s: string): boolean {
   return /\d/.test(s)
 }
 
-const SECTION_LABELS = ['工作经历', '项目经验', '项目经历', '教育背景', '专业技能', '技能', '实习经历', '自我评价', '荣誉奖项']
-
-function isNoise(s: string): boolean {
-  const v = s.replace(/[:：：]$/, '').trim()
-  if (SECTION_LABELS.some((label) => v === label || v === label.replace(/[:：]$/, ''))) return true
-  if (/^[\d年月.\-/至到至今\s]+$/.test(v) && v.length <= 16) return true
-  if (hasNumber(v) && /\d{4}/.test(v) && v.length <= 24) {
-    const hasAction = CATEGORY_RULES.some((r) => r.keywords.some((k) => v.includes(k)))
-    if (!hasAction) return true
-  }
-  if (v.length < 8) return true
-  return false
+function extractMetrics(content: string): string[] {
+  return [...new Set(content.match(/\d+(?:\.\d+)?\s*(?:%|万\+?|亿|人|元|秒|分钟|小时|天|fps|ms|条|个|次|倍)/gi) ?? [])]
 }
 
 function qualityScore(s: string): number {
@@ -157,62 +130,54 @@ function riskFor(category: ClaimCategory, numbered: boolean): { exaggerationRisk
 export function mockAnalyze(rawText: string, sourceFile: string): ResumeAnalysis {
   const role = detectRole(rawText)
   const candidate = detectCandidate(rawText)
-  const sentences = splitSentences(rawText).filter((s) => !isNoise(s))
+  const structuredCandidates = extractResumeClaimCandidates(rawText)
+  const candidates = structuredCandidates.length > 0 ? structuredCandidates : extractLooseClaimCandidates(rawText)
 
-  const ranked = sentences
-    .map((s) => ({ s, score: qualityScore(s) }))
+  const ranked = candidates
+    .map((candidate) => ({
+      candidate,
+      score: qualityScore(candidate.content) + (/技能|技术|专业能力|competenc|skills?/i.test(candidate.sourceSection) ? 3 : 0),
+    }))
+    .filter((item) => item.score > 0)
     .sort((a, b) => b.score - a.score)
-  const pool = ranked.slice(0, 6).map((r) => r.s)
-  const finalPool = pool.length > 0 ? pool : sentences.slice(0, 3)
+  const selected = ranked.slice(0, 6)
+  const bestSkill = ranked.find((item) => /技能|技术|专业能力|competenc|skills?/i.test(item.candidate.sourceSection))
+  if (bestSkill && !selected.includes(bestSkill)) selected[selected.length - 1] = bestSkill
+  const finalPool = selected.map((item) => item.candidate)
 
-  const claims: ResumeClaim[] = finalPool.map((content) => {
-    const category = detectCategory(content)
+  const claims: ResumeClaim[] = finalPool.map(({ content, sourceSection }, index) => {
+    const category = detectCategory(content, sourceSection)
     const tpl = CATEGORY_TEMPLATES[category]
     const r = riskFor(category, hasNumber(content))
-    const section = detectSourceSection(rawText, content)
-    return {
+    const metrics = extractMetrics(content)
+    const claim = {
       content,
       title: content.length > 14 ? `${content.slice(0, 14)}…` : content,
       category,
       role,
-      sourceSection: section,
+      sourceSection,
       exaggerationRisk: r.exaggerationRisk,
       interviewRisk: r.interviewRisk,
-      evidence: hasNumber(content) ? ['简历中已给出量化数据'] : ['简历中提及该表述'],
+      evidence: metrics.length > 0 ? [`原文给出的量化信息：${metrics.join('、')}`] : [],
       evidenceGap: tpl.gaps,
       initialQuestion: tpl.question,
       evaluationPoints: tpl.points,
     }
+    return { ...claim, id: createClaimId(claim, index) }
   })
 
-  const fallback: ResumeClaim[] =
-    claims.length > 0
-      ? claims
-      : [
-          {
-            content: rawText.slice(0, 40) || '未识别到有效简历内容',
-            title: '示例声明',
-            category: 'responsibility',
-            role,
-            sourceSection: '其他',
-            exaggerationRisk: 'medium',
-            interviewRisk: 'high',
-            evidence: [],
-            evidenceGap: ['简历文本过短或格式无法识别'],
-            initialQuestion: '能详细说说这段经历吗？',
-            evaluationPoints: ['说明背景与目标', '说明你的具体角色', '说明结果'],
-          },
-        ]
+  if (claims.length === 0) {
+    throw new Error('未识别到可验证的经历陈述，请补充具体职责、行动或成果。')
+  }
 
   const analysis: ResumeAnalysis = {
     candidate,
     role,
     sourceFile,
     rawText,
-    summary: `识别到 ${fallback.length} 条可验证声明，岗位倾向「${role}」。未配置模型，以下为规则示例分析。`,
-    claims: fallback,
+    summary: `识别到 ${claims.length} 条可验证声明，岗位倾向「${role}」。未配置模型，以下为规则示例分析。`,
+    claims,
   }
 
   return resumeAnalysisSchema.parse(analysis)
 }
-

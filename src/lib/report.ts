@@ -46,7 +46,7 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
 
   for (const claim of analysis.claims) {
     const risk = RISK_META[claim.interviewRisk]
-    const claimSessions = sessions[claim.content] ?? []
+    const claimSessions = sessions[claim.id] ?? []
     lines.push(
       `## ${claim.title}`,
       '',

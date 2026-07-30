@@ -10,6 +10,7 @@ const analysis: ResumeAnalysis = {
   summary: '识别到 1 条声明',
   claims: [
     {
+      id: 'claim-1-sales',
       content: '季度销售额提升 30%',
       title: '销售额提升 30%',
       category: 'achievement',

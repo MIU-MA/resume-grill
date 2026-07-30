@@ -84,7 +84,7 @@ export async function assertAllowedBaseUrl(rawBaseUrl: string): Promise<void> {
       .map((s) => s.trim())
       .filter(Boolean)
       .map(originOf)
-    if (!origins.includes(`${url.protocol}//${host}`)) {
+    if (!origins.includes(url.origin)) {
       throw new Error('该 Base URL 不在服务端允许的白名单内')
     }
     // 命中白名单：管理员显式信任，放行（即便指向内网/本机）。

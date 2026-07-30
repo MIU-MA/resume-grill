@@ -16,7 +16,7 @@ import type { LlmSettings } from '@/lib/settings'
 import { getLlmSettings } from '@/lib/settings'
 import type { ExtractedText } from '@/lib/pdf'
 import { downloadFullReport } from '@/lib/report'
-import { loadRecord, newRecordId, saveRecord, upsertSession } from '@/lib/storage'
+import { deleteRecord, listRecords, loadRecord, newRecordId, resumeContentKey, saveRecord, updatePreparedClaims, upsertSession, type SavedRecord } from '@/lib/storage'
 import type { Mode } from '@/types'
 import { useAppNavigation } from '@/lib/use-app-navigation'
 import { useLlmStatus } from '@/lib/use-llm-status'
@@ -26,82 +26,126 @@ function App() {
   const { phase, mode, push, replace } = useAppNavigation()
   const { envConfigured, clientConfigured, mode: llmMode, refresh: refreshClientLlm } = useLlmStatus()
 
-  // 简历分析
   const [analysis, setAnalysis] = useState<ResumeAnalysis | null>(null)
   const [pendingExtracted, setPendingExtracted] = useState<{ extracted: ExtractedText; sourceFile: string } | null>(null)
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [analyzing, setAnalyzing] = useState(false)
 
-  // 持久化
   const [sessions, setSessions] = useState<Record<string, InterviewSession[]>>({})
+  const [preparedClaimIds, setPreparedClaimIds] = useState<string[]>([])
   const [recordId, setRecordId] = useState<string | null>(null)
   const [recovering, setRecovering] = useState(false)
+  const [savedRecords, setSavedRecords] = useState<SavedRecord[]>([])
+  const [loadingRecords, setLoadingRecords] = useState(true)
 
-  // Toast
   const [toast, setToast] = useState('')
   const [error, setError] = useState<string | null>(null)
   const showToast = (m: string, d = 3200) => { setToast(m); window.setTimeout(() => setToast(''), d) }
 
-  // 面试状态机
   const iv = useInterview(envConfigured, {
     onError: setError,
     onToast: showToast,
-    onSessionSaved: (claimContent, session) => {
+    onSessionSaved: (claimId, session) => {
       setSessions(prev => {
-        const list = prev[claimContent] ?? []
+        const list = prev[claimId] ?? []
         const idx = list.findIndex(s => s.version === session.version)
-        return { ...prev, [claimContent]: idx >= 0 ? list.map((s, i) => (i === idx ? session : s)) : [...list, session] }
+        return { ...prev, [claimId]: idx >= 0 ? list.map((s, i) => (i === idx ? session : s)) : [...list, session] }
       })
-      if (recordId && analysis) upsertSession(recordId, analysis, claimContent, session).catch(() => undefined)
+      if (recordId && analysis) upsertSession(recordId, analysis, claimId, session).catch(() => undefined)
     },
   })
 
-  // 派生
   const selected = analysis?.claims[selectedIndex] ?? null
   const stats = analysis ? computeStats(analysis.claims) : null
   const activeClaim: ResumeClaim = iv.rewriteContent ? { ...selected!, content: iv.rewriteContent } : selected!
 
-  // 刷新恢复
   useEffect(() => {
     if (phase !== 'workspace' || analysis) return
     const sid = window.sessionStorage.getItem('resume-drill:active')
     if (!sid) return
     setRecovering(true)
     loadRecord(sid).then(record => {
-      if (record) { setAnalysis(record.analysis); setRecordId(record.id); setSessions(record.sessions); setSelectedIndex(0) }
+      if (record) { setAnalysis(record.analysis); setRecordId(record.id); setSessions(record.sessions); setPreparedClaimIds(record.preparedClaimIds); setSelectedIndex(0) }
     }).catch(() => {}).finally(() => setRecovering(false))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 上传 → 解析
+  useEffect(() => {
+    if (phase !== 'upload') return
+    setLoadingRecords(true)
+    listRecords()
+      .then(setSavedRecords)
+      .catch(() => setSavedRecords([]))
+      .finally(() => setLoadingRecords(false))
+  }, [phase])
+
   const handleExtracted = (extracted: ExtractedText, sourceFile: string) => {
     setPendingExtracted({ extracted, sourceFile }); setError(null); push('review')
   }
 
-  // 确认文本 → 分析
   const handleConfirmText = async (rawText: string, sourceFile: string) => {
     if (!rawText.trim()) { setError('未检测到有效的简历正文，请尝试粘贴文本。'); return }
     setAnalyzing(true); setError(null)
     try {
+      const records = recordId ? [] : await listRecords()
+      const existing = records.find(
+        (record) => resumeContentKey(record.analysis.rawText) === resumeContentKey(rawText),
+      ) ?? records.find((record) => record.analysis.sourceFile === sourceFile)
+      if (existing && existing.analysis.rawText === rawText) {
+        openSavedRecord(existing)
+        showToast(`已恢复「${existing.analysis.candidate}」的本地分析记录。`)
+        return
+      }
       const llm = getLlmSettings()
       const body: { rawText: string; sourceFile: string; llm?: LlmSettings } = { rawText, sourceFile }
       if (llm) body.llm = llm
       const res = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const data = (await res.json()) as ResumeAnalysis | { error: string }
       if (!res.ok || 'error' in data) throw new Error('error' in data ? data.error : '分析失败')
-      setAnalysis(data); setSelectedIndex(0); setSessions({}); push('workspace', 'audit')
-      const id = newRecordId(data); setRecordId(id)
+      const retainedSessions = existing
+        ? Object.fromEntries(data.claims.flatMap((claim) => existing.sessions[claim.id] ? [[claim.id, existing.sessions[claim.id]]] : []))
+        : {}
+      const retainedPrepared = existing
+        ? existing.preparedClaimIds.filter((claimId) => data.claims.some((claim) => claim.id === claimId))
+        : []
+      setAnalysis(data); setSelectedIndex(0); setSessions(retainedSessions); setPreparedClaimIds(retainedPrepared); push('workspace', 'audit')
+      const id = recordId ?? existing?.id ?? newRecordId(data); setRecordId(id)
       window.sessionStorage.setItem('resume-drill:active', id)
-      saveRecord({ id, analysis: data, sessions: {}, updatedAt: Date.now() }).catch(() => undefined)
+      saveRecord({ id, analysis: data, sessions: retainedSessions, preparedClaimIds: retainedPrepared, updatedAt: Date.now() }).catch(() => undefined)
       showToast(`已载入「${data.candidate}」的简历，识别到 ${data.claims.length} 条声明。`)
     } catch (e) { setError(e instanceof Error ? e.message : '分析失败') }
     finally { setAnalyzing(false) }
   }
 
   const replaceResume = () => {
-    setAnalysis(null); setPendingExtracted(null); setSessions({}); setRecordId(null)
+    setAnalysis(null); setPendingExtracted(null); setSessions({}); setPreparedClaimIds([]); setRecordId(null)
     setError(null); iv.reset()
     window.sessionStorage.removeItem('resume-drill:active')
     push('upload')
+  }
+
+  const openSavedRecord = (record: SavedRecord) => {
+    setAnalysis(record.analysis); setSessions(record.sessions); setPreparedClaimIds(record.preparedClaimIds); setRecordId(record.id)
+    setSelectedIndex(0); setPendingExtracted(null); setError(null); iv.reset()
+    window.sessionStorage.setItem('resume-drill:active', record.id)
+    push('workspace', 'audit')
+  }
+
+  const removeSavedRecord = async (id: string) => {
+    await deleteRecord(id)
+    setSavedRecords((records) => records.filter((record) => record.id !== id))
+    if (window.sessionStorage.getItem('resume-drill:active') === id) {
+      window.sessionStorage.removeItem('resume-drill:active')
+    }
+  }
+
+  const togglePrepared = (claimId: string) => {
+    setPreparedClaimIds((current) => {
+      const next = current.includes(claimId)
+        ? current.filter((id) => id !== claimId)
+        : [...current, claimId]
+      if (recordId && analysis) updatePreparedClaims(recordId, analysis, next).catch(() => undefined)
+      return next
+    })
   }
 
   const selectClaim = (index: number) => { setSelectedIndex(index); replace('workspace', 'audit'); iv.reset() }
@@ -114,10 +158,10 @@ function App() {
   }
 
   const startRewriteInterview = (claim: ResumeClaim, rewrittenContent: string) => {
-    const idx = analysis?.claims.findIndex(c => c.content === claim.content) ?? -1
+    const idx = analysis?.claims.findIndex(c => c.id === claim.id) ?? -1
     if (idx < 0) return
     setSelectedIndex(idx)
-    const prevCount = (sessions[claim.content] ?? []).length
+    const prevCount = (sessions[claim.id] ?? []).length
     iv.prepareRewrite(rewrittenContent, prevCount + 1)
     replace('workspace', 'interview')
     iv.start(claim).catch(() => undefined)
@@ -127,7 +171,6 @@ function App() {
   const goReport = () => { replace('workspace', 'report'); window.scrollTo({ top: 0, left: 0 }) }
   const exportFull = () => { if (!analysis) return; downloadFullReport(analysis, sessions) }
 
-  // ---- 渲染 ----
 
   if (recovering) return <div className="min-h-screen bg-bg" />
 
@@ -135,7 +178,7 @@ function App() {
     if (phase === 'review' && pendingExtracted) {
       return <ExtractedTextReview sourceFile={pendingExtracted.sourceFile} extracted={pendingExtracted.extracted} analyzing={analyzing} error={error} onConfirm={handleConfirmText} onBack={replaceResume} />
     }
-    return <ResumeUploader analyzing={analyzing} error={error} onExtracted={handleExtracted} envConfigured={envConfigured} clientConfigured={clientConfigured} onClientChanged={refreshClientLlm} />
+    return <ResumeUploader analyzing={analyzing} error={error} onExtracted={handleExtracted} envConfigured={envConfigured} clientConfigured={clientConfigured} onClientChanged={refreshClientLlm} savedRecords={savedRecords} loadingRecords={loadingRecords} onOpenSaved={openSavedRecord} onDeleteSaved={removeSavedRecord} />
   }
 
   return (
@@ -153,7 +196,6 @@ function App() {
       />
 
       <div className="w-[min(1440px,calc(100%-48px))] mx-auto mt-6 mb-10">
-        {/* Hero + Tab */}
         <section className="flex items-end justify-between gap-6 mb-5">
           <div>
             <div className="text-brand text-[12px] font-bold uppercase tracking-[0.08em] mb-2">Resume audit</div>
@@ -170,7 +212,6 @@ function App() {
           </div>
         </section>
 
-        {/* 指标卡 */}
         <section className="grid grid-cols-4 gap-3 mb-[18px] max-[1050px]:grid-cols-2 max-[480px]:grid-cols-1">
           {([
             ['高风险声明', stats.highCount, 'text-danger', '建议优先准备证据'],
@@ -186,11 +227,10 @@ function App() {
           ))}
         </section>
 
-        {/* 主体 */}
         {mode === 'report' ? (
           <SessionReport analysis={analysis} sessions={sessions} onRewrite={startRewriteInterview} />
         ) : mode === 'audit' ? (
-          <AuditView analysis={analysis} selectedIndex={selectedIndex} error={error} onSelect={selectClaim} onStartInterview={startInterview} onReport={goReport} />
+          <AuditView analysis={analysis} selectedIndex={selectedIndex} preparedClaimIds={preparedClaimIds} error={error} onSelect={selectClaim} onTogglePrepared={togglePrepared} onStartInterview={startInterview} onReport={goReport} />
         ) : (
           <div className="flex">
             <InterviewView
