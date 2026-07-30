@@ -1,44 +1,78 @@
 import { z } from 'zod'
+import { riskLevelSchema } from '@/domain/resume-schema'
 
-// 一轮对话：面试官提问 + 候选人回答
-export const interviewTurnSchema = z.object({
+// ── 声明分析 ──
+
+export const verifyPointSchema = z.object({
+  point: z.string(),
+  importance: z.enum(['high', 'medium', 'low']),
+})
+export type VerifyPoint = z.infer<typeof verifyPointSchema>
+
+// /api/analyze-claim 响应
+export const claimAnalysisSchema = z.object({
+  level: z.string(),
+  verifyPoints: z.array(verifyPointSchema),
+  trapPoints: z.array(z.string()),
+})
+export type ClaimAnalysis = z.infer<typeof claimAnalysisSchema>
+
+// ── 面试流转 ──
+
+// /api/interview/start 响应
+export const interviewStartSchema = z.object({
+  question: z.string(),
+  intent: z.string(),
+})
+export type InterviewStart = z.infer<typeof interviewStartSchema>
+
+// 一轮对话：问题 + 回答 + 评估
+export const interviewRoundSchema = z.object({
   question: z.string(),
   answer: z.string(),
+  evaluation: z.object({
+    score: z.number().min(0).max(100),
+    coveredPoints: z.array(z.string()),
+    missingPoints: z.array(z.string()),
+  }),
+  nextReason: z.string(),
 })
-export type InterviewTurn = z.infer<typeof interviewTurnSchema>
+export type InterviewRound = z.infer<typeof interviewRoundSchema>
 
-// /api/interview 的响应：根据上一轮回答动态生成的下一问
-export const nextQuestionSchema = z.object({
-  // 下一问的题目
-  question: z.string(),
-  // 这一问在验证什么
-  intent: z.string(),
-  // 是否结束本轮追问
+// /api/interview/continue 响应
+export const interviewContinueSchema = z.object({
+  evaluation: z.object({
+    score: z.number().min(0).max(100),
+    coveredPoints: z.array(z.string()),
+    missingPoints: z.array(z.string()),
+  }),
+  nextReason: z.string(),
   isFinal: z.boolean(),
-  // 截至目前，回答已经覆盖的评估要点
-  coveredPoints: z.array(z.string()),
-  // 仍然缺失、建议补充的要点
-  missingPoints: z.array(z.string()),
+  nextQuestion: z.string(),
 })
-export type NextQuestion = z.infer<typeof nextQuestionSchema>
+export type InterviewContinueResult = z.infer<typeof interviewContinueSchema>
 
-// /api/summarize 的响应：一轮追问结束后的结论与改写建议
-export const sessionSummarySchema = z.object({
-  finalSummary: z.string(),
+// ── 风险报告 ──
+
+export const finalResultSchema = z.object({
+  confidence: z.number().min(0).max(5),
+  risk: riskLevelSchema,
+  canExplain: z.array(z.string()),
+  cannotExplain: z.array(z.string()),
+  suggestions: z.array(z.string()),
   rewriteSuggestion: z.string(),
 })
-export type SessionSummary = z.infer<typeof sessionSummarySchema>
+export type FinalResult = z.infer<typeof finalResultSchema>
 
-// 单条声明的完整面试会话：在内存与 IndexedDB 中保存，退出后可恢复。
+// ── 会话持久化 ──
+
 export const interviewSessionSchema = z.object({
-  // 关联的声明 quote（作为 claimId，避免引入额外 id）
-  claimId: z.string(),
-  turns: z.array(interviewTurnSchema),
-  coveredPoints: z.array(z.string()),
-  missingPoints: z.array(z.string()),
-  finalSummary: z.string(),
-  rewriteSuggestion: z.string(),
-  // 进行中 / 已完成
+  id: z.string(),
+  claimContent: z.string(),
+  rounds: z.array(interviewRoundSchema),
+  claimAnalysis: claimAnalysisSchema.nullable(),
+  finalResult: finalResultSchema.nullable(),
   status: z.enum(['in_progress', 'done']),
+  version: z.number().default(1),
 })
 export type InterviewSession = z.infer<typeof interviewSessionSchema>

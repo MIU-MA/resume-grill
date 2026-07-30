@@ -1,37 +1,43 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 
-// 统一按钮：替代旧 .button/.icon-button。变体 primary | secondary；尺寸 normal | large | icon。
-type Variant = 'primary' | 'secondary'
-type Size = 'normal' | 'large' | 'icon'
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
+type Size = 'normal' | 'large'
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: Variant
   size?: Size
+  loading?: boolean
   children?: ReactNode
 }
 
-const BASE =
-  'inline-flex items-center justify-center gap-[7px] rounded-[5px] cursor-pointer transition-[background,border-color,color,transform] duration-[160ms] disabled:cursor-not-allowed disabled:opacity-42'
+const BASE = 'inline-flex items-center justify-center gap-2 font-medium transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed'
 
-const VARIANT: Record<Variant, string> = {
-  primary: 'h-8 px-3 text-[12px] font-650 text-white bg-brand hover:bg-[#194ebc]',
-  secondary: 'h-8 px-3 text-[12px] font-650 text-[#3e474d] bg-white border border-line-strong hover:bg-[#f0f3f5]',
+const VARIANTS: Record<Variant, string> = {
+  primary: 'text-white bg-brand hover:bg-brand-hover rounded-lg',
+  secondary: 'text-text-secondary bg-white border border-line hover:bg-surface-hover rounded-lg',
+  ghost: 'text-text-secondary hover:bg-surface-hover rounded-lg',
+  danger: 'text-danger bg-danger-soft hover:brightness-95 rounded-lg',
 }
 
-const SIZE: Record<Size, string> = {
-  normal: '',
-  large: 'h-[38px] px-[18px]',
-  icon: 'w-8 h-8 px-0 text-muted bg-white border border-line-strong hover:bg-[#f0f3f5]',
+const SIZES: Record<Size, string> = {
+  normal: 'h-9 px-4 text-[13px]',
+  large: 'h-10 px-5 text-[14px]',
 }
 
-export function Button({ variant = 'primary', size = 'normal', className, children, ...props }: ButtonProps) {
-  // icon 尺寸不套 variant 的 h-8/px，用 icon 自己的尺寸类（已在 SIZE.icon）
-  const sizeCls = SIZE[size]
-  const variantCls = size === 'icon' ? '' : VARIANT[variant]
+export function Button({ variant = 'primary', size = 'normal', loading, className, children, disabled, ...props }: ButtonProps) {
   return (
-    <button type="button" className={cn(BASE, variantCls, sizeCls, className)} {...props}>
-      {children}
+    <button type="button" className={cn(BASE, VARIANTS[variant], SIZES[size], className)} disabled={disabled || loading} {...props}>
+      {loading ? <Spinner /> : children}
     </button>
+  )
+}
+
+function Spinner() {
+  return (
+    <svg className="size-4 animate-spin" viewBox="0 0 24 24" fill="none">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    </svg>
   )
 }

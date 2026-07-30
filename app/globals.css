@@ -1,41 +1,44 @@
 @import 'tailwindcss';
 
-/* 设计 token：映射为 Tailwind 主题，可用 bg-surface / text-muted / border-line 等语义类。
-   颜色命名避开 Tailwind 默认 blue/red/green，用语义名（brand 表示主蓝）。 */
+/* ── 设计 token ── */
 @theme {
-  --color-ink: #1a2024;
-  --color-muted: #687179;
-  --color-faint: #949ca3;
-  --color-line: #dde2e5;
-  --color-line-strong: #cfd5d9;
+  --color-bg: #f6f7f9;
   --color-surface: #ffffff;
-  --color-canvas: #f3f5f6;
-  --color-brand: #215dd8;
-  --color-brand-soft: #eaf0fd;
-  --color-red: #c94848;
-  --color-red-soft: #fbebeb;
-  --color-amber: #b86b13;
-  --color-amber-soft: #fff3df;
-  --color-green: #287a55;
-  --color-green-soft: #e9f6ef;
+  --color-surface-soft: #f9fafb;
+  --color-surface-hover: #f3f4f6;
 
-  /* 自定义断点（min-first）。原 CSS 为 max-width 桌面优先，迁移时反转：移动端样式为基础，md1/md2/md3 叠加桌面。 */
-  --breakpoint-md1: 620px;
-  --breakpoint-md2: 860px;
-  --breakpoint-md3: 1100px;
+  --color-text-primary: #101828;
+  --color-text-secondary: #475467;
+  --color-text-tertiary: #98a2b3;
 
-  /* scan 动画用于分析页加载 */
-  --animate-scan: scan 1.3s ease-in-out infinite alternate;
+  --color-line: #eaecf0;
+  --color-line-strong: #e2e5e9;
+
+  --color-brand: #2563eb;
+  --color-brand-hover: #1d4ed8;
+  --color-brand-soft: #eff6ff;
+
+  --color-danger: #d92d20;
+  --color-danger-soft: #fff1f0;
+
+  --color-warning: #dc6803;
+  --color-warning-soft: #fff7ed;
+
+  --color-success: #039855;
+  --color-success-soft: #ecfdf3;
+
+  --font-family-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1200px;
+  --animate-spin: spin 1s linear infinite;
 }
 
-@keyframes scan {
-  to { top: 80px; }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 :root {
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: #1a2024;
-  background: #f3f5f6;
+  font-family: var(--font-family-sans);
+  color: var(--color-text-primary);
+  background: var(--color-bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -43,11 +46,12 @@
 
 * { box-sizing: border-box; }
 html, body { min-width: 320px; min-height: 100%; margin: 0; }
-body { min-height: 100vh; background: var(--color-canvas); }
-button, textarea, input { font: inherit; }
-button { border: 0; }
-button:focus-visible, textarea:focus-visible, a:focus-visible {
-  outline: 2px solid var(--color-brand);
+body { min-height: 100vh; background: var(--color-bg); }
+button, textarea, input, select { font: inherit; }
+button { border: 0; cursor: pointer; }
+
+button:focus-visible, textarea:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid #60a5fa;
   outline-offset: 2px;
 }
-::selection { background: #cfdcff; color: #101b31; }
+::selection { background: #dbeafe; color: #1e40af; }

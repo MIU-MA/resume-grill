@@ -1,123 +1,100 @@
 'use client'
 
-import { ArrowLeft, Check, FileDown, AlertTriangle, RotateCcw } from 'lucide-react'
-import { CLAIM_CATEGORY_LABELS, type ResumeAnalysis, type ResumeClaim } from '@/domain/resume-schema'
+import { ArrowRight, Clipboard } from 'lucide-react'
+import { type ResumeAnalysis, type ResumeClaim } from '@/domain/resume-schema'
 import type { InterviewSession } from '@/domain/interview-schema'
-import { claimRisk, type RiskMeta } from '@/lib/risk'
 import { Button } from '@/components/Button'
-
-const RISK_DOT: Record<RiskMeta['color'], string> = {
-  red: 'bg-red shadow-[0_0_0_3px_var(--color-red-soft)]',
-  amber: 'bg-amber shadow-[0_0_0_3px_var(--color-amber-soft)]',
-  green: 'bg-green shadow-[0_0_0_3px_var(--color-green-soft)]',
-}
-
-const STATUS_BORDER: Record<string, string> = {
-  in_progress: 'border-l-[3px] border-l-brand',
-  done: 'border-l-[3px] border-l-green',
-  todo: 'border-l-[3px] border-l-line-strong',
-}
-
-const STATUS_BADGE: Record<string, string> = {
-  done: 'text-green bg-green-soft',
-  in_progress: 'text-brand bg-brand-soft',
-  todo: 'text-faint bg-[#eef1f2]',
-}
-
-const STATUS_LABEL: Record<string, string> = {
-  done: '已完成',
-  in_progress: '进行中',
-  todo: '未追问',
-}
 
 type SessionReportProps = {
   analysis: ResumeAnalysis
-  sessions: Record<string, InterviewSession>
-  onBack: () => void
-  onExport: () => void
-  onRedo: (claim: ResumeClaim) => void
-  onSelect: (claim: ResumeClaim) => void
+  sessions: Record<string, InterviewSession[]>
+  onRewrite: (claim: ResumeClaim, rewrittenContent: string) => void
 }
 
-export function SessionReport({ analysis, sessions, onBack, onExport, onRedo, onSelect }: SessionReportProps) {
-  const sessionList = analysis.claims.map((claim) => ({ claim, session: sessions[claim.quote] }))
-  const doneCount = sessionList.filter((s) => s.session?.status === 'done').length
-  const inProgressCount = sessionList.filter((s) => s.session?.status === 'in_progress').length
+export function SessionReport({ analysis, sessions, onRewrite }: SessionReportProps) {
+  const sessionList = analysis.claims.map((claim) => {
+    const list = sessions[claim.content] ?? []
+    const latest = list[list.length - 1]
+    return { claim, sessions: list, latest, status: latest?.status ?? 'todo' }
+  })
+  const doneSessions = sessionList.filter((s) => s.status === 'done' && s.latest?.finalResult)
+  const avgConf = doneSessions.length > 0
+    ? Math.round(doneSessions.reduce((sum, s) => sum + s.latest!.finalResult!.confidence, 0) / doneSessions.length / 5 * 100)
+    : 0
 
   return (
-    <main className="min-w-0 bg-canvas">
-      <div className="flex h-[46px] items-center justify-between bg-white px-6 border-b border-line">
-        <button type="button" className="flex items-center gap-[6px] bg-transparent text-muted text-[10px] hover:text-ink" onClick={onBack}><ArrowLeft size={15} />返回</button>
-        <span className="text-muted font-mono text-[10px] font-600">会话报告 · 已完成 {doneCount} · 进行中 {inProgressCount}</span>
+    <div className="space-y-4">
+      {/* 总结 + score ring */}
+      <div className="grid grid-cols-[minmax(0,1fr)_300px] gap-4 max-[1050px]:grid-cols-1">
+        <div className="bg-white border border-border rounded-xl shadow-[0_1px_3px_rgba(16,24,40,0.04)] p-6">
+          <div className="text-brand text-[12px] font-bold uppercase tracking-[0.08em] mb-2">Session report</div>
+          <h2 className="m-0 text-[21px] font-bold tracking-[-0.025em]">本次简历压力测试</h2>
+          <p className="mt-2 text-text-tertiary text-[13px] leading-relaxed">
+            已完成 {doneSessions.length} 条声明测试。当前主要风险不是基础知识，而是证据不足和表达范围过大。
+          </p>
+          <div className="mt-5 space-y-3">
+            {doneSessions.slice(0, 3).map((s, i) => {
+              const missed = s.latest!.finalResult!.cannotExplain.slice(0, 1)
+              return (
+                <div key={i} className="grid grid-cols-[26px_minmax(0,1fr)] gap-3 items-start">
+                  <span className="w-[26px] h-[26px] rounded-lg bg-text-primary text-white grid place-items-center text-[11px] font-bold">{i + 1}</span>
+                  <div>
+                    <strong className="text-[13px]">{s.claim.title}</strong>
+                    {missed.length > 0 && <span className="block text-text-tertiary text-[12px] leading-[1.55] mt-1">{missed[0]}</span>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+        <div className="bg-white border border-border rounded-xl shadow-[0_1px_3px_rgba(16,24,40,0.04)] p-6 grid place-items-center text-center">
+          <div className="relative w-[132px] h-[132px] rounded-full grid place-items-center" style={{ background: `conic-gradient(#2563eb 0 ${avgConf}%, #e5e7eb ${avgConf}% 100%)` }}>
+            <div className="absolute w-[102px] h-[102px] rounded-full bg-white" />
+            <span className="relative z-10 text-[28px] font-extrabold tracking-[-0.03em]">
+              {avgConf}
+              <small className="block text-[11px] text-text-tertiary font-semibold tracking-normal mt-1">证据完整度</small>
+            </span>
+          </div>
+        </div>
       </div>
 
-      <section className="bg-surface border-b border-line px-[30px] pt-7 pb-[22px]">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-[5px] text-brand text-[10px] font-750 uppercase">简历改写报告</div>
-            <h1 className="mt-[6px] mb-[6px] text-[20px] text-[#182025]">{analysis.candidate} · {analysis.role}</h1>
-            <p className="m-0 max-w-[640px] text-muted text-[11px] leading-[1.6]">{analysis.summary}</p>
+      {/* 改写建议 */}
+      {doneSessions.length > 0 && (
+        <div className="space-y-3.5">
+          <h3 className="text-[18px] font-bold tracking-[-0.02em] px-1">简历改写建议</h3>
+          <div className="p-4 space-y-3.5">
+            {doneSessions.map(({ claim, latest }) => {
+              const r = latest!.finalResult!
+              return (
+                <div key={claim.content} className="bg-white border border-border rounded-xl overflow-hidden">
+                  <div className="flex items-center justify-between gap-4 px-4 py-3 bg-surface-soft border-b border-border">
+                    <span className="text-[13px] font-bold">{claim.title}</span>
+                    <span className="text-text-tertiary text-[12px]">可信度 {r.confidence}/5</span>
+                  </div>
+                  <div className="grid grid-cols-2 max-[760px]:grid-cols-1">
+                    <div className="p-5 min-h-[140px]">
+                      <div className="text-text-tertiary text-[11px] font-bold mb-2">原文</div>
+                      <p className="text-text-secondary text-[13px] leading-[1.7]">{claim.content}</p>
+                    </div>
+                    <div className="p-5 min-h-[140px] bg-success-soft/30 border-l border-border max-[760px]:border-l-0 max-[760px]:border-t">
+                      <div className="text-text-tertiary text-[11px] font-bold mb-2">建议版本</div>
+                      <p className="text-success text-[13px] leading-[1.7]">{r.rewriteSuggestion}</p>
+                      <div className="flex items-center gap-2 mt-3">
+                        <Button variant="ghost" className="text-[12px]" onClick={() => onRewrite(claim, r.rewriteSuggestion)}>
+                          <ArrowRight size={13} />重新测试
+                        </Button>
+                        <Button variant="ghost" className="text-[12px]" onClick={() => navigator.clipboard?.writeText(r.rewriteSuggestion)}>
+                          <Clipboard size={13} />复制
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
-          <Button variant="primary" onClick={onExport}><FileDown size={14} />导出完整报告</Button>
         </div>
-      </section>
-
-      <section className="flex flex-col gap-[14px] px-[30px] pt-[22px] pb-10">
-        {sessionList.map(({ claim, session }) => {
-          const risk = claimRisk(claim.askLikelihood, claim.evidenceStrength)
-          const status = session?.status ?? 'todo'
-          return (
-            <article key={claim.quote} className={`rounded-md border border-line bg-white px-5 py-[18px] ${STATUS_BORDER[status]}`}>
-              <div className="flex items-center gap-[9px]">
-                <span className={`size-[6px] rounded-full ${RISK_DOT[risk.color]}`} />
-                <div className="flex min-w-0 flex-col">
-                  <small className="text-faint text-[10px]">{CLAIM_CATEGORY_LABELS[claim.category]} · {claim.role}</small>
-                  <strong className="text-[11px] font-650 text-[#30373c]">{claim.title}</strong>
-                </div>
-                <span className={`ml-auto rounded px-2 py-[3px] text-[10px] font-650 ${STATUS_BADGE[status]}`}>{STATUS_LABEL[status]}</span>
-              </div>
-
-              <blockquote className="m-0 my-3 border-l-[3px] border-[#9eabb3] bg-[#f5f7f8] px-3 py-[10px] text-[11px] leading-[1.6] text-[#4f5960]">“{claim.quote}”</blockquote>
-
-              {session ? (
-                <div className="mt-3 flex flex-col gap-3">
-                  <div className="flex gap-[14px] text-muted text-[10px]">
-                    <span>{session.turns.length} 轮</span>
-                    <span>覆盖 {session.coveredPoints.length}/{claim.evaluationPoints.length} 要点</span>
-                  </div>
-                  {session.finalSummary && (
-                    <div>
-                      <h3 className="flex items-center gap-[6px] m-0 mb-[6px] text-[10px] text-[#465057]"><Check size={13} className="text-green" />结论</h3>
-                      <p className="m-0 text-muted text-[10px] leading-[1.6]">{session.finalSummary}</p>
-                    </div>
-                  )}
-                  {session.missingPoints.length > 0 && (
-                    <div>
-                      <h3 className="flex items-center gap-[6px] m-0 mb-[6px] text-[10px] text-[#465057]"><AlertTriangle size={13} className="text-amber" />仍缺失</h3>
-                      <p className="m-0 text-muted text-[10px] leading-[1.6]">{session.missingPoints.join('；')}</p>
-                    </div>
-                  )}
-                  {session.rewriteSuggestion && (
-                    <div>
-                      <h3 className="m-0 mb-[6px] text-[10px] text-[#465057]">改写建议</h3>
-                      <pre className="m-0 whitespace-pre-wrap break-words rounded-[4px] border border-[#cfe6da] bg-[#f1f7f3] px-3 py-[10px] text-[10px] leading-[1.7] text-[#2a3328]">{session.rewriteSuggestion}</pre>
-                    </div>
-                  )}
-                  <div className="flex gap-2">
-                    <Button variant="secondary" className="h-[30px] px-3" onClick={() => onSelect(claim)}>查看声明</Button>
-                    <Button variant="secondary" className="h-[30px] px-3" onClick={() => onRedo(claim)}><RotateCcw size={13} />重新追问</Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <Button variant="primary" className="h-[30px] px-3" onClick={() => onRedo(claim)}>开始追问</Button>
-                  <Button variant="secondary" className="h-[30px] px-3" onClick={() => onSelect(claim)}>查看声明</Button>
-                </div>
-              )}
-            </article>
-          )
-        })}
-      </section>
-    </main>
+      )}
+    </div>
   )
 }

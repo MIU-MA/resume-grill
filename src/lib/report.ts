@@ -1,6 +1,6 @@
 import { CLAIM_CATEGORY_LABELS, type ResumeAnalysis } from '@/domain/resume-schema'
+import { RISK_META } from '@/lib/risk'
 import type { InterviewSession } from '@/domain/interview-schema'
-import { claimRisk } from '@/lib/risk'
 
 // 基础报告：仅声明风险，不含面试表现。
 export function buildReport(analysis: ResumeAnalysis): string {
@@ -15,15 +15,15 @@ export function buildReport(analysis: ResumeAnalysis): string {
   ]
 
   for (const claim of analysis.claims) {
-    const risk = claimRisk(claim.askLikelihood, claim.evidenceStrength)
+    const risk = RISK_META[claim.interviewRisk]
     lines.push(
       `## ${claim.title}`,
       '',
       `- 类型：${CLAIM_CATEGORY_LABELS[claim.category]}`,
-      `- 简历原文：${claim.quote}`,
-      `- 被追问概率：${claim.askLikelihood}/100`,
-      `- 证据完整度：${claim.evidenceStrength}/100（${risk.label}）`,
-      `- 证据缺口：${claim.evidenceGaps.join('；') || '无'}`,
+      `- 声明内容：${claim.content}`,
+      `- 面试风险：${risk.label}`,
+      `- 可信风险：${RISK_META[claim.exaggerationRisk].label}`,
+      `- 证据缺失：${claim.evidenceGap.join('；') || '无'}`,
       `- 评估要点：${claim.evaluationPoints.join('；')}`,
       '',
     )
@@ -32,8 +32,8 @@ export function buildReport(analysis: ResumeAnalysis): string {
   return lines.join('\n')
 }
 
-// 完整报告：在声明风险之上叠加面试表现与改写建议。
-export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<string, InterviewSession>): string {
+// 完整报告：在声明风险之上叠加面试风险报告。
+export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<string, InterviewSession[]>): string {
   const lines = [
     '# 简历追问与改写报告',
     '',
@@ -45,31 +45,35 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
   ]
 
   for (const claim of analysis.claims) {
-    const risk = claimRisk(claim.askLikelihood, claim.evidenceStrength)
-    const session = sessions[claim.quote]
+    const risk = RISK_META[claim.interviewRisk]
+    const claimSessions = sessions[claim.content] ?? []
     lines.push(
       `## ${claim.title}`,
       '',
       `- 类型：${CLAIM_CATEGORY_LABELS[claim.category]}`,
-      `- 简历原文：${claim.quote}`,
-      `- 被追问概率：${claim.askLikelihood}/100`,
-      `- 证据完整度：${claim.evidenceStrength}/100（${risk.label}）`,
+      `- 声明内容：${claim.content}`,
+      `- 面试风险：${risk.label} / 可信风险：${RISK_META[claim.exaggerationRisk].label}`,
     )
-    if (session) {
-      lines.push(
-        `- 面试状态：${session.status === 'done' ? '已完成' : '进行中'}`,
-        `- 追问轮数：${session.turns.length}`,
-        `- 覆盖要点：${session.coveredPoints.join('、') || '无'}`,
-        `- 仍缺失：${session.missingPoints.join('、') || '无'}`,
-        '',
-        '### 结论',
-        session.finalSummary || '（暂无）',
-        '',
-        '### 改写建议',
-        session.rewriteSuggestion || '（暂无）',
-      )
-    } else {
+    if (claimSessions.length === 0) {
       lines.push('- 面试状态：未追问')
+    } else {
+      claimSessions.forEach((session, i) => {
+        const s = session.finalResult
+        if (!s) return
+        lines.push(
+          '',
+          `### 第 ${i + 1} 版（${session.version}）追问报告`,
+          `- 追问轮数：${session.rounds.length}`,
+          `- 可信度：${'★'.repeat(s.confidence)}${'☆'.repeat(5 - s.confidence)}`,
+          `- 风险级别：${RISK_META[s.risk].label}`,
+          `- 能解释：${s.canExplain.join('、') || '无'}`,
+          `- 无法解释：${s.cannotExplain.join('、') || '无'}`,
+          `- 建议：${s.suggestions.join('；') || '无'}`,
+          '',
+          '改写建议：',
+          session.claimContent || s.rewriteSuggestion,
+        )
+      })
     }
     lines.push('')
   }
@@ -93,6 +97,6 @@ export function downloadReport(analysis: ResumeAnalysis) {
   downloadText(`简历声明报告-${analysis.candidate}.md`, buildReport(analysis))
 }
 
-export function downloadFullReport(analysis: ResumeAnalysis, sessions: Record<string, InterviewSession>) {
+export function downloadFullReport(analysis: ResumeAnalysis, sessions: Record<string, InterviewSession[]>) {
   downloadText(`简历追问报告-${analysis.candidate}.md`, buildFullReport(analysis, sessions))
 }
