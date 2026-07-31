@@ -1,34 +1,40 @@
 'use client'
 
-import { useSearchParams, useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useCallback } from 'react'
 import type { Mode } from '@/types'
 
 export type Phase = 'upload' | 'review' | 'workspace'
 
-export function useAppNavigation() {
-  const searchParams = useSearchParams()
-  const router = useRouter()
+export function parseAppPath(pathname: string): { phase: Phase; mode: Mode } {
+  if (pathname === '/review') return { phase: 'review', mode: 'audit' }
+  if (pathname === '/interview') return { phase: 'workspace', mode: 'interview' }
+  if (pathname === '/report') return { phase: 'workspace', mode: 'report' }
+  if (pathname === '/audit') return { phase: 'workspace', mode: 'audit' }
+  return { phase: 'upload', mode: 'audit' }
+}
 
-  const phase = (searchParams.get('phase') as Phase) || 'upload'
-  const mode = (searchParams.get('tab') as Mode) || 'audit'
+export function buildAppPath(phase: Phase, mode: Mode = 'audit'): string {
+  if (phase === 'review') return '/review'
+  if (phase === 'workspace') return `/${mode}`
+  return '/'
+}
+
+export function useAppNavigation() {
+  const pathname = usePathname()
+  const router = useRouter()
+  const { phase, mode } = parseAppPath(pathname)
 
   const push = useCallback(
     (newPhase: Phase, newMode?: Mode) => {
-      const params = new URLSearchParams()
-      params.set('phase', newPhase)
-      if (newMode) params.set('tab', newMode)
-      router.push(`/?${params.toString()}`)
+      router.push(buildAppPath(newPhase, newMode))
     },
     [router],
   )
 
   const replace = useCallback(
     (newPhase: Phase, newMode?: Mode) => {
-      const params = new URLSearchParams()
-      params.set('phase', newPhase)
-      if (newMode) params.set('tab', newMode)
-      router.replace(`/?${params.toString()}`)
+      router.replace(buildAppPath(newPhase, newMode))
     },
     [router],
   )
