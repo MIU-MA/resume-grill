@@ -70,7 +70,18 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       const data = (await res.json()) as FinalResult | { error: string }
       let finalResult: FinalResult
       if (!res.ok || 'error' in data) {
-        finalResult = { confidence: 0, risk: 'medium', canExplain: [], cannotExplain: ['总结生成失败'], suggestions: [], rewriteSuggestion: '' }
+        finalResult = {
+          confidence: 0,
+          risk: 'medium',
+          canExplain: [],
+          cannotExplain: ['总结生成失败'],
+          suggestions: [],
+          rewriteSuggestion: '',
+          answerSummary: '本次总结没有成功生成。',
+          evidenceUsed: [],
+          missingEvidence: [],
+          nextAction: '重新发起一次面试总结。',
+        }
       } else { finalResult = data }
       onSessionSaved(claim.id, {
         id: `${claim.id}:v${version}`,

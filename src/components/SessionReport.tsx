@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowRight, Clipboard } from 'lucide-react'
+import { AlertTriangle, ArrowRight, CheckCircle2, Clipboard, Target } from 'lucide-react'
 import { type ResumeAnalysis, type ResumeClaim } from '@/domain/resume-schema'
 import type { InterviewSession } from '@/domain/interview-schema'
 import { Button } from '@/components/Button'
@@ -58,6 +58,42 @@ export function SessionReport({ analysis, sessions, onRewrite }: SessionReportPr
         </div>
       </div>
 
+      {analysis.jobMatch && (
+        <section className="bg-white border border-border rounded-xl shadow-[0_1px_3px_rgba(16,24,40,0.04)] overflow-hidden">
+          <div className="flex items-center justify-between gap-4 border-b border-border bg-surface-soft px-5 py-4">
+            <div className="flex items-center gap-2">
+              <Target size={16} className="text-brand" />
+              <div>
+                <h2 className="m-0 text-[15px] font-bold">岗位匹配</h2>
+                <p className="mt-1 text-[12px] text-text-tertiary">根据目标岗位描述检查简历证据，不代表候选人已经具备该能力。</p>
+              </div>
+            </div>
+            <span className="text-[12px] text-text-tertiary">{analysis.jobMatch.requirements.length} 项要求</span>
+          </div>
+          <div className="divide-y divide-border">
+            {analysis.jobMatch.requirements.map((item) => (
+              <div key={item.requirement} className="grid grid-cols-[92px_minmax(0,1fr)_minmax(0,1.2fr)] gap-4 px-5 py-3.5 max-[720px]:grid-cols-1 max-[720px]:gap-1.5">
+                <div className={`flex items-center gap-1.5 text-[12px] font-semibold ${item.match === 'strong' ? 'text-success' : item.match === 'partial' ? 'text-warning' : 'text-danger'}`}>
+                  {item.match === 'strong' ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
+                  {item.match === 'strong' ? '匹配较好' : item.match === 'partial' ? '部分匹配' : '缺少证据'}
+                </div>
+                <p className="m-0 text-[13px] leading-relaxed text-text-primary">{item.requirement}</p>
+                <div className="text-[12px] leading-relaxed text-text-tertiary">
+                  <p className="m-0">{item.note}</p>
+                  {item.evidence.length > 0 && <p className="mt-1 text-text-secondary">证据：{item.evidence.slice(0, 1).join('')}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+          {(analysis.jobMatch.gaps.length > 0 || analysis.jobMatch.interviewFocus.length > 0) && (
+            <div className="grid grid-cols-2 gap-4 border-t border-border px-5 py-4 max-[720px]:grid-cols-1">
+              <ReportFact label="岗位缺口" value={joinReportItems(analysis.jobMatch.gaps)} tone="warning" />
+              <ReportFact label="建议优先追问" value={joinReportItems(analysis.jobMatch.interviewFocus)} />
+            </div>
+          )}
+        </section>
+      )}
+
       {/* 改写建议 */}
       {doneSessions.length > 0 && (
         <div className="space-y-3.5">
@@ -70,6 +106,12 @@ export function SessionReport({ analysis, sessions, onRewrite }: SessionReportPr
                   <div className="flex items-center justify-between gap-4 px-4 py-3 bg-surface-soft border-b border-border">
                     <span className="text-[13px] font-bold">{claim.title}</span>
                     <span className="text-text-tertiary text-[12px]">可信度 {r.confidence}/5</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-4 border-b border-border px-5 py-4 max-[900px]:grid-cols-2 max-[520px]:grid-cols-1">
+                    <ReportFact label="回答结论" value={r.answerSummary || '暂无结论'} />
+                    <ReportFact label="已证明" value={joinReportItems(r.evidenceUsed?.length > 0 ? r.evidenceUsed : r.canExplain)} tone="success" />
+                    <ReportFact label="仍缺证据" value={joinReportItems(r.missingEvidence?.length > 0 ? r.missingEvidence : r.cannotExplain)} tone="warning" />
+                    <ReportFact label="下一步行动" value={r.nextAction || joinReportItems(r.suggestions)} />
                   </div>
                   <div className="grid grid-cols-2 max-[760px]:grid-cols-1">
                     <div className="p-5 min-h-[140px]">
@@ -95,6 +137,19 @@ export function SessionReport({ analysis, sessions, onRewrite }: SessionReportPr
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function joinReportItems(items: string[]): string {
+  return items.length > 0 ? items.slice(0, 2).join('；') : '暂无记录'
+}
+
+function ReportFact({ label, value, tone = 'default' }: { label: string; value: string; tone?: 'default' | 'success' | 'warning' }) {
+  return (
+    <div className="min-w-0">
+      <div className="mb-1 text-[11px] font-bold text-text-tertiary">{label}</div>
+      <p className={`m-0 text-[12px] leading-[1.6] ${tone === 'success' ? 'text-success' : tone === 'warning' ? 'text-warning' : 'text-text-secondary'}`}>{value}</p>
     </div>
   )
 }

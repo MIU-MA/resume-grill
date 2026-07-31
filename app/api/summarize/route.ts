@@ -14,7 +14,11 @@ const SUMMARIZE_SYSTEM = `你是一名资深面试官，刚结束对候选人简
   "canExplain": string[],      // 候选人能解释的
   "cannotExplain": string[],   // 无法解释/回避的
   "suggestions": string[],     // 建议补充的知识或证据
-  "rewriteSuggestion": string  // 改写后的简历表述（可直接采用）
+  "rewriteSuggestion": string,  // 改写后的简历表述（可直接采用）
+  "answerSummary": string,     // 对回答质量和可信度的短结论
+  "evidenceUsed": string[],     // 回答中真正出现的证据
+  "missingEvidence": string[],  // 仍缺失的证据
+  "nextAction": string          // 下一步最具体的补强动作
 }`
 
 const requestSchema = z.object({
@@ -63,7 +67,7 @@ export async function POST(request: Request) {
       userPrompt,
       finalResultSchema,
       config,
-      { signal: withTimeout(SUMMARIZE_TIMEOUT), maxTokens: 800 },
+      { signal: withTimeout(SUMMARIZE_TIMEOUT), maxTokens: 1200 },
     )
     return NextResponse.json(result)
   } catch (error) {

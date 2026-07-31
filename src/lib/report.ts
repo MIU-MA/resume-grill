@@ -13,6 +13,7 @@ export function buildReport(analysis: ResumeAnalysis): string {
     analysis.summary,
     '',
   ]
+  appendJobMatch(lines, analysis)
 
   for (const claim of analysis.claims) {
     const risk = RISK_META[claim.interviewRisk]
@@ -43,6 +44,7 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
     analysis.summary,
     '',
   ]
+  appendJobMatch(lines, analysis)
 
   for (const claim of analysis.claims) {
     const risk = RISK_META[claim.interviewRisk]
@@ -69,6 +71,10 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
           `- 能解释：${s.canExplain.join('、') || '无'}`,
           `- 无法解释：${s.cannotExplain.join('、') || '无'}`,
           `- 建议：${s.suggestions.join('；') || '无'}`,
+          `- 回答结论：${s.answerSummary || '无'}`,
+          `- 已证明证据：${s.evidenceUsed?.join('；') || s.canExplain.join('；') || '无'}`,
+          `- 仍缺证据：${s.missingEvidence?.join('；') || s.cannotExplain.join('；') || '无'}`,
+          `- 下一步行动：${s.nextAction || '无'}`,
           '',
           '改写建议：',
           session.claimContent || s.rewriteSuggestion,
@@ -79,6 +85,20 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
   }
 
   return lines.join('\n')
+}
+
+function appendJobMatch(lines: string[], analysis: ResumeAnalysis) {
+  if (!analysis.jobMatch) return
+  lines.push('## 岗位匹配', '')
+  analysis.jobMatch.requirements.forEach((item) => {
+    lines.push(
+      `### ${item.match === 'strong' ? '匹配较好' : item.match === 'partial' ? '部分匹配' : '缺少证据'}：${item.requirement}`,
+      `- 说明：${item.note}`,
+      `- 证据：${item.evidence.join('；') || '无'}`,
+      '',
+    )
+  })
+  lines.push(`- 岗位缺口：${analysis.jobMatch.gaps.join('；') || '无'}`, `- 建议优先追问：${analysis.jobMatch.interviewFocus.join('；') || '无'}`, '')
 }
 
 export function downloadText(filename: string, content: string) {

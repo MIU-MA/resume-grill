@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { analysisGoalSchema, reviewedCandidateSchema } from '@/domain/analysis-config'
 
 // 简历声明的五种类型：通用简历语言，不偏向技术岗
 export const claimCategorySchema = z.enum([
@@ -54,6 +55,21 @@ export const resumeClaimSchema = llmResumeClaimSchema.extend({
 })
 export type ResumeClaim = z.infer<typeof resumeClaimSchema>
 
+export const jobMatchRequirementSchema = z.object({
+  requirement: z.string(),
+  match: z.enum(['strong', 'partial', 'gap']),
+  evidence: z.array(z.string()),
+  note: z.string(),
+})
+
+export const jobMatchSchema = z.object({
+  requirements: z.array(jobMatchRequirementSchema),
+  gaps: z.array(z.string()),
+  interviewFocus: z.array(z.string()),
+})
+export type JobMatchRequirement = z.infer<typeof jobMatchRequirementSchema>
+export type JobMatch = z.infer<typeof jobMatchSchema>
+
 function hashClaim(value: string): string {
   let hash = 0x811c9dc5
   for (let i = 0; i < value.length; i++) {
@@ -86,6 +102,10 @@ export const resumeAnalysisSchema = z.object({
   sourceFile: z.string(),
   rawText: z.string(),
   summary: z.string(),
+  analysisGoal: analysisGoalSchema.optional(),
+  reviewedCandidates: z.array(reviewedCandidateSchema).optional(),
+  jobDescription: z.string().optional(),
+  jobMatch: jobMatchSchema.optional(),
   claims: z.array(resumeClaimSchema).min(1),
 })
 export type ResumeAnalysis = z.infer<typeof resumeAnalysisSchema>
@@ -96,5 +116,6 @@ export const llmAnalysisSchema = z.object({
   role: z.string(),
   summary: z.string(),
   claims: z.array(llmResumeClaimSchema).min(1),
+  jobMatch: jobMatchSchema.optional(),
 })
 export type LlmAnalysis = z.infer<typeof llmAnalysisSchema>

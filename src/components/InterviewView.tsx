@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react'
-import { ArrowLeft, ArrowRight, Check, MessageSquareText } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Lightbulb, MessageSquareText } from 'lucide-react'
 import type { ResumeClaim } from '@/domain/resume-schema'
 import { Button } from '@/components/Button'
 
-type Turn = { question: string; answer: string }
+type Turn = { question: string; answer: string; answerSuggestion?: string }
 
 type InterviewViewProps = {
   selected: ResumeClaim
@@ -94,6 +94,14 @@ export function InterviewView({
                 <div className="rounded-lg border border-border bg-surface-soft px-4 py-3">
                   <p className="text-[14px] text-text-secondary leading-relaxed">{turn.answer}</p>
                 </div>
+                {turn.answerSuggestion && (
+                  <div className="mt-3 rounded-lg border border-brand/20 bg-brand-soft px-4 py-3">
+                    <div className="flex items-center gap-2 text-[12px] font-semibold text-brand">
+                      <Lightbulb size={14} />建议回答
+                    </div>
+                    <p className="mt-1.5 text-[13px] leading-relaxed text-text-secondary">{turn.answerSuggestion}</p>
+                  </div>
+                )}
               </div>
             ))}
 

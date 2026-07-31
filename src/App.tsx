@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Check, X } from 'lucide-react'
 import { AuditView } from '@/components/AuditView'
-import { ExtractedTextReview } from '@/components/ExtractedTextReview'
+import { ExtractedTextReview, type ResumeReviewSubmission } from '@/components/ExtractedTextReview'
 import { InterviewView } from '@/components/InterviewView'
 import { InterviewStatus } from '@/components/InterviewStatus'
 import { ResumeUploader } from '@/components/ResumeUploader'
@@ -21,6 +21,8 @@ import type { Mode } from '@/types'
 import { useAppNavigation } from '@/lib/use-app-navigation'
 import { useLlmStatus } from '@/lib/use-llm-status'
 import { useInterview } from '@/lib/use-interview'
+import { reviewedCandidatesKey } from '@/domain/analysis-config'
+import { extractResumeClaimCandidates } from '@/lib/resume-structure'
 
 function App() {
   const { phase, mode, push, replace } = useAppNavigation()
@@ -82,21 +84,35 @@ function App() {
     setPendingExtracted({ extracted, sourceFile }); setError(null); push('review')
   }
 
-  const handleConfirmText = async (rawText: string, sourceFile: string) => {
+  const handleConfirmText = async (submission: ResumeReviewSubmission, sourceFile: string) => {
+    const { rawText, analysisGoal, reviewedCandidates, jobDescription } = submission
     if (!rawText.trim()) { setError('未检测到有效的简历正文，请尝试粘贴文本。'); return }
     setAnalyzing(true); setError(null)
     try {
       const records = recordId ? [] : await listRecords()
-      const existing = records.find(
-        (record) => resumeContentKey(record.analysis.rawText) === resumeContentKey(rawText),
-      ) ?? records.find((record) => record.analysis.sourceFile === sourceFile)
-      if (existing && existing.analysis.rawText === rawText) {
+      const existing = recordId
+        ? await loadRecord(recordId)
+        : records.find((record) => resumeContentKey(record.analysis.rawText) === resumeContentKey(rawText))
+          ?? records.find((record) => record.analysis.sourceFile === sourceFile)
+      const existingCandidates = existing?.analysis.reviewedCandidates
+        ?? (existing ? extractResumeClaimCandidates(existing.analysis.rawText) : [])
+      const sameReview = existing
+        && (existing.analysis.analysisGoal ?? 'overall') === analysisGoal
+        && (existing.analysis.jobDescription ?? '') === jobDescription
+        && reviewedCandidatesKey(existingCandidates) === reviewedCandidatesKey(reviewedCandidates)
+      if (!recordId && existing && existing.analysis.rawText === rawText && sameReview) {
         openSavedRecord(existing)
         showToast(`已恢复「${existing.analysis.candidate}」的本地分析记录。`)
         return
       }
       const llm = getLlmSettings()
-      const body: { rawText: string; sourceFile: string; llm?: LlmSettings } = { rawText, sourceFile }
+      const body: { rawText: string; sourceFile: string; analysisGoal: typeof analysisGoal; reviewedCandidates: typeof reviewedCandidates; jobDescription: string; llm?: LlmSettings } = {
+        rawText,
+        sourceFile,
+        analysisGoal,
+        reviewedCandidates,
+        jobDescription,
+      }
       if (llm) body.llm = llm
       const res = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const data = (await res.json()) as ResumeAnalysis | { error: string }
@@ -191,7 +207,12 @@ function App() {
       )}
       <Topbar
         analysis={analysis} llmMode={llmMode} envConfigured={envConfigured} clientConfigured={clientConfigured}
-        onClientChanged={refreshClientLlm} onRerun={() => handleConfirmText(analysis.rawText, analysis.sourceFile)}
+        onClientChanged={refreshClientLlm} onRerun={() => handleConfirmText({
+          rawText: analysis.rawText,
+          analysisGoal: analysis.analysisGoal ?? 'overall',
+          reviewedCandidates: analysis.reviewedCandidates ?? extractResumeClaimCandidates(analysis.rawText),
+          jobDescription: analysis.jobDescription ?? '',
+        }, analysis.sourceFile)}
         onExport={exportFull} onLogoClick={replaceResume}
       />
 
@@ -235,7 +256,7 @@ function App() {
           <div className="flex">
             <InterviewView
               selected={activeClaim}
-              turns={iv.rounds.map(r => ({ question: r.question, answer: r.answer }))}
+              turns={iv.rounds.map(r => ({ question: r.question, answer: r.answer, answerSuggestion: r.evaluation.answerSuggestion }))}
               currentQuestion={iv.currentQuestion || null} currentIntent={iv.currentIntent || null}
               covered={iv.covered} answer={iv.answer} loading={iv.loading} done={iv.done}
               version={iv.version} error={error}

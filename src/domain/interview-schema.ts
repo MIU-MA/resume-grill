@@ -34,6 +34,7 @@ export const interviewRoundSchema = z.object({
     score: z.number().min(0).max(100),
     coveredPoints: z.array(z.string()),
     missingPoints: z.array(z.string()),
+    answerSuggestion: z.string().default(''),
   }),
   nextReason: z.string(),
 })
@@ -45,6 +46,7 @@ export const interviewContinueSchema = z.object({
     score: z.number().min(0).max(100),
     coveredPoints: z.array(z.string()),
     missingPoints: z.array(z.string()),
+    answerSuggestion: z.string().default(''),
   }),
   nextReason: z.string(),
   isFinal: z.boolean(),
@@ -61,6 +63,10 @@ export const finalResultSchema = z.object({
   cannotExplain: z.array(z.string()),
   suggestions: z.array(z.string()),
   rewriteSuggestion: z.string(),
+  answerSummary: z.string().default(''),
+  evidenceUsed: z.array(z.string()).default([]),
+  missingEvidence: z.array(z.string()).default([]),
+  nextAction: z.string().default(''),
 })
 export type FinalResult = z.infer<typeof finalResultSchema>
 

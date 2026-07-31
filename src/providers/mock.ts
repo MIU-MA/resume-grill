@@ -7,6 +7,8 @@ import {
   type RiskLevel,
 } from '@/domain/resume-schema'
 import { buildStructuredResumeInput, extractLooseClaimCandidates, extractResumeClaimCandidates } from '@/lib/resume-structure'
+import type { AnalysisGoal, ReviewedCandidate } from '@/domain/analysis-config'
+import { buildHeuristicJobMatch } from '@/lib/job-match'
 
 // 当未配置模型时使用：不真正理解语义，但从上传文本中抽取真实句子作为声明，
 // 让无 Key 演示也能反映候选人、岗位与文件名的真实变化。
@@ -114,6 +116,15 @@ function qualityScore(s: string): number {
   return score
 }
 
+function goalScore(candidate: ReviewedCandidate, goal: AnalysisGoal): number {
+  const text = `${candidate.sourceSection}\n${candidate.content}`
+  if (goal === 'project') return /项目|project/i.test(text) ? 8 : 0
+  if (goal === 'skills') return /技能|技术|能力|skills?|competenc/i.test(candidate.sourceSection) ? 10 : 0
+  if (goal === 'achievement') return /\d|提升|降低|增长|减少|缩短|节约|达成|获得/.test(candidate.content) ? 8 : 0
+  if (goal === 'leadership') return /主导|统筹|带领|管理|协调|组织|决策|建立|搭建/.test(candidate.content) ? 8 : 0
+  return 0
+}
+
 // 产出风险级别：可信风险 + 面试风险。
 // 规则示例下按类别与是否含数字粗略判定，含数字但缺口径的声明风险偏高。
 function riskFor(category: ClaimCategory, numbered: boolean): { exaggerationRisk: RiskLevel; interviewRisk: RiskLevel } {
@@ -127,18 +138,26 @@ function riskFor(category: ClaimCategory, numbered: boolean): { exaggerationRisk
   return { exaggerationRisk: map[category].exag, interviewRisk: map[category].intv }
 }
 
-export function mockAnalyze(rawText: string, sourceFile: string): ResumeAnalysis {
+export function mockAnalyze(
+  rawText: string,
+  sourceFile: string,
+  options: { analysisGoal?: AnalysisGoal; candidates?: ReviewedCandidate[]; jobDescription?: string } = {},
+): ResumeAnalysis {
+  const analysisGoal = options.analysisGoal ?? 'overall'
   const role = detectRole(rawText)
   const candidate = detectCandidate(rawText)
   const structuredCandidates = extractResumeClaimCandidates(rawText)
-  const candidates = structuredCandidates.length > 0 ? structuredCandidates : extractLooseClaimCandidates(rawText)
+  const candidates = options.candidates
+    ?? (structuredCandidates.length > 0 ? structuredCandidates : extractLooseClaimCandidates(rawText))
 
   const ranked = candidates
     .map((candidate) => ({
       candidate,
-      score: qualityScore(candidate.content) + (/技能|技术|专业能力|competenc|skills?/i.test(candidate.sourceSection) ? 3 : 0),
+      score: qualityScore(candidate.content)
+        + (/技能|技术|专业能力|competenc|skills?/i.test(candidate.sourceSection) ? 3 : 0)
+        + goalScore(candidate, analysisGoal),
     }))
-    .filter((item) => item.score > 0)
+    .filter((item) => Boolean(options.candidates) || item.score > 0)
     .sort((a, b) => b.score - a.score)
   const selected = ranked.slice(0, 6)
   const bestSkill = ranked.find((item) => /技能|技术|专业能力|competenc|skills?/i.test(item.candidate.sourceSection))
@@ -175,6 +194,10 @@ export function mockAnalyze(rawText: string, sourceFile: string): ResumeAnalysis
     role,
     sourceFile,
     rawText,
+    analysisGoal,
+    reviewedCandidates: options.candidates,
+    jobDescription: options.jobDescription,
+    jobMatch: options.jobDescription ? buildHeuristicJobMatch(options.jobDescription, candidates) : undefined,
     summary: `识别到 ${claims.length} 条可验证声明，岗位倾向「${role}」。未配置模型，以下为规则示例分析。`,
     claims,
   }

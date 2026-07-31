@@ -23,8 +23,8 @@ export function newRecordId(analysis: ResumeAnalysis): string {
   return `${PREFIX}resume:${resumeContentKey(analysis.rawText)}`
 }
 
-export function resumeContentKey(rawText: string): string {
-  const normalized = rawText.replace(/\s+/g, ' ').trim()
+export function resumeContentKey(rawText: string | undefined | null): string {
+  const normalized = (typeof rawText === 'string' ? rawText : '').replace(/\s+/g, ' ').trim()
   let hash = 0x811c9dc5
   for (let i = 0; i < normalized.length; i++) {
     hash ^= normalized.charCodeAt(i)

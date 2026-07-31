@@ -60,4 +60,36 @@ describe('mockAnalyze', () => {
     )
     expect(a.claims.some((claim) => claim.category === 'skill' && claim.content.includes('TypeScript'))).toBe(true)
   })
+
+  it('只分析用户确认保留的候选声明', () => {
+    const a = mockAnalyze('李华\n项目经历\n- 负责后台开发。\n- 实现报表导出。', 'resume.txt', {
+      candidates: [{ content: '实现报表导出。', sourceSection: '项目经历', lineNumber: 4 }],
+    })
+
+    expect(a.claims).toHaveLength(1)
+    expect(a.claims[0].content).toBe('实现报表导出。')
+    expect(a.reviewedCandidates).toHaveLength(1)
+  })
+
+  it('技能真实性目标优先排列技能声明', () => {
+    const a = mockAnalyze([
+      '李华',
+      '技术能力',
+      '前端：TypeScript、React、Next.js',
+      '项目经历',
+      '- 将首屏时间从 3 秒降低到 1 秒。',
+    ].join('\n'), 'resume.txt', { analysisGoal: 'skills' })
+
+    expect(a.analysisGoal).toBe('skills')
+    expect(a.claims[0].category).toBe('skill')
+  })
+
+  it('填写岗位描述时生成岗位匹配结果', () => {
+    const a = mockAnalyze('李华\n产品经理\n- 负责用户访谈和需求分析。', 'resume.txt', {
+      jobDescription: '负责用户访谈和需求分析\n- 使用 SQL 分析业务数据',
+    })
+
+    expect(a.jobMatch?.requirements.length).toBe(2)
+    expect(a.jobMatch?.requirements[0].match).toBe('strong')
+  })
 })

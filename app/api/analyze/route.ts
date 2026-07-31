@@ -7,10 +7,15 @@ import { llmStructured, resolveLlmConfig } from '@/providers/openai-compatible'
 import { mockAnalyze } from '@/providers/mock'
 import { isExcludedClaimContent } from '@/lib/claim-filter'
 import { extractResumeClaimCandidates, isClaimGroundedInRawText, matchClaimCandidate } from '@/lib/resume-structure'
+import { analysisGoalSchema, reviewedCandidateSchema } from '@/domain/analysis-config'
+import { buildHeuristicJobMatch } from '@/lib/job-match'
 
 const requestSchema = z.object({
   rawText: z.string().min(1, '简历文本不能为空').max(MAX_RAWTEXT, `简历文本过长，请控制在 ${MAX_RAWTEXT} 字以内`),
   sourceFile: z.string(),
+  analysisGoal: analysisGoalSchema.default('overall'),
+  reviewedCandidates: z.array(reviewedCandidateSchema).min(1).max(80).optional(),
+  jobDescription: z.string().trim().max(12000).optional(),
   // 可选：前端在设置页填入的 Key；未填则回落服务端 env，再无则走规则示例。
   llm: z
     .object({
@@ -37,12 +42,16 @@ export async function POST(request: Request) {
   }
 
   try {
-    const candidates = extractResumeClaimCandidates(body.rawText)
+    const candidates = body.reviewedCandidates ?? extractResumeClaimCandidates(body.rawText)
     const config = resolveLlmConfig(body.llm ?? null)
     if (config) {
       const partial = await llmStructured(
         ANALYZE_SYSTEM_PROMPT,
-        buildAnalyzeUserPrompt(body.rawText),
+        buildAnalyzeUserPrompt(body.rawText, {
+          analysisGoal: body.analysisGoal,
+          reviewedCandidates: body.reviewedCandidates,
+          jobDescription: body.jobDescription,
+        }),
         llmAnalysisSchema,
         config,
         { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 4000 },
@@ -50,7 +59,7 @@ export async function POST(request: Request) {
       const filteredClaims = partial.claims.flatMap((claim) => {
         if (isExcludedClaimContent(claim.content)) return []
         const source = matchClaimCandidate(claim.content, candidates)
-        if (!source && !isClaimGroundedInRawText(claim.content, body.rawText)) return []
+        if (!source && (body.reviewedCandidates || !isClaimGroundedInRawText(claim.content, body.rawText))) return []
         return [{
           ...claim,
           sourceSection: (source?.sourceSection ?? claim.sourceSection.trim()) || '经历内容',
@@ -71,11 +80,21 @@ export async function POST(request: Request) {
         claims: attachClaimIds(uniqueClaims),
         sourceFile: body.sourceFile,
         rawText: body.rawText,
+        analysisGoal: body.analysisGoal,
+        reviewedCandidates: body.reviewedCandidates,
+        jobDescription: body.jobDescription,
+        jobMatch: body.jobDescription
+          ? partial.jobMatch ?? buildHeuristicJobMatch(body.jobDescription, candidates)
+          : undefined,
       })
       return NextResponse.json(analysis)
     }
 
-    return NextResponse.json(mockAnalyze(body.rawText, body.sourceFile))
+    return NextResponse.json(mockAnalyze(body.rawText, body.sourceFile, {
+      analysisGoal: body.analysisGoal,
+      candidates: body.reviewedCandidates,
+      jobDescription: body.jobDescription,
+    }))
   } catch (error) {
     const message = error instanceof Error ? error.message : '分析失败'
     return NextResponse.json({ error: message }, { status: 500 })

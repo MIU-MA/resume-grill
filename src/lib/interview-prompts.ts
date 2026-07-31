@@ -36,6 +36,7 @@ export const INTERVIEW_CONTINUE_SYSTEM = `你是一名面试官。先评估上�
 - 回答能证明什么(coveredPoints)，仍然缺失什么(missingPoints)
 - coveredPoints 只能逐字引用用户提供的“允许返回的评估要点”，不能改写或新增
 - score: 回答质量 0-100。有具体数据/案例/决策过程 → 60+；只有概念/工具名/空洞描述 → 30-；完全回避/乱答 → 0
+- answerSuggestion: 给出一版更可信的建议回答，控制在 2-4 句。只能使用声明、用户回答和评估要点中已有的信息；缺失数字或事实时使用“[补充具体数据]”，不要编造结果
 
 追问阶段：
 - 基于评估结果生成下一问，直击 missingPoints 里的漏洞
@@ -46,7 +47,7 @@ export const INTERVIEW_CONTINUE_SYSTEM = `你是一名面试官。先评估上�
 
 规则：优先追问具体经历、不问背诵题、每轮只问一个问题、不要提示答案。
 
-严格输出 JSON: { "evaluation": { "score": number, "coveredPoints": string[], "missingPoints": string[] }, "nextReason": string, "isFinal": boolean, "nextQuestion": string }`
+严格输出 JSON: { "evaluation": { "score": number, "coveredPoints": string[], "missingPoints": string[], "answerSuggestion": string }, "nextReason": string, "isFinal": boolean, "nextQuestion": string }`
 
 // ── 构造 user prompt ──
 
