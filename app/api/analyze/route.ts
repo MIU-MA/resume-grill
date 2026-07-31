@@ -45,7 +45,7 @@ export async function POST(request: Request) {
         buildAnalyzeUserPrompt(body.rawText),
         llmAnalysisSchema,
         config,
-        { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 2000 },
+        { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 4000 },
       )
       const filteredClaims = partial.claims.flatMap((claim) => {
         if (isExcludedClaimContent(claim.content)) return []

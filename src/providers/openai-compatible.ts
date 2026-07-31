@@ -83,17 +83,89 @@ export async function llmStructured<T>(
   }
 
   const data = (await res.json()) as {
-    choices?: { message?: { content?: string } }[]
+    choices?: Array<{
+      finish_reason?: string
+      text?: string
+      message?: { content?: string | Array<{ type?: string; text?: string }> }
+    }>
   }
-  const content = data.choices?.[0]?.message?.content
+  const choice = data.choices?.[0]
+  const content = normalizeMessageContent(choice?.message?.content) || choice?.text
   if (!content) throw new Error('模型返回为空')
 
   let parsed: unknown
   try {
-    parsed = JSON.parse(content)
+    parsed = parseModelJson(content)
   } catch {
-    throw new Error('模型返回不是合法 JSON')
+    if (choice?.finish_reason === 'length') {
+      throw new Error('模型输出因长度限制被截断，请重试或提高模型的最大输出长度。')
+    }
+    throw new Error('模型返回不是合法 JSON，请确认所选模型支持 JSON 输出。')
   }
 
-  return schema.parse(parsed)
+  const validated = schema.safeParse(parsed)
+  if (!validated.success) {
+    const issue = validated.error.issues[0]
+    const path = issue?.path.length ? issue.path.join('.') : '根对象'
+    throw new Error(`模型 JSON 字段不完整：${path} ${issue?.message ?? '格式不符合要求'}`)
+  }
+  return validated.data
+}
+
+function normalizeMessageContent(content: string | Array<{ type?: string; text?: string }> | undefined): string {
+  if (typeof content === 'string') return content.trim()
+  if (!Array.isArray(content)) return ''
+  return content.map((part) => part.text ?? '').join('').trim()
+}
+
+export function parseModelJson(content: string): unknown {
+  const trimmed = content.trim().replace(/^\uFEFF/, '')
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1]?.trim()
+  for (const candidate of [trimmed, fenced]) {
+    if (!candidate) continue
+    try {
+      return JSON.parse(candidate)
+    } catch {
+      // Some compatible APIs ignore response_format and wrap JSON in prose.
+    }
+  }
+
+  for (let index = 0; index < trimmed.length; index++) {
+    if (trimmed[index] !== '{' && trimmed[index] !== '[') continue
+    const candidate = readBalancedJson(trimmed, index)
+    if (!candidate) continue
+    try {
+      return JSON.parse(candidate)
+    } catch {
+      // Keep searching in case an earlier brace came from explanatory prose.
+    }
+  }
+  throw new Error('No valid JSON object found')
+}
+
+function readBalancedJson(value: string, start: number): string | null {
+  const stack: string[] = []
+  let inString = false
+  let escaped = false
+
+  for (let index = start; index < value.length; index++) {
+    const char = value[index]
+    if (inString) {
+      if (escaped) escaped = false
+      else if (char === '\\') escaped = true
+      else if (char === '"') inString = false
+      continue
+    }
+    if (char === '"') {
+      inString = true
+      continue
+    }
+    if (char === '{' || char === '[') stack.push(char)
+    else if (char === '}' || char === ']') {
+      const opening = stack.pop()
+      if ((char === '}' && opening !== '{') || (char === ']' && opening !== '[')) return null
+      if (stack.length === 0) return value.slice(start, index + 1)
+    }
+  }
+  return null
 }
