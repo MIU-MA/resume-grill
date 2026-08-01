@@ -17,6 +17,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
   const [currentQuestion, setCurrentQuestion] = useState('')
   const [currentIntent, setCurrentIntent] = useState('')
   const [answer, setAnswer] = useState('')
+  const [annotation, setAnnotation] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
   const [rewriteContent, setRewriteContent] = useState<string | null>(null)
@@ -24,13 +25,13 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
   const cache = useRef<Map<string, ClaimAnalysis>>(new Map())
 
   const reset = useCallback(() => {
-    setRounds([]); setCurrentQuestion(''); setCurrentIntent(''); setAnswer('')
+    setRounds([]); setCurrentQuestion(''); setCurrentIntent(''); setAnswer(''); setAnnotation('')
     setDone(false); setRewriteContent(null); setVersion(1)
   }, [])
 
   const prepareRewrite = useCallback((rewrittenContent: string, newVersion: number) => {
     setRewriteContent(rewrittenContent); setVersion(newVersion)
-    setRounds([]); setAnswer(''); setDone(false)
+    setRounds([]); setAnswer(''); setAnnotation(''); setDone(false)
   }, [])
 
   const start = useCallback(async (claim: ResumeClaim) => {
@@ -102,33 +103,34 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
 
   const submit = useCallback(async (claim: ResumeClaim) => {
     if (!currentQuestion || loading || done) return
-    if (!answer.trim()) return
+    if (!answer.trim() && !annotation.trim()) return
     setLoading(true)
     try {
       const claimAnalysis = cache.current.get(claim.id)
       if (!claimAnalysis) throw new Error('声明分析未找到，请重新开始追问')
       const llm = getLlmSettings()
-      const body: any = { claim, question: currentQuestion, answer, rounds, verifyPoints: claimAnalysis.verifyPoints, trapPoints: claimAnalysis.trapPoints }
+      const body: any = { claim, question: currentQuestion, answer, annotation, rounds, verifyPoints: claimAnalysis.verifyPoints, trapPoints: claimAnalysis.trapPoints }
       if (llm) body.llm = llm
       const res = await fetch('/api/interview/continue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const data = (await res.json()) as InterviewContinueResult | { error: string }
       if (!res.ok || 'error' in data) throw new Error('error' in data ? data.error : '生成下一问失败')
-      const round: InterviewRound = { question: currentQuestion, answer, evaluation: data.evaluation, nextReason: data.nextReason }
+      const round: InterviewRound = { question: currentQuestion, answer, annotation, evaluation: data.evaluation, nextReason: data.nextReason }
       const newRounds = [...rounds, round]; setRounds(newRounds)
       setCurrentQuestion(data.nextQuestion); setCurrentIntent(data.nextReason)
       setAnswer('')
+      setAnnotation('')
       if (data.isFinal) {
         setDone(true)
         await finalizeSession(claim, newRounds)
       }
     } catch (e) { onError(e instanceof Error ? e.message : '追问失败') }
     finally { setLoading(false) }
-  }, [currentQuestion, loading, done, answer, rounds, finalizeSession, onError])
+  }, [currentQuestion, loading, done, answer, annotation, rounds, finalizeSession, onError])
 
   const covered = rounds[rounds.length - 1]?.evaluation?.coveredPoints ?? []
 
   return {
-    rounds, currentQuestion, currentIntent, answer, setAnswer, loading, done,
+    rounds, currentQuestion, currentIntent, answer, setAnswer, annotation, setAnnotation, loading, done,
     rewriteContent, version, covered,
     reset, prepareRewrite, start, submit,
   }

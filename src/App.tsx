@@ -259,15 +259,17 @@ function App() {
           <div className="flex">
             <InterviewView
               selected={activeClaim}
-              turns={iv.rounds.map(r => ({ question: r.question, answer: r.answer, answerSuggestion: r.evaluation.answerSuggestion }))}
+              turns={iv.rounds.map(r => ({ question: r.question, answer: r.answer, annotation: r.annotation, answerSuggestion: r.evaluation.answerSuggestion }))}
               currentQuestion={iv.currentQuestion || null} currentIntent={iv.currentIntent || null}
               covered={iv.covered} answer={iv.answer} loading={iv.loading} done={iv.done}
+              annotation={iv.annotation}
               version={iv.version} error={error}
               onAnswerChange={iv.setAnswer} onSubmit={() => iv.submit(selected!)}
+              onAnnotationChange={iv.setAnnotation}
               onFinish={() => { if (iv.done) { replace('workspace', 'report'); iv.reset() } }}
               onBackToAudit={() => { replace('workspace', 'audit'); iv.reset() }}
             />
-            <InterviewStatus selected={activeClaim} roundCount={iv.rounds.length} covered={iv.covered} />
+            <InterviewStatus selected={activeClaim} roundCount={iv.rounds.filter((round) => round.answer.trim().length > 0).length} covered={iv.covered} />
           </div>
         )}
       </div>

@@ -30,6 +30,7 @@ export type InterviewStart = z.infer<typeof interviewStartSchema>
 export const interviewRoundSchema = z.object({
   question: z.string(),
   answer: z.string(),
+  annotation: z.string().default(''),
   evaluation: z.object({
     score: z.number().min(0).max(100),
     coveredPoints: z.array(z.string()),

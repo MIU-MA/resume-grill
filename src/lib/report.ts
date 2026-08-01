@@ -62,10 +62,14 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
       claimSessions.forEach((session, i) => {
         const s = session.finalResult
         if (!s) return
+        const annotations = session.rounds
+          .map((round) => round.annotation?.trim())
+          .filter((annotation): annotation is string => Boolean(annotation))
         lines.push(
           '',
           `### 第 ${i + 1} 版（${session.version}）追问报告`,
-          `- 追问轮数：${session.rounds.length}`,
+          `- 有效回答轮数：${session.rounds.filter((round) => round.answer.trim()).length}`,
+          `- 不懂批注：${annotations.join('；') || '无'}`,
           `- 可信度：${'★'.repeat(s.confidence)}${'☆'.repeat(5 - s.confidence)}`,
           `- 风险级别：${RISK_META[s.risk].label}`,
           `- 能解释：${s.canExplain.join('、') || '无'}`,

@@ -1,9 +1,9 @@
-import { useEffect, useRef } from 'react'
-import { ArrowLeft, ArrowRight, Check, Lightbulb, MessageSquareText } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ArrowLeft, ArrowRight, Check, CircleHelp, Lightbulb, MessageSquareText } from 'lucide-react'
 import type { ResumeClaim } from '@/domain/resume-schema'
 import { Button } from '@/components/Button'
 
-type Turn = { question: string; answer: string; answerSuggestion?: string }
+type Turn = { question: string; answer: string; annotation?: string; answerSuggestion?: string }
 
 type InterviewViewProps = {
   selected: ResumeClaim
@@ -12,11 +12,13 @@ type InterviewViewProps = {
   currentIntent: string | null
   covered: string[]
   answer: string
+  annotation: string
   loading: boolean
   done: boolean
   version: number
   error: string | null
   onAnswerChange: (value: string) => void
+  onAnnotationChange: (value: string) => void
   onSubmit: () => void
   onFinish: () => void
   onBackToAudit: () => void
@@ -29,18 +31,22 @@ export function InterviewView({
   currentIntent,
   covered,
   answer,
+  annotation,
   loading,
   done,
   version,
   error,
   onAnswerChange,
+  onAnnotationChange,
   onSubmit,
   onFinish,
   onBackToAudit,
 }: InterviewViewProps) {
   const chatEndRef = useRef<HTMLDivElement>(null)
+  const [annotationOpen, setAnnotationOpen] = useState(false)
   const totalPoints = selected.evaluationPoints.length
   const coverage = totalPoints > 0 ? Math.round((covered.length / totalPoints) * 100) : 0
+  const answeredTurnCount = turns.filter((turn) => turn.answer.trim().length > 0).length
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -56,7 +62,7 @@ export function InterviewView({
             <ArrowLeft size={15} />返回审计
           </button>
           <div className="text-center">
-            <span className="text-[14px] font-semibold text-text-primary">第 {turns.length + 1} 轮追问</span>
+            <span className="text-[14px] font-semibold text-text-primary">第 {answeredTurnCount + 1} 轮追问</span>
             <span className="ml-2 text-[13px] text-text-tertiary">{selected.title}</span>
           </div>
           <span className="text-[12px] text-text-tertiary">{covered.length}/{totalPoints} 项已验证</span>
@@ -80,7 +86,7 @@ export function InterviewView({
             {turns.map((turn, i) => (
               <div key={i} className="mb-6">
                 <div className="flex items-center gap-2 text-[12px] font-medium text-text-tertiary mb-1">
-                  <span className="font-mono">Q{i + 1}</span>
+                  <span className="font-mono">{turn.answer ? `Q${turns.slice(0, i + 1).filter((item) => item.answer.trim()).length}` : '澄清'}</span>
                   <span className="h-px flex-1 bg-border" />
                   <span>面试官</span>
                 </div>
@@ -92,12 +98,18 @@ export function InterviewView({
                   <span>你的回答</span>
                 </div>
                 <div className="rounded-lg border border-border bg-surface-soft px-4 py-3">
-                  <p className="text-[14px] text-text-secondary leading-relaxed">{turn.answer}</p>
+                  <p className="text-[14px] text-text-secondary leading-relaxed">{turn.answer || '未作答，已请求换一种问法。'}</p>
                 </div>
+                {turn.annotation && (
+                  <div className="mt-2 flex items-start gap-2 rounded-lg border border-warning/25 bg-warning-soft px-3.5 py-2.5 text-[13px] leading-relaxed text-text-secondary">
+                    <CircleHelp size={14} className="mt-0.5 flex-none text-warning" />
+                    <span><strong className="font-semibold">不懂批注：</strong>{turn.annotation}</span>
+                  </div>
+                )}
                 {turn.answerSuggestion && (
                   <div className="mt-3 rounded-lg border border-brand/20 bg-brand-soft px-4 py-3">
                     <div className="flex items-center gap-2 text-[12px] font-semibold text-brand">
-                      <Lightbulb size={14} />建议回答
+                      <Lightbulb size={14} />{turn.answer ? '建议回答' : '通俗说明'}
                     </div>
                     <p className="mt-1.5 text-[13px] leading-relaxed text-text-secondary">{turn.answerSuggestion}</p>
                   </div>
@@ -144,14 +156,34 @@ export function InterviewView({
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' && !event.shiftKey) {
                       event.preventDefault()
-                      if (answer.trim().length > 0 && !loading) onSubmit()
+                      if ((answer.trim().length > 0 || annotation.trim().length > 0) && !loading) onSubmit()
                     }
                   }}
                 />
+                <div>
+                  <button
+                    type="button"
+                    className={`inline-flex items-center gap-1.5 bg-transparent text-[12px] font-semibold ${annotationOpen || annotation ? 'text-warning' : 'text-text-tertiary hover:text-text-secondary'}`}
+                    onClick={() => setAnnotationOpen((open) => !open)}
+                    aria-expanded={annotationOpen}
+                  >
+                    <CircleHelp size={14} />这部分没听懂
+                  </button>
+                  {(annotationOpen || annotation) && (
+                    <textarea
+                      className="mt-2 w-full min-h-[72px] resize-y rounded-lg border border-warning/30 bg-warning-soft px-3.5 py-2.5 text-[13px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-warning focus:outline-none"
+                      value={annotation}
+                      onChange={(event) => onAnnotationChange(event.target.value)}
+                      disabled={loading}
+                      maxLength={500}
+                      placeholder="写下没理解的词或问题片段，例如：不清楚“幂等性”在这里指什么"
+                    />
+                  )}
+                </div>
                 <div className="flex items-center justify-between">
                   <span className="text-text-tertiary text-[12px]">Shift + Enter 换行 · 建议 80–300 字</span>
-                  <Button variant="primary" size="large" disabled={answer.trim().length === 0 || loading} onClick={onSubmit} loading={loading}>
-                    提交回答
+                  <Button variant="primary" size="large" disabled={(answer.trim().length === 0 && annotation.trim().length === 0) || loading} onClick={onSubmit} loading={loading}>
+                    {answer.trim() ? '提交回答' : '提交批注'}
                   </Button>
                 </div>
               </div>

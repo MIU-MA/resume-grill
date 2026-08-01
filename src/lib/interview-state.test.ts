@@ -5,6 +5,7 @@ import type { InterviewRound } from '@/domain/interview-schema'
 const round = (coveredPoints: string[]): InterviewRound => ({
   question: '问题',
   answer: '回答',
+  annotation: '',
   evaluation: { score: 70, coveredPoints, missingPoints: [], answerSuggestion: '' },
   nextReason: '继续确认',
 })

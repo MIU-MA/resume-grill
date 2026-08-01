@@ -37,6 +37,8 @@ export const INTERVIEW_CONTINUE_SYSTEM = `你是一名面试官。先评估上�
 - coveredPoints 只能逐字引用用户提供的“允许返回的评估要点”，不能改写或新增
 - score: 回答质量 0-100。有具体数据/案例/决策过程 → 60+；只有概念/工具名/空洞描述 → 30-；完全回避/乱答 → 0
 - answerSuggestion: 给出一版更可信的建议回答，控制在 2-4 句。只能使用声明、用户回答和评估要点中已有的信息；缺失数字或事实时使用“[补充具体数据]”，不要编造结果
+- 如果用户提供了“不懂批注”，先理解其困惑。批注不是回答证据，不能因此增加 coveredPoints，也不要把“不懂术语”直接判断为经历造假
+- 如果用户只有批注而没有作答，answerSuggestion 用 1-2 句通俗解释相关术语，nextQuestion 改写成更具体、更少术语的问法
 
 追问阶段：
 - 基于评估结果生成下一问，直击 missingPoints 里的漏洞
@@ -75,12 +77,13 @@ export function buildInterviewContinueUser(
   claim: ResumeClaim,
   question: string,
   answer: string,
+  annotation: string,
   rounds: InterviewRound[],
   verifyPoints: { point: string; importance: string }[],
   trapPoints: string[],
 ): string {
   const history = rounds
-    .map((r, i) => `第${i + 1}轮\n问: ${r.question}\n答: ${r.answer}\n评估: 得分${r.evaluation.score}, 覆盖[${r.evaluation.coveredPoints.join('、')}], 缺失[${r.evaluation.missingPoints.join('、')}]`)
+    .map((r, i) => `第${i + 1}轮\n问: ${r.question}\n答: ${r.answer || '(未作答)'}\n不懂批注: ${r.annotation || '(无)'}\n评估: 得分${r.evaluation.score}, 覆盖[${r.evaluation.coveredPoints.join('、')}], 缺失[${r.evaluation.missingPoints.join('、')}]`)
     .join('\n\n')
   return [
     '声明的原始内容：',
@@ -98,7 +101,8 @@ export function buildInterviewContinueUser(
     '',
     '上一轮：',
     `问: ${question}`,
-    `答: ${answer}`,
+    `答: ${answer || '(未作答)'}`,
+    `用户的不懂批注: ${annotation || '(无)'}`,
     '',
     '历史轮次（含每轮评估结果）：',
     history || '(无)',

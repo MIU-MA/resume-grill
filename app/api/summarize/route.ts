@@ -7,6 +7,8 @@ import { llmStructured, resolveLlmConfig } from '@/providers/openai-compatible'
 
 const SUMMARIZE_SYSTEM = `你是一名资深面试官，刚结束对候选人简历中一条声明的追问。基于对话历史，给出最终风险报告。
 
+用户可能通过“不懂批注”请求解释专业术语。只有批注、没有回答的轮次属于澄清过程，不应被当作能力不足或回避问题，也不能作为已证明证据。总结时可以把反复出现的困惑写入下一步学习建议。
+
 严格输出 JSON:
 {
   "confidence": 0-5,           // 可信度：5=完全经得起追问, 0=完全无法回答
@@ -52,7 +54,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '请配置 API Key' }, { status: 400 })
     }
     const history = body.rounds
-      .map((r, i) => `第${i + 1}轮\n问: ${r.question}\n答: ${r.answer}\n评估: 得分${r.evaluation.score}, 覆盖[${r.evaluation.coveredPoints.join('、')}], 缺失[${r.evaluation.missingPoints.join('、')}]`)
+      .map((r, i) => `第${i + 1}轮\n问: ${r.question}\n答: ${r.answer || '(未作答，仅请求澄清)'}\n不懂批注: ${r.annotation || '(无)'}\n评估: 得分${r.evaluation.score}, 覆盖[${r.evaluation.coveredPoints.join('、')}], 缺失[${r.evaluation.missingPoints.join('、')}]`)
       .join('\n\n')
     const userPrompt = [
       `声明: ${body.claim.content}`,
