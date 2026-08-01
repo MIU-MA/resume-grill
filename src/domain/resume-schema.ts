@@ -46,7 +46,7 @@ export const llmResumeClaimSchema = z.object({
   // 首轮追问
   initialQuestion: z.string(),
   // 评估应覆盖的要点（用作自检清单）
-  evaluationPoints: z.array(z.string()),
+  evaluationPoints: z.array(z.string()).min(1),
 })
 
 // 单条可验证的简历声明

@@ -60,6 +60,9 @@ function App() {
   const selected = analysis?.claims[selectedIndex] ?? null
   const stats = analysis ? computeStats(analysis.claims) : null
   const activeClaim: ResumeClaim = iv.rewriteContent ? { ...selected!, content: iv.rewriteContent } : selected!
+  const completedClaimCount = analysis
+    ? analysis.claims.filter((claim) => (sessions[claim.id] ?? []).some((session) => session.status === 'done')).length
+    : 0
 
   useEffect(() => {
     if (phase !== 'workspace' || analysis) return
@@ -238,7 +241,7 @@ function App() {
             ['高风险声明', stats.highCount, 'text-danger', '建议优先准备证据'],
             ['证据缺口', stats.totalGaps, 'text-warning', '集中在量化口径和贡献'],
             ['可追问声明', stats.claimCount, '', '覆盖项目、技能和成果'],
-            ['已完成测试', `${Object.values(sessions).flat().filter((s: InterviewSession) => s.status === 'done').length} / ${stats.claimCount}`, 'text-success', `已验证 ${iv.covered.length} 个考察点`],
+            ['已完成测试', `${completedClaimCount} / ${stats.claimCount}`, 'text-success', `已验证 ${iv.covered.length} 个考察点`],
           ] as const).map(([label, value, color, hint]) => (
             <div key={label} className="bg-white border border-border rounded-xl p-4 shadow-[0_1px_3px_rgba(16,24,40,0.04)]">
               <div className="text-text-tertiary text-[12px] mb-2">{label}</div>

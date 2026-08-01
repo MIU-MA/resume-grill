@@ -5,6 +5,7 @@ import { claimAnalysisSchema } from '@/domain/interview-schema'
 import { ANALYZE_CLAIM_SYSTEM, buildAnalyzeClaimUser } from '@/lib/interview-prompts'
 import { ANALYZE_TIMEOUT, getClientIp, rateLimit, withTimeout } from '@/lib/server-limits'
 import { llmStructured, resolveLlmConfig } from '@/providers/openai-compatible'
+import { canonicalizeVerifyPoints } from '@/lib/interview-state'
 
 const requestSchema = z.object({
   claim: resumeClaimSchema,
@@ -42,7 +43,10 @@ export async function POST(request: Request) {
       config,
       { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 600 },
     )
-    return NextResponse.json(analysis)
+    return NextResponse.json({
+      ...analysis,
+      verifyPoints: canonicalizeVerifyPoints(body.claim.evaluationPoints, analysis.verifyPoints),
+    })
   } catch (error) {
     const message = error instanceof Error ? error.message : '声明分析失败'
     return NextResponse.json({ error: message }, { status: 500 })

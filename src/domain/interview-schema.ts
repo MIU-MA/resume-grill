@@ -12,7 +12,7 @@ export type VerifyPoint = z.infer<typeof verifyPointSchema>
 // /api/analyze-claim 响应
 export const claimAnalysisSchema = z.object({
   level: z.string(),
-  verifyPoints: z.array(verifyPointSchema),
+  verifyPoints: z.array(verifyPointSchema).min(1),
   trapPoints: z.array(z.string()),
 })
 export type ClaimAnalysis = z.infer<typeof claimAnalysisSchema>

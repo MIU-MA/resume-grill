@@ -63,37 +63,41 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
   }, [envConfigured, onError])
 
   const finalizeSession = useCallback(async (claim: ResumeClaim, finalRounds: InterviewRound[]) => {
+    let summarySucceeded = false
+    let finalResult: FinalResult = {
+      confidence: 0,
+      risk: 'medium',
+      canExplain: [],
+      cannotExplain: ['总结生成失败'],
+      suggestions: [],
+      rewriteSuggestion: '',
+      answerSummary: '本次总结没有成功生成，但问答记录已经保留。',
+      evidenceUsed: [],
+      missingEvidence: [],
+      nextAction: '稍后重新生成总结。',
+    }
     try {
       const llm = getLlmSettings()
       const body: any = { claim, rounds: finalRounds }; if (llm) body.llm = llm
       const res = await fetch('/api/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const data = (await res.json()) as FinalResult | { error: string }
-      let finalResult: FinalResult
       if (!res.ok || 'error' in data) {
-        finalResult = {
-          confidence: 0,
-          risk: 'medium',
-          canExplain: [],
-          cannotExplain: ['总结生成失败'],
-          suggestions: [],
-          rewriteSuggestion: '',
-          answerSummary: '本次总结没有成功生成。',
-          evidenceUsed: [],
-          missingEvidence: [],
-          nextAction: '重新发起一次面试总结。',
-        }
-      } else { finalResult = data }
-      onSessionSaved(claim.id, {
-        id: `${claim.id}:v${version}`,
-        claimContent: rewriteContent ?? claim.content,
-        rounds: finalRounds,
-        claimAnalysis: cache.current.get(claim.id)!,
-        finalResult,
-        status: 'done',
-        version,
-      })
-      onToast('追问已完成，可在「分析报告」查看结论。')
-    } catch { onToast('总结生成失败，但会话已保存。') }
+        onToast('总结生成失败，问答记录仍会保存。')
+      } else {
+        finalResult = data
+        summarySucceeded = true
+      }
+    } catch { onToast('总结请求失败，问答记录仍会保存。') }
+    onSessionSaved(claim.id, {
+      id: `${claim.id}:v${version}`,
+      claimContent: rewriteContent ?? claim.content,
+      rounds: finalRounds,
+      claimAnalysis: cache.current.get(claim.id)!,
+      finalResult,
+      status: 'done',
+      version,
+    })
+    if (summarySucceeded) onToast('追问已完成，可在「分析报告」查看结论。')
   }, [rewriteContent, version, onToast, onSessionSaved])
 
   const submit = useCallback(async (claim: ResumeClaim) => {

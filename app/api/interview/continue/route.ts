@@ -4,14 +4,15 @@ import { resumeClaimSchema } from '@/domain/resume-schema'
 import { interviewRoundSchema, interviewContinueSchema } from '@/domain/interview-schema'
 import { INTERVIEW_CONTINUE_SYSTEM, buildInterviewContinueUser } from '@/lib/interview-prompts'
 import { sanitizeCoverage } from '@/lib/coverage'
-import { INTERVIEW_TIMEOUT, getClientIp, rateLimit, withTimeout } from '@/lib/server-limits'
+import { INTERVIEW_TIMEOUT, MAX_ANSWER, MAX_TURNS, getClientIp, rateLimit, withTimeout } from '@/lib/server-limits'
 import { llmStructured, resolveLlmConfig } from '@/providers/openai-compatible'
+import { mergeCoveredPoints, shouldFinishInterview } from '@/lib/interview-state'
 
 const requestSchema = z.object({
   claim: resumeClaimSchema,
   question: z.string(),
-  answer: z.string(),
-  rounds: z.array(interviewRoundSchema).default([]),
+  answer: z.string().trim().min(1).max(MAX_ANSWER),
+  rounds: z.array(interviewRoundSchema).max(MAX_TURNS).default([]),
   verifyPoints: z.array(z.object({ point: z.string(), importance: z.enum(['high', 'medium', 'low']) })),
   trapPoints: z.array(z.string()),
   llm: z.object({
@@ -55,16 +56,25 @@ export async function POST(request: Request) {
       config,
       { signal: withTimeout(INTERVIEW_TIMEOUT), maxTokens: 800 },
     )
-    const coverage = sanitizeCoverage(
+    const currentCoverage = sanitizeCoverage(
       result.evaluation.coveredPoints,
       body.claim.evaluationPoints,
     )
+    const coveredPoints = mergeCoveredPoints(body.rounds, currentCoverage.covered, body.claim.evaluationPoints)
+    const importantPoints = body.verifyPoints
+      .filter((point) => point.importance === 'high')
+      .map((point) => point.point)
+      .filter((point) => body.claim.evaluationPoints.includes(point))
+    const roundNumber = body.rounds.length + 1
+    const isFinal = shouldFinishInterview(roundNumber, result.isFinal, coveredPoints, importantPoints)
     return NextResponse.json({
       ...result,
+      isFinal,
+      nextQuestion: isFinal ? '' : (result.nextQuestion || '请再补充一个具体的过程、决策或结果。'),
       evaluation: {
         ...result.evaluation,
-        coveredPoints: coverage.covered,
-        missingPoints: coverage.missing,
+        coveredPoints,
+        missingPoints: body.claim.evaluationPoints.filter((point) => !coveredPoints.includes(point)),
       },
     })
   } catch (error) {
