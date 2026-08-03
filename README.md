@@ -81,7 +81,6 @@ npm run build
 - [示例简历](examples/sample-resume.txt)
 - [示例岗位描述](examples/sample-job-description.txt)
 - [材料说明](examples/README.md)
-- [发布前验收清单](examples/evaluation-checklist.md)
 
 ## 模型配置
 

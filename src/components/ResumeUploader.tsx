@@ -7,7 +7,7 @@ import { extractTextFromFile, type ExtractedText } from '@/lib/pdf'
 import { Button } from '@/components/Button'
 import type { SavedRecord } from '@/lib/storage'
 
-const SAMPLE_RESUME = `xxx
+const SAMPLE_RESUME = `酒寄彩叶
 全栈工程师 | 4 年 Web 开发经验
 
 项目经历：
