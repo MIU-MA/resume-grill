@@ -2,9 +2,10 @@
 
 > 从简历中的具体表述出发，提前演练面试追问。
 
-Resume Grill 用来检查简历内容是否经得起追问。它从简历中提取项目、职责、技能和成果等表述，生成与原文相关的问题，再根据多轮回答整理证据缺口和待补强内容。
+Resume Grill 用来检查简历内容是否经得起追问。它不提供通用八股题库，而是从简历中提取项目、职责、技能和成果等表述，生成与原文相关的问题，再根据多轮回答整理证据缺口和待补强内容。
 
-项目暂时不提供通用八股题库，也不替用户编写经历。它关注的是：简历中的一条陈述，是否有足够的事实、过程和个人贡献作为支撑。
+
+当前版本面向个人在本机运行，暂未提供线上部署方案。
 
 ## 功能概览
 
@@ -26,7 +27,7 @@ Resume Grill 用来检查简历内容是否经得起追问。它从简历中提�
 
 简历确认页用于检查 PDF 或文本的解析结果，并选择本次分析要保留的陈述。
 
-![resume-review](C:\Users\j1829\Desktop\resume-grill-demo\docs\screenshots\resume-review.png)
+![resume-review](./docs/screenshots/resume-review.png)
 
 面试追问页面会同时展示容易被继续追问的原因、当前问题、已有证据和后续考察方向。
 
@@ -36,7 +37,7 @@ Resume Grill 用来检查简历内容是否经得起追问。它从简历中提�
 
 ![分析报告页](./docs/screenshots/report.png)
 
-## 快速开始
+## 本地运行
 
 需要 Node.js 20.9 或更高版本。
 
@@ -62,11 +63,11 @@ npm run build
 - [示例材料说明](./examples/README.md)
 - [发布前验收清单](./examples/evaluation-checklist.md)
 
-## 模型配置
+## 本地模型配置
 
-项目使用 OpenAI Chat Completions 兼容接口，支持服务端配置和浏览器配置两种方式。
+项目使用 OpenAI Chat Completions 兼容接口，提供环境变量和浏览器设置两种本地配置方式。
 
-### 服务端配置
+### 环境变量配置
 
 复制 `.env.example` 为 `.env.local`：
 
@@ -76,13 +77,13 @@ OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-4o-mini
 ```
 
-该方式适合部署使用。API Key 只由 Next.js Route Handler 读取，不会发送到前端。
+API Key 只由本机运行的 Next.js Route Handler 读取，不会发送到前端。
 
 ### 浏览器配置
 
 点击页面右上角的模型设置，填写 `Base URL`、`API Key` 和 `Model`。配置保存在当前站点的 `localStorage` 中。请求先发送到同源 Next.js 接口，再由服务端转发给模型服务商。
 
-浏览器配置适合个人在本机使用，不适合直接用于不受信任的公开网站。
+浏览器配置适合个人在本机使用。它不适合直接用于不受信任的公开网站。
 
 Ollama 等本地或自建模型通常使用本机、局域网地址。项目默认拦截这类地址以降低 SSRF 风险。确实需要访问时，可以在服务端配置白名单：
 
@@ -98,8 +99,6 @@ PDF 文件由 PDF.js 在浏览器中解析，原始文件不会上传至应用�
 
 分析结果、面试记录、批注和掌握状态保存在当前浏览器的 IndexedDB 中。浏览器模式下的模型配置保存在 `localStorage` 中。项目不建立云端用户档案，但模型服务商可能按照自身政策记录或保留请求。
 
-处理真实简历前，请先确认模型服务商的数据政策。提交 Issue、截图或测试材料时，请删除姓名、电话、邮箱和 API Key 等个人信息。
-
 ## 参与贡献
 
-提交 Issue 或 Pull Request 前，请先阅读 [CONTRIBUTING.md](./CONTRIBUTING.md)。项目已配置 Bug 和功能建议模板，并通过 GitHub Actions 执行 CI 检查。项目采用 [MIT License](./LICENSE)。
+项目已配置 Bug 和功能建议模板，并通过 GitHub Actions 执行 CI 检查。项目采用 [MIT License](./LICENSE)。
