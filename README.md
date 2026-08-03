@@ -8,10 +8,6 @@
 <h1 align="center">Resume Grill</h1>
 
 <p align="center">
-  <strong>提前追问简历里的每句话，找出讲不清的证据和经历细节</strong>
-</p>
-
-<p align="center">
   <img src="https://img.shields.io/badge/Next.js-16.2-black?logo=next.js" alt="Next.js 16.2">
   <img src="https://img.shields.io/badge/React-19.2-087ea4?logo=react" alt="React 19.2">
   <img src="https://img.shields.io/badge/Tailwind-4.3-38bdf8?logo=tailwindcss" alt="Tailwind 4.3">
@@ -46,11 +42,17 @@ Resume Grill 检查简历内容是否经得起追问。它从简历中提取项�
 <table>
   <tr>
     <td align="center"><strong>简历确认</strong><br/>检查解析结果，选择保留的陈述</td>
+    <td align="center"><strong>声明审计</strong><br/>查看风险、证据缺口和追问重点</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/resume-review.png" width="100%" alt="简历确认页"></td>
+    <td><img src="docs/screenshots/audit.png" width="100%" alt="声明审计页"></td>
+  </tr>
+  <tr>
     <td align="center"><strong>面试追问</strong><br/>追问原因、当前问题、已有证据与考察方向</td>
     <td align="center"><strong>分析报告</strong><br/>证据完整度、缺口与待补强盲区</td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/resume-review.png" width="100%" alt="简历确认页"></td>
     <td><img src="docs/screenshots/interview.png" width="100%" alt="面试追问页"></td>
     <td><img src="docs/screenshots/report.png" width="100%" alt="分析报告页"></td>
   </tr>
