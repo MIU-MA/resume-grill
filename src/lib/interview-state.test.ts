@@ -3,6 +3,7 @@ import { canonicalizeVerifyPoints, mergeCoveredPoints, shouldFinishInterview } f
 import type { InterviewRound } from '@/domain/interview-schema'
 
 const round = (coveredPoints: string[]): InterviewRound => ({
+  action: 'answer',
   question: '问题',
   answer: '回答',
   annotation: '',

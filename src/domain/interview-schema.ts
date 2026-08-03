@@ -27,7 +27,11 @@ export const interviewStartSchema = z.object({
 export type InterviewStart = z.infer<typeof interviewStartSchema>
 
 // 一轮对话：问题 + 回答 + 评估
+export const interviewActionSchema = z.enum(['answer', 'clarify', 'skip'])
+export type InterviewAction = z.infer<typeof interviewActionSchema>
+
 export const interviewRoundSchema = z.object({
+  action: interviewActionSchema.default('answer'),
   question: z.string(),
   answer: z.string(),
   annotation: z.string().default(''),

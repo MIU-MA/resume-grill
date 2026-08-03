@@ -1,7 +1,7 @@
 'use client'
 
 import type { ResumeAnalysis, ResumeClaim } from '@/domain/resume-schema'
-import type { InterviewSession } from '@/domain/interview-schema'
+import type { InterviewAction, InterviewSession } from '@/domain/interview-schema'
 import type { Mode } from '@/types'
 import { AuditView } from '@/components/AuditView'
 import { InterviewView } from '@/components/InterviewView'
@@ -11,6 +11,7 @@ import { SessionReport } from '@/components/SessionReport'
 // ── useInterview 视图层需要的数据 ──────────────────────────
 export type InterviewViewData = {
   rounds: Array<{
+    action: InterviewAction
     question: string
     answer: string
     annotation?: string
@@ -28,6 +29,7 @@ export type InterviewViewData = {
   setAnswer: (v: string) => void
   setAnnotation: (v: string) => void
   submit: (claim: ResumeClaim) => Promise<void>
+  skip: (claim: ResumeClaim) => Promise<void>
   reset: () => void
 }
 
@@ -107,6 +109,7 @@ export function WorkspaceView({
       <InterviewView
         selected={activeClaim}
         turns={iv.rounds.map((r) => ({
+          action: r.action,
           question: r.question,
           answer: r.answer,
           annotation: r.annotation,
@@ -123,6 +126,7 @@ export function WorkspaceView({
         error={error}
         onAnswerChange={iv.setAnswer}
         onSubmit={() => iv.submit(selected)}
+        onSkip={() => iv.skip(selected)}
         onAnnotationChange={iv.setAnnotation}
         onFinish={onFinish}
         onBackToAudit={onBackToAudit}

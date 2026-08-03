@@ -1,6 +1,6 @@
 // 面试引擎状态机用的 prompts。LLM 负责理解，状态机负责流程。
 import type { ResumeClaim } from '@/domain/resume-schema'
-import type { InterviewRound } from '@/domain/interview-schema'
+import type { InterviewAction, InterviewRound } from '@/domain/interview-schema'
 
 // ── analyze-claim: 生成验证目标和陷阱 ──
 
@@ -39,6 +39,7 @@ export const INTERVIEW_CONTINUE_SYSTEM = `你是一名面试官。先评估上�
 - answerSuggestion: 给出一版更可信的建议回答，控制在 2-4 句。只能使用声明、用户回答和评估要点中已有的信息；缺失数字或事实时使用“[补充具体数据]”，不要编造结果
 - 如果用户提供了“不懂批注”，先理解其困惑。批注不是回答证据，不能因此增加 coveredPoints，也不要把“不懂术语”直接判断为经历造假
 - 如果用户只有批注而没有作答，answerSuggestion 用 1-2 句通俗解释相关术语，nextQuestion 改写成更具体、更少术语的问法
+- 如果操作类型是 skip，表示用户自报已掌握并跳过当前问题；不得增加 coveredPoints，不评价能力，直接转向另一个验证要点
 
 追问阶段：
 - 基于评估结果生成下一问，直击 missingPoints 里的漏洞
@@ -78,12 +79,13 @@ export function buildInterviewContinueUser(
   question: string,
   answer: string,
   annotation: string,
+  action: InterviewAction,
   rounds: InterviewRound[],
   verifyPoints: { point: string; importance: string }[],
   trapPoints: string[],
 ): string {
   const history = rounds
-    .map((r, i) => `第${i + 1}轮\n问: ${r.question}\n答: ${r.answer || '(未作答)'}\n不懂批注: ${r.annotation || '(无)'}\n评估: 得分${r.evaluation.score}, 覆盖[${r.evaluation.coveredPoints.join('、')}], 缺失[${r.evaluation.missingPoints.join('、')}]`)
+    .map((r, i) => `第${i + 1}次交互（${actionLabel(r.action)}）\n问: ${r.question}\n答: ${r.answer || '(未作答)'}\n不懂批注: ${r.annotation || '(无)'}\n评估: 得分${r.evaluation.score}, 覆盖[${r.evaluation.coveredPoints.join('、')}], 缺失[${r.evaluation.missingPoints.join('、')}]`)
     .join('\n\n')
   return [
     '声明的原始内容：',
@@ -100,6 +102,7 @@ export function buildInterviewContinueUser(
     trapPoints.join('、'),
     '',
     '上一轮：',
+    `操作类型: ${actionLabel(action)}`,
     `问: ${question}`,
     `答: ${answer || '(未作答)'}`,
     `用户的不懂批注: ${annotation || '(无)'}`,
@@ -107,4 +110,10 @@ export function buildInterviewContinueUser(
     '历史轮次（含每轮评估结果）：',
     history || '(无)',
   ].join('\n')
+}
+
+function actionLabel(action: InterviewAction): string {
+  if (action === 'skip') return '已掌握，跳过（未验证）'
+  if (action === 'clarify') return '请求通俗解释'
+  return '回答'
 }

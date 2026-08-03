@@ -80,10 +80,14 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
         const annotations = session.rounds
           .map((round) => round.annotation?.trim())
           .filter((annotation): annotation is string => Boolean(annotation))
+        const skippedQuestions = session.rounds
+          .filter((round) => round.action === 'skip')
+          .map((round) => round.question)
         lines.push(
           '',
           `### 第 ${i + 1} 版（${session.version}）追问报告`,
-          `- 有效回答轮数：${session.rounds.filter((round) => round.answer.trim()).length}`,
+          `- 有效回答轮数：${session.rounds.filter((round) => round.action === 'answer').length}`,
+          `- 已掌握并跳过：${skippedQuestions.join('；') || '无'}`,
           `- 不懂批注：${annotations.join('；') || '无'}`,
           `- 可信度：${'★'.repeat(s.confidence)}${'☆'.repeat(5 - s.confidence)}`,
           `- 风险级别：${RISK_META[s.risk].label}`,

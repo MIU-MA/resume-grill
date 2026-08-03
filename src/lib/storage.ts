@@ -142,6 +142,10 @@ function migrateLegacyRecord(record: SavedRecord): SavedRecord {
     sessions[claim.id] = list.map((session) => ({
       ...session,
       id: session.id === claim.content ? `${claim.id}:v${session.version}` : session.id,
+      rounds: session.rounds.map((round) => ({
+        ...round,
+        action: round.action ?? (round.answer.trim() ? 'answer' : 'clarify'),
+      })),
     }))
   })
 

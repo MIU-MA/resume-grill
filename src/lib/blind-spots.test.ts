@@ -15,6 +15,7 @@ const analysis: ResumeAnalysis = {
 const session: InterviewSession = {
   id: 'claim-1:v1', claimContent: '负责接口幂等设计', claimAnalysis: null, finalResult: null, status: 'done', version: 1,
   rounds: [{
+    action: 'clarify',
     question: '如何保证接口幂等？', answer: '', annotation: '不理解幂等是什么意思', nextReason: '换一种问法',
     evaluation: { score: 0, coveredPoints: [], missingPoints: ['说明方案'], answerSuggestion: '同一个请求重复执行时，结果不会重复产生。' },
   }],

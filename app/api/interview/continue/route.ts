@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { resumeClaimSchema } from '@/domain/resume-schema'
-import { interviewRoundSchema, interviewContinueSchema } from '@/domain/interview-schema'
+import { interviewActionSchema, interviewRoundSchema, interviewContinueSchema } from '@/domain/interview-schema'
 import { INTERVIEW_CONTINUE_SYSTEM, buildInterviewContinueUser } from '@/lib/interview-prompts'
 import { sanitizeCoverage } from '@/lib/coverage'
 import { INTERVIEW_TIMEOUT, MAX_ANSWER, MAX_TURNS, getClientIp, rateLimit, withTimeout } from '@/lib/server-limits'
 import { llmStructured, resolveLlmConfig } from '@/providers/openai-compatible'
-import { mergeCoveredPoints, shouldFinishInterview } from '@/lib/interview-state'
+import { MAX_INTERVIEW_ROUNDS, mergeCoveredPoints, shouldFinishInterview } from '@/lib/interview-state'
 
 const requestSchema = z.object({
   claim: resumeClaimSchema,
+  action: interviewActionSchema.default('answer'),
   question: z.string(),
   answer: z.string().trim().max(MAX_ANSWER),
   annotation: z.string().trim().max(500).default(''),
@@ -21,8 +22,12 @@ const requestSchema = z.object({
     apiKey: z.string().optional(),
     model: z.string().optional(),
   }).optional(),
-}).refine((body) => body.answer.length > 0 || body.annotation.length > 0, {
-  message: '回答和不懂批注不能同时为空',
+}).refine((body) => (
+  (body.action === 'answer' && body.answer.length > 0)
+  || (body.action === 'clarify' && body.annotation.length > 0)
+  || (body.action === 'skip' && body.answer.length === 0 && body.annotation.length === 0)
+), {
+  message: '提交内容与操作类型不匹配',
 })
 
 export async function POST(request: Request) {
@@ -52,6 +57,7 @@ export async function POST(request: Request) {
         body.question,
         body.answer,
         body.annotation,
+        body.action,
         body.rounds,
         body.verifyPoints,
         body.trapPoints,
@@ -60,7 +66,8 @@ export async function POST(request: Request) {
       config,
       { signal: withTimeout(INTERVIEW_TIMEOUT), maxTokens: 800 },
     )
-    const hasAnswer = body.answer.length > 0
+    const hasAnswer = body.action === 'answer' && body.answer.length > 0
+    const isSkip = body.action === 'skip'
     const currentCoverage = sanitizeCoverage(
       hasAnswer ? result.evaluation.coveredPoints : [],
       body.claim.evaluationPoints,
@@ -71,7 +78,10 @@ export async function POST(request: Request) {
       .map((point) => point.point)
       .filter((point) => body.claim.evaluationPoints.includes(point))
     const roundNumber = body.rounds.filter((round) => round.answer.trim().length > 0).length + (hasAnswer ? 1 : 0)
-    const isFinal = hasAnswer && shouldFinishInterview(roundNumber, result.isFinal, coveredPoints, importantPoints)
+    const interactionCount = body.rounds.filter((round) => round.action !== 'clarify').length + (hasAnswer || isSkip ? 1 : 0)
+    const isFinal = isSkip
+      ? interactionCount >= MAX_INTERVIEW_ROUNDS
+      : hasAnswer && shouldFinishInterview(roundNumber, result.isFinal, coveredPoints, importantPoints)
     return NextResponse.json({
       ...result,
       isFinal,

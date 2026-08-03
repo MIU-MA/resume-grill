@@ -53,7 +53,7 @@ describe('buildReport', () => {
     const session: InterviewSession = {
       id: `${claim.id}:v1`, claimContent: claim.content, claimAnalysis: null, finalResult: null, status: 'done', version: 1,
       rounds: [{
-        question: '基线是什么意思？', answer: '', annotation: '不理解基线', nextReason: '解释术语',
+        action: 'clarify', question: '基线是什么意思？', answer: '', annotation: '不理解基线', nextReason: '解释术语',
         evaluation: { score: 0, coveredPoints: [], missingPoints: claim.evaluationPoints, answerSuggestion: '基线是改进前用于比较的数据。' },
       }],
     }
@@ -61,5 +61,24 @@ describe('buildReport', () => {
     const report = buildFullReport(analysis, { [claim.id]: [session] }, [id])
     expect(report).toContain('已掌握：不理解基线')
     expect(report).toContain('基线是改进前用于比较的数据')
+  })
+
+  it('exports skipped questions without treating them as answers', () => {
+    const claim = analysis.claims[0]
+    const session: InterviewSession = {
+      id: `${claim.id}:v1`, claimContent: claim.content, claimAnalysis: null,
+      finalResult: {
+        confidence: 0, risk: 'medium', canExplain: [], cannotExplain: [], suggestions: [],
+        rewriteSuggestion: '', answerSummary: '', evidenceUsed: [], missingEvidence: [], nextAction: '',
+      },
+      status: 'done', version: 1,
+      rounds: [{
+        action: 'skip', question: '基线是多少？', answer: '', annotation: '', nextReason: '转向下一点',
+        evaluation: { score: 0, coveredPoints: [], missingPoints: claim.evaluationPoints, answerSuggestion: '' },
+      }],
+    }
+    const report = buildFullReport(analysis, { [claim.id]: [session] })
+    expect(report).toContain('有效回答轮数：0')
+    expect(report).toContain('已掌握并跳过：基线是多少？')
   })
 })

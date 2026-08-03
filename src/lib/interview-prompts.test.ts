@@ -24,11 +24,26 @@ describe('interview prompts', () => {
       '如何保证接口幂等？',
       '',
       '不理解幂等是什么意思',
+      'clarify',
       [],
       [{ point: '说明具体方案', importance: 'high' }],
       [],
     )
     expect(prompt).toContain('答: (未作答)')
     expect(prompt).toContain('用户的不懂批注: 不理解幂等是什么意思')
+  })
+
+  it('marks skipped questions as self-reported and unverified', () => {
+    const prompt = buildInterviewContinueUser(
+      claim,
+      '如何保证接口幂等？',
+      '',
+      '',
+      'skip',
+      [],
+      [{ point: '说明具体方案', importance: 'high' }],
+      [],
+    )
+    expect(prompt).toContain('操作类型: 已掌握，跳过（未验证）')
   })
 })

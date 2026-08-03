@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 import type { ResumeClaim } from '@/domain/resume-schema'
-import type { ClaimAnalysis, InterviewRound, InterviewSession, InterviewStart, InterviewContinueResult, FinalResult } from '@/domain/interview-schema'
+import type { ClaimAnalysis, InterviewAction, InterviewRound, InterviewSession, InterviewStart, InterviewContinueResult, FinalResult } from '@/domain/interview-schema'
 import type { LlmSettings } from '@/lib/settings'
 import { getLlmSettings } from '@/lib/settings'
 
@@ -106,20 +106,23 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
     if (summarySucceeded) onToast('追问已完成，可在「分析报告」查看结论。')
   }, [rewriteContent, version, onToast, onSessionSaved])
 
-  const submit = useCallback(async (claim: ResumeClaim) => {
+  const continueInterview = useCallback(async (claim: ResumeClaim, action: InterviewAction) => {
     if (!currentQuestion || loading || done) return
-    if (!answer.trim() && !annotation.trim()) return
+    if (action === 'answer' && !answer.trim()) return
+    if (action === 'clarify' && !annotation.trim()) return
     setLoading(true)
     try {
       const claimAnalysis = cache.current.get(claim.id)
       if (!claimAnalysis) throw new Error('声明分析未找到，请重新开始追问')
       const llm = getLlmSettings()
-      const body: any = { claim, question: currentQuestion, answer, annotation, rounds, verifyPoints: claimAnalysis.verifyPoints, trapPoints: claimAnalysis.trapPoints }
+      const submittedAnswer = action === 'answer' ? answer : ''
+      const submittedAnnotation = action === 'clarify' ? annotation : ''
+      const body: any = { claim, action, question: currentQuestion, answer: submittedAnswer, annotation: submittedAnnotation, rounds, verifyPoints: claimAnalysis.verifyPoints, trapPoints: claimAnalysis.trapPoints }
       if (llm) body.llm = llm
       const res = await fetch('/api/interview/continue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const data = (await res.json()) as InterviewContinueResult | { error: string }
       if (!res.ok || 'error' in data) throw new Error('error' in data ? data.error : '生成下一问失败')
-      const round: InterviewRound = { question: currentQuestion, answer, annotation, evaluation: data.evaluation, nextReason: data.nextReason }
+      const round: InterviewRound = { action, question: currentQuestion, answer: submittedAnswer, annotation: submittedAnnotation, evaluation: data.evaluation, nextReason: data.nextReason }
       const newRounds = [...rounds, round]; setRounds(newRounds)
       setCurrentQuestion(data.nextQuestion); setCurrentIntent(data.nextReason)
       setAnswer('')
@@ -132,11 +135,17 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
     finally { setLoading(false) }
   }, [currentQuestion, loading, done, answer, annotation, rounds, finalizeSession, onError])
 
+  const submit = useCallback((claim: ResumeClaim) => (
+    continueInterview(claim, answer.trim() ? 'answer' : 'clarify')
+  ), [answer, continueInterview])
+
+  const skip = useCallback((claim: ResumeClaim) => continueInterview(claim, 'skip'), [continueInterview])
+
   const covered = rounds[rounds.length - 1]?.evaluation?.coveredPoints ?? []
 
   return {
     rounds, currentQuestion, currentIntent, answer, setAnswer, annotation, setAnnotation, loading, done,
     rewriteContent, version, covered,
-    reset, prepareRewrite, prepareRetest, start, submit,
+    reset, prepareRewrite, prepareRetest, start, submit, skip,
   }
 }
