@@ -8,16 +8,12 @@ type SettingsPopoverProps = {
   envConfigured: boolean
   clientConfigured: boolean
   onClientChanged: () => void
-  /** 紧凑模式：按钮更小，用于顶栏 */
   compact?: boolean
-  /** 浮层对齐：right（默认，靠右弹出）/ left */
   align?: 'right' | 'left'
-  /** 受控模式：外部控制开闭 */
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }
 
-// 齿轮按钮 + 浮层 ModelSettings，点击外部关闭。首页和顶栏共用。
 export function SettingsPopover({ envConfigured, clientConfigured, onClientChanged, compact, align = 'right', open: controlledOpen, onOpenChange }: SettingsPopoverProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const open = controlledOpen ?? internalOpen
