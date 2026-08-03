@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { buildReport } from './report'
+import { buildFullReport, buildReport } from './report'
 import type { ResumeAnalysis } from '@/domain/resume-schema'
+import type { InterviewSession } from '@/domain/interview-schema'
+import { createBlindSpotId } from './blind-spots'
 
 const analysis: ResumeAnalysis = {
   candidate: '张明',
@@ -44,5 +46,20 @@ describe('buildReport', () => {
     expect(report).toContain('可信风险：中风险')
     expect(report).not.toContain('可验证难度')
     expect(report).not.toContain('被追问概率')
+  })
+
+  it('exports annotated blind spots and their mastered status', () => {
+    const claim = analysis.claims[0]
+    const session: InterviewSession = {
+      id: `${claim.id}:v1`, claimContent: claim.content, claimAnalysis: null, finalResult: null, status: 'done', version: 1,
+      rounds: [{
+        question: '基线是什么意思？', answer: '', annotation: '不理解基线', nextReason: '解释术语',
+        evaluation: { score: 0, coveredPoints: [], missingPoints: claim.evaluationPoints, answerSuggestion: '基线是改进前用于比较的数据。' },
+      }],
+    }
+    const id = createBlindSpotId(claim.id, '不理解基线')
+    const report = buildFullReport(analysis, { [claim.id]: [session] }, [id])
+    expect(report).toContain('已掌握：不理解基线')
+    expect(report).toContain('基线是改进前用于比较的数据')
   })
 })

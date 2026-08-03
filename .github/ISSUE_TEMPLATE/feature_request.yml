@@ -1,0 +1,36 @@
+name: 功能建议
+description: 提议与简历声明压力测试核心流程相关的改进
+title: "[Feature] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 要解决的问题
+      description: 请先描述用户在哪个流程中遇到了什么问题。
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 所属环节
+      options:
+        - 简历解析与确认
+        - 声明审计
+        - 压力测试
+        - 复盘与盲区
+        - 岗位匹配
+        - 开发者体验
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 替代方案
+      description: 当前是否能通过已有功能解决？

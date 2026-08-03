@@ -1,17 +1,21 @@
 'use client'
 
-import { AlertTriangle, ArrowRight, CheckCircle2, Clipboard, Target } from 'lucide-react'
+import { AlertTriangle, ArrowRight, BookOpen, Check, CheckCircle2, Clipboard, RefreshCw, Target } from 'lucide-react'
 import { type ResumeAnalysis, type ResumeClaim } from '@/domain/resume-schema'
 import type { InterviewSession } from '@/domain/interview-schema'
 import { Button } from '@/components/Button'
+import { deriveBlindSpots } from '@/lib/blind-spots'
 
 type SessionReportProps = {
   analysis: ResumeAnalysis
   sessions: Record<string, InterviewSession[]>
+  masteredBlindSpotIds: string[]
+  onToggleBlindSpot: (blindSpotId: string) => void
+  onRetest: (claim: ResumeClaim) => void
   onRewrite: (claim: ResumeClaim, rewrittenContent: string) => void
 }
 
-export function SessionReport({ analysis, sessions, onRewrite }: SessionReportProps) {
+export function SessionReport({ analysis, sessions, masteredBlindSpotIds, onToggleBlindSpot, onRetest, onRewrite }: SessionReportProps) {
   const sessionList = analysis.claims.map((claim) => {
     const list = sessions[claim.id] ?? []
     const latest = list[list.length - 1]
@@ -21,6 +25,10 @@ export function SessionReport({ analysis, sessions, onRewrite }: SessionReportPr
   const avgConf = doneSessions.length > 0
     ? Math.round(doneSessions.reduce((sum, s) => sum + s.latest!.finalResult!.confidence, 0) / doneSessions.length / 5 * 100)
     : 0
+  const masteredSet = new Set(masteredBlindSpotIds)
+  const blindSpots = deriveBlindSpots(analysis, sessions)
+    .sort((a, b) => Number(masteredSet.has(a.id)) - Number(masteredSet.has(b.id)))
+  const unresolvedBlindSpots = blindSpots.filter((spot) => !masteredSet.has(spot.id)).length
 
   return (
     <div className="space-y-4">
@@ -91,6 +99,47 @@ export function SessionReport({ analysis, sessions, onRewrite }: SessionReportPr
               <ReportFact label="建议优先追问" value={joinReportItems(analysis.jobMatch.interviewFocus)} />
             </div>
           )}
+        </section>
+      )}
+
+      {blindSpots.length > 0 && (
+        <section className="overflow-hidden rounded-xl border border-border bg-white shadow-[0_1px_3px_rgba(16,24,40,0.04)]">
+          <div className="flex items-center justify-between gap-4 border-b border-border bg-surface-soft px-5 py-4">
+            <div className="flex items-center gap-2.5">
+              <BookOpen size={17} className="text-brand" />
+              <div>
+                <h2 className="m-0 text-[15px] font-bold">待补强盲区</h2>
+                <p className="mt-1 text-[12px] text-text-tertiary">来自压力测试中的不懂批注，并保留当时的问题语境。</p>
+              </div>
+            </div>
+            <span className="text-[12px] font-semibold text-warning">{unresolvedBlindSpots} 项待补强</span>
+          </div>
+          <div className="divide-y divide-border">
+            {blindSpots.map((spot) => {
+              const mastered = masteredSet.has(spot.id)
+              return (
+                <div key={spot.id} className={`grid grid-cols-[minmax(0,1fr)_auto] gap-5 px-5 py-4 max-[720px]:grid-cols-1 ${mastered ? 'bg-success-soft/25' : ''}`}>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <strong className="text-[13px] text-text-primary">{spot.annotation}</strong>
+                      <span className="rounded bg-surface-hover px-2 py-0.5 text-[10px] font-semibold text-text-tertiary">{spot.claim.title}</span>
+                      {mastered && <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-success"><Check size={12} />已掌握</span>}
+                    </div>
+                    <p className="mt-2 text-[12px] leading-relaxed text-text-tertiary">当时问题：{spot.question}</p>
+                    <p className="mt-1 text-[13px] leading-relaxed text-text-secondary">{spot.explanation || '当时没有生成通俗说明，建议重新测试。'}</p>
+                  </div>
+                  <div className="flex items-center gap-2 self-center max-[720px]:justify-end">
+                    <Button variant="ghost" className="text-[12px]" onClick={() => onToggleBlindSpot(spot.id)}>
+                      <Check size={13} />{mastered ? '重新标为待补强' : '标记已掌握'}
+                    </Button>
+                    <Button variant="secondary" className="text-[12px]" onClick={() => onRetest(spot.claim)}>
+                      <RefreshCw size={13} />重新测试
+                    </Button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </section>
       )}
 

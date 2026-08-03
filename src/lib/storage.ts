@@ -14,6 +14,7 @@ export type SavedRecord = {
   analysis: ResumeAnalysis
   sessions: Record<string, InterviewSession[]>
   preparedClaimIds: string[]
+  masteredBlindSpotIds: string[]
   updatedAt: number
 }
 
@@ -77,6 +78,7 @@ export async function upsertSession(
     analysis,
     sessions: {},
     preparedClaimIds: [],
+    masteredBlindSpotIds: [],
     updatedAt: Date.now(),
   }
   const list = existing.sessions[claimId] ?? []
@@ -99,9 +101,28 @@ export async function updatePreparedClaims(
     analysis,
     sessions: {},
     preparedClaimIds: [],
+    masteredBlindSpotIds: [],
     updatedAt: Date.now(),
   }
   existing.preparedClaimIds = preparedClaimIds
+  existing.updatedAt = Date.now()
+  await saveRecord(existing)
+}
+
+export async function updateMasteredBlindSpots(
+  recordId: string,
+  analysis: ResumeAnalysis,
+  masteredBlindSpotIds: string[],
+): Promise<void> {
+  const existing = (await loadRecord(recordId)) ?? {
+    id: recordId,
+    analysis,
+    sessions: {},
+    preparedClaimIds: [],
+    masteredBlindSpotIds: [],
+    updatedAt: Date.now(),
+  }
+  existing.masteredBlindSpotIds = masteredBlindSpotIds
   existing.updatedAt = Date.now()
   await saveRecord(existing)
 }
@@ -129,5 +150,6 @@ function migrateLegacyRecord(record: SavedRecord): SavedRecord {
     analysis: { ...record.analysis, claims },
     sessions,
     preparedClaimIds: record.preparedClaimIds ?? [],
+    masteredBlindSpotIds: record.masteredBlindSpotIds ?? [],
   }
 }

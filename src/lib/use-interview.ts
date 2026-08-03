@@ -34,6 +34,11 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
     setRounds([]); setAnswer(''); setAnnotation(''); setDone(false)
   }, [])
 
+  const prepareRetest = useCallback((newVersion: number) => {
+    setRewriteContent(null); setVersion(newVersion)
+    setRounds([]); setAnswer(''); setAnnotation(''); setDone(false)
+  }, [])
+
   const start = useCallback(async (claim: ResumeClaim) => {
     if (!getLlmSettings() && !envConfigured) {
       onError('请先配置 API Key（点击顶部齿轮图标 → Base URL + Key + Model）')
@@ -132,6 +137,6 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
   return {
     rounds, currentQuestion, currentIntent, answer, setAnswer, annotation, setAnnotation, loading, done,
     rewriteContent, version, covered,
-    reset, prepareRewrite, start, submit,
+    reset, prepareRewrite, prepareRetest, start, submit,
   }
 }

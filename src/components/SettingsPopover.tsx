@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Settings } from 'lucide-react'
 import { ModelSettings } from '@/components/ModelSettings'
 
@@ -21,10 +21,10 @@ type SettingsPopoverProps = {
 export function SettingsPopover({ envConfigured, clientConfigured, onClientChanged, compact, align = 'right', open: controlledOpen, onOpenChange }: SettingsPopoverProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const open = controlledOpen ?? internalOpen
-  const setOpen = (v: boolean) => {
+  const setOpen = useCallback((v: boolean) => {
     setInternalOpen(v)
     onOpenChange?.(v)
-  }
+  }, [onOpenChange])
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export function SettingsPopover({ envConfigured, clientConfigured, onClientChang
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [open])
+  }, [open, setOpen])
 
   return (
     <div className="relative" ref={ref}>

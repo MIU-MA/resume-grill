@@ -16,7 +16,7 @@ import type { LlmSettings } from '@/lib/settings'
 import { getLlmSettings } from '@/lib/settings'
 import type { ExtractedText } from '@/lib/pdf'
 import { downloadFullReport } from '@/lib/report'
-import { deleteRecord, listRecords, loadRecord, newRecordId, resumeContentKey, saveRecord, updatePreparedClaims, upsertSession, type SavedRecord } from '@/lib/storage'
+import { deleteRecord, listRecords, loadRecord, newRecordId, resumeContentKey, saveRecord, updateMasteredBlindSpots, updatePreparedClaims, upsertSession, type SavedRecord } from '@/lib/storage'
 import type { Mode } from '@/types'
 import { useAppNavigation } from '@/lib/use-app-navigation'
 import { useLlmStatus } from '@/lib/use-llm-status'
@@ -35,6 +35,7 @@ function App() {
 
   const [sessions, setSessions] = useState<Record<string, InterviewSession[]>>({})
   const [preparedClaimIds, setPreparedClaimIds] = useState<string[]>([])
+  const [masteredBlindSpotIds, setMasteredBlindSpotIds] = useState<string[]>([])
   const [recordId, setRecordId] = useState<string | null>(null)
   const [recovering, setRecovering] = useState(false)
   const [savedRecords, setSavedRecords] = useState<SavedRecord[]>([])
@@ -70,7 +71,7 @@ function App() {
     if (!sid) return
     setRecovering(true)
     loadRecord(sid).then(record => {
-      if (record) { setAnalysis(record.analysis); setRecordId(record.id); setSessions(record.sessions); setPreparedClaimIds(record.preparedClaimIds); setSelectedIndex(0) }
+      if (record) { setAnalysis(record.analysis); setRecordId(record.id); setSessions(record.sessions); setPreparedClaimIds(record.preparedClaimIds); setMasteredBlindSpotIds(record.masteredBlindSpotIds); setSelectedIndex(0) }
     }).catch(() => {}).finally(() => setRecovering(false))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -126,24 +127,25 @@ function App() {
       const retainedPrepared = existing
         ? existing.preparedClaimIds.filter((claimId) => data.claims.some((claim) => claim.id === claimId))
         : []
-      setAnalysis(data); setSelectedIndex(0); setSessions(retainedSessions); setPreparedClaimIds(retainedPrepared); push('workspace', 'audit')
+      const retainedMasteredBlindSpots = existing?.masteredBlindSpotIds ?? []
+      setAnalysis(data); setSelectedIndex(0); setSessions(retainedSessions); setPreparedClaimIds(retainedPrepared); setMasteredBlindSpotIds(retainedMasteredBlindSpots); push('workspace', 'audit')
       const id = recordId ?? existing?.id ?? newRecordId(data); setRecordId(id)
       window.sessionStorage.setItem('resume-drill:active', id)
-      saveRecord({ id, analysis: data, sessions: retainedSessions, preparedClaimIds: retainedPrepared, updatedAt: Date.now() }).catch(() => undefined)
+      saveRecord({ id, analysis: data, sessions: retainedSessions, preparedClaimIds: retainedPrepared, masteredBlindSpotIds: retainedMasteredBlindSpots, updatedAt: Date.now() }).catch(() => undefined)
       showToast(`已载入「${data.candidate}」的简历，识别到 ${data.claims.length} 条声明。`)
     } catch (e) { setError(e instanceof Error ? e.message : '分析失败') }
     finally { setAnalyzing(false) }
   }
 
   const replaceResume = () => {
-    setAnalysis(null); setPendingExtracted(null); setSessions({}); setPreparedClaimIds([]); setRecordId(null)
+    setAnalysis(null); setPendingExtracted(null); setSessions({}); setPreparedClaimIds([]); setMasteredBlindSpotIds([]); setRecordId(null)
     setError(null); iv.reset()
     window.sessionStorage.removeItem('resume-drill:active')
     push('upload')
   }
 
   const openSavedRecord = (record: SavedRecord) => {
-    setAnalysis(record.analysis); setSessions(record.sessions); setPreparedClaimIds(record.preparedClaimIds); setRecordId(record.id)
+    setAnalysis(record.analysis); setSessions(record.sessions); setPreparedClaimIds(record.preparedClaimIds); setMasteredBlindSpotIds(record.masteredBlindSpotIds); setRecordId(record.id)
     setSelectedIndex(0); setPendingExtracted(null); setError(null); iv.reset()
     window.sessionStorage.setItem('resume-drill:active', record.id)
     push('workspace', 'audit')
@@ -163,6 +165,16 @@ function App() {
         ? current.filter((id) => id !== claimId)
         : [...current, claimId]
       if (recordId && analysis) updatePreparedClaims(recordId, analysis, next).catch(() => undefined)
+      return next
+    })
+  }
+
+  const toggleBlindSpotMastered = (blindSpotId: string) => {
+    setMasteredBlindSpotIds((current) => {
+      const next = current.includes(blindSpotId)
+        ? current.filter((id) => id !== blindSpotId)
+        : [...current, blindSpotId]
+      if (recordId && analysis) updateMasteredBlindSpots(recordId, analysis, next).catch(() => undefined)
       return next
     })
   }
@@ -187,8 +199,18 @@ function App() {
     window.scrollTo({ top: 0, left: 0 })
   }
 
+  const retestClaim = (claim: ResumeClaim) => {
+    const idx = analysis?.claims.findIndex((candidate) => candidate.id === claim.id) ?? -1
+    if (idx < 0) return
+    setSelectedIndex(idx)
+    iv.prepareRetest((sessions[claim.id] ?? []).length + 1)
+    replace('workspace', 'interview')
+    iv.start(claim).catch(() => undefined)
+    window.scrollTo({ top: 0, left: 0 })
+  }
+
   const goReport = () => { replace('workspace', 'report'); window.scrollTo({ top: 0, left: 0 }) }
-  const exportFull = () => { if (!analysis) return; downloadFullReport(analysis, sessions) }
+  const exportFull = () => { if (!analysis) return; downloadFullReport(analysis, sessions, masteredBlindSpotIds) }
 
 
   if (recovering) return <div className="min-h-screen bg-bg" />
@@ -252,7 +274,7 @@ function App() {
         </section>
 
         {mode === 'report' ? (
-          <SessionReport analysis={analysis} sessions={sessions} onRewrite={startRewriteInterview} />
+          <SessionReport analysis={analysis} sessions={sessions} masteredBlindSpotIds={masteredBlindSpotIds} onToggleBlindSpot={toggleBlindSpotMastered} onRetest={retestClaim} onRewrite={startRewriteInterview} />
         ) : mode === 'audit' ? (
           <AuditView analysis={analysis} selectedIndex={selectedIndex} preparedClaimIds={preparedClaimIds} error={error} onSelect={selectClaim} onTogglePrepared={togglePrepared} onStartInterview={startInterview} onReport={goReport} />
         ) : (

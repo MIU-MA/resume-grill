@@ -1,6 +1,7 @@
 import { CLAIM_CATEGORY_LABELS, type ResumeAnalysis } from '@/domain/resume-schema'
 import { RISK_META } from '@/lib/risk'
 import type { InterviewSession } from '@/domain/interview-schema'
+import { deriveBlindSpots } from '@/lib/blind-spots'
 
 // 基础报告：仅声明风险，不含面试表现。
 export function buildReport(analysis: ResumeAnalysis): string {
@@ -34,7 +35,7 @@ export function buildReport(analysis: ResumeAnalysis): string {
 }
 
 // 完整报告：在声明风险之上叠加面试风险报告。
-export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<string, InterviewSession[]>): string {
+export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<string, InterviewSession[]>, masteredBlindSpotIds: string[] = []): string {
   const lines = [
     '# 简历追问与改写报告',
     '',
@@ -45,6 +46,20 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
     '',
   ]
   appendJobMatch(lines, analysis)
+  const masteredSet = new Set(masteredBlindSpotIds)
+  const blindSpots = deriveBlindSpots(analysis, sessions)
+  if (blindSpots.length > 0) {
+    lines.push('## 待补强盲区', '')
+    blindSpots.forEach((spot) => {
+      lines.push(
+        `### ${masteredSet.has(spot.id) ? '已掌握' : '待补强'}：${spot.annotation}`,
+        `- 对应声明：${spot.claim.title}`,
+        `- 当时问题：${spot.question}`,
+        `- 通俗说明：${spot.explanation || '无'}`,
+        '',
+      )
+    })
+  }
 
   for (const claim of analysis.claims) {
     const risk = RISK_META[claim.interviewRisk]
@@ -121,6 +136,6 @@ export function downloadReport(analysis: ResumeAnalysis) {
   downloadText(`简历声明报告-${analysis.candidate}.md`, buildReport(analysis))
 }
 
-export function downloadFullReport(analysis: ResumeAnalysis, sessions: Record<string, InterviewSession[]>) {
-  downloadText(`简历追问报告-${analysis.candidate}.md`, buildFullReport(analysis, sessions))
+export function downloadFullReport(analysis: ResumeAnalysis, sessions: Record<string, InterviewSession[]>, masteredBlindSpotIds: string[] = []) {
+  downloadText(`简历追问报告-${analysis.candidate}.md`, buildFullReport(analysis, sessions, masteredBlindSpotIds))
 }

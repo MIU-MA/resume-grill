@@ -1,0 +1,44 @@
+name: Bug 报告
+description: 报告可复现的解析、面试、存储或界面问题
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: 请勿提交真实简历、联系方式、API Key 或未经脱敏的模型响应。
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 实际发生了什么？
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 复现步骤
+      placeholder: "1. 使用 examples/sample-resume.txt\n2. 进入声明审计\n3. ..."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期结果
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 环境
+      placeholder: "Windows 11 / Node 20 / Chrome 版本"
+  - type: dropdown
+    id: model-mode
+    attributes:
+      label: 模型模式
+      options:
+        - 未配置模型（规则预览）
+        - 服务端环境变量
+        - 浏览器本地配置
+        - 与模型无关
+    validations:
+      required: true

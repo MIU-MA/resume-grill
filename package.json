@@ -1,7 +1,9 @@
 {
   "name": "resume-grill-demo",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "提前追问简历里的每句话，找出讲不清的证据和经历细节",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "next dev",
@@ -31,5 +33,11 @@
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "8.5.25",
+      "sharp": "0.35.3"
+    }
   }
 }
