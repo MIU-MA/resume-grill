@@ -75,6 +75,15 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
       lines.push('- 面试状态：未追问')
     } else {
       claimSessions.forEach((session, i) => {
+        if (session.status === 'in_progress') {
+          lines.push(
+            '',
+            `### 第 ${i + 1} 版（${session.version}）进行中`,
+            `- 已完成交互：${session.rounds.length} 轮`,
+            `- 已覆盖要点：${session.rounds.at(-1)?.evaluation.coveredPoints.join('；') || '无'}`,
+          )
+          return
+        }
         const s = session.finalResult
         if (!s) return
         const annotations = session.rounds
@@ -99,8 +108,10 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
           `- 仍缺证据：${s.missingEvidence?.join('；') || s.cannotExplain.join('；') || '无'}`,
           `- 下一步行动：${s.nextAction || '无'}`,
           '',
+          `- 本次测试声明：${session.claimContent}`,
+          '',
           '改写建议：',
-          session.claimContent || s.rewriteSuggestion,
+          s.rewriteSuggestion || '暂无改写建议',
         )
       })
     }

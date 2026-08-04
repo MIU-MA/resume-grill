@@ -32,6 +32,8 @@ export type UseResumeWorkspace = {
   recordId: string | null
   setRecordId: Dispatch<SetStateAction<string | null>>
   recovering: boolean
+  recoveredFromStorage: boolean
+  setRecoveredFromStorage: Dispatch<SetStateAction<boolean>>
   savedRecords: SavedRecord[]
   setSavedRecords: Dispatch<SetStateAction<SavedRecord[]>>
   loadingRecords: boolean

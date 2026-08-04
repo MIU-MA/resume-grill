@@ -113,8 +113,12 @@ export async function llmStructured<T>(
   if (!validated.success) {
     const issue = validated.error.issues[0]
     const path = issue?.path.length ? issue.path.join('.') : '根对象'
-    console.error('[llmStructured] schema 校验失败，模型原文:', content.slice(0, 500))
-    console.error('[llmStructured] 解析后:', JSON.stringify(parsed).slice(0, 500))
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('[llmStructured] schema 校验失败，模型原文:', content.slice(0, 500))
+      console.error('[llmStructured] 解析后:', JSON.stringify(parsed).slice(0, 500))
+    } else {
+      console.error('[llmStructured] schema validation failed', { model: resolved.model, path })
+    }
     throw new Error(`模型 JSON 字段不完整：${path} ${issue?.message ?? '格式不符合要求'}`)
   }
   return validated.data

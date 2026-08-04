@@ -85,7 +85,11 @@ export function useResumeWorkspace(phase: Phase) {
           setSessions(record.sessions)
           setPreparedClaimIds(record.preparedClaimIds)
           setMasteredBlindSpotIds(record.masteredBlindSpotIds)
-          setSelectedIndex(0)
+          const activeClaimId = window.sessionStorage.getItem('resume-drill:active-claim')
+          const index = activeClaimId
+            ? record.analysis.claims.findIndex((c) => c.id === activeClaimId)
+            : -1
+          setSelectedIndex(index >= 0 ? index : 0)
           setRecoveredFromStorage(true)
         }
       })
@@ -129,6 +133,7 @@ export function useResumeWorkspace(phase: Phase) {
     setRecordId,
     recovering,
     recoveredFromStorage,
+    setRecoveredFromStorage,
     savedRecords,
     setSavedRecords,
     loadingRecords,

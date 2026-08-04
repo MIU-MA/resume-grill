@@ -172,7 +172,9 @@ export function useResumeAnalysis(
     ws.setMasteredBlindSpotIds([])
     ws.setRecordId(null)
     ws.setError(null)
+    ws.setRecoveredFromStorage(false)
     window.sessionStorage.removeItem('resume-drill:active')
+    window.sessionStorage.removeItem('resume-drill:active-claim')
     push('upload')
   }, [ws, push])
 

@@ -94,7 +94,13 @@ export async function POST(request: Request) {
         coveredPoints,
         missingPoints,
         answerSuggestion: result.evaluation.answerSuggestion,
-        evidenceQuotes: hasAnswer ? result.evaluation.evidenceQuotes : [],
+        evidenceQuotes: hasAnswer
+          ? result.evaluation.evidenceQuotes
+              .map((q) => q.trim())
+              .filter((q) => q && body.answer.includes(q))
+              .slice(0, 5)
+              .map((q) => q.slice(0, 300))
+          : [],
       },
       nextReason: result.nextReason,
       isFinal,

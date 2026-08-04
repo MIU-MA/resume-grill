@@ -85,6 +85,10 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       setCurrentQuestion(effectiveClaim.initialQuestion)
       setCurrentIntent(effectiveClaim.initialIntent || '验证具体过程和个人贡献')
 
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem('resume-drill:active-claim', effectiveClaim.id)
+      }
+
       onSessionSaved(effectiveClaim.id, {
         id: `${effectiveClaim.id}:v${resolvedVersion}`,
         claimContent: resolvedContent,
@@ -195,12 +199,43 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
 
   const skip = useCallback((claim: ResumeClaim) => continueInterview(claim, 'skip'), [continueInterview])
 
+  // 用已保存的 rounds 重新生成总结（不需要重新回答）
+  const regenerateSummary = useCallback(async (claim: ResumeClaim, savedRounds: InterviewRound[], savedVersion: number) => {
+    const snapshot = activeClaimSnapshot ?? claim
+    setLoading(true)
+    try {
+      const llm = getLlmSettings()
+      const body: any = { claim: snapshot, rounds: savedRounds }; if (llm) body.llm = llm
+      const res = await fetch('/api/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const data = (await res.json()) as FinalResult | { error: string }
+      if (!res.ok || 'error' in data) {
+        onToast('重新生成总结失败，请稍后再试。')
+        return false
+      }
+      const finalResult = data
+      onSessionSaved(snapshot.id, {
+        id: `${snapshot.id}:v${savedVersion}`,
+        claimContent: snapshot.content,
+        rounds: savedRounds,
+        claimAnalysis: cache.current.get(cacheKey(snapshot))!,
+        finalResult,
+        status: 'done',
+        version: savedVersion,
+      })
+      onToast('总结已重新生成，可在「分析报告」查看。')
+      return true
+    } catch (e) {
+      onError(e instanceof Error ? e.message : '重新生成总结失败')
+      return false
+    } finally { setLoading(false) }
+  }, [activeClaimSnapshot, onError, onToast, onSessionSaved])
+
   const covered = rounds[rounds.length - 1]?.evaluation?.coveredPoints ?? []
 
   return {
     rounds, currentQuestion, currentIntent, answer, setAnswer, annotation, setAnnotation, loading, done,
     activeClaimSnapshot, version, covered,
-    reset, start, restore, submit, skip,
+    reset, start, restore, submit, skip, regenerateSummary,
   }
 }
 

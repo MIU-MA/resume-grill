@@ -138,6 +138,7 @@ function App() {
         onReport={actions.goReport}
         onRetest={actions.retestClaim}
         onRewrite={actions.startRewriteInterview}
+        onRegenerateSummary={interview.regenerateSummary}
         onFinish={() => {
           if (interview.done) {
             actions.goReport()
