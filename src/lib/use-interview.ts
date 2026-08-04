@@ -35,21 +35,19 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
     setDone(false); setActiveClaimSnapshot(null); setVersion(1)
   }, [])
 
-  const restore = useCallback((claimId: string, session: InterviewSession): boolean => {
+  const restore = useCallback((claim: ResumeClaim, session: InterviewSession): boolean => {
     if (session.status !== 'in_progress') return false
+    const snapshot: ResumeClaim = session.claimContent && session.claimContent !== claim.content
+      ? { ...claim, content: session.claimContent }
+      : claim
+    setActiveClaimSnapshot(snapshot)
     setRounds(session.rounds)
-    setCurrentQuestion(session.pendingQuestion ?? '')
-    setCurrentIntent(session.pendingIntent ?? '')
+    setCurrentQuestion(session.pendingQuestion ?? snapshot.initialQuestion)
+    setCurrentIntent(session.pendingIntent ?? snapshot.initialIntent ?? '')
     setAnswer(''); setAnnotation(''); setDone(false)
     setVersion(session.version)
-    if (session.claimContent) {
-      setActiveClaimSnapshot(createSnapshot(claimId, session.claimContent))
-    }
     if (session.claimAnalysis) {
-      const key = session.claimContent
-        ? `${claimId}:${hashClaimContent(session.claimContent)}`
-        : `${claimId}:0`
-      cache.current.set(key, session.claimAnalysis)
+      cache.current.set(cacheKey(snapshot), session.claimAnalysis)
     }
     return true
   }, [])
@@ -64,17 +62,17 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
     const resolvedVersion = opts?.version ?? 1
     const resolvedContent = opts?.claimContent ?? claim.content
     const isRewrite = Boolean(opts?.claimContent && opts.claimContent !== claim.content)
+    const effectiveClaim: ResumeClaim = isRewrite
+      ? { ...claim, content: resolvedContent }
+      : claim
 
     if (opts?.version && opts.version > 1) {
       setVersion(opts.version)
-      if (isRewrite) setActiveClaimSnapshot(createSnapshot(claim.id, resolvedContent))
+      if (isRewrite) setActiveClaimSnapshot(effectiveClaim)
       setRounds([]); setAnswer(''); setAnnotation(''); setDone(false)
     }
 
     try {
-      const effectiveClaim: ResumeClaim = isRewrite
-        ? { ...claim, content: resolvedContent }
-        : claim
       if (!isRewrite) setActiveClaimSnapshot(effectiveClaim)
 
       const key = cacheKey(effectiveClaim)
@@ -212,10 +210,6 @@ function hashClaimContent(content: string): number {
     hash = ((hash << 5) - hash) + content.charCodeAt(i) | 0
   }
   return hash
-}
-
-function createSnapshot(id: string, content: string): ResumeClaim {
-  return { id, content } as ResumeClaim
 }
 
 function buildClaimAnalysisFromClaim(claim: ResumeClaim): ClaimAnalysis {

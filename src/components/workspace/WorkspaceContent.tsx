@@ -116,6 +116,7 @@ export function WorkspaceContent({
           annotation: r.annotation,
           answerSuggestion: r.evaluation.answerSuggestion,
           intent: r.questionIntent,
+          evidenceQuotes: r.evaluation.evidenceQuotes,
         }))}
         currentQuestion={iv.currentQuestion || null}
         currentIntent={iv.currentIntent || null}

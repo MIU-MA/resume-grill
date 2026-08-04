@@ -27,21 +27,21 @@ function App() {
   const actions = useClaimActions(workspace, interview, navigation)
   const { selected, stats, completedClaimCount } = workspace
 
-  // 仅在刷新恢复阶段才自动恢复未完成面试（避免与新面试冲突）
+  // 仅在刷新恢复阶段才自动恢复未完成面试
   const restoredRef = useRef(false)
   useEffect(() => {
     if (restoredRef.current) return
-    if (!workspace.recovering) return
+    if (!workspace.recoveredFromStorage) return
     if (mode !== 'interview' || !selected || interview.rounds.length > 0) return
     if (interview.loading) return
     const claimSessions = workspace.sessions[selected.id] ?? []
     const inProgress = claimSessions
       .filter((s) => s.status === 'in_progress')
       .sort((a, b) => b.version - a.version)[0]
-    if (inProgress && interview.restore(selected.id, inProgress)) {
+    if (inProgress && interview.restore(selected, inProgress)) {
       restoredRef.current = true
     }
-  }, [workspace.recovering, mode, selected, workspace.sessions, interview])
+  }, [workspace.recoveredFromStorage, mode, selected, workspace.sessions, interview])
 
   // 改写/重测后的声明以 snapshot 为准
   const activeClaim = interview.activeClaimSnapshot ?? selected

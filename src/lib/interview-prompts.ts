@@ -34,13 +34,9 @@ export function buildInterviewContinueUser(
   verifyPoints: { point: string; importance: string }[],
   trapPoints: string[],
 ): string {
-  // 只传累计覆盖/缺失状态，不传完整历史记录
-  const accumulatedCovered = new Set<string>()
-  const accumulatedMissing = new Set<string>()
-  for (const r of rounds) {
-    for (const p of r.evaluation.coveredPoints) accumulatedCovered.add(p)
-    for (const p of r.evaluation.missingPoints) accumulatedMissing.add(p)
-  }
+  // 最后一轮的 coveredPoints 已是累计结果，直接读取；缺失点从 evaluationPoints 推导
+  const coveredPoints = rounds.at(-1)?.evaluation.coveredPoints ?? []
+  const missingPoints = claim.evaluationPoints.filter((p) => !coveredPoints.includes(p))
   return [
     `声明：${claim.content}`,
     `岗位：${claim.role}`,
@@ -60,10 +56,10 @@ export function buildInterviewContinueUser(
     `答: ${answer || '(未作答)'}`,
     `不懂: ${annotation || '(无)'}`,
     '',
-    '前几轮累计已覆盖：',
-    [...accumulatedCovered].join('、') || '(无)',
-    '前几轮累计仍缺失：',
-    [...accumulatedMissing].join('、') || '(无)',
+    '当前已覆盖：',
+    coveredPoints.join('、') || '(无)',
+    '当前仍缺失：',
+    missingPoints.join('、') || '(无)',
   ].join('\n')
 }
 

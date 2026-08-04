@@ -24,7 +24,7 @@ export const ANALYZE_SYSTEM_PROMPT = `你是一名资深简历面试官。任务
 
 以下内容绝对不能作为声明：
 - 姓名、性别、年龄、电话、邮箱、地址、籍贯、照片等个人信息
-- 求职意向、期望薪资、目标岗位和“X年工作经验”等个人概况
+- 求职意向、期望薪资、目标岗位和"X年工作经验"等个人概况
 - 纯公司名、学校名、项目名、职位名、部门名、日期范围或章节标题
 - 散落在个人信息、教育或证书区域中的技术名词；明确位于技能/技术能力/技术栈章节的内容可以作为 skill 声明
 
@@ -39,9 +39,12 @@ export const ANALYZE_SYSTEM_PROMPT = `你是一名资深简历面试官。任务
 - exaggerationRisk：可信风险 high|medium|low
 - interviewRisk：面试风险 high|medium|low
 - evidenceGap：证据缺失，2-4 条
-- evidence：简历中已提供的具体证据，必须引用明确的数字、范围、对象或场景；不要输出“简历中已提及”“已给出量化数据”等空泛描述，没有具体证据时返回空数组
+- evidence：简历中已提供的具体证据，必须引用明确的数字、范围、对象或场景；不要输出"简历中已提及""已给出量化数据"等空泛描述，没有具体证据时返回空数组
 - initialQuestion：首轮追问。必须是针对该声明内容的具体问题，不要问通用八股
-- evaluationPoints：回答应覆盖的要点 3-5 条
+- initialIntent：首轮追问想验证什么，一句话说明
+- evaluationPoints：回答应覆盖的要点 3-5 条（纯字符串数组）
+- verifyPoints：与 evaluationPoints 对应的结构化版本，每条包含 point（与 evaluationPoints 中的文本一致）和 importance（high/medium/low，重要性最高的排在前面）
+- trapPoints：候选人可能的表面回答模式 2-4 条（只会说概念、用工具名、没有具体行为），如果回答落入这些模式说明没有真实经历
 
 整体输出字段：
 - candidate：候选人姓名
@@ -51,7 +54,7 @@ export const ANALYZE_SYSTEM_PROMPT = `你是一名资深简历面试官。任务
 - jobMatch：仅当提供招聘描述时输出，包含 requirements、gaps、interviewFocus
 
 严格输出单个 JSON 对象：
-{ "candidate": string, "role": string, "summary": string, "claims": [ { "content": string, "title": string, "category": "skill|responsibility|achievement|leadership|metric", "role": string, "sourceSection": string, "exaggerationRisk": "high|medium|low", "interviewRisk": "high|medium|low", "evidenceGap": string[], "evidence": string[], "initialQuestion": string, "evaluationPoints": string[] } ], "jobMatch": { "requirements": [{ "requirement": string, "match": "strong|partial|gap", "evidence": string[], "note": string }], "gaps": string[], "interviewFocus": string[] } }`
+{ "candidate": string, "role": string, "summary": string, "claims": [ { "content": string, "title": string, "category": "skill|responsibility|achievement|leadership|metric", "role": string, "sourceSection": string, "exaggerationRisk": "high|medium|low", "interviewRisk": "high|medium|low", "evidenceGap": string[], "evidence": string[], "initialQuestion": string, "initialIntent": string, "evaluationPoints": string[], "verifyPoints": [{ "point": string, "importance": "high|medium|low" }], "trapPoints": string[] } ], "jobMatch": { "requirements": [{ "requirement": string, "match": "strong|partial|gap", "evidence": string[], "note": string }], "gaps": string[], "interviewFocus": string[] } }`
 
 export function buildAnalyzeUserPrompt(
   rawText: string,

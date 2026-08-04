@@ -29,6 +29,7 @@ export function useResumeWorkspace(phase: Phase) {
   const [masteredBlindSpotIds, setMasteredBlindSpotIds] = useState<string[]>([])
   const [recordId, setRecordId] = useState<string | null>(null)
   const [recovering, setRecovering] = useState(false)
+  const [recoveredFromStorage, setRecoveredFromStorage] = useState(false)
   const [savedRecords, setSavedRecords] = useState<SavedRecord[]>([])
   const [loadingRecords, setLoadingRecords] = useState(true)
   const [toast, setToast] = useState('')
@@ -85,6 +86,7 @@ export function useResumeWorkspace(phase: Phase) {
           setPreparedClaimIds(record.preparedClaimIds)
           setMasteredBlindSpotIds(record.masteredBlindSpotIds)
           setSelectedIndex(0)
+          setRecoveredFromStorage(true)
         }
       })
       .catch(() => {})
@@ -126,6 +128,7 @@ export function useResumeWorkspace(phase: Phase) {
     recordId,
     setRecordId,
     recovering,
+    recoveredFromStorage,
     savedRecords,
     setSavedRecords,
     loadingRecords,

@@ -4,7 +4,7 @@ import type { ResumeClaim } from '@/domain/resume-schema'
 import type { InterviewAction } from '@/domain/interview-schema'
 import { Button } from '@/components/ui/Button'
 
-type Turn = { action: InterviewAction; question: string; answer: string; annotation?: string; answerSuggestion?: string; intent?: string }
+type Turn = { action: InterviewAction; question: string; answer: string; annotation?: string; answerSuggestion?: string; intent?: string; evidenceQuotes?: string[] }
 
 type InterviewViewProps = {
   selected: ResumeClaim
@@ -105,6 +105,14 @@ export function InterviewView({
                 <div className="rounded-lg border border-border bg-surface-soft px-4 py-3">
                   <p className="text-[14px] text-text-secondary leading-relaxed">{turn.action === 'skip' ? '已掌握，跳过此问。该问题未计为已验证。' : turn.answer || '未作答，已请求换一种问法。'}</p>
                 </div>
+                {turn.evidenceQuotes && turn.evidenceQuotes.length > 0 && (
+                  <div className="mt-2 rounded-lg border border-border bg-surface-soft px-3.5 py-2.5">
+                    <div className="text-[12px] font-semibold text-text-tertiary mb-1.5">判定依据</div>
+                    {turn.evidenceQuotes.map((quote, j) => (
+                      <p key={j} className="text-[13px] text-text-secondary leading-relaxed">"{quote}"</p>
+                    ))}
+                  </div>
+                )}
                 {turn.annotation && (
                   <div className="mt-2 flex items-start gap-2 rounded-lg border border-warning/25 bg-warning-soft px-3.5 py-2.5 text-[13px] leading-relaxed text-text-secondary">
                     <CircleHelp size={14} className="mt-0.5 flex-none text-warning" />
