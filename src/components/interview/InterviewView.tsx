@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ArrowRight, Check, CircleHelp, Lightbulb, MessageSquareText } from 'lucide-react'
 import type { ResumeClaim } from '@/domain/resume-schema'
 import type { InterviewAction } from '@/domain/interview-schema'
-import { Button } from '@/components/Button'
+import { Button } from '@/components/ui/Button'
 
-type Turn = { action: InterviewAction; question: string; answer: string; annotation?: string; answerSuggestion?: string }
+type Turn = { action: InterviewAction; question: string; answer: string; annotation?: string; answerSuggestion?: string; intent?: string }
 
 type InterviewViewProps = {
   selected: ResumeClaim
@@ -93,7 +93,9 @@ export function InterviewView({
                   <span className="h-px flex-1 bg-border" />
                   <span>面试官</span>
                 </div>
-                <p className="text-[15px] text-text-primary leading-relaxed mb-4">{turn.question}</p>
+                <p className="text-[15px] text-text-primary leading-relaxed mb-1">{turn.question}</p>
+                {turn.intent && <p className="text-[12px] text-text-tertiary mb-4">{turn.intent}</p>}
+                {!turn.intent && <div className="mb-4" />}
 
                 <div className="flex items-center gap-2 text-[12px] font-medium text-text-tertiary mb-1">
                   <span className="font-mono">A{i + 1}</span>
@@ -127,7 +129,7 @@ export function InterviewView({
                   <MessageSquareText size={14} />当前问题
                 </div>
                 <p className="text-[15px] font-medium text-text-primary leading-relaxed mb-1">{currentQuestion}</p>
-                {currentIntent && <p className="text-[13px] text-brand">请结合实际过程回答，不需要背概念。</p>}
+                {currentIntent && <p className="text-[13px] text-text-secondary leading-relaxed mt-1.5">{currentIntent}</p>}
               </div>
             )}
 

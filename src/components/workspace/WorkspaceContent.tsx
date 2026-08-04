@@ -3,12 +3,11 @@
 import type { ResumeAnalysis, ResumeClaim } from '@/domain/resume-schema'
 import type { InterviewAction, InterviewSession } from '@/domain/interview-schema'
 import type { Mode } from '@/types'
-import { AuditView } from '@/components/AuditView'
-import { InterviewView } from '@/components/InterviewView'
-import { InterviewStatus } from '@/components/InterviewStatus'
-import { SessionReport } from '@/components/SessionReport'
+import { ClaimAuditView } from '@/components/audit/ClaimAuditView'
+import { InterviewView } from '@/components/interview/InterviewView'
+import { InterviewStatusPanel } from '@/components/interview/InterviewStatusPanel'
+import { InterviewReportView } from '@/components/report/InterviewReportView'
 
-// ── useInterview 视图层需要的数据 ──────────────────────────
 export type InterviewViewData = {
   rounds: Array<{
     action: InterviewAction
@@ -16,6 +15,7 @@ export type InterviewViewData = {
     answer: string
     annotation?: string
     evaluation: { answerSuggestion?: string }
+    nextReason?: string
   }>
   currentQuestion: string
   currentIntent: string
@@ -55,7 +55,7 @@ type WorkspaceViewProps = {
   onBackToAudit: () => void
 }
 
-export function WorkspaceView({
+export function WorkspaceContent({
   mode,
   analysis,
   sessions,
@@ -78,7 +78,7 @@ export function WorkspaceView({
 }: WorkspaceViewProps) {
   if (mode === 'report') {
     return (
-      <SessionReport
+      <InterviewReportView
         analysis={analysis}
         sessions={sessions}
         masteredBlindSpotIds={masteredBlindSpotIds}
@@ -91,7 +91,7 @@ export function WorkspaceView({
 
   if (mode === 'audit') {
     return (
-      <AuditView
+      <ClaimAuditView
         analysis={analysis}
         selectedIndex={selectedIndex}
         preparedClaimIds={preparedClaimIds}
@@ -114,6 +114,7 @@ export function WorkspaceView({
           answer: r.answer,
           annotation: r.annotation,
           answerSuggestion: r.evaluation.answerSuggestion,
+          intent: r.nextReason,
         }))}
         currentQuestion={iv.currentQuestion || null}
         currentIntent={iv.currentIntent || null}
@@ -131,7 +132,7 @@ export function WorkspaceView({
         onFinish={onFinish}
         onBackToAudit={onBackToAudit}
       />
-      <InterviewStatus
+      <InterviewStatusPanel
         selected={activeClaim}
         roundCount={iv.rounds.filter((r) => r.answer.trim().length > 0).length}
         covered={iv.covered}

@@ -18,7 +18,6 @@ export function useResumeWorkspace(phase: Phase) {
   const { envConfigured, clientConfigured, mode: llmMode, refresh: refreshClientLlm } =
     useLlmStatus()
 
-  // ── 核心状态 ──────────────────────────────────────────────
   const [analysis, setAnalysis] = useState<ResumeAnalysis | null>(null)
   const [pendingExtracted, setPendingExtracted] = useState<{
     extracted: ExtractedText
@@ -40,7 +39,6 @@ export function useResumeWorkspace(phase: Phase) {
     window.setTimeout(() => setToast(''), d)
   }, [])
 
-  // ── Ref 桥接：让稳定回调总能读到最新的 recordId / analysis ──
   const workspaceRef = useRef({ recordId, analysis })
   workspaceRef.current = { recordId, analysis }
 
@@ -65,7 +63,6 @@ export function useResumeWorkspace(phase: Phase) {
     [],
   )
 
-  // ── 派生值 ────────────────────────────────────────────────
   const selected = analysis?.claims[selectedIndex] ?? null
   const stats = analysis ? computeStats(analysis.claims) : null
   const completedClaimCount = analysis
@@ -74,7 +71,6 @@ export function useResumeWorkspace(phase: Phase) {
       ).length
     : 0
 
-  // ── 会话恢复 ──────────────────────────────────────────────
   useEffect(() => {
     if (phase !== 'workspace' || analysis) return
     const sid = window.sessionStorage.getItem('resume-drill:active')
@@ -96,7 +92,6 @@ export function useResumeWorkspace(phase: Phase) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ── 历史记录列表 ──────────────────────────────────────────
   useEffect(() => {
     if (phase !== 'upload') return
     setLoadingRecords(true)
@@ -106,20 +101,16 @@ export function useResumeWorkspace(phase: Phase) {
       .finally(() => setLoadingRecords(false))
   }, [phase])
 
-  // ── activeClaim 需要 iv.rewriteContent，这里返回 null，
-  //    由调用方在拿到 useInterview 的返回值后重新计算 ──
   const activeClaimBase = (rewriteContent: string | null): ResumeClaim => {
     if (!selected) throw new Error('no selected claim')
     return rewriteContent ? { ...selected, content: rewriteContent } : selected
   }
 
   return {
-    // LLM 配置
     envConfigured,
     clientConfigured,
     llmMode,
     refreshClientLlm,
-    // 状态
     analysis,
     setAnalysis,
     pendingExtracted,
@@ -143,12 +134,10 @@ export function useResumeWorkspace(phase: Phase) {
     showToast,
     error,
     setError,
-    // 派生
     selected,
     stats,
     completedClaimCount,
     activeClaimBase,
-    // 面试持久化回调
     handleSessionSaved,
   }
 }

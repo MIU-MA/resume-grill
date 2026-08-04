@@ -1,8 +1,5 @@
 'use client'
 
-// pdfjs 只在用户实际触发解析时动态加载，避免 SSR 阶段求值浏览器全局（DOMMatrix 等）。
-// worker 仅在浏览器本地解析 PDF，简历文件不会被上传到任何服务器。
-
 const WORKER_SRC = (version: string) =>
   `https://cdn.jsdelivr.net/npm/pdfjs-dist@${version}/build/pdf.worker.min.mjs`
 
@@ -19,8 +16,14 @@ export async function extractTextFromFile(file: File): Promise<ExtractedText> {
     const text = await file.text()
     return { text, pageCount: 1, charCount: text.length }
   }
-  if (name.endsWith('.doc') || name.endsWith('.docx')) {
-    throw new Error('暂不支持 .doc/.docx，请使用 PDF 或纯文本文件。')
+  if (name.endsWith('.docx')) {
+    const mammoth = await import('mammoth')
+    const arrayBuffer = await file.arrayBuffer()
+    const result = await mammoth.extractRawText({ arrayBuffer })
+    return { text: result.value.trim(), pageCount: 1, charCount: result.value.length }
+  }
+  if (name.endsWith('.doc')) {
+    throw new Error('暂不支持旧版 .doc 格式，请用 Word 另存为 .docx 或导出为 PDF。')
   }
   const text = await file.text()
   return { text, pageCount: 1, charCount: text.length }
@@ -158,7 +161,6 @@ function shouldMergeWrappedLine(previous: VisualLine, current: VisualLine): bool
   if (verticalGap <= 0.5 || verticalGap > Math.max(18, Math.max(previous.height, current.height) * 1.9)) return false
   if (current.bullet) return false
 
-  // Short, unpunctuated lines are overwhelmingly likely to be section or entry headings.
   if (!previous.bullet && previous.text.length <= 20 && !/[，,：:；;。.!！?？]$/.test(previous.text)) return false
 
   if (previous.bullet) {

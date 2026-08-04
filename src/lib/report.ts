@@ -143,3 +143,23 @@ export function downloadReport(analysis: ResumeAnalysis) {
 export function downloadFullReport(analysis: ResumeAnalysis, sessions: Record<string, InterviewSession[]>, masteredBlindSpotIds: string[] = []) {
   downloadText(`简历追问报告-${analysis.candidate}.md`, buildFullReport(analysis, sessions, masteredBlindSpotIds))
 }
+
+export function downloadJsonExport(analysis: ResumeAnalysis, sessions: Record<string, InterviewSession[]>, masteredBlindSpotIds: string[] = []) {
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    version: 1,
+    analysis,
+    sessions,
+    masteredBlindSpotIds,
+  }
+  const json = JSON.stringify(payload, null, 2)
+  const url = URL.createObjectURL(new Blob([json], { type: 'application/json;charset=utf-8' }))
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = `简历数据-${analysis.candidate}.json`
+  anchor.style.display = 'none'
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+}

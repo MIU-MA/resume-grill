@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { resumeClaimSchema } from '@/domain/resume-schema'
-import { interviewActionSchema, interviewRoundSchema, interviewContinueSchema } from '@/domain/interview-schema'
-import { INTERVIEW_CONTINUE_SYSTEM, buildInterviewContinueUser } from '@/lib/interview-prompts'
+import { interviewActionSchema, interviewRoundSchema, evaluateAnswerSchema, generateFollowupSchema } from '@/domain/interview-schema'
+import { EVALUATE_ANSWER_SYSTEM, GENERATE_FOLLOWUP_SYSTEM, buildEvaluateAnswerUser, buildGenerateFollowupUser } from '@/lib/interview-prompts'
 import { sanitizeCoverage } from '@/lib/coverage'
 import { INTERVIEW_TIMEOUT, MAX_ANSWER, MAX_TURNS, getClientIp, rateLimit, withTimeout } from '@/lib/server-limits'
 import { llmStructured, resolveLlmConfig } from '@/providers/openai-compatible'
@@ -50,9 +50,10 @@ export async function POST(request: Request) {
     if (!config) {
       return NextResponse.json({ error: '请配置 API Key' }, { status: 400 })
     }
-    const result = await llmStructured(
-      INTERVIEW_CONTINUE_SYSTEM,
-      buildInterviewContinueUser(
+
+    const evaluation = await llmStructured(
+      EVALUATE_ANSWER_SYSTEM,
+      buildEvaluateAnswerUser(
         body.claim,
         body.question,
         body.answer,
@@ -62,14 +63,22 @@ export async function POST(request: Request) {
         body.verifyPoints,
         body.trapPoints,
       ),
-      interviewContinueSchema,
+      evaluateAnswerSchema,
       config,
-      { signal: withTimeout(INTERVIEW_TIMEOUT), maxTokens: 800 },
+      { signal: withTimeout(INTERVIEW_TIMEOUT), maxTokens: 600 },
+    )
+
+    const followup = await llmStructured(
+      GENERATE_FOLLOWUP_SYSTEM,
+      buildGenerateFollowupUser(body.claim, evaluation, body.verifyPoints),
+      generateFollowupSchema,
+      config,
+      { signal: withTimeout(INTERVIEW_TIMEOUT), maxTokens: 400 },
     )
     const hasAnswer = body.action === 'answer' && body.answer.length > 0
     const isSkip = body.action === 'skip'
     const currentCoverage = sanitizeCoverage(
-      hasAnswer ? result.evaluation.coveredPoints : [],
+      hasAnswer ? evaluation.coveredPoints : [],
       body.claim.evaluationPoints,
     )
     const coveredPoints = mergeCoveredPoints(body.rounds, currentCoverage.covered, body.claim.evaluationPoints)
@@ -81,17 +90,17 @@ export async function POST(request: Request) {
     const interactionCount = body.rounds.filter((round) => round.action !== 'clarify').length + (hasAnswer || isSkip ? 1 : 0)
     const isFinal = isSkip
       ? interactionCount >= MAX_INTERVIEW_ROUNDS
-      : hasAnswer && shouldFinishInterview(roundNumber, result.isFinal, coveredPoints, importantPoints)
+      : hasAnswer && shouldFinishInterview(roundNumber, followup.isFinal, coveredPoints, importantPoints)
     return NextResponse.json({
-      ...result,
-      isFinal,
-      nextQuestion: isFinal ? '' : (result.nextQuestion || '请再补充一个具体的过程、决策或结果。'),
       evaluation: {
-        ...result.evaluation,
-        score: hasAnswer ? result.evaluation.score : 0,
+        score: hasAnswer ? evaluation.score : 0,
         coveredPoints,
         missingPoints: body.claim.evaluationPoints.filter((point) => !coveredPoints.includes(point)),
+        answerSuggestion: evaluation.answerSuggestion,
       },
+      nextReason: followup.nextReason,
+      isFinal,
+      nextQuestion: isFinal ? '' : (followup.nextQuestion || '请再补充一个具体的过程、决策或结果。'),
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : '生成下一问失败'

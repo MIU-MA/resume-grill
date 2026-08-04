@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Settings } from 'lucide-react'
-import { ModelSettings } from '@/components/ModelSettings'
+import { ModelSettings } from '@/components/settings/ModelSettings'
 
 type SettingsPopoverProps = {
   envConfigured: boolean

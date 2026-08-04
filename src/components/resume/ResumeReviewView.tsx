@@ -20,7 +20,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import type { ExtractedText } from '@/lib/pdf'
-import { Button } from '@/components/Button'
+import { Button } from '@/components/ui/Button'
 import {
   ANALYSIS_GOALS,
   type AnalysisGoal,
@@ -74,7 +74,7 @@ const GOAL_ICONS: Record<AnalysisGoal, LucideIcon> = {
   leadership: Users,
 }
 
-export function ExtractedTextReview({ sourceFile, extracted, analyzing, error, onConfirm, onBack }: ExtractedTextReviewProps) {
+export function ResumeReviewView({ sourceFile, extracted, analyzing, error, onConfirm, onBack }: ExtractedTextReviewProps) {
   const [text, setText] = useState(extracted.text)
   const [structureText, setStructureText] = useState(extracted.text)
   const [sections, setSections] = useState(() => parseResumeStructure(extracted.text))

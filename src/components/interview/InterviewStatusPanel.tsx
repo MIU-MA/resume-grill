@@ -7,7 +7,7 @@ type InterviewStatusProps = {
   covered: string[]
 }
 
-export function InterviewStatus({ selected, roundCount, covered }: InterviewStatusProps) {
+export function InterviewStatusPanel({ selected, roundCount, covered }: InterviewStatusProps) {
   const total = selected.evaluationPoints.length
   const coverage = total > 0 ? Math.round((covered.length / total) * 100) : 0
   const coveredSet = new Set(covered)

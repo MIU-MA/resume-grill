@@ -1,10 +1,10 @@
 'use client'
 
-import { ExtractedTextReview } from '@/components/ExtractedTextReview'
-import { ResumeUploader } from '@/components/ResumeUploader'
-import { WorkspaceHeader } from '@/components/WorkspaceHeader'
-import { WorkspaceShell } from '@/components/WorkspaceShell'
-import { WorkspaceView } from '@/components/WorkspaceView'
+import { ResumeReviewView } from '@/components/resume/ResumeReviewView'
+import { ResumeImportView } from '@/components/resume/ResumeImportView'
+import { WorkspaceHeader } from '@/components/workspace/WorkspaceHeader'
+import { WorkspaceShell } from '@/components/workspace/WorkspaceShell'
+import { WorkspaceContent } from '@/components/workspace/WorkspaceContent'
 import { extractResumeClaimCandidates } from '@/lib/resume-structure'
 import { useAppNavigation } from '@/lib/use-app-navigation'
 import { useClaimActions } from '@/lib/use-claim-actions'
@@ -55,7 +55,7 @@ function App() {
   if (phase === 'upload' || !workspace.analysis || !selected || !stats) {
     if (phase === 'review' && workspace.pendingExtracted) {
       return (
-        <ExtractedTextReview
+        <ResumeReviewView
           sourceFile={workspace.pendingExtracted.sourceFile}
           extracted={workspace.pendingExtracted.extracted}
           analyzing={analysis.analyzing}
@@ -66,7 +66,7 @@ function App() {
       )
     }
     return (
-      <ResumeUploader
+      <ResumeImportView
         analyzing={analysis.analyzing}
         error={workspace.error}
         onExtracted={analysis.handleExtracted}
@@ -91,6 +91,7 @@ function App() {
       onClientChanged={workspace.refreshClientLlm}
       onRerun={handleRerun}
       onExport={actions.exportFull}
+      onExportJson={actions.exportJson}
       onLogoClick={analysis.replaceResume}
       onDismissToast={() => workspace.setToast('')}
     >
@@ -103,7 +104,7 @@ function App() {
         coveredLength={interview.covered.length}
         onTabChange={handleTabChange}
       />
-      <WorkspaceView
+      <WorkspaceContent
         mode={mode}
         analysis={workspace.analysis}
         sessions={workspace.sessions}

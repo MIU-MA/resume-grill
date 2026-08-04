@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildInterviewContinueUser } from './interview-prompts'
+import { buildEvaluateAnswerUser } from './interview-prompts'
 import type { ResumeClaim } from '@/domain/resume-schema'
 
 const claim: ResumeClaim = {
@@ -19,7 +19,7 @@ const claim: ResumeClaim = {
 
 describe('interview prompts', () => {
   it('passes an annotation separately from the answer', () => {
-    const prompt = buildInterviewContinueUser(
+    const prompt = buildEvaluateAnswerUser(
       claim,
       '如何保证接口幂等？',
       '',
@@ -29,12 +29,12 @@ describe('interview prompts', () => {
       [{ point: '说明具体方案', importance: 'high' }],
       [],
     )
-    expect(prompt).toContain('答: (未作答)')
-    expect(prompt).toContain('用户的不懂批注: 不理解幂等是什么意思')
+    expect(prompt).toContain('候选人答: (未作答)')
+    expect(prompt).toContain('不懂批注: 不理解幂等是什么意思')
   })
 
   it('marks skipped questions as self-reported and unverified', () => {
-    const prompt = buildInterviewContinueUser(
+    const prompt = buildEvaluateAnswerUser(
       claim,
       '如何保证接口幂等？',
       '',

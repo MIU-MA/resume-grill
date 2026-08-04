@@ -2,11 +2,10 @@
 
 import { useCallback } from 'react'
 import type { ResumeClaim } from '@/domain/resume-schema'
-import { downloadFullReport } from '@/lib/report'
+import { downloadFullReport, downloadJsonExport } from '@/lib/report'
 import { updateMasteredBlindSpots, updatePreparedClaims } from '@/lib/storage'
 import type { AppNavigation, UseResumeWorkspace } from './types'
 
-// ── useInterview 的子集：useClaimActions 需要的面试操作 ──────
 type InterviewHandle = {
   reset: () => void
   prepareRewrite: (content: string, version: number) => void
@@ -21,7 +20,6 @@ export function useClaimActions(
 ) {
   const { replace } = navigation
 
-  // ── 已准备标记 ────────────────────────────────────────────
   const togglePrepared = useCallback(
     (claimId: string) => {
       ws.setPreparedClaimIds((current) => {
@@ -39,7 +37,6 @@ export function useClaimActions(
     [ws],
   )
 
-  // ── 盲区已掌握标记 ────────────────────────────────────────
   const toggleBlindSpotMastered = useCallback(
     (blindSpotId: string) => {
       ws.setMasteredBlindSpotIds((current) => {
@@ -57,7 +54,6 @@ export function useClaimActions(
     [ws],
   )
 
-  // ── 选择声明 ──────────────────────────────────────────────
   const selectClaim = useCallback(
     (index: number) => {
       ws.setSelectedIndex(index)
@@ -67,7 +63,6 @@ export function useClaimActions(
     [ws, replace, iv],
   )
 
-  // ── 开始追问 ──────────────────────────────────────────────
   const startInterview = useCallback(async () => {
     if (!ws.selected) return
     iv.reset()
@@ -75,7 +70,6 @@ export function useClaimActions(
     await iv.start(ws.selected)
   }, [ws.selected, replace, iv])
 
-  // ── 改写后重新追问 ────────────────────────────────────────
   const startRewriteInterview = useCallback(
     (claim: ResumeClaim, rewrittenContent: string) => {
       const idx =
@@ -91,7 +85,6 @@ export function useClaimActions(
     [ws, replace, iv],
   )
 
-  // ── 重测声明 ──────────────────────────────────────────────
   const retestClaim = useCallback(
     (claim: ResumeClaim) => {
       const idx =
@@ -106,16 +99,19 @@ export function useClaimActions(
     [ws, replace, iv],
   )
 
-  // ── 跳转报告 ──────────────────────────────────────────────
   const goReport = useCallback(() => {
     replace('workspace', 'report')
     window.scrollTo({ top: 0, left: 0 })
   }, [replace])
 
-  // ── 导出报告 ──────────────────────────────────────────────
   const exportFull = useCallback(() => {
     if (!ws.analysis) return
     downloadFullReport(ws.analysis, ws.sessions, ws.masteredBlindSpotIds)
+  }, [ws.analysis, ws.sessions, ws.masteredBlindSpotIds])
+
+  const exportJson = useCallback(() => {
+    if (!ws.analysis) return
+    downloadJsonExport(ws.analysis, ws.sessions, ws.masteredBlindSpotIds)
   }, [ws.analysis, ws.sessions, ws.masteredBlindSpotIds])
 
   return {
@@ -127,5 +123,6 @@ export function useClaimActions(
     retestClaim,
     goReport,
     exportFull,
+    exportJson,
   }
 }

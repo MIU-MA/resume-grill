@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Eye, EyeOff, Trash2 } from 'lucide-react'
 import { clearLlmSettings, getLlmSettings, setLlmSettings, type LlmSettings } from '@/lib/settings'
-import { Button } from '@/components/Button'
+import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
 
 const DEFAULTS: LlmSettings = { baseUrl: 'https://api.openai.com/v1', apiKey: '', model: 'gpt-5.3-instant' }

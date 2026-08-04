@@ -2,9 +2,9 @@
 
 import { useState } from 'react'
 import { ArrowRight, FileText, Trash2, Upload } from 'lucide-react'
-import { SettingsPopover } from '@/components/SettingsPopover'
+import { SettingsPopover } from '@/components/settings/SettingsPopover'
 import { extractTextFromFile, type ExtractedText } from '@/lib/pdf'
-import { Button } from '@/components/Button'
+import { Button } from '@/components/ui/Button'
 import type { SavedRecord } from '@/lib/storage'
 
 const SAMPLE_RESUME = `酒寄彩叶
@@ -48,22 +48,26 @@ type ResumeUploaderProps = {
   onDeleteSaved: (id: string) => Promise<void>
 }
 
-export function ResumeUploader({ analyzing, error, onExtracted, envConfigured, clientConfigured, onClientChanged, savedRecords, loadingRecords, onOpenSaved, onDeleteSaved }: ResumeUploaderProps) {
+export function ResumeImportView({ analyzing, error, onExtracted, envConfigured, clientConfigured, onClientChanged, savedRecords, loadingRecords, onOpenSaved, onDeleteSaved }: ResumeUploaderProps) {
   const [tab, setTab] = useState<Tab>('file')
   const [paste, setPaste] = useState('')
   const [fileName, setFileName] = useState<string | null>(null)
   const [parsing, setParsing] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [parseError, setParseError] = useState<string | null>(null)
+  const [dragOver, setDragOver] = useState(false)
 
   const handleFile = async (file?: File) => {
     if (!file) return
     setFileName(file.name)
     setParsing(true)
+    setParseError(null)
     try {
       const extracted = await extractTextFromFile(file)
+      setFileName(null)
       onExtracted(extracted, file.name)
     } catch (e) {
-      onExtracted({ text: `解析失败: ${e instanceof Error ? e.message : '未知错误'}`, pageCount: 0, charCount: 0 }, file.name)
+      setParseError(e instanceof Error ? e.message : '未知错误')
     } finally {
       setParsing(false)
     }
@@ -101,24 +105,39 @@ export function ResumeUploader({ analyzing, error, onExtracted, envConfigured, c
 
         {tab === 'file' ? (
           <>
-            <label className="flex min-h-[160px] cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-white px-8 py-10 text-center transition-colors hover:border-brand hover:bg-brand-soft">
-              <input type="file" accept=".pdf,.txt,.md" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) handleFile(file) }} />
+            <label
+              className={`flex min-h-[160px] cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-white px-8 py-10 text-center transition-colors ${
+                dragOver ? 'border-brand bg-brand-soft' : 'border-border hover:border-brand hover:bg-brand-soft'
+              }`}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+              onDragEnter={(e) => { e.preventDefault(); setDragOver(true) }}
+              onDragLeave={(e) => { e.preventDefault(); setDragOver(false) }}
+              onDrop={(e) => { e.preventDefault(); setDragOver(false); const file = e.dataTransfer.files?.[0]; if (file) handleFile(file) }}
+            >
+              <input type="file" accept=".pdf,.txt,.md,.docx" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) handleFile(file) }} />
               <div className="grid size-12 place-items-center rounded-xl bg-surface-soft">
                 <Upload size={22} className="text-text-tertiary" />
               </div>
               <div>
                 <p className="text-[14px] font-medium text-text-primary">拖拽简历到这里或点击选择文件</p>
-                <p className="mt-1 text-text-tertiary text-[13px]">支持 PDF、TXT、Markdown · 简历内容仅用于本次分析</p>
+                <p className="mt-1 text-text-tertiary text-[13px]">支持 PDF、DOCX、TXT、Markdown · 简历内容仅用于本次分析</p>
               </div>
               {parsing ? (
                 <div className="flex flex-col items-center gap-2 text-brand">
                   <div className="size-5 rounded-full border-2 border-brand/30 border-t-brand animate-spin" />
-                  <p className="text-[13px]">正在解析 PDF…</p>
+                  <p className="text-[13px]">正在解析文件…</p>
                 </div>
               ) : fileName ? (
                 <p className="text-brand text-[13px]">已选择：{fileName}</p>
               ) : null}
             </label>
+
+            {parseError && (
+              <div className="mt-4 rounded-lg border border-danger/20 bg-danger-soft px-4 py-3 text-[14px] text-danger leading-relaxed">
+                解析失败：{parseError}
+                <button type="button" className="ml-2 text-brand hover:underline" onClick={() => setParseError(null)}>关闭</button>
+              </div>
+            )}
 
             <div className="mt-5 text-center">
               <Button variant="ghost" className="text-text-tertiary text-[13px]" onClick={() => onExtracted({ text: SAMPLE_RESUME, pageCount: 1, charCount: SAMPLE_RESUME.length }, '示例简历.txt')}>

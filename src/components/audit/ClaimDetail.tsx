@@ -1,7 +1,7 @@
 import { Check, CircleHelp, MessageSquareText } from 'lucide-react'
 import { type ResumeClaim } from '@/domain/resume-schema'
 import { RISK_META } from '@/lib/risk'
-import { Button } from '@/components/Button'
+import { Button } from '@/components/ui/Button'
 
 type ClaimDetailProps = { claim: ResumeClaim; prepared: boolean; onTogglePrepared: () => void; onStartInterview: () => void }
 

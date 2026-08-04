@@ -1,15 +1,12 @@
 import { z } from 'zod'
 import { riskLevelSchema } from '@/domain/resume-schema'
 
-// ── 声明分析 ──
-
 export const verifyPointSchema = z.object({
   point: z.string(),
   importance: z.enum(['high', 'medium', 'low']),
 })
 export type VerifyPoint = z.infer<typeof verifyPointSchema>
 
-// /api/analyze-claim 响应
 export const claimAnalysisSchema = z.object({
   level: z.string(),
   verifyPoints: z.array(verifyPointSchema).min(1),
@@ -17,16 +14,12 @@ export const claimAnalysisSchema = z.object({
 })
 export type ClaimAnalysis = z.infer<typeof claimAnalysisSchema>
 
-// ── 面试流转 ──
-
-// /api/interview/start 响应
 export const interviewStartSchema = z.object({
   question: z.string(),
   intent: z.string(),
 })
 export type InterviewStart = z.infer<typeof interviewStartSchema>
 
-// 一轮对话：问题 + 回答 + 评估
 export const interviewActionSchema = z.enum(['answer', 'clarify', 'skip'])
 export type InterviewAction = z.infer<typeof interviewActionSchema>
 
@@ -45,7 +38,6 @@ export const interviewRoundSchema = z.object({
 })
 export type InterviewRound = z.infer<typeof interviewRoundSchema>
 
-// /api/interview/continue 响应
 export const interviewContinueSchema = z.object({
   evaluation: z.object({
     score: z.number().min(0).max(100),
@@ -59,7 +51,21 @@ export const interviewContinueSchema = z.object({
 })
 export type InterviewContinueResult = z.infer<typeof interviewContinueSchema>
 
-// ── 风险报告 ──
+export const evaluateAnswerSchema = z.object({
+  score: z.number().min(0).max(100),
+  coveredPoints: z.array(z.string()),
+  missingPoints: z.array(z.string()),
+  answerSuggestion: z.string().default(''),
+  evidenceQuotes: z.array(z.string()).default([]),
+})
+export type EvaluateAnswerResult = z.infer<typeof evaluateAnswerSchema>
+
+export const generateFollowupSchema = z.object({
+  nextReason: z.string(),
+  isFinal: z.boolean(),
+  nextQuestion: z.string(),
+})
+export type GenerateFollowupResult = z.infer<typeof generateFollowupSchema>
 
 export const finalResultSchema = z.object({
   confidence: z.number().min(0).max(5),
@@ -74,8 +80,6 @@ export const finalResultSchema = z.object({
   nextAction: z.string().default(''),
 })
 export type FinalResult = z.infer<typeof finalResultSchema>
-
-// ── 会话持久化 ──
 
 export const interviewSessionSchema = z.object({
   id: z.string(),

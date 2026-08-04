@@ -1,6 +1,6 @@
 import { type ResumeAnalysis } from '@/domain/resume-schema'
-import { ClaimList } from '@/components/ClaimList'
-import { ClaimDetail } from '@/components/ClaimDetail'
+import { ClaimList } from '@/components/audit/ClaimList'
+import { ClaimDetail } from '@/components/audit/ClaimDetail'
 
 type AuditViewProps = {
   analysis: ResumeAnalysis
@@ -13,7 +13,7 @@ type AuditViewProps = {
   onReport: () => void
 }
 
-export function AuditView({ analysis, selectedIndex, preparedClaimIds, error, onSelect, onTogglePrepared, onStartInterview }: AuditViewProps) {
+export function ClaimAuditView({ analysis, selectedIndex, preparedClaimIds, error, onSelect, onTogglePrepared, onStartInterview }: AuditViewProps) {
   const selected = analysis.claims[selectedIndex]
 
   return (

@@ -17,7 +17,7 @@ import {
   saveRecord,
   type SavedRecord,
 } from '@/lib/storage'
-import type { ResumeReviewSubmission } from '@/components/ExtractedTextReview'
+import type { ResumeReviewSubmission } from '@/components/resume/ResumeReviewView'
 import type { AppNavigation, UseResumeWorkspace } from './types'
 
 export function useResumeAnalysis(
@@ -27,7 +27,6 @@ export function useResumeAnalysis(
   const { push } = navigation
   const [analyzing, setAnalyzing] = useState(false)
 
-  // ── 打开已保存记录 ────────────────────────────────────────
   const openSavedRecord = useCallback(
     (record: SavedRecord) => {
       ws.setAnalysis(record.analysis)
@@ -44,7 +43,6 @@ export function useResumeAnalysis(
     [ws, push],
   )
 
-  // ── 文本提取完成 → 进入校对页 ──────────────────────────────
   const handleExtracted = useCallback(
     (extracted: ExtractedText, sourceFile: string) => {
       ws.setPendingExtracted({ extracted, sourceFile })
@@ -54,7 +52,6 @@ export function useResumeAnalysis(
     [ws, push],
   )
 
-  // ── 校对确认 → 发起分析 ────────────────────────────────────
   const handleConfirmText = useCallback(
     async (submission: ResumeReviewSubmission, sourceFile: string) => {
       const { rawText, analysisGoal, reviewedCandidates, jobDescription } =
@@ -66,7 +63,6 @@ export function useResumeAnalysis(
       setAnalyzing(true)
       ws.setError(null)
       try {
-        // 重复简历检测
         const records = ws.recordId ? [] : await listRecords()
         const existing = ws.recordId
           ? await loadRecord(ws.recordId)
@@ -100,7 +96,6 @@ export function useResumeAnalysis(
           return
         }
 
-        // 发起分析请求
         const llm = getLlmSettings()
         const body: {
           rawText: string
@@ -122,7 +117,6 @@ export function useResumeAnalysis(
           throw new Error('error' in data ? data.error : '分析失败')
         }
 
-        // 保留旧有会话和状态
         const retainedSessions = existing
           ? Object.fromEntries(
               data.claims.flatMap((claim) =>
@@ -140,7 +134,6 @@ export function useResumeAnalysis(
         const retainedMasteredBlindSpots =
           existing?.masteredBlindSpotIds ?? []
 
-        // 更新状态
         ws.setAnalysis(data)
         ws.setSelectedIndex(0)
         ws.setSessions(retainedSessions)
@@ -171,7 +164,6 @@ export function useResumeAnalysis(
     [ws, push, openSavedRecord],
   )
 
-  // ── 重置 → 返回上传页 ──────────────────────────────────────
   const replaceResume = useCallback(() => {
     ws.setAnalysis(null)
     ws.setPendingExtracted(null)
@@ -184,7 +176,6 @@ export function useResumeAnalysis(
     push('upload')
   }, [ws, push])
 
-  // ── 删除历史记录 ──────────────────────────────────────────
   const removeSavedRecord = useCallback(
     async (id: string) => {
       await deleteRecord(id)

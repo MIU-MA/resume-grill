@@ -2,8 +2,8 @@
 
 import type { ReactNode } from 'react'
 import type { ResumeAnalysis } from '@/domain/resume-schema'
-import { Toast } from '@/components/Toast'
-import { Topbar } from '@/components/Topbar'
+import { Toast } from '@/components/ui/Toast'
+import { WorkspaceTopBar } from '@/components/workspace/WorkspaceTopBar'
 
 type LlmMode = { label: string; cls: 'local' | 'env' | 'mock' } | null
 
@@ -17,6 +17,7 @@ type WorkspaceShellProps = {
   onClientChanged: () => void
   onRerun: () => void
   onExport: () => void
+  onExportJson: () => void
   onLogoClick: () => void
   onDismissToast: () => void
 }
@@ -31,6 +32,7 @@ export function WorkspaceShell({
   onClientChanged,
   onRerun,
   onExport,
+  onExportJson,
   onLogoClick,
   onDismissToast,
 }: WorkspaceShellProps) {
@@ -38,7 +40,7 @@ export function WorkspaceShell({
     <div className="min-h-screen bg-bg">
       <Toast message={toast} onDismiss={onDismissToast} />
 
-      <Topbar
+      <WorkspaceTopBar
         analysis={analysis}
         llmMode={llmMode}
         envConfigured={envConfigured}
@@ -46,6 +48,7 @@ export function WorkspaceShell({
         onClientChanged={onClientChanged}
         onRerun={onRerun}
         onExport={onExport}
+        onExportJson={onExportJson}
         onLogoClick={onLogoClick}
       />
 

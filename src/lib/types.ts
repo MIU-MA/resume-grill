@@ -5,21 +5,16 @@ import type { ExtractedText } from '@/lib/pdf'
 import type { SavedRecord } from '@/lib/storage'
 import type { Mode } from '@/types'
 
-// ── 导航子集：useResumeAnalysis / useClaimActions 只用到 push/replace ──
 export type AppNavigation = {
   push: (phase: 'upload' | 'review' | 'workspace', mode?: Mode) => void
   replace: (phase: 'upload' | 'review' | 'workspace', mode?: Mode) => void
 }
 
-// ── useResumeWorkspace 对外接口 ─────────────────────────────────
-// 其他 hook 通过这个类型消费 workspace 的读写能力
 export type UseResumeWorkspace = {
-  // LLM 配置（只读）
   envConfigured: boolean
   clientConfigured: boolean
   refreshClientLlm: () => void
 
-  // 核心状态
   analysis: ResumeAnalysis | null
   setAnalysis: Dispatch<SetStateAction<ResumeAnalysis | null>>
   pendingExtracted: { extracted: ExtractedText; sourceFile: string } | null
@@ -46,10 +41,7 @@ export type UseResumeWorkspace = {
   error: string | null
   setError: Dispatch<SetStateAction<string | null>>
 
-  // 派生值
   selected: ResumeAnalysis['claims'][number] | null
   completedClaimCount: number
-
-  // 面试持久化回调
   handleSessionSaved: (claimId: string, session: InterviewSession) => void
 }
