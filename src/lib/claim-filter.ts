@@ -13,7 +13,6 @@ export function isExcludedClaimContent(content: string): boolean {
   if (!text || SECTION.test(text)) return true
   if (PERSONAL_FIELD.test(text) || EMAIL.test(text) || PHONE.test(text) || URL.test(text) || DEMOGRAPHIC.test(text)) return true
   if (PROFILE_SUMMARY.test(text)) return true
-  // 公司、学校、项目或职位标题通常带日期，但不描述候选人的具体行为。
   if (DATE.test(text) && !CONCRETE_ACTION.test(text)) return true
   return false
 }

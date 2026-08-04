@@ -65,10 +65,8 @@ describe('interview prompts', () => {
       [{ point: '说明具体方案', importance: 'high' }],
       ['只说概念'],
     )
-    // 应该包含累计覆盖状态，不包含完整历史
     expect(prompt).toContain('当前已覆盖')
     expect(prompt).toContain('P1')
-    // 不应包含完整历史评估详情
     expect(prompt).not.toContain('得分60')
   })
 })

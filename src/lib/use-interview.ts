@@ -133,6 +133,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       finalResult,
       status: 'done',
       version,
+      summaryStatus: summarySucceeded ? 'success' : 'failed',
     })
     if (summarySucceeded) onToast('追问已完成，可在「分析报告」查看结论。')
   }, [activeClaimSnapshot, version, onToast, onSessionSaved])
@@ -199,43 +200,48 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
 
   const skip = useCallback((claim: ResumeClaim) => continueInterview(claim, 'skip'), [continueInterview])
 
-  // 用已保存的 rounds 重新生成总结（不需要重新回答）
-  const regenerateSummary = useCallback(async (claim: ResumeClaim, savedRounds: InterviewRound[], savedVersion: number) => {
-    const snapshot = activeClaimSnapshot ?? claim
-    setLoading(true)
+  const [regenerating, setRegenerating] = useState(false)
+
+  const regenerateSummary = useCallback(async (claim: ResumeClaim, session: InterviewSession) => {
+    const snapshot: ResumeClaim = session.claimContent && session.claimContent !== claim.content
+      ? { ...claim, content: session.claimContent }
+      : claim
+    const claimAnalysis = session.claimAnalysis ?? buildClaimAnalysisFromClaim(snapshot)
+    cache.current.set(cacheKey(snapshot), claimAnalysis)
+    setRegenerating(true)
     try {
       const llm = getLlmSettings()
-      const body: any = { claim: snapshot, rounds: savedRounds }; if (llm) body.llm = llm
+      const body: any = { claim: snapshot, rounds: session.rounds }; if (llm) body.llm = llm
       const res = await fetch('/api/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const data = (await res.json()) as FinalResult | { error: string }
       if (!res.ok || 'error' in data) {
         onToast('重新生成总结失败，请稍后再试。')
         return false
       }
-      const finalResult = data
       onSessionSaved(snapshot.id, {
-        id: `${snapshot.id}:v${savedVersion}`,
+        id: `${snapshot.id}:v${session.version}`,
         claimContent: snapshot.content,
-        rounds: savedRounds,
-        claimAnalysis: cache.current.get(cacheKey(snapshot))!,
-        finalResult,
+        rounds: session.rounds,
+        claimAnalysis,
+        finalResult: data,
         status: 'done',
-        version: savedVersion,
+        version: session.version,
+        summaryStatus: 'success',
       })
       onToast('总结已重新生成，可在「分析报告」查看。')
       return true
     } catch (e) {
       onError(e instanceof Error ? e.message : '重新生成总结失败')
       return false
-    } finally { setLoading(false) }
-  }, [activeClaimSnapshot, onError, onToast, onSessionSaved])
+    } finally { setRegenerating(false) }
+  }, [onError, onToast, onSessionSaved])
 
   const covered = rounds[rounds.length - 1]?.evaluation?.coveredPoints ?? []
 
   return {
     rounds, currentQuestion, currentIntent, answer, setAnswer, annotation, setAnnotation, loading, done,
     activeClaimSnapshot, version, covered,
-    reset, start, restore, submit, skip, regenerateSummary,
+    reset, start, restore, submit, skip, regenerateSummary, regenerating,
   }
 }
 

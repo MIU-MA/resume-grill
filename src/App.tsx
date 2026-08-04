@@ -27,7 +27,6 @@ function App() {
   const actions = useClaimActions(workspace, interview, navigation)
   const { selected, stats, completedClaimCount } = workspace
 
-  // 仅在刷新恢复阶段才自动恢复未完成面试
   const restoredRef = useRef(false)
   useEffect(() => {
     if (restoredRef.current) return
@@ -43,7 +42,6 @@ function App() {
     }
   }, [workspace.recoveredFromStorage, mode, selected, workspace.sessions, interview])
 
-  // 改写/重测后的声明以 snapshot 为准
   const activeClaim = interview.activeClaimSnapshot ?? selected
 
   const handleTabChange = (tab: Mode) => {

@@ -38,7 +38,6 @@ type ModelSettingsProps = {
   onClientChanged: () => void
 }
 
-// text-field 复用样式
 const inputCls = 'h-8 rounded-lg border border-line-strong bg-white px-3 text-[12px] text-text-primary focus:border-brand focus:outline-brand'
 
 export function ModelSettings({ envConfigured, clientConfigured, onClientChanged }: ModelSettingsProps) {

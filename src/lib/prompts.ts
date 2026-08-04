@@ -1,5 +1,3 @@
-// 简历解析提示词（/api/analyze 使用）
-// 面试引擎提示词见 interview-prompts.ts
 import { buildStructuredResumeInput } from '@/lib/resume-structure'
 import type { AnalysisGoal, ReviewedCandidate } from '@/domain/analysis-config'
 

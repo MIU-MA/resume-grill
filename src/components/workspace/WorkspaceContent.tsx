@@ -32,7 +32,8 @@ export type InterviewViewData = {
   submit: (claim: ResumeClaim) => Promise<void>
   skip: (claim: ResumeClaim) => Promise<void>
   reset: () => void
-  regenerateSummary: (claim: ResumeClaim, rounds: InterviewSession['rounds'], version: number) => Promise<boolean>
+  regenerateSummary: (claim: ResumeClaim, session: InterviewSession) => Promise<boolean>
+  regenerating: boolean
 }
 
 type WorkspaceContentProps = {
@@ -53,7 +54,7 @@ type WorkspaceContentProps = {
   onReport: () => void
   onRetest: (claim: ResumeClaim) => void
   onRewrite: (claim: ResumeClaim, rewrittenContent: string) => void
-  onRegenerateSummary: (claim: ResumeClaim, rounds: InterviewSession['rounds'], version: number) => void
+  onRegenerateSummary: (claim: ResumeClaim, session: InterviewSession) => void
   onFinish: () => void
   onBackToAudit: () => void
 }
@@ -90,6 +91,7 @@ export function WorkspaceContent({
         onRetest={onRetest}
         onRewrite={onRewrite}
         onRegenerateSummary={onRegenerateSummary}
+        regenerating={iv.regenerating}
       />
     )
   }

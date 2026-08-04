@@ -10,10 +10,6 @@ import { buildStructuredResumeInput, extractLooseClaimCandidates, extractResumeC
 import type { AnalysisGoal, ReviewedCandidate } from '@/domain/analysis-config'
 import { buildHeuristicJobMatch } from '@/lib/job-match'
 
-// 当未配置模型时使用：不真正理解语义，但从上传文本中抽取真实句子作为声明，
-// 让无 Key 演示也能反映候选人、岗位与文件名的真实变化。
-// 配置模型后此路径不再触发。
-
 const ROLE_RULES: { role: string; keywords: string[] }[] = [
   { role: '前端开发工程师', keywords: ['前端', 'React', 'Vue', 'CSS', 'TypeScript', '页面', 'Vite', 'Next'] },
   { role: '后端开发工程师', keywords: ['后端', 'Java', 'Go', 'Python', '服务端', 'API', 'Spring', '数据库'] },

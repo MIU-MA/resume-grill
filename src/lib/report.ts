@@ -3,7 +3,6 @@ import { RISK_META } from '@/lib/risk'
 import type { InterviewSession } from '@/domain/interview-schema'
 import { deriveBlindSpots } from '@/lib/blind-spots'
 
-// 基础报告：仅声明风险，不含面试表现。
 export function buildReport(analysis: ResumeAnalysis): string {
   const lines = [
     '# 简历声明风险报告',
@@ -34,7 +33,6 @@ export function buildReport(analysis: ResumeAnalysis): string {
   return lines.join('\n')
 }
 
-// 完整报告：在声明风险之上叠加面试风险报告。
 export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<string, InterviewSession[]>, masteredBlindSpotIds: string[] = []): string {
   const lines = [
     '# 简历追问与改写报告',

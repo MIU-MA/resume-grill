@@ -13,10 +13,11 @@ type InterviewReportViewProps = {
   onToggleBlindSpot: (blindSpotId: string) => void
   onRetest: (claim: ResumeClaim) => void
   onRewrite: (claim: ResumeClaim, rewrittenContent: string) => void
-  onRegenerateSummary: (claim: ResumeClaim, rounds: InterviewSession['rounds'], version: number) => void
+  onRegenerateSummary: (claim: ResumeClaim, session: InterviewSession) => void
+  regenerating: boolean
 }
 
-export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, onToggleBlindSpot, onRetest, onRewrite, onRegenerateSummary }: InterviewReportViewProps) {
+export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, onToggleBlindSpot, onRetest, onRewrite, onRegenerateSummary, regenerating }: InterviewReportViewProps) {
   const sessionList = analysis.claims.map((claim) => {
     const list = sessions[claim.id] ?? []
     const latest = list[list.length - 1]
@@ -178,8 +179,8 @@ export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, 
                         <Button variant="ghost" className="text-[12px]" onClick={() => navigator.clipboard?.writeText(r.rewriteSuggestion)}>
                           <Clipboard size={13} />复制
                         </Button>
-                        {(r.confidence === 0 || r.answerSummary?.includes('没有成功生成')) && (
-                          <Button variant="ghost" className="text-[12px]" onClick={() => onRegenerateSummary(claim, latest!.rounds, latest!.version)}>
+                        {latest!.summaryStatus === 'failed' && (
+                          <Button variant="ghost" className="text-[12px]" disabled={regenerating} onClick={() => onRegenerateSummary(claim, latest!)}>
                             <RefreshCw size={13} />重新生成报告
                           </Button>
                         )}

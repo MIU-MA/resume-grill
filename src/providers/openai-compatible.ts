@@ -7,7 +7,6 @@ export type LlmConfig = {
   model: string
 }
 
-// 服务端环境变量（部署场景）：API Key 只在服务端读取，绝不下发浏览器。
 export function getLlmConfig(): LlmConfig | null {
   const baseUrl = process.env.OPENAI_BASE_URL
   const apiKey = process.env.OPENAI_API_KEY
@@ -20,8 +19,6 @@ export function hasEnvLlm(): boolean {
   return getLlmConfig() !== null
 }
 
-// 合并服务端 env 与客户端传入设置：客户端优先（个人本地场景），缺则回落 env（部署场景）。
-// 客户端传入的 Key 仍经服务端 Route Handler 转发到模型，浏览器不直连模型 API。
 export function resolveLlmConfig(client?: { baseUrl?: string; apiKey?: string; model?: string } | null): LlmConfig | null {
   if (client && client.baseUrl && client.apiKey && client.model) {
     return { baseUrl: client.baseUrl, apiKey: client.apiKey, model: client.model }
@@ -29,8 +26,6 @@ export function resolveLlmConfig(client?: { baseUrl?: string; apiKey?: string; m
   return getLlmConfig()
 }
 
-// 调用 OpenAI 兼容接口并按 schema 校验结构化输出。
-// options.signal 控制超时；options.maxTokens 限制输出长度，避免超长回答拉高费用。
 export async function llmStructured<T>(
   systemPrompt: string,
   userPrompt: string,
@@ -43,7 +38,7 @@ export async function llmStructured<T>(
     throw new Error('LLM 未配置：请在设置中填写 baseUrl / apiKey / model，或在服务端 .env.local 配置环境变量。')
   }
 
-  // SSRF 防护：拒绝内网/保留地址与未授权白名单外的 Base URL（服务端 fetch 前拦截）。
+  // SSRF 防护
   await assertAllowedBaseUrl(resolved.baseUrl)
 
   const body: Record<string, unknown> = {
@@ -72,12 +67,12 @@ export async function llmStructured<T>(
     if (error instanceof Error && error.name === 'TimeoutError') {
       throw new Error('模型请求超时，请稍后重试或缩短输入。')
     }
-    // 网络层失败：连接不可达 / Base URL 错误 / 证书问题
+    // 网络层失败
     throw new Error(`无法连接模型服务（${resolved.baseUrl}）：请检查 Base URL 是否可达或网络连接。`)
   }
 
   if (!res.ok) {
-    // 模型返回错误：401 鉴权失败（Key 错）/ 429 限流 / 5xx 服务端错误等
+    // 模型返回错误
     const detail = await res.text()
     throw new Error(`模型请求失败（${res.status}）：${detail.slice(0, 200)}`)
   }
@@ -90,7 +85,7 @@ export async function llmStructured<T>(
     }>
   }
   const choice = data.choices?.[0]
-  // 推理模型（DeepSeek-R1/V3/V4）输出在 reasoning_content，content 可能为空
+  // 推理模型可能输出在 reasoning_content
   const content = normalizeMessageContent(choice?.message?.content) || normalizeMessageContent(choice?.message?.reasoning_content) || choice?.text
   if (!content) throw new Error('模型返回为空')
 
@@ -104,7 +99,6 @@ export async function llmStructured<T>(
     throw new Error('模型返回不是合法 JSON，请确认所选模型支持 JSON 输出。')
   }
 
-  // 兜底：部分模型会把对象包在单元素数组里 [{...}]
   if (Array.isArray(parsed) && parsed.length === 1 && typeof parsed[0] === 'object' && parsed[0] !== null) {
     parsed = parsed[0]
   }
@@ -149,8 +143,7 @@ export function parseModelJson(content: string): unknown {
     try {
       return JSON.parse(candidate)
     } catch {
-      // Keep searching in case an earlier brace came from explanatory prose.
-    }
+      }
   }
   throw new Error('No valid JSON object found')
 }

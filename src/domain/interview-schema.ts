@@ -100,5 +100,6 @@ export const interviewSessionSchema = z.object({
   version: z.number().default(1),
   pendingQuestion: z.string().optional(),
   pendingIntent: z.string().optional(),
+  summaryStatus: z.enum(['success', 'failed']).optional(),
 })
 export type InterviewSession = z.infer<typeof interviewSessionSchema>

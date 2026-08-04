@@ -1,8 +1,5 @@
 'use client'
 
-// 客户端 LLM 设置：仅在浏览器 localStorage 存取，不与服务端 env 混淆。
-// Key 随请求 body 发给同源 /api 路由，由服务端转发到模型，浏览器不直连模型 API。
-
 export type LlmSettings = {
   baseUrl: string
   apiKey: string

@@ -1,7 +1,6 @@
 import type { ResumeClaim } from '@/domain/resume-schema'
 import type { InterviewAction, InterviewRound } from '@/domain/interview-schema'
 
-// ── 合并版：先评估回答，再生成下一问（单次 LLM 调用）──
 export const INTERVIEW_CONTINUE_SYSTEM = `你是一名面试官。请先评估候选人对上一问的回答，再基于评估结果生成下一个追问。
 
 评估阶段：
@@ -34,7 +33,6 @@ export function buildInterviewContinueUser(
   verifyPoints: { point: string; importance: string }[],
   trapPoints: string[],
 ): string {
-  // 最后一轮的 coveredPoints 已是累计结果，直接读取；缺失点从 evaluationPoints 推导
   const coveredPoints = rounds.at(-1)?.evaluation.coveredPoints ?? []
   const missingPoints = claim.evaluationPoints.filter((p) => !coveredPoints.includes(p))
   return [

@@ -5,10 +5,6 @@ import { createClaimId, type ResumeAnalysis, type ResumeClaim } from '@/domain/r
 import type { InterviewSession } from '@/domain/interview-schema'
 import { isExcludedClaimContent } from '@/lib/claim-filter'
 
-// 浏览器本地持久化：保存简历分析与其下的各声明面试会话。
-// 用 idb-keyval（IndexedDB 封装）。不与服务端通信，退出/刷新后可恢复。
-// sessions 为 Record<声明 ID, InterviewSession[]>：同一声明可有多个版本。
-
 export type SavedRecord = {
   id: string
   analysis: ResumeAnalysis
@@ -66,7 +62,6 @@ export async function deleteRecord(id: string): Promise<void> {
   await del(id)
 }
 
-// 保存或更新某条声明下的会话（追加版本或更新现有版本）
 export async function upsertSession(
   recordId: string,
   analysis: ResumeAnalysis,
@@ -82,7 +77,6 @@ export async function upsertSession(
     updatedAt: Date.now(),
   }
   const list = existing.sessions[claimId] ?? []
-  // 同版本覆盖，否则追加
   const idx = list.findIndex((s) => s.version === session.version)
   if (idx >= 0) list[idx] = session
   else list.push(session)
@@ -127,7 +121,6 @@ export async function updateMasteredBlindSpots(
   await saveRecord(existing)
 }
 
-// v0 记录以声明全文作为 key，也没有 claim.id。读取时在内存中迁移，下一次保存即写回新结构。
 function migrateLegacyRecord(record: SavedRecord): SavedRecord {
   const legacyClaims = record.analysis.claims as Array<ResumeClaim & { id?: string }>
   const claims = legacyClaims.filter((claim) => !isExcludedClaimContent(claim.content)).map((claim, index) => ({
