@@ -3,7 +3,6 @@
 import { useState, useRef, useCallback } from 'react'
 import type { ResumeClaim } from '@/domain/resume-schema'
 import type { ClaimAnalysis, InterviewAction, InterviewRound, InterviewSession, InterviewContinueResult, FinalResult } from '@/domain/interview-schema'
-import type { LlmSettings } from '@/lib/settings'
 import { getLlmSettings } from '@/lib/settings'
 
 type Callbacks = {
@@ -13,9 +12,7 @@ type Callbacks = {
 }
 
 type StartOptions = {
-  /** 版本号（重测/改写时传入，避免 React 状态异步问题） */
   version?: number
-  /** 改写后的声明文本（改写模式传入） */
   claimContent?: string
 }
 
@@ -30,7 +27,6 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
   const [activeClaimSnapshot, setActiveClaimSnapshot] = useState<ResumeClaim | null>(null)
   const [version, setVersion] = useState(1)
 
-  // 缓存键：claim.id + 内容哈希，改写后不会复用原文分析
   const cache = useRef<Map<string, ClaimAnalysis>>(new Map())
   const cacheKey = (claim: ResumeClaim) => `${claim.id}:${hashClaimContent(claim.content)}`
 
@@ -69,7 +65,6 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
     const resolvedContent = opts?.claimContent ?? claim.content
     const isRewrite = Boolean(opts?.claimContent && opts.claimContent !== claim.content)
 
-    // 改写/重测：用参数同步设置 state（不依赖 React 异步批处理）
     if (opts?.version && opts.version > 1) {
       setVersion(opts.version)
       if (isRewrite) setActiveClaimSnapshot(createSnapshot(claim.id, resolvedContent))
@@ -77,13 +72,11 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
     }
 
     try {
-      // 构造改写声明（如果有改写内容），后续全部用 snapshot
       const effectiveClaim: ResumeClaim = isRewrite
         ? { ...claim, content: resolvedContent }
         : claim
       if (!isRewrite) setActiveClaimSnapshot(effectiveClaim)
 
-      // 从 claim 数据直接构造 ClaimAnalysis，不调 API
       const key = cacheKey(effectiveClaim)
       let claimAnalysis = cache.current.get(key) ?? null
       if (!claimAnalysis) {
@@ -94,7 +87,6 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       setCurrentQuestion(effectiveClaim.initialQuestion)
       setCurrentIntent(effectiveClaim.initialIntent || '验证具体过程和个人贡献')
 
-      // 立即持久化（用显式参数，不读 state）
       onSessionSaved(effectiveClaim.id, {
         id: `${effectiveClaim.id}:v${resolvedVersion}`,
         claimContent: resolvedContent,
@@ -214,8 +206,6 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
   }
 }
 
-// ── 工具函数 ──
-
 function hashClaimContent(content: string): number {
   let hash = 0
   for (let i = 0; i < content.length; i++) {
@@ -229,14 +219,9 @@ function createSnapshot(id: string, content: string): ResumeClaim {
 }
 
 function buildClaimAnalysisFromClaim(claim: ResumeClaim): ClaimAnalysis {
-  // 优先用 LLM 生成的 verifyPoints，否则从 evaluationPoints 退化
-  const rawVp = (claim as Record<string, unknown>).verifyPoints as Array<{ point: string; importance: string }> | undefined
-  const rawTp = (claim as Record<string, unknown>).trapPoints as string[] | undefined
-  const rawIntent = (claim as Record<string, unknown>).initialIntent as string | undefined
-
   const verifyPoints: Array<{ point: string; importance: 'high' | 'medium' | 'low' }> =
-    rawVp && rawVp.length > 0
-      ? rawVp.map((vp) => ({
+    (claim.verifyPoints && claim.verifyPoints.length > 0)
+      ? claim.verifyPoints.map((vp) => ({
           point: vp.point,
           importance: (vp.importance === 'high' || vp.importance === 'medium' || vp.importance === 'low')
             ? vp.importance : 'medium',
@@ -247,8 +232,8 @@ function buildClaimAnalysisFromClaim(claim: ResumeClaim): ClaimAnalysis {
         }))
 
   return {
-    level: (claim as Record<string, unknown>).level as string ?? claim.role,
+    level: claim.role,
     verifyPoints,
-    trapPoints: rawTp ?? [],
+    trapPoints: claim.trapPoints ?? [],
   }
 }

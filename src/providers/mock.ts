@@ -27,7 +27,6 @@ const ROLE_RULES: { role: string; keywords: string[] }[] = [
   { role: '设计师', keywords: ['设计', 'UI', 'UX', '交互', '视觉', '原型'] },
 ]
 
-// 类别关键词：顺序即优先级
 const CATEGORY_RULES: { category: ClaimCategory; keywords: string[] }[] = [
   { category: 'metric', keywords: ['万', '用户量', '人数', '团队', '预算', '规模', 'DAU', 'MAU', '亿元', '千万'] },
   {
@@ -39,7 +38,6 @@ const CATEGORY_RULES: { category: ClaimCategory; keywords: string[] }[] = [
   { category: 'skill', keywords: ['熟练', '掌握', '使用', '熟悉', '精通', '运用'] },
 ]
 
-// 每类别的模板：证据缺口、首轮追问、评估要点、后续追问
 const CATEGORY_TEMPLATES: Record<
   ClaimCategory,
   { gaps: string[]; question: string; points: string[]; followUps: string[] }
@@ -74,6 +72,22 @@ const CATEGORY_TEMPLATES: Record<
     points: ['说明团队规模与构成', '说明关键管理决策', '说明管理带来的结果'],
     followUps: ['团队多大？怎么分工的？', '你做过哪些关键的管理决策？', '管理前后团队有什么变化？'],
   },
+}
+
+const DEFAULT_INTENTS: Record<ClaimCategory, string> = {
+  achievement: '验证成果真实性和个人贡献占比',
+  responsibility: '确认职责深度和决策边界',
+  metric: '核实数据口径和统计方式',
+  skill: '评估技能掌握程度和实际场景',
+  leadership: '了解团队构成和关键管理决策',
+}
+
+const CATEGORY_TRAP_MAP: Record<ClaimCategory, string[]> = {
+  achievement: ['只提结果不提过程', '无法区分个人和团队贡献'],
+  responsibility: ['只说负责不说具体的决策', '描述过于笼统'],
+  metric: ['无法说明统计口径', '没有对比基准'],
+  skill: ['只会说工具名不会说使用场景', '不了解替代方案'],
+  leadership: ['只说管理团队不说团队构成', '无法说明管理决策'],
 }
 
 function detectRole(text: string): string {
@@ -125,8 +139,6 @@ function goalScore(candidate: ReviewedCandidate, goal: AnalysisGoal): number {
   return 0
 }
 
-// 产出风险级别：可信风险 + 面试风险。
-// 规则示例下按类别与是否含数字粗略判定，含数字但缺口径的声明风险偏高。
 function riskFor(category: ClaimCategory, numbered: boolean): { exaggerationRisk: RiskLevel; interviewRisk: RiskLevel } {
   const map: Record<ClaimCategory, { exag: RiskLevel; intv: RiskLevel }> = {
     achievement: numbered ? { exag: 'medium', intv: 'high' } : { exag: 'low', intv: 'medium' },
@@ -180,7 +192,13 @@ export function mockAnalyze(
       evidence: metrics.length > 0 ? [`原文给出的量化信息：${metrics.join('、')}`] : [],
       evidenceGap: tpl.gaps,
       initialQuestion: tpl.question,
+      initialIntent: DEFAULT_INTENTS[category] ?? '',
       evaluationPoints: tpl.points,
+      verifyPoints: tpl.points.map((point, i) => ({
+        point,
+        importance: (i === 0 ? 'high' : 'medium') as 'high' | 'medium' | 'low',
+      })),
+      trapPoints: CATEGORY_TRAP_MAP[category] ?? [],
     }
     return { ...claim, id: createClaimId(claim, index) }
   })
