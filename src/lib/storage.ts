@@ -139,6 +139,13 @@ function migrateLegacyRecord(record: SavedRecord): SavedRecord {
         ...round,
         action: round.action ?? (round.answer.trim() ? 'answer' : 'clarify'),
       })),
+      summaryStatus:
+        session.summaryStatus ??
+        (session.status === 'done' && session.finalResult?.answerSummary?.includes('没有成功生成')
+          ? 'failed'
+          : session.status === 'done'
+            ? 'success'
+            : undefined),
     }))
   })
 
