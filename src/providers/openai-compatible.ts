@@ -86,11 +86,12 @@ export async function llmStructured<T>(
     choices?: Array<{
       finish_reason?: string
       text?: string
-      message?: { content?: string | Array<{ type?: string; text?: string }> }
+      message?: { content?: string | Array<{ type?: string; text?: string }>; reasoning_content?: string }
     }>
   }
   const choice = data.choices?.[0]
-  const content = normalizeMessageContent(choice?.message?.content) || choice?.text
+  // 推理模型（DeepSeek-R1/V3/V4）输出在 reasoning_content，content 可能为空
+  const content = normalizeMessageContent(choice?.message?.content) || normalizeMessageContent(choice?.message?.reasoning_content) || choice?.text
   if (!content) throw new Error('模型返回为空')
 
   let parsed: unknown
@@ -119,7 +120,7 @@ function normalizeMessageContent(content: string | Array<{ type?: string; text?:
 }
 
 export function parseModelJson(content: string): unknown {
-  const trimmed = content.trim().replace(/^\uFEFF/, '')
+  const trimmed = content.trim().replace(/^﻿/, '')
   const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1]?.trim()
   for (const candidate of [trimmed, fenced]) {
     if (!candidate) continue

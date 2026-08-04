@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import { ResumeReviewView } from '@/components/resume/ResumeReviewView'
 import { ResumeImportView } from '@/components/resume/ResumeImportView'
 import { WorkspaceHeader } from '@/components/workspace/WorkspaceHeader'
@@ -25,6 +26,20 @@ function App() {
   const analysis = useResumeAnalysis(workspace, navigation)
   const actions = useClaimActions(workspace, interview, navigation)
   const { selected, stats, completedClaimCount } = workspace
+
+  // 刷新后恢复未完成的面试
+  const restoredRef = useRef(false)
+  useEffect(() => {
+    if (restoredRef.current) return
+    if (mode === 'interview' && selected && interview.rounds.length === 0 && !interview.loading) {
+      const claimSessions = workspace.sessions[selected.id] ?? []
+      const inProgress = claimSessions.find((s) => s.status === 'in_progress')
+      if (inProgress && interview.restore(selected.id, inProgress)) {
+        restoredRef.current = true
+      }
+    }
+  }, [mode, selected, workspace.sessions, interview])
+
   const activeClaim =
     selected && interview.rewriteContent
       ? { ...selected, content: interview.rewriteContent }

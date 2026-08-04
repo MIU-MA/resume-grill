@@ -7,11 +7,39 @@ export const verifyPointSchema = z.object({
 })
 export type VerifyPoint = z.infer<typeof verifyPointSchema>
 
-export const claimAnalysisSchema = z.object({
-  level: z.string(),
-  verifyPoints: z.array(verifyPointSchema).min(1),
-  trapPoints: z.array(z.string()),
-})
+export const claimAnalysisSchema = z.preprocess(
+  (val) => {
+    if (typeof val !== 'object' || val === null) return val
+    const obj = val as Record<string, unknown>
+    const rawPoints = Array.isArray(obj.verifyPoints) ? obj.verifyPoints : []
+    return {
+      level: obj.level || '通用',
+      verifyPoints: rawPoints.map((vp: unknown) => {
+        if (typeof vp !== 'object' || vp === null) return { point: String(vp), importance: 'medium' }
+        const item = vp as Record<string, unknown>
+        return {
+          point: String(item.point ?? ''),
+          importance: normalizeImportance(String(item.importance ?? 'medium')),
+        }
+      }),
+      trapPoints: Array.isArray(obj.trapPoints) ? obj.trapPoints : [],
+    }
+  },
+  z.object({
+    level: z.string(),
+    verifyPoints: z.array(verifyPointSchema).min(1),
+    trapPoints: z.array(z.string()),
+  }),
+)
+
+function normalizeImportance(value: string): 'high' | 'medium' | 'low' {
+  const map: Record<string, 'high' | 'medium' | 'low'> = {
+    high: 'high', medium: 'medium', low: 'low',
+    '高': 'high', '中': 'medium', '低': 'low',
+    '重要': 'high', '中等': 'medium', '一般': 'low',
+  }
+  return map[value] ?? 'medium'
+}
 export type ClaimAnalysis = z.infer<typeof claimAnalysisSchema>
 
 export const interviewStartSchema = z.object({
@@ -89,5 +117,7 @@ export const interviewSessionSchema = z.object({
   finalResult: finalResultSchema.nullable(),
   status: z.enum(['in_progress', 'done']),
   version: z.number().default(1),
+  pendingQuestion: z.string().optional(),
+  pendingIntent: z.string().optional(),
 })
 export type InterviewSession = z.infer<typeof interviewSessionSchema>

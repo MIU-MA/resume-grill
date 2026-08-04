@@ -34,10 +34,41 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
     setRounds([]); setAnswer(''); setAnnotation(''); setDone(false)
   }, [])
 
+  const restore = useCallback((claimId: string, session: InterviewSession): boolean => {
+    if (session.status !== 'in_progress') return false
+    setRounds(session.rounds)
+    setCurrentQuestion(session.pendingQuestion ?? '')
+    setCurrentIntent(session.pendingIntent ?? '')
+    setAnswer(''); setAnnotation(''); setDone(false)
+    if (session.version > 1) {
+      setVersion(session.version)
+      setRewriteContent(session.claimContent)
+    }
+    if (session.claimAnalysis) {
+      cache.current.set(claimId, session.claimAnalysis)
+    }
+    return true
+  }, [])
+
   const prepareRetest = useCallback((newVersion: number) => {
     setRewriteContent(null); setVersion(newVersion)
     setRounds([]); setAnswer(''); setAnnotation(''); setDone(false)
   }, [])
+
+  const saveInProgress = useCallback((claim: ResumeClaim, newRounds: InterviewRound[], nextQuestion: string, nextIntent: string) => {
+    const claimAnalysis = cache.current.get(claim.id)
+    onSessionSaved(claim.id, {
+      id: `${claim.id}:v${version}`,
+      claimContent: rewriteContent ?? claim.content,
+      rounds: newRounds,
+      claimAnalysis: claimAnalysis ?? null,
+      finalResult: null,
+      status: 'in_progress',
+      version,
+      pendingQuestion: nextQuestion,
+      pendingIntent: nextIntent,
+    })
+  }, [rewriteContent, version, onSessionSaved])
 
   const start = useCallback(async (claim: ResumeClaim) => {
     if (!getLlmSettings() && !envConfigured) {
@@ -64,9 +95,10 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       const d2 = (await r2.json()) as InterviewStart | { error: string }
       if (!r2.ok || 'error' in d2) throw new Error('error' in d2 ? d2.error : '生成第一问失败')
       setCurrentQuestion(d2.question); setCurrentIntent(d2.intent)
+      saveInProgress(claim, [], d2.question, d2.intent)
     } catch (e) { onError(e instanceof Error ? e.message : '启动面试失败') }
     finally { setLoading(false) }
-  }, [envConfigured, onError])
+  }, [envConfigured, onError, saveInProgress])
 
   const finalizeSession = useCallback(async (claim: ResumeClaim, finalRounds: InterviewRound[]) => {
     let summarySucceeded = false
@@ -130,10 +162,12 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       if (data.isFinal) {
         setDone(true)
         await finalizeSession(claim, newRounds)
+      } else {
+        saveInProgress(claim, newRounds, data.nextQuestion, data.nextReason)
       }
     } catch (e) { onError(e instanceof Error ? e.message : '追问失败') }
     finally { setLoading(false) }
-  }, [currentQuestion, loading, done, answer, annotation, rounds, finalizeSession, onError])
+  }, [currentQuestion, loading, done, answer, annotation, rounds, finalizeSession, saveInProgress, onError])
 
   const submit = useCallback((claim: ResumeClaim) => (
     continueInterview(claim, answer.trim() ? 'answer' : 'clarify')
@@ -146,6 +180,6 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
   return {
     rounds, currentQuestion, currentIntent, answer, setAnswer, annotation, setAnnotation, loading, done,
     rewriteContent, version, covered,
-    reset, prepareRewrite, prepareRetest, start, submit, skip,
+    reset, prepareRewrite, prepareRetest, start, restore, submit, skip,
   }
 }

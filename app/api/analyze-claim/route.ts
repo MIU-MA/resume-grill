@@ -41,13 +41,14 @@ export async function POST(request: Request) {
       buildAnalyzeClaimUser(body.claim),
       claimAnalysisSchema,
       config,
-      { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 600 },
+      { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 3000 },
     )
     return NextResponse.json({
       ...analysis,
       verifyPoints: canonicalizeVerifyPoints(body.claim.evaluationPoints, analysis.verifyPoints),
     })
   } catch (error) {
+    console.error('[analyze-claim]', error)
     const message = error instanceof Error ? error.message : '声明分析失败'
     return NextResponse.json({ error: message }, { status: 500 })
   }

@@ -5,7 +5,7 @@ export const MAX_RAWTEXT = 20_000 // 简历文本字符上限
 export const MAX_TURNS = 12 // 单声明最大追问轮数
 export const MAX_ANSWER = 4_000 // 单轮答案字符上限
 export const ANALYZE_TIMEOUT = 60_000
-export const INTERVIEW_TIMEOUT = 30_000
+export const INTERVIEW_TIMEOUT = 90_000
 export const SUMMARIZE_TIMEOUT = 45_000
 
 const WINDOW_MS = 60_000

@@ -41,10 +41,11 @@ export async function POST(request: Request) {
       buildInterviewStartUser(body.claim, body.verifyPoints),
       interviewStartSchema,
       config,
-      { signal: withTimeout(INTERVIEW_TIMEOUT), maxTokens: 300 },
+      { signal: withTimeout(INTERVIEW_TIMEOUT), maxTokens: 2000 },
     )
     return NextResponse.json(result)
   } catch (error) {
+    console.error('[interview/start]', error)
     const message = error instanceof Error ? error.message : '生成首轮问题失败'
     return NextResponse.json({ error: message }, { status: 500 })
   }

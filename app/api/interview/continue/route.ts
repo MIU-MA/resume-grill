@@ -65,7 +65,7 @@ export async function POST(request: Request) {
       ),
       evaluateAnswerSchema,
       config,
-      { signal: withTimeout(INTERVIEW_TIMEOUT), maxTokens: 600 },
+      { signal: withTimeout(INTERVIEW_TIMEOUT), maxTokens: 2000 },
     )
 
     const followup = await llmStructured(
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
       buildGenerateFollowupUser(body.claim, evaluation, body.verifyPoints),
       generateFollowupSchema,
       config,
-      { signal: withTimeout(INTERVIEW_TIMEOUT), maxTokens: 400 },
+      { signal: withTimeout(INTERVIEW_TIMEOUT), maxTokens: 1000 },
     )
     const hasAnswer = body.action === 'answer' && body.answer.length > 0
     const isSkip = body.action === 'skip'
