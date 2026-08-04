@@ -104,10 +104,17 @@ export async function llmStructured<T>(
     throw new Error('模型返回不是合法 JSON，请确认所选模型支持 JSON 输出。')
   }
 
+  // 兜底：部分模型会把对象包在单元素数组里 [{...}]
+  if (Array.isArray(parsed) && parsed.length === 1 && typeof parsed[0] === 'object' && parsed[0] !== null) {
+    parsed = parsed[0]
+  }
+
   const validated = schema.safeParse(parsed)
   if (!validated.success) {
     const issue = validated.error.issues[0]
     const path = issue?.path.length ? issue.path.join('.') : '根对象'
+    console.error('[llmStructured] schema 校验失败，模型原文:', content.slice(0, 500))
+    console.error('[llmStructured] 解析后:', JSON.stringify(parsed).slice(0, 500))
     throw new Error(`模型 JSON 字段不完整：${path} ${issue?.message ?? '格式不符合要求'}`)
   }
   return validated.data

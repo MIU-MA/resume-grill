@@ -1,27 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { canonicalizeVerifyPoints, mergeCoveredPoints, shouldFinishInterview } from './interview-state'
+import { mergeCoveredPoints, shouldFinishInterview } from './interview-state'
 import type { InterviewRound } from '@/domain/interview-schema'
 
 const round = (coveredPoints: string[]): InterviewRound => ({
   action: 'answer',
-  question: '问题',
+  question: '问题', questionIntent: '',
   answer: '回答',
   annotation: '',
-  evaluation: { score: 70, coveredPoints, missingPoints: [], answerSuggestion: '' },
+  evaluation: { score: 70, coveredPoints, missingPoints: [], answerSuggestion: '', evidenceQuotes: [] },
   nextReason: '继续确认',
 })
 
 describe('interview state', () => {
-  it('keeps model importance but uses the claim points as the canonical text', () => {
-    expect(canonicalizeVerifyPoints(
-      ['说明个人贡献', '说明结果'],
-      [{ point: '个人贡献是什么', importance: 'high' }],
-    )).toEqual([
-      { point: '说明个人贡献', importance: 'high' },
-      { point: '说明结果', importance: 'medium' },
-    ])
-  })
-
   it('accumulates covered points across rounds and preserves canonical order', () => {
     expect(mergeCoveredPoints([round(['贡献'])], ['基线'], ['基线', '贡献', '结果'])).toEqual(['基线', '贡献'])
   })

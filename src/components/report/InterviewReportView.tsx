@@ -6,7 +6,7 @@ import type { InterviewSession } from '@/domain/interview-schema'
 import { Button } from '@/components/ui/Button'
 import { deriveBlindSpots } from '@/lib/blind-spots'
 
-type SessionReportProps = {
+type InterviewReportViewProps = {
   analysis: ResumeAnalysis
   sessions: Record<string, InterviewSession[]>
   masteredBlindSpotIds: string[]
@@ -15,7 +15,7 @@ type SessionReportProps = {
   onRewrite: (claim: ResumeClaim, rewrittenContent: string) => void
 }
 
-export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, onToggleBlindSpot, onRetest, onRewrite }: SessionReportProps) {
+export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, onToggleBlindSpot, onRetest, onRewrite }: InterviewReportViewProps) {
   const sessionList = analysis.claims.map((claim) => {
     const list = sessions[claim.id] ?? []
     const latest = list[list.length - 1]

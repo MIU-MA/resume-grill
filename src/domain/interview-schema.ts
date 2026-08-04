@@ -42,18 +42,13 @@ function normalizeImportance(value: string): 'high' | 'medium' | 'low' {
 }
 export type ClaimAnalysis = z.infer<typeof claimAnalysisSchema>
 
-export const interviewStartSchema = z.object({
-  question: z.string(),
-  intent: z.string(),
-})
-export type InterviewStart = z.infer<typeof interviewStartSchema>
-
 export const interviewActionSchema = z.enum(['answer', 'clarify', 'skip'])
 export type InterviewAction = z.infer<typeof interviewActionSchema>
 
 export const interviewRoundSchema = z.object({
   action: interviewActionSchema.default('answer'),
   question: z.string(),
+  questionIntent: z.string().default(''),
   answer: z.string(),
   annotation: z.string().default(''),
   evaluation: z.object({
@@ -61,6 +56,7 @@ export const interviewRoundSchema = z.object({
     coveredPoints: z.array(z.string()),
     missingPoints: z.array(z.string()),
     answerSuggestion: z.string().default(''),
+    evidenceQuotes: z.array(z.string()).default([]),
   }),
   nextReason: z.string(),
 })
@@ -72,28 +68,13 @@ export const interviewContinueSchema = z.object({
     coveredPoints: z.array(z.string()),
     missingPoints: z.array(z.string()),
     answerSuggestion: z.string().default(''),
+    evidenceQuotes: z.array(z.string()).default([]),
   }),
   nextReason: z.string(),
   isFinal: z.boolean(),
   nextQuestion: z.string(),
 })
 export type InterviewContinueResult = z.infer<typeof interviewContinueSchema>
-
-export const evaluateAnswerSchema = z.object({
-  score: z.number().min(0).max(100),
-  coveredPoints: z.array(z.string()),
-  missingPoints: z.array(z.string()),
-  answerSuggestion: z.string().default(''),
-  evidenceQuotes: z.array(z.string()).default([]),
-})
-export type EvaluateAnswerResult = z.infer<typeof evaluateAnswerSchema>
-
-export const generateFollowupSchema = z.object({
-  nextReason: z.string(),
-  isFinal: z.boolean(),
-  nextQuestion: z.string(),
-})
-export type GenerateFollowupResult = z.infer<typeof generateFollowupSchema>
 
 export const finalResultSchema = z.object({
   confidence: z.number().min(0).max(5),

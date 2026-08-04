@@ -27,23 +27,24 @@ function App() {
   const actions = useClaimActions(workspace, interview, navigation)
   const { selected, stats, completedClaimCount } = workspace
 
-  // 刷新后恢复未完成的面试
+  // 仅在刷新恢复阶段才自动恢复未完成面试（避免与新面试冲突）
   const restoredRef = useRef(false)
   useEffect(() => {
     if (restoredRef.current) return
-    if (mode === 'interview' && selected && interview.rounds.length === 0 && !interview.loading) {
-      const claimSessions = workspace.sessions[selected.id] ?? []
-      const inProgress = claimSessions.find((s) => s.status === 'in_progress')
-      if (inProgress && interview.restore(selected.id, inProgress)) {
-        restoredRef.current = true
-      }
+    if (!workspace.recovering) return
+    if (mode !== 'interview' || !selected || interview.rounds.length > 0) return
+    if (interview.loading) return
+    const claimSessions = workspace.sessions[selected.id] ?? []
+    const inProgress = claimSessions
+      .filter((s) => s.status === 'in_progress')
+      .sort((a, b) => b.version - a.version)[0]
+    if (inProgress && interview.restore(selected.id, inProgress)) {
+      restoredRef.current = true
     }
-  }, [mode, selected, workspace.sessions, interview])
+  }, [workspace.recovering, mode, selected, workspace.sessions, interview])
 
-  const activeClaim =
-    selected && interview.rewriteContent
-      ? { ...selected, content: interview.rewriteContent }
-      : selected
+  // 改写/重测后的声明以 snapshot 为准
+  const activeClaim = interview.activeClaimSnapshot ?? selected
 
   const handleTabChange = (tab: Mode) => {
     replace('workspace', tab)

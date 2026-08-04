@@ -12,9 +12,10 @@ export type InterviewViewData = {
   rounds: Array<{
     action: InterviewAction
     question: string
+    questionIntent?: string
     answer: string
     annotation?: string
-    evaluation: { answerSuggestion?: string }
+    evaluation: { answerSuggestion?: string; evidenceQuotes?: string[] }
     nextReason?: string
   }>
   currentQuestion: string
@@ -25,7 +26,7 @@ export type InterviewViewData = {
   done: boolean
   annotation: string
   version: number
-  rewriteContent: string | null
+  activeClaimSnapshot: ResumeClaim | null
   setAnswer: (v: string) => void
   setAnnotation: (v: string) => void
   submit: (claim: ResumeClaim) => Promise<void>
@@ -33,7 +34,7 @@ export type InterviewViewData = {
   reset: () => void
 }
 
-type WorkspaceViewProps = {
+type WorkspaceContentProps = {
   mode: Mode
   analysis: ResumeAnalysis
   sessions: Record<string, InterviewSession[]>
@@ -75,7 +76,7 @@ export function WorkspaceContent({
   onRewrite,
   onFinish,
   onBackToAudit,
-}: WorkspaceViewProps) {
+}: WorkspaceContentProps) {
   if (mode === 'report') {
     return (
       <InterviewReportView
@@ -114,7 +115,7 @@ export function WorkspaceContent({
           answer: r.answer,
           annotation: r.annotation,
           answerSuggestion: r.evaluation.answerSuggestion,
-          intent: r.nextReason,
+          intent: r.questionIntent,
         }))}
         currentQuestion={iv.currentQuestion || null}
         currentIntent={iv.currentIntent || null}

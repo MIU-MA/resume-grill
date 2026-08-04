@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildEvaluateAnswerUser } from './interview-prompts'
+import { buildInterviewContinueUser } from './interview-prompts'
 import type { ResumeClaim } from '@/domain/resume-schema'
 
 const claim: ResumeClaim = {
@@ -19,7 +19,7 @@ const claim: ResumeClaim = {
 
 describe('interview prompts', () => {
   it('passes an annotation separately from the answer', () => {
-    const prompt = buildEvaluateAnswerUser(
+    const prompt = buildInterviewContinueUser(
       claim,
       '如何保证接口幂等？',
       '',
@@ -29,12 +29,12 @@ describe('interview prompts', () => {
       [{ point: '说明具体方案', importance: 'high' }],
       [],
     )
-    expect(prompt).toContain('候选人答: (未作答)')
-    expect(prompt).toContain('不懂批注: 不理解幂等是什么意思')
+    expect(prompt).toContain('答: (未作答)')
+    expect(prompt).toContain('不懂: 不理解幂等是什么意思')
   })
 
   it('marks skipped questions as self-reported and unverified', () => {
-    const prompt = buildEvaluateAnswerUser(
+    const prompt = buildInterviewContinueUser(
       claim,
       '如何保证接口幂等？',
       '',
@@ -44,6 +44,31 @@ describe('interview prompts', () => {
       [{ point: '说明具体方案', importance: 'high' }],
       [],
     )
-    expect(prompt).toContain('操作类型: 已掌握，跳过（未验证）')
+    expect(prompt).toContain('操作: 已掌握，跳过（未验证）')
+  })
+
+  it('does not include full history, only accumulated state', () => {
+    const rounds = [{
+      action: 'answer' as const,
+      question: 'Q1', questionIntent: 'test intent',
+      answer: 'A1', annotation: '',
+      evaluation: { score: 60, coveredPoints: ['P1'], missingPoints: ['P2'], answerSuggestion: '', evidenceQuotes: ['原文'] },
+      nextReason: '追问',
+    }]
+    const prompt = buildInterviewContinueUser(
+      claim,
+      '第二个问题？',
+      '我的回答',
+      '',
+      'answer',
+      rounds,
+      [{ point: '说明具体方案', importance: 'high' }],
+      ['只说概念'],
+    )
+    // 应该包含累计覆盖状态，不包含完整历史
+    expect(prompt).toContain('前几轮累计已覆盖')
+    expect(prompt).toContain('P1')
+    // 不应包含完整历史评估详情
+    expect(prompt).not.toContain('得分60')
   })
 })

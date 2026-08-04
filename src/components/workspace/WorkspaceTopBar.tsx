@@ -6,7 +6,7 @@ import { SettingsPopover } from '@/components/settings/SettingsPopover'
 
 type LlmMode = { label: string; cls: 'local' | 'env' | 'mock' } | null
 
-type TopbarProps = {
+type WorkspaceTopBarProps = {
   analysis: ResumeAnalysis
   llmMode: LlmMode
   envConfigured: boolean
@@ -18,7 +18,7 @@ type TopbarProps = {
   onLogoClick: () => void
 }
 
-export function WorkspaceTopBar({ analysis, llmMode, envConfigured, clientConfigured, onClientChanged, onRerun, onExport, onExportJson, onLogoClick }: TopbarProps) {
+export function WorkspaceTopBar({ analysis, llmMode, envConfigured, clientConfigured, onClientChanged, onRerun, onExport, onExportJson, onLogoClick }: WorkspaceTopBarProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 

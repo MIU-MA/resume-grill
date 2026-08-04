@@ -8,9 +8,7 @@ import type { AppNavigation, UseResumeWorkspace } from './types'
 
 type InterviewHandle = {
   reset: () => void
-  prepareRewrite: (content: string, version: number) => void
-  prepareRetest: (version: number) => void
-  start: (claim: ResumeClaim) => Promise<void>
+  start: (claim: ResumeClaim, opts?: { version?: number; claimContent?: string }) => Promise<void>
 }
 
 export function useClaimActions(
@@ -77,9 +75,9 @@ export function useClaimActions(
       if (idx < 0) return
       ws.setSelectedIndex(idx)
       const prevCount = (ws.sessions[claim.id] ?? []).length
-      iv.prepareRewrite(rewrittenContent, prevCount + 1)
+      const newVersion = prevCount + 1
       replace('workspace', 'interview')
-      iv.start(claim).catch(() => undefined)
+      iv.start(claim, { version: newVersion, claimContent: rewrittenContent }).catch(() => undefined)
       window.scrollTo({ top: 0, left: 0 })
     },
     [ws, replace, iv],
@@ -91,9 +89,9 @@ export function useClaimActions(
         ws.analysis?.claims.findIndex((c) => c.id === claim.id) ?? -1
       if (idx < 0) return
       ws.setSelectedIndex(idx)
-      iv.prepareRetest((ws.sessions[claim.id] ?? []).length + 1)
+      const newVersion = (ws.sessions[claim.id] ?? []).length + 1
       replace('workspace', 'interview')
-      iv.start(claim).catch(() => undefined)
+      iv.start(claim, { version: newVersion }).catch(() => undefined)
       window.scrollTo({ top: 0, left: 0 })
     },
     [ws, replace, iv],

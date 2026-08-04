@@ -35,7 +35,7 @@ AI 网页生成平台 2023.06 - 2024.03
 
 type Tab = 'file' | 'paste'
 
-type ResumeUploaderProps = {
+type ResumeImportViewProps = {
   analyzing: boolean
   error: string | null
   onExtracted: (extracted: ExtractedText, sourceFile: string) => void
@@ -48,7 +48,7 @@ type ResumeUploaderProps = {
   onDeleteSaved: (id: string) => Promise<void>
 }
 
-export function ResumeImportView({ analyzing, error, onExtracted, envConfigured, clientConfigured, onClientChanged, savedRecords, loadingRecords, onOpenSaved, onDeleteSaved }: ResumeUploaderProps) {
+export function ResumeImportView({ analyzing, error, onExtracted, envConfigured, clientConfigured, onClientChanged, savedRecords, loadingRecords, onOpenSaved, onDeleteSaved }: ResumeImportViewProps) {
   const [tab, setTab] = useState<Tab>('file')
   const [paste, setPaste] = useState('')
   const [fileName, setFileName] = useState<string | null>(null)

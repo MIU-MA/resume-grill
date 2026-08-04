@@ -44,7 +44,7 @@ type ReviewCandidate = ReviewedCandidate & {
   enabled: boolean
 }
 
-type ExtractedTextReviewProps = {
+type ResumeReviewViewProps = {
   sourceFile: string
   extracted: ExtractedText
   analyzing: boolean
@@ -74,7 +74,7 @@ const GOAL_ICONS: Record<AnalysisGoal, LucideIcon> = {
   leadership: Users,
 }
 
-export function ResumeReviewView({ sourceFile, extracted, analyzing, error, onConfirm, onBack }: ExtractedTextReviewProps) {
+export function ResumeReviewView({ sourceFile, extracted, analyzing, error, onConfirm, onBack }: ResumeReviewViewProps) {
   const [text, setText] = useState(extracted.text)
   const [structureText, setStructureText] = useState(extracted.text)
   const [sections, setSections] = useState(() => parseResumeStructure(extracted.text))

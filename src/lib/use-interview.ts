@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 import type { ResumeClaim } from '@/domain/resume-schema'
-import type { ClaimAnalysis, InterviewAction, InterviewRound, InterviewSession, InterviewStart, InterviewContinueResult, FinalResult } from '@/domain/interview-schema'
+import type { ClaimAnalysis, InterviewAction, InterviewRound, InterviewSession, InterviewContinueResult, FinalResult } from '@/domain/interview-schema'
 import type { LlmSettings } from '@/lib/settings'
 import { getLlmSettings } from '@/lib/settings'
 
@@ -10,6 +10,13 @@ type Callbacks = {
   onError: (msg: string) => void
   onToast: (msg: string) => void
   onSessionSaved: (claimId: string, session: InterviewSession) => void
+}
+
+type StartOptions = {
+  /** 版本号（重测/改写时传入，避免 React 状态异步问题） */
+  version?: number
+  /** 改写后的声明文本（改写模式传入） */
+  claimContent?: string
 }
 
 export function useInterview(envConfigured: boolean, { onError, onToast, onSessionSaved }: Callbacks) {
@@ -20,18 +27,16 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
   const [annotation, setAnnotation] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
-  const [rewriteContent, setRewriteContent] = useState<string | null>(null)
+  const [activeClaimSnapshot, setActiveClaimSnapshot] = useState<ResumeClaim | null>(null)
   const [version, setVersion] = useState(1)
+
+  // 缓存键：claim.id + 内容哈希，改写后不会复用原文分析
   const cache = useRef<Map<string, ClaimAnalysis>>(new Map())
+  const cacheKey = (claim: ResumeClaim) => `${claim.id}:${hashClaimContent(claim.content)}`
 
   const reset = useCallback(() => {
     setRounds([]); setCurrentQuestion(''); setCurrentIntent(''); setAnswer(''); setAnnotation('')
-    setDone(false); setRewriteContent(null); setVersion(1)
-  }, [])
-
-  const prepareRewrite = useCallback((rewrittenContent: string, newVersion: number) => {
-    setRewriteContent(rewrittenContent); setVersion(newVersion)
-    setRounds([]); setAnswer(''); setAnnotation(''); setDone(false)
+    setDone(false); setActiveClaimSnapshot(null); setVersion(1)
   }, [])
 
   const restore = useCallback((claimId: string, session: InterviewSession): boolean => {
@@ -40,26 +45,110 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
     setCurrentQuestion(session.pendingQuestion ?? '')
     setCurrentIntent(session.pendingIntent ?? '')
     setAnswer(''); setAnnotation(''); setDone(false)
-    if (session.version > 1) {
-      setVersion(session.version)
-      setRewriteContent(session.claimContent)
+    setVersion(session.version)
+    if (session.claimContent) {
+      setActiveClaimSnapshot(createSnapshot(claimId, session.claimContent))
     }
     if (session.claimAnalysis) {
-      cache.current.set(claimId, session.claimAnalysis)
+      const key = session.claimContent
+        ? `${claimId}:${hashClaimContent(session.claimContent)}`
+        : `${claimId}:0`
+      cache.current.set(key, session.claimAnalysis)
     }
     return true
   }, [])
 
-  const prepareRetest = useCallback((newVersion: number) => {
-    setRewriteContent(null); setVersion(newVersion)
-    setRounds([]); setAnswer(''); setAnnotation(''); setDone(false)
-  }, [])
+  const start = useCallback(async (claim: ResumeClaim, opts?: StartOptions) => {
+    if (!getLlmSettings() && !envConfigured) {
+      onError('请先配置 API Key（点击顶部齿轮图标 → Base URL + Key + Model）')
+      return
+    }
+    setLoading(true); onError('')
+
+    const resolvedVersion = opts?.version ?? 1
+    const resolvedContent = opts?.claimContent ?? claim.content
+    const isRewrite = Boolean(opts?.claimContent && opts.claimContent !== claim.content)
+
+    // 改写/重测：用参数同步设置 state（不依赖 React 异步批处理）
+    if (opts?.version && opts.version > 1) {
+      setVersion(opts.version)
+      if (isRewrite) setActiveClaimSnapshot(createSnapshot(claim.id, resolvedContent))
+      setRounds([]); setAnswer(''); setAnnotation(''); setDone(false)
+    }
+
+    try {
+      // 构造改写声明（如果有改写内容），后续全部用 snapshot
+      const effectiveClaim: ResumeClaim = isRewrite
+        ? { ...claim, content: resolvedContent }
+        : claim
+      if (!isRewrite) setActiveClaimSnapshot(effectiveClaim)
+
+      // 从 claim 数据直接构造 ClaimAnalysis，不调 API
+      const key = cacheKey(effectiveClaim)
+      let claimAnalysis = cache.current.get(key) ?? null
+      if (!claimAnalysis) {
+        claimAnalysis = buildClaimAnalysisFromClaim(effectiveClaim)
+        cache.current.set(key, claimAnalysis)
+      }
+
+      setCurrentQuestion(effectiveClaim.initialQuestion)
+      setCurrentIntent(effectiveClaim.initialIntent || '验证具体过程和个人贡献')
+
+      // 立即持久化（用显式参数，不读 state）
+      onSessionSaved(effectiveClaim.id, {
+        id: `${effectiveClaim.id}:v${resolvedVersion}`,
+        claimContent: resolvedContent,
+        rounds: [],
+        claimAnalysis,
+        finalResult: null,
+        status: 'in_progress',
+        version: resolvedVersion,
+        pendingQuestion: effectiveClaim.initialQuestion,
+        pendingIntent: effectiveClaim.initialIntent || '验证具体过程和个人贡献',
+      })
+    } catch (e) { onError(e instanceof Error ? e.message : '启动面试失败') }
+    finally { setLoading(false) }
+  }, [envConfigured, onError, onSessionSaved])
+
+  const finalizeSession = useCallback(async (claim: ResumeClaim, finalRounds: InterviewRound[]) => {
+    const snapshot = activeClaimSnapshot ?? claim
+    let finalResult: FinalResult = {
+      confidence: 0, risk: 'medium',
+      canExplain: [], cannotExplain: ['总结生成失败'],
+      suggestions: [], rewriteSuggestion: '',
+      answerSummary: '本次总结没有成功生成，但问答记录已经保留。',
+      evidenceUsed: [], missingEvidence: [], nextAction: '稍后重新生成总结。',
+    }
+    let summarySucceeded = false
+    try {
+      const llm = getLlmSettings()
+      const body: any = { claim: snapshot, rounds: finalRounds }; if (llm) body.llm = llm
+      const res = await fetch('/api/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const data = (await res.json()) as FinalResult | { error: string }
+      if (!res.ok || 'error' in data) {
+        onToast('总结生成失败，问答记录仍会保存。')
+      } else {
+        finalResult = data; summarySucceeded = true
+      }
+    } catch { onToast('总结请求失败，问答记录仍会保存。') }
+    onSessionSaved(snapshot.id, {
+      id: `${snapshot.id}:v${version}`,
+      claimContent: snapshot.content,
+      rounds: finalRounds,
+      claimAnalysis: cache.current.get(cacheKey(snapshot))!,
+      finalResult,
+      status: 'done',
+      version,
+    })
+    if (summarySucceeded) onToast('追问已完成，可在「分析报告」查看结论。')
+  }, [activeClaimSnapshot, version, onToast, onSessionSaved])
 
   const saveInProgress = useCallback((claim: ResumeClaim, newRounds: InterviewRound[], nextQuestion: string, nextIntent: string) => {
-    const claimAnalysis = cache.current.get(claim.id)
-    onSessionSaved(claim.id, {
-      id: `${claim.id}:v${version}`,
-      claimContent: rewriteContent ?? claim.content,
+    const snapshot = activeClaimSnapshot ?? claim
+    const claimAnalysis = cache.current.get(cacheKey(snapshot))
+    onSessionSaved(snapshot.id, {
+      id: `${snapshot.id}:v${version}`,
+      claimContent: snapshot.content,
       rounds: newRounds,
       claimAnalysis: claimAnalysis ?? null,
       finalResult: null,
@@ -68,106 +157,47 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       pendingQuestion: nextQuestion,
       pendingIntent: nextIntent,
     })
-  }, [rewriteContent, version, onSessionSaved])
-
-  const start = useCallback(async (claim: ResumeClaim) => {
-    if (!getLlmSettings() && !envConfigured) {
-      onError('请先配置 API Key（点击顶部齿轮图标 → Base URL + Key + Model）')
-      return
-    }
-    setLoading(true); onError('')
-    try {
-      const cacheKey = claim.id
-      let claimAnalysis = cache.current.get(cacheKey) ?? null
-      if (!claimAnalysis) {
-        const llm = getLlmSettings()
-        const body: { claim: ResumeClaim; llm?: LlmSettings } = { claim }
-        if (llm) body.llm = llm
-        const r = await fetch('/api/analyze-claim', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-        const d = (await r.json()) as ClaimAnalysis | { error: string }
-        if (!r.ok || 'error' in d) throw new Error('error' in d ? d.error : '声明分析失败')
-        claimAnalysis = d; cache.current.set(cacheKey, claimAnalysis)
-      }
-      const llm = getLlmSettings()
-      const body: { claim: ResumeClaim; verifyPoints: ClaimAnalysis['verifyPoints']; llm?: LlmSettings } = { claim, verifyPoints: claimAnalysis.verifyPoints }
-      if (llm) body.llm = llm
-      const r2 = await fetch('/api/interview/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      const d2 = (await r2.json()) as InterviewStart | { error: string }
-      if (!r2.ok || 'error' in d2) throw new Error('error' in d2 ? d2.error : '生成第一问失败')
-      setCurrentQuestion(d2.question); setCurrentIntent(d2.intent)
-      saveInProgress(claim, [], d2.question, d2.intent)
-    } catch (e) { onError(e instanceof Error ? e.message : '启动面试失败') }
-    finally { setLoading(false) }
-  }, [envConfigured, onError, saveInProgress])
-
-  const finalizeSession = useCallback(async (claim: ResumeClaim, finalRounds: InterviewRound[]) => {
-    let summarySucceeded = false
-    let finalResult: FinalResult = {
-      confidence: 0,
-      risk: 'medium',
-      canExplain: [],
-      cannotExplain: ['总结生成失败'],
-      suggestions: [],
-      rewriteSuggestion: '',
-      answerSummary: '本次总结没有成功生成，但问答记录已经保留。',
-      evidenceUsed: [],
-      missingEvidence: [],
-      nextAction: '稍后重新生成总结。',
-    }
-    try {
-      const llm = getLlmSettings()
-      const body: any = { claim, rounds: finalRounds }; if (llm) body.llm = llm
-      const res = await fetch('/api/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      const data = (await res.json()) as FinalResult | { error: string }
-      if (!res.ok || 'error' in data) {
-        onToast('总结生成失败，问答记录仍会保存。')
-      } else {
-        finalResult = data
-        summarySucceeded = true
-      }
-    } catch { onToast('总结请求失败，问答记录仍会保存。') }
-    onSessionSaved(claim.id, {
-      id: `${claim.id}:v${version}`,
-      claimContent: rewriteContent ?? claim.content,
-      rounds: finalRounds,
-      claimAnalysis: cache.current.get(claim.id)!,
-      finalResult,
-      status: 'done',
-      version,
-    })
-    if (summarySucceeded) onToast('追问已完成，可在「分析报告」查看结论。')
-  }, [rewriteContent, version, onToast, onSessionSaved])
+  }, [activeClaimSnapshot, version, onSessionSaved])
 
   const continueInterview = useCallback(async (claim: ResumeClaim, action: InterviewAction) => {
     if (!currentQuestion || loading || done) return
     if (action === 'answer' && !answer.trim()) return
     if (action === 'clarify' && !annotation.trim()) return
+    const snapshot = activeClaimSnapshot ?? claim
     setLoading(true)
     try {
-      const claimAnalysis = cache.current.get(claim.id)
+      const claimAnalysis = cache.current.get(cacheKey(snapshot))
       if (!claimAnalysis) throw new Error('声明分析未找到，请重新开始追问')
       const llm = getLlmSettings()
       const submittedAnswer = action === 'answer' ? answer : ''
       const submittedAnnotation = action === 'clarify' ? annotation : ''
-      const body: any = { claim, action, question: currentQuestion, answer: submittedAnswer, annotation: submittedAnnotation, rounds, verifyPoints: claimAnalysis.verifyPoints, trapPoints: claimAnalysis.trapPoints }
+      const body: any = {
+        claim: snapshot,
+        action, question: currentQuestion,
+        answer: submittedAnswer, annotation: submittedAnnotation,
+        rounds, verifyPoints: claimAnalysis.verifyPoints, trapPoints: claimAnalysis.trapPoints,
+      }
       if (llm) body.llm = llm
       const res = await fetch('/api/interview/continue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const data = (await res.json()) as InterviewContinueResult | { error: string }
       if (!res.ok || 'error' in data) throw new Error('error' in data ? data.error : '生成下一问失败')
-      const round: InterviewRound = { action, question: currentQuestion, answer: submittedAnswer, annotation: submittedAnnotation, evaluation: data.evaluation, nextReason: data.nextReason }
+      const round: InterviewRound = {
+        action, question: currentQuestion, questionIntent: currentIntent,
+        answer: submittedAnswer, annotation: submittedAnnotation,
+        evaluation: data.evaluation, nextReason: data.nextReason,
+      }
       const newRounds = [...rounds, round]; setRounds(newRounds)
       setCurrentQuestion(data.nextQuestion); setCurrentIntent(data.nextReason)
-      setAnswer('')
-      setAnnotation('')
+      setAnswer(''); setAnnotation('')
       if (data.isFinal) {
         setDone(true)
-        await finalizeSession(claim, newRounds)
+        await finalizeSession(snapshot, newRounds)
       } else {
-        saveInProgress(claim, newRounds, data.nextQuestion, data.nextReason)
+        saveInProgress(snapshot, newRounds, data.nextQuestion, data.nextReason)
       }
     } catch (e) { onError(e instanceof Error ? e.message : '追问失败') }
     finally { setLoading(false) }
-  }, [currentQuestion, loading, done, answer, annotation, rounds, finalizeSession, saveInProgress, onError])
+  }, [currentQuestion, currentIntent, loading, done, answer, annotation, rounds, activeClaimSnapshot, finalizeSession, saveInProgress, onError])
 
   const submit = useCallback((claim: ResumeClaim) => (
     continueInterview(claim, answer.trim() ? 'answer' : 'clarify')
@@ -179,7 +209,46 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
 
   return {
     rounds, currentQuestion, currentIntent, answer, setAnswer, annotation, setAnnotation, loading, done,
-    rewriteContent, version, covered,
-    reset, prepareRewrite, prepareRetest, start, restore, submit, skip,
+    activeClaimSnapshot, version, covered,
+    reset, start, restore, submit, skip,
+  }
+}
+
+// ── 工具函数 ──
+
+function hashClaimContent(content: string): number {
+  let hash = 0
+  for (let i = 0; i < content.length; i++) {
+    hash = ((hash << 5) - hash) + content.charCodeAt(i) | 0
+  }
+  return hash
+}
+
+function createSnapshot(id: string, content: string): ResumeClaim {
+  return { id, content } as ResumeClaim
+}
+
+function buildClaimAnalysisFromClaim(claim: ResumeClaim): ClaimAnalysis {
+  // 优先用 LLM 生成的 verifyPoints，否则从 evaluationPoints 退化
+  const rawVp = (claim as Record<string, unknown>).verifyPoints as Array<{ point: string; importance: string }> | undefined
+  const rawTp = (claim as Record<string, unknown>).trapPoints as string[] | undefined
+  const rawIntent = (claim as Record<string, unknown>).initialIntent as string | undefined
+
+  const verifyPoints: Array<{ point: string; importance: 'high' | 'medium' | 'low' }> =
+    rawVp && rawVp.length > 0
+      ? rawVp.map((vp) => ({
+          point: vp.point,
+          importance: (vp.importance === 'high' || vp.importance === 'medium' || vp.importance === 'low')
+            ? vp.importance : 'medium',
+        }))
+      : claim.evaluationPoints.map((point, i) => ({
+          point,
+          importance: (i === 0 ? 'high' : 'medium') as 'high' | 'medium' | 'low',
+        }))
+
+  return {
+    level: (claim as Record<string, unknown>).level as string ?? claim.role,
+    verifyPoints,
+    trapPoints: rawTp ?? [],
   }
 }
