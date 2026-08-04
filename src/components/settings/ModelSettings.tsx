@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Eye, EyeOff, Trash2 } from 'lucide-react'
+import { CheckCircle, Eye, EyeOff, Loader2, Trash2, XCircle } from 'lucide-react'
 import { clearLlmSettings, getLlmSettings, setLlmSettings, type LlmSettings } from '@/lib/settings'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
@@ -15,7 +15,7 @@ const PROVIDERS: Provider[] = [
   { label: 'DeepSeek', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-v4-flash' },
   { label: '通义千问', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: 'qwen3.7-plus' },
   { label: '智谱 GLM', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', model: 'glm-5.2' },
-  { label: 'MiniMax', baseUrl: 'https://api.minimax.io/v1', model: 'MiniMax-M3' },
+  { label: 'MiniMax', baseUrl: 'https://api.minimaxi.com/v1', model: 'MiniMax-M3' },
 ]
 
 type Mode = { label: string; cls: 'local' | 'env' | 'mock' }
@@ -44,6 +44,8 @@ export function ModelSettings({ envConfigured, clientConfigured, onClientChanged
   const [form, setForm] = useState<LlmSettings>(DEFAULTS)
   const [showKey, setShowKey] = useState(false)
   const [providerIdx, setProviderIdx] = useState(-1)
+  const [testing, setTesting] = useState(false)
+  const [testResult, setTestResult] = useState<'idle' | 'ok' | 'fail'>('idle')
 
   useEffect(() => {
     const saved = getLlmSettings()
@@ -63,6 +65,20 @@ export function ModelSettings({ envConfigured, clientConfigured, onClientChanged
   const handleSave = () => { setLlmSettings(form); onClientChanged() }
 
   const handleClear = () => { clearLlmSettings(); setForm(DEFAULTS); setProviderIdx(-1); onClientChanged() }
+
+  const handleTest = async () => {
+    setTestResult('idle'); setTesting(true)
+    try {
+      const res = await fetch('/api/test-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ llm: form }),
+      })
+      setTestResult(res.ok ? 'ok' : 'fail')
+    } catch {
+      setTestResult('fail')
+    } finally { setTesting(false) }
+  }
 
   return (
     <div className="overflow-hidden rounded-lg border border-line bg-white shadow-[0_12px_40px_rgba(27,40,34,.1)]">
@@ -98,6 +114,15 @@ export function ModelSettings({ envConfigured, clientConfigured, onClientChanged
         </label>
 
         <div className="flex items-center justify-end gap-2">
+          <button
+            type="button"
+            className="flex items-center gap-1.5 h-7 rounded-lg border border-line-strong bg-white px-3 text-[11px] font-medium text-text-secondary hover:bg-surface-hover disabled:opacity-50"
+            onClick={handleTest}
+            disabled={testing || !form.baseUrl.trim() || !form.apiKey.trim() || !form.model.trim()}
+          >
+            {testing ? <Loader2 size={13} className="animate-spin" /> : testResult === 'ok' ? <CheckCircle size={13} className="text-success" /> : testResult === 'fail' ? <XCircle size={13} className="text-danger" /> : null}
+            测试连接
+          </button>
           {clientConfigured && <Button variant="secondary" onClick={handleClear}><Trash2 size={13} />清除已保存</Button>}
           <Button variant="primary" onClick={handleSave} disabled={!form.baseUrl.trim() || !form.apiKey.trim() || !form.model.trim()}>保存</Button>
         </div>
