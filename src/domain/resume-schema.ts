@@ -57,7 +57,7 @@ export const compactClaimSchema = z.object({
   candidateIndex: z.number().int().nonnegative(),
   category: claimCategorySchema,
   capability: z.string().max(40),
-  masteryPoints: z.array(masteryPointSchema).min(3).max(4),
+  masteryPoints: z.array(masteryPointSchema).min(3).max(6),
   initialQuestion: z.string().max(120),
 })
 export type CompactClaim = z.infer<typeof compactClaimSchema>

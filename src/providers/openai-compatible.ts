@@ -139,13 +139,44 @@ export function parseModelJson(content: string): unknown {
   for (let index = 0; index < trimmed.length; index++) {
     if (trimmed[index] !== '{' && trimmed[index] !== '[') continue
     const candidate = readBalancedJson(trimmed, index)
-    if (!candidate) continue
-    try {
-      return JSON.parse(candidate)
-    } catch {
+    if (candidate) {
+      try {
+        return JSON.parse(candidate)
+      } catch {
       }
+    }
   }
+
+  // 回退：尝试补全截断的 JSON
+  const repaired = tryRepairTruncated(trimmed)
+  if (repaired) return repaired
+
   throw new Error('No valid JSON object found')
+}
+
+function tryRepairTruncated(content: string): unknown {
+  const firstBrace = content.indexOf('{')
+  if (firstBrace < 0) return null
+  const snipped = content.slice(firstBrace)
+  const stack: string[] = []
+  let inString = false
+  let escaped = false
+  for (const ch of snipped) {
+    if (escaped) { escaped = false; continue }
+    if (ch === '\\') { escaped = true; continue }
+    if (ch === '"') { inString = !inString; continue }
+    if (inString) continue
+    if (ch === '{') stack.push('}')
+    else if (ch === '[') stack.push(']')
+    else if (ch === '}' || ch === ']') { if (stack.length > 0) stack.pop() }
+  }
+  const closing = stack.reverse().join('')
+  if (!closing) return null
+  try {
+    return JSON.parse(snipped + closing)
+  } catch {
+    return null
+  }
 }
 
 function readBalancedJson(value: string, start: number): string | null {

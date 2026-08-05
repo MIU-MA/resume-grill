@@ -25,7 +25,7 @@ export const ANALYZE_SYSTEM_PROMPT = `你是一名资深面试官。从候选池
 - candidateIndex: 输入候选池中的整数索引
 - category: skill|responsibility|achievement|leadership|metric
 - capability: 核心能力，≤20 个汉字
-- masteryPoints: 3~4 条。每条 { "point": "≤40 个汉字", "dimension": "context|practice|principle|decision|troubleshooting|boundary", "importance": "high|medium|low" }
+- masteryPoints: 3~6 条。每条 { "point": "≤40 个汉字", "dimension": "context|practice|principle|decision|troubleshooting|boundary", "importance": "high|medium|low" }
   dimension: context=为什么做, practice=具体怎么做, principle=为什么有效, decision=为什么选这个, troubleshooting=遇到过什么问题, boundary=有什么限制
 - initialQuestion: 首轮追问，≤60 个汉字，直接问具体行为不要铺垫
 

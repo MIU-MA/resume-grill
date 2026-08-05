@@ -52,7 +52,7 @@ export async function POST(request: Request) {
         }),
         compactAnalysisSchema,
         config,
-        { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 4000 },
+        { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 8000 },
       )
 
       const backfilledClaims = compact.claims.map((claim) => {
