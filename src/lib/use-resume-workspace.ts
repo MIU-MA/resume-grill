@@ -74,7 +74,7 @@ export function useResumeWorkspace(phase: Phase) {
 
   useEffect(() => {
     if (phase !== 'workspace' || analysis) return
-    const sid = window.sessionStorage.getItem('resume-drill:active')
+    const sid = window.sessionStorage.getItem('resume-grill:active')
     if (!sid) return
     setRecovering(true)
     loadRecord(sid)
@@ -85,7 +85,7 @@ export function useResumeWorkspace(phase: Phase) {
           setSessions(record.sessions)
           setPreparedClaimIds(record.preparedClaimIds)
           setMasteredBlindSpotIds(record.masteredBlindSpotIds)
-          const activeClaimId = window.sessionStorage.getItem('resume-drill:active-claim')
+          const activeClaimId = window.sessionStorage.getItem('resume-grill:active-claim')
           const index = activeClaimId
             ? record.analysis.claims.findIndex((c) => c.id === activeClaimId)
             : -1

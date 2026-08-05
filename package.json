@@ -2,7 +2,7 @@
   "name": "resume-grill",
   "private": true,
   "version": "0.1.0",
-  "description": "提前追问简历里的每句话，找出讲不清的证据和经历细节",
+  "description": "提前模拟对简历逐句追问，找出表述不清的经历细节。",
   "license": "MIT",
   "type": "module",
   "scripts": {

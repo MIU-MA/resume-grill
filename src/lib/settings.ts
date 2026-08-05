@@ -6,7 +6,7 @@ export type LlmSettings = {
   model: string
 }
 
-const STORAGE_KEY = 'resume-drill-llm'
+const STORAGE_KEY = 'resume-grill-llm'
 
 export function getLlmSettings(): LlmSettings | null {
   if (typeof window === 'undefined') return null

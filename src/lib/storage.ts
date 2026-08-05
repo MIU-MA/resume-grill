@@ -14,7 +14,7 @@ export type SavedRecord = {
   updatedAt: number
 }
 
-const PREFIX = 'resume-drill:'
+const PREFIX = 'resume-grill:'
 
 export function newRecordId(analysis: ResumeAnalysis): string {
   return `${PREFIX}resume:${resumeContentKey(analysis.rawText)}`

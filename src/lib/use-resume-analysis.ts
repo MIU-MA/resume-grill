@@ -37,7 +37,7 @@ export function useResumeAnalysis(
       ws.setSelectedIndex(0)
       ws.setPendingExtracted(null)
       ws.setError(null)
-      window.sessionStorage.setItem('resume-drill:active', record.id)
+      window.sessionStorage.setItem('resume-grill:active', record.id)
       push('workspace', 'audit')
     },
     [ws, push],
@@ -143,7 +143,7 @@ export function useResumeAnalysis(
 
         const id = ws.recordId ?? existing?.id ?? newRecordId(data)
         ws.setRecordId(id)
-        window.sessionStorage.setItem('resume-drill:active', id)
+        window.sessionStorage.setItem('resume-grill:active', id)
         saveRecord({
           id,
           analysis: data,
@@ -173,8 +173,8 @@ export function useResumeAnalysis(
     ws.setRecordId(null)
     ws.setError(null)
     ws.setRecoveredFromStorage(false)
-    window.sessionStorage.removeItem('resume-drill:active')
-    window.sessionStorage.removeItem('resume-drill:active-claim')
+    window.sessionStorage.removeItem('resume-grill:active')
+    window.sessionStorage.removeItem('resume-grill:active-claim')
     push('upload')
   }, [ws, push])
 
@@ -182,8 +182,8 @@ export function useResumeAnalysis(
     async (id: string) => {
       await deleteRecord(id)
       ws.setSavedRecords((records) => records.filter((r) => r.id !== id))
-      if (window.sessionStorage.getItem('resume-drill:active') === id) {
-        window.sessionStorage.removeItem('resume-drill:active')
+      if (window.sessionStorage.getItem('resume-grill:active') === id) {
+        window.sessionStorage.removeItem('resume-grill:active')
       }
     },
     [ws],

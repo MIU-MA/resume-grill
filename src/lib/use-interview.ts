@@ -86,7 +86,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       setCurrentIntent(effectiveClaim.initialIntent || '验证具体过程和个人贡献')
 
       if (typeof window !== 'undefined') {
-        window.sessionStorage.setItem('resume-drill:active-claim', effectiveClaim.id)
+        window.sessionStorage.setItem('resume-grill:active-claim', effectiveClaim.id)
       }
 
       onSessionSaved(effectiveClaim.id, {

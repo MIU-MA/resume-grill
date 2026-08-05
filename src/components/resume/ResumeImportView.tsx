@@ -90,7 +90,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
       <div className="mb-10 text-center">
         <h1 className="text-[28px] font-bold tracking-tight text-text-primary leading-[1.2] mb-3">找出简历里最容易被问穿的那句话</h1>
         <p className="text-text-secondary text-[15px] leading-relaxed max-w-[520px] mx-auto">
-          上传简历，由 AI 面试官检查每一条经历中的证据、可信度和可能的追问方向。
+          上传简历，让 AI 面试官帮你评估经历的可信度，并为你提供潜在的追问方向。
         </p>
       </div>
 
