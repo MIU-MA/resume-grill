@@ -1,5 +1,5 @@
 {
-  "name": "resume-grill-demo",
+  "name": "resume-grill",
   "private": true,
   "version": "0.1.0",
   "description": "提前追问简历里的每句话，找出讲不清的证据和经历细节",

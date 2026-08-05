@@ -174,7 +174,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
             <div className="mb-3 flex items-end justify-between gap-4 px-1">
               <div>
                 <h2 id="saved-resumes-title" className="text-[15px] font-bold text-text-primary">本地简历</h2>
-                <p className="mt-1 text-[12px] text-text-tertiary">分析结果和测试记录仅保存在当前浏览器</p>
+                <p className="mt-1 text-[12px] text-text-tertiary">文件在浏览器本地解析，分析文本会发送至你配置的模型服务商，分析记录仅保存在当前浏览器。</p>
               </div>
               {!loadingRecords && <span className="text-[12px] text-text-tertiary">{savedRecords.length} 份</span>}
             </div>

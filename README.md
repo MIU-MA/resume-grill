@@ -24,8 +24,8 @@ Resume Grill 检查简历内容是否经得起追问。它从简历中提取项�
 
 | 环节 | 说明 |
 |------|------|
-|  简历导入 | 支持 PDF、TXT、Markdown 和直接粘贴文本 |
-|  本地解析 | PDF 在浏览器端由 PDF.js 解析，无需上传原始文件 |
+|  简历导入 | 支持 PDF、DOCX、TXT、Markdown 和直接粘贴文本 |
+|  本地解析 | PDF、DOCX 在浏览器端解析（PDF.js / mammoth），无需上传原始文件 |
 |  提取校对 | 识别个人信息、教育、工作、实习、项目、技能、奖项等章节，支持人工修正 |
 |  陈述管理 | 从职责、技能、成果、数据等维度生成可追问陈述，支持删改、合并与优先级设定 |
 |  岗位匹配 | 可选填岗位描述，检查 JD 要求是否有对应简历证据 |
@@ -127,5 +127,5 @@ ALLOWED_LLM_BASE_URLS=http://127.0.0.1:11434
 ---
 
 <p align="center">
-  <a href="./LICENSE">MIT License</a> · <a href="./issues">提交反馈</a>
+  <a href="./LICENSE">MIT License</a> · <a href="https://github.com/MIU-MA/resume-grill/issues">提交反馈</a>
 </p>

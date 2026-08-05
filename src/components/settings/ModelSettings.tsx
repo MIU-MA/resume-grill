@@ -46,6 +46,7 @@ export function ModelSettings({ envConfigured, clientConfigured, onClientChanged
   const [providerIdx, setProviderIdx] = useState(-1)
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<'idle' | 'ok' | 'fail'>('idle')
+  const [testError, setTestError] = useState('')
 
   useEffect(() => {
     const saved = getLlmSettings()
@@ -67,18 +68,23 @@ export function ModelSettings({ envConfigured, clientConfigured, onClientChanged
   const handleClear = () => { clearLlmSettings(); setForm(DEFAULTS); setProviderIdx(-1); onClientChanged() }
 
   const handleTest = async () => {
-    setTestResult('idle'); setTesting(true)
+    setTestResult('idle'); setTestError(''); setTesting(true)
     try {
       const res = await fetch('/api/test-connection', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ llm: form }),
       })
+      const data = await res.json().catch(() => ({}))
       setTestResult(res.ok ? 'ok' : 'fail')
+      if (!res.ok) setTestError(data.error ?? '连接失败')
     } catch {
       setTestResult('fail')
+      setTestError('网络请求失败，请检查 Base URL')
     } finally { setTesting(false) }
   }
+
+  const resetTest = () => { setTestResult('idle'); setTestError('') }
 
   return (
     <div className="overflow-hidden rounded-lg border border-line bg-white shadow-[0_12px_40px_rgba(27,40,34,.1)]">
@@ -90,19 +96,19 @@ export function ModelSettings({ envConfigured, clientConfigured, onClientChanged
       <div className="flex flex-col gap-3 p-3">
         <label className="flex flex-col gap-1">
           <span className="text-[10px] font-700 text-text-secondary">模型供应商</span>
-          <select className={cn(inputCls, 'cursor-pointer')} value={providerIdx} onChange={(e) => selectProvider(Number(e.target.value))}>
+          <select className={cn(inputCls, 'cursor-pointer')} value={providerIdx} onChange={(e) => { selectProvider(Number(e.target.value)); resetTest() }}>
             <option value={-1}>手动填写</option>
             {PROVIDERS.map((p, i) => (<option key={i} value={i}>{p.label} · {p.model}</option>))}
           </select>
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-[10px] font-700 text-text-secondary">Base URL</span>
-          <input type="text" className={inputCls} value={form.baseUrl} onChange={(e) => { setForm((f) => ({ ...f, baseUrl: e.target.value })); setProviderIdx(PROVIDERS.findIndex((p) => p.baseUrl === e.target.value)) }} placeholder="https://api.openai.com/v1" />
+          <input type="text" className={inputCls} value={form.baseUrl} onChange={(e) => { setForm((f) => ({ ...f, baseUrl: e.target.value })); setProviderIdx(PROVIDERS.findIndex((p) => p.baseUrl === e.target.value)); resetTest() }} placeholder="https://api.openai.com/v1" />
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-[10px] font-700 text-text-secondary">API Key</span>
           <div className="flex items-center gap-2">
-            <input type={showKey ? 'text' : 'password'} className={cn(inputCls, 'flex-1')} value={form.apiKey} onChange={(e) => setForm((f) => ({ ...f, apiKey: e.target.value }))} placeholder="sk-..." autoComplete="off" />
+            <input type={showKey ? 'text' : 'password'} className={cn(inputCls, 'flex-1')} value={form.apiKey} onChange={(e) => { setForm((f) => ({ ...f, apiKey: e.target.value })); resetTest() }} placeholder="sk-..." autoComplete="off" />
             <button type="button" className="grid size-8 flex-none place-items-center rounded-lg border border-line-strong bg-white text-text-tertiary hover:bg-surface-hover" onClick={() => setShowKey((v) => !v)} aria-label={showKey ? '隐藏' : '显示'}>
               {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
             </button>
@@ -110,8 +116,12 @@ export function ModelSettings({ envConfigured, clientConfigured, onClientChanged
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-[10px] font-700 text-text-secondary">Model</span>
-          <input type="text" className={inputCls} value={form.model} onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))} placeholder="gpt-5.3-instant" />
+          <input type="text" className={inputCls} value={form.model} onChange={(e) => { setForm((f) => ({ ...f, model: e.target.value })); resetTest() }} placeholder="gpt-5.3-instant" />
         </label>
+
+        {testError && (
+          <p className="m-0 rounded-lg border border-danger/15 bg-danger-soft px-3 py-2 text-[12px] text-danger leading-relaxed">{testError}</p>
+        )}
 
         <div className="flex items-center justify-end gap-2">
           <button

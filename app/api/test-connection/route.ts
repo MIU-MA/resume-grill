@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { llmStructured, resolveLlmConfig } from '@/providers/openai-compatible'
+import { getClientIp, rateLimit, withTimeout } from '@/lib/server-limits'
+
+const TEST_CONNECTION_TIMEOUT = 15_000
 
 const requestSchema = z.object({
   llm: z.object({
@@ -13,6 +16,12 @@ const requestSchema = z.object({
 const echoSchema = z.object({ ok: z.boolean() })
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request)
+  const limit = rateLimit(ip)
+  if (!limit.ok) {
+    return NextResponse.json({ error: `请求过于频繁，请 ${limit.retryAfter} 秒后再试` }, { status: 429 })
+  }
+
   let body: z.infer<typeof requestSchema>
   try {
     body = requestSchema.parse(await request.json())
@@ -31,7 +40,7 @@ export async function POST(request: Request) {
       '请回复 ok',
       echoSchema,
       config,
-      { maxTokens: 50 },
+      { signal: withTimeout(TEST_CONNECTION_TIMEOUT), maxTokens: 50 },
     )
 
     return NextResponse.json({ success: true, model: config.model })
