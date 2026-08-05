@@ -63,10 +63,23 @@ export function useClaimActions(
 
   const startInterview = useCallback(async () => {
     if (!ws.selected) return
+
+    const existingSessions = ws.sessions[ws.selected.id] ?? []
+
+    const newVersion =
+      existingSessions.reduce(
+        (maxVersion, session) =>
+          Math.max(maxVersion, session.version),
+        0,
+      ) + 1
+
     iv.reset()
     replace('workspace', 'interview')
-    await iv.start(ws.selected)
-  }, [ws.selected, replace, iv])
+
+    await iv.start(ws.selected, {
+      version: newVersion,
+    })
+  }, [ws.selected, ws.sessions, replace, iv])
 
   const startRewriteInterview = useCallback(
     (claim: ResumeClaim, rewrittenContent: string) => {
