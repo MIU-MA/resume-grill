@@ -77,7 +77,7 @@ export type InterviewContinueResult = z.infer<typeof interviewContinueSchema>
 
 export const finalResultSchema = z.object({
   masteryScore: z.number().min(0).max(5),
-  masteryLevel: z.enum(['mastered', 'partial', 'not_demonstrated']),
+  masteryLevel: z.enum(['mastered', 'partial', 'not_demonstrated']).optional().default('not_demonstrated'),
   canExplain: z.array(z.string()),
   cannotExplain: z.array(z.string()),
   knowledgeGaps: z.array(z.string()).default([]),

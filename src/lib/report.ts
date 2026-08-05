@@ -98,7 +98,7 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
           '',
           `### 第 ${i + 1} 版（${session.version}）测试报告`,
           `- 有效回答轮数：${session.rounds.filter((round) => round.action === 'answer').length}`,
-          `- 已掌握并跳过：${skippedQuestions.join('；') || '无'}`,
+          `- 用户主动跳过（未验证）：${skippedQuestions.join('；') || '无'}`,
           `- 不懂批注：${annotations.join('；') || '无'}`,
           `- 掌握度：${'★'.repeat(s.masteryScore)}${'☆'.repeat(5 - s.masteryScore)}`,
           `- 掌握状态：${masteryLabel}`,

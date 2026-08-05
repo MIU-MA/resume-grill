@@ -56,7 +56,7 @@ export function InterviewView({
   }, [turns.length])
 
   return (
-    <main className="flex min-w-0 bg-white overflow-hidden" style={{ maxHeight: 'calc(100vh - 60px)' }}>
+    <main className="flex w-full border-r border-border min-w-0 bg-white overflow-hidden" style={{ maxHeight: 'calc(100vh - 60px)' }}>
       {/* 主面试区 */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* 顶部 */}
@@ -103,7 +103,7 @@ export function InterviewView({
                   <span>{turn.action === 'skip' ? '本次操作' : '你的回答'}</span>
                 </div>
                 <div className="rounded-lg border border-border bg-surface-soft px-4 py-3">
-                  <p className="text-[14px] text-text-secondary leading-relaxed">{turn.action === 'skip' ? '已掌握，跳过此问。该问题未计为已验证。' : turn.answer || '未作答，已请求换一种问法。'}</p>
+                  <p className="text-[14px] text-text-secondary leading-relaxed">{turn.action === 'skip' ? '用户主动跳过（未验证），不会计入掌握度。' : turn.answer || '未作答，已请求换一种问法。'}</p>
                 </div>
                 {turn.evidenceQuotes && turn.evidenceQuotes.length > 0 && (
                   <div className="mt-2 rounded-lg border border-border bg-surface-soft px-3.5 py-2.5">
@@ -196,7 +196,7 @@ export function InterviewView({
                 <div className="flex items-center justify-between">
                   <span className="text-text-tertiary text-[12px]">Shift + Enter 换行 · 建议 80–300 字</span>
                   <div className="flex items-center gap-2">
-                    <Button variant="secondary" size="large" disabled={loading} onClick={onSkip}>我会!!!跳过</Button>
+                    <Button variant="secondary" size="large" disabled={loading} onClick={onSkip}>跳过此题</Button>
                     <Button variant="primary" size="large" disabled={(answer.trim().length === 0 && annotation.trim().length === 0) || loading} onClick={onSubmit} loading={loading}>
                       {answer.trim() ? '提交回答' : '提交批注'}
                     </Button>

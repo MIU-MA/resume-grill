@@ -11,11 +11,10 @@ const SUMMARIZE_SYSTEM = `你是一名资深面试官，刚结束对候选人简
 “已掌握，跳过”属于自报状态，不是回答证据，也不代表能力不足。
 
 只输出 JSON 对象，不输出任何解释、推理、Markdown 或额外文字。输出格式：
-{“masteryScore”:0,”masteryLevel”:”not_demonstrated”,”canExplain”:[],”cannotExplain”:[],”knowledgeGaps”:[],”answerSummary”:””,”nextAction”:””,”rewriteSuggestion”:””}
+{“masteryScore”:0,”canExplain”:[],”cannotExplain”:[],”knowledgeGaps”:[],”answerSummary”:””,”nextAction”:””,”rewriteSuggestion”:””}
 
 字段说明：
 - masteryScore: 0-5，5=完全经得起追问，0=完全无法回答
-- masteryLevel: mastered=掌握较好, partial=部分掌握, not_demonstrated=尚未讲清
 - canExplain: 候选人能讲清的
 - cannotExplain: 尚未讲清或回避的
 - knowledgeGaps: 需要补强的知识点
@@ -71,9 +70,19 @@ export async function POST(request: Request) {
       config,
       { signal: withTimeout(SUMMARIZE_TIMEOUT), maxTokens: 1200 },
     )
-    return NextResponse.json(result)
+
+    return NextResponse.json({
+      ...result,
+      masteryLevel: masteryLevelFromScore(result.masteryScore),
+    })
   } catch (error) {
     const message = error instanceof Error ? error.message : '生成总结失败'
     return NextResponse.json({ error: message }, { status: 500 })
   }
+}
+
+function masteryLevelFromScore(score: number): 'mastered' | 'partial' | 'not_demonstrated' {
+  if (score >= 4) return 'mastered'
+  if (score >= 2) return 'partial'
+  return 'not_demonstrated'
 }

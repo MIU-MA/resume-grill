@@ -72,7 +72,7 @@ describe('buildReport', () => {
     const session: InterviewSession = {
       id: `${claim.id}:v1`, claimContent: claim.content, claimAnalysis: null,
       finalResult: {
-        masteryScore: 0, masteryLevel: 'not_demonstrated', canExplain: [], cannotExplain: [],
+        masteryScore: 0, canExplain: [], cannotExplain: [],
         knowledgeGaps: [], rewriteSuggestion: '', answerSummary: '', nextAction: '',
       },
       status: 'done', version: 1,
@@ -83,6 +83,6 @@ describe('buildReport', () => {
     }
     const report = buildFullReport(analysis, { [claim.id]: [session] })
     expect(report).toContain('有效回答轮数：0')
-    expect(report).toContain('已掌握并跳过：基线是多少？')
+    expect(report).toContain('用户主动跳过（未验证）：基线是多少？')
   })
 })

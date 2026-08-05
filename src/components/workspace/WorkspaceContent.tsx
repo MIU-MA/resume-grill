@@ -112,7 +112,7 @@ export function WorkspaceContent({
   }
 
   return (
-    <div className="flex">
+    <div className="flex border border-border rounded-lg overflow-hidden">
       <InterviewView
         selected={activeClaim}
         turns={iv.rounds.map((r) => ({

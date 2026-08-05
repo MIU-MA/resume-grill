@@ -16,7 +16,7 @@
 
 ---
 
-Resume Grill 检查简历内容是否经得起追问。它从简历中提取项目、职责、技能和成果，生成与原文强相关的问题，再根据多轮回答整理证据缺口和待补强内容。
+Resume Grill 将简历中的项目、技能和成果转化为能力测试，通过连续追问检查实际场景、实现过程、技术原理、方案取舍和能力边界，并根据回答生成待补强知识点和简历表达建议。
 
 > 当前版本面向个人在本机运行，暂未提供线上部署方案。
 
@@ -27,12 +27,12 @@ Resume Grill 检查简历内容是否经得起追问。它从简历中提取项�
 |  简历导入 | 支持 PDF、DOCX、TXT、Markdown 和直接粘贴文本 |
 |  本地解析 | PDF、DOCX 在浏览器端解析（PDF.js / mammoth），无需上传原始文件 |
 |  提取校对 | 识别个人信息、教育、工作、实习、项目、技能、奖项等章节，支持人工修正 |
-|  陈述管理 | 从职责、技能、成果、数据等维度生成可追问陈述，支持删改、合并与优先级设定 |
+|  陈述管理 | 从职责、技能、成果、数据等维度生成能力声明，支持删改、合并与优先级设定 |
 |  岗位匹配 | 可选填岗位描述，检查 JD 要求是否有对应简历证据 |
-|  多轮追问 | 每条陈述进行 3~5 轮追问，覆盖点按回答累计计算 |
+|  能力测试 | 每条声明进行多轮追问，基于掌握要点（背景、实践、原理、决策、排查、边界）逐项验证 |
 |  不懂批注 | 标记术语请求通俗解释，澄清轮次不计入追问与覆盖统计 |
-|  分析报告 | 汇总已确认事实、证据缺口、改写建议和待补强盲区 |
-|  盲区管理 | 标记盲区为已掌握，基于原陈述创建新测试版本 |
+|  测试报告 | 汇总掌握度、已讲清内容、尚未讲清的要点和待补强知识点 |
+|  盲区管理 | 标记知识点为已掌握，基于原声明创建新测试版本 |
 |  导出 | 支持导出 Markdown 格式报告 |
 
 未配置模型时，应用仍可提供基于规则的简历分析预览。连续追问、回答判断和复盘需要一个可用的 OpenAI Chat Completions 兼容接口。
@@ -42,19 +42,19 @@ Resume Grill 检查简历内容是否经得起追问。它从简历中提取项�
 <table>
   <tr>
     <td align="center"><strong>简历确认</strong><br/>检查解析结果，选择保留的陈述</td>
-    <td align="center"><strong>声明审计</strong><br/>查看风险、证据缺口和追问重点</td>
+    <td align="center"><strong>能力清单</strong><br/>查看核心能力、掌握要点和测试优先级</td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/resume-review.png" width="100%" alt="简历确认页"></td>
-    <td><img src="docs/screenshots/audit.png" width="100%" alt="声明审计页"></td>
+    <td><img src="docs/screenshots/audit.png" width="100%" alt="能力清单页"></td>
   </tr>
   <tr>
-    <td align="center"><strong>面试追问</strong><br/>追问原因、当前问题、已有证据与考察方向</td>
-    <td align="center"><strong>分析报告</strong><br/>证据完整度、缺口与待补强盲区</td>
+    <td align="center"><strong>能力测试</strong><br/>通过连续追问验证每项掌握要点</td>
+    <td align="center"><strong>测试报告</strong><br/>掌握度、尚未讲清内容与待补强知识点</td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/interview.png" width="100%" alt="面试追问页"></td>
-    <td><img src="docs/screenshots/report.png" width="100%" alt="分析报告页"></td>
+    <td><img src="docs/screenshots/interview.png" width="100%" alt="能力测试页"></td>
+    <td><img src="docs/screenshots/report.png" width="100%" alt="测试报告页"></td>
   </tr>
 </table>
 

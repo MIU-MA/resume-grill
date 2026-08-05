@@ -24,8 +24,9 @@ export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, 
     return { claim, sessions: list, latest, status: latest?.status ?? 'todo' }
   })
   const doneSessions = sessionList.filter((s) => s.status === 'done' && s.latest?.finalResult)
-  const avgScore = doneSessions.length > 0
-    ? Math.round(doneSessions.reduce((sum, s) => sum + s.latest!.finalResult!.masteryScore, 0) / doneSessions.length / 5 * 100)
+  const scoredSessions = doneSessions.filter((s) => s.latest?.summaryStatus !== 'failed')
+  const avgScore = scoredSessions.length > 0
+    ? Math.round(scoredSessions.reduce((sum, s) => sum + s.latest!.finalResult!.masteryScore, 0) / scoredSessions.length / 5 * 100)
     : 0
   const masteredSet = new Set(masteredBlindSpotIds)
   const blindSpots = deriveBlindSpots(analysis, sessions)
@@ -152,18 +153,28 @@ export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, 
           <div className="p-4 space-y-3.5">
             {doneSessions.map(({ claim, latest }) => {
               const r = latest!.finalResult!
+              const isFailed = latest!.summaryStatus === 'failed'
               return (
                 <div key={claim.id} className="bg-white border border-border rounded-xl overflow-hidden">
                   <div className="flex items-center justify-between gap-4 px-4 py-3 bg-surface-soft border-b border-border">
                     <span className="text-[13px] font-bold">{claim.title}</span>
-                    <span className="text-text-tertiary text-[12px]">掌握度 {r.masteryScore}/5</span>
+                    {isFailed ? (
+                      <span className="text-text-tertiary text-[12px] text-warning">总结生成失败，请重新生成</span>
+                    ) : (
+                      <span className="text-text-tertiary text-[12px]">掌握度 {r.masteryScore}/5</span>
+                    )}
                   </div>
                   <div className="grid grid-cols-4 gap-4 border-b border-border px-5 py-4 max-[900px]:grid-cols-2 max-[520px]:grid-cols-1">
                     <ReportFact label="回答结论" value={r.answerSummary || '暂无结论'} />
                     <ReportFact label="已讲清" value={joinReportItems(r.canExplain)} tone="success" />
                     <ReportFact label="尚未讲清" value={joinReportItems(r.cannotExplain)} tone="warning" />
-                    <ReportFact label="下一步行动" value={r.nextAction || joinReportItems(r.knowledgeGaps)} />
+                    <ReportFact label="待补强知识点" value={joinReportItems(r.knowledgeGaps)} />
                   </div>
+                  {r.nextAction && (
+                    <div className="border-b border-border px-5 py-3">
+                      <ReportFact label="下一步行动" value={r.nextAction} />
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 max-[760px]:grid-cols-1">
                     <div className="p-5 min-h-[140px]">
                       <div className="text-text-tertiary text-[11px] font-bold mb-2">原文</div>
