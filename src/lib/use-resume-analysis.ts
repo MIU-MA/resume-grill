@@ -44,8 +44,8 @@ export function useResumeAnalysis(
   )
 
   const handleExtracted = useCallback(
-    (extracted: ExtractedText, sourceFile: string) => {
-      ws.setPendingExtracted({ extracted, sourceFile })
+    (extracted: ExtractedText, sourceFile: string, demo = false) => {
+      ws.setPendingExtracted({ extracted, sourceFile, demo })
       ws.setError(null)
       push('review')
     },
@@ -103,8 +103,16 @@ export function useResumeAnalysis(
           analysisGoal: AnalysisGoal
           reviewedCandidates: ReviewedCandidate[]
           jobDescription: string
+          demo?: boolean
           llm?: LlmSettings
-        } = { rawText, sourceFile, analysisGoal, reviewedCandidates, jobDescription }
+        } = {
+          rawText,
+          sourceFile,
+          analysisGoal,
+          reviewedCandidates,
+          jobDescription,
+          demo: ws.pendingExtracted?.demo ?? false,
+        }
         if (llm) body.llm = llm
 
         const res = await fetch('/api/analyze', {

@@ -22,6 +22,7 @@ export function useResumeWorkspace(phase: Phase) {
   const [pendingExtracted, setPendingExtracted] = useState<{
     extracted: ExtractedText
     sourceFile: string
+    demo?: boolean
   } | null>(null)
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [sessions, setSessions] = useState<Record<string, InterviewSession[]>>({})

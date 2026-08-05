@@ -17,9 +17,9 @@ export type UseResumeWorkspace = {
 
   analysis: ResumeAnalysis | null
   setAnalysis: Dispatch<SetStateAction<ResumeAnalysis | null>>
-  pendingExtracted: { extracted: ExtractedText; sourceFile: string } | null
+  pendingExtracted: { extracted: ExtractedText; sourceFile: string; demo?: boolean } | null
   setPendingExtracted: Dispatch<
-    SetStateAction<{ extracted: ExtractedText; sourceFile: string } | null>
+    SetStateAction<{ extracted: ExtractedText; sourceFile: string; demo?: boolean } | null>
   >
   selectedIndex: number
   setSelectedIndex: Dispatch<SetStateAction<number>>

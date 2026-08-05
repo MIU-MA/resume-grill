@@ -23,6 +23,7 @@ const requestSchema = z.object({
       model: z.string().optional(),
     })
     .optional(),
+  demo: z.boolean().optional(),
 })
 
 export async function POST(request: Request) {
@@ -106,11 +107,18 @@ export async function POST(request: Request) {
       return NextResponse.json(analysis)
     }
 
-    return NextResponse.json(mockAnalyze(body.rawText, body.sourceFile, {
-      analysisGoal: body.analysisGoal,
-      candidates: body.reviewedCandidates,
-      jobDescription: body.jobDescription,
-    }))
+    if (body.demo) {
+      return NextResponse.json(mockAnalyze(body.rawText, body.sourceFile, {
+        analysisGoal: body.analysisGoal,
+        candidates: body.reviewedCandidates,
+        jobDescription: body.jobDescription,
+      }))
+    }
+
+    return NextResponse.json(
+      { error: '未配置模型服务：真实简历分析需要先配置模型（在首页点击「配置模型」填写 Base URL / API Key / Model）。示例简历体验无需配置。' },
+      { status: 400 },
+    )
   } catch (error) {
     const message = error instanceof Error ? error.message : '分析失败'
     return NextResponse.json({ error: message }, { status: 500 })

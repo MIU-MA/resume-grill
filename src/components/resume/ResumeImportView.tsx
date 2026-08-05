@@ -38,7 +38,7 @@ type Tab = 'file' | 'paste'
 type ResumeImportViewProps = {
   analyzing: boolean
   error: string | null
-  onExtracted: (extracted: ExtractedText, sourceFile: string) => void
+  onExtracted: (extracted: ExtractedText, sourceFile: string, demo?: boolean) => void
   envConfigured: boolean
   clientConfigured: boolean
   onClientChanged: () => void
@@ -140,7 +140,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
             )}
 
             <div className="mt-5 text-center">
-              <Button variant="ghost" className="text-text-tertiary text-[13px]" onClick={() => onExtracted({ text: SAMPLE_RESUME, pageCount: 1, charCount: SAMPLE_RESUME.length }, '示例简历.txt')}>
+              <Button variant="ghost" className="text-text-tertiary text-[13px]" onClick={() => onExtracted({ text: SAMPLE_RESUME, pageCount: 1, charCount: SAMPLE_RESUME.length }, '示例简历.txt', true)}>
                 <FileText size={14} />使用示例简历体验
               </Button>
             </div>
