@@ -64,7 +64,7 @@ export async function llmStructured<T>(
       signal: options?.signal,
     })
   } catch (error) {
-    if (error instanceof Error && error.name === 'TimeoutError') {
+    if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
       throw new Error('模型请求超时，请稍后重试或缩短输入。')
     }
     // 网络层失败

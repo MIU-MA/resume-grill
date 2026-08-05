@@ -36,8 +36,8 @@ export async function POST(request: Request) {
     }
 
     await llmStructured(
-      '你是一个测试助手。输出 {"ok": true}',
-      '请回复 ok',
+      '你是一个测试助手。请只输出 JSON：{"ok": true}',
+      '请用 JSON 回复 ok',
       echoSchema,
       config,
       { signal: withTimeout(TEST_CONNECTION_TIMEOUT), maxTokens: 50 },

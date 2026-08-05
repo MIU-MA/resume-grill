@@ -3,12 +3,11 @@ import { Download, FileJson, FileText, MoreHorizontal } from 'lucide-react'
 import type { ResumeAnalysis } from '@/domain/resume-schema'
 import { Button } from '@/components/ui/Button'
 import { SettingsPopover } from '@/components/settings/SettingsPopover'
-
-type LlmMode = { label: string; cls: 'local' | 'env' | 'mock' } | null
+import type { LlmMode } from '@/lib/use-llm-status'
 
 type WorkspaceTopBarProps = {
   analysis: ResumeAnalysis
-  llmMode: LlmMode
+  llmMode: LlmMode | null
   envConfigured: boolean
   clientConfigured: boolean
   onClientChanged: () => void
@@ -44,8 +43,8 @@ export function WorkspaceTopBar({ analysis, llmMode, envConfigured, clientConfig
       <div className="flex items-center gap-2 flex-none">
         {llmMode && (
           <span className="text-text-tertiary text-[12px] hidden md:inline-flex items-center gap-2">
-            <span className={`size-1.5 rounded-full ${llmMode.cls === 'local' ? 'bg-success' : llmMode.cls === 'env' ? 'bg-brand' : 'bg-warning'}`} />
-            {llmMode.label}
+            <span className={`size-1.5 rounded-full ${llmMode.testResult === 'ok' ? 'bg-success' : llmMode.testResult === 'fail' ? 'bg-danger' : llmMode.cls === 'local' ? 'bg-success' : llmMode.cls === 'env' ? 'bg-brand' : 'bg-warning'}`} />
+            {llmMode.testResult === 'ok' ? '已连接' : llmMode.testResult === 'fail' ? '连接失败' : llmMode.label}
           </span>
         )}
         <SettingsPopover envConfigured={envConfigured} clientConfigured={clientConfigured} onClientChanged={onClientChanged} compact />

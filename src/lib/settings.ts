@@ -7,6 +7,9 @@ export type LlmSettings = {
 }
 
 const STORAGE_KEY = 'resume-grill-llm'
+const TEST_RESULT_KEY = 'resume-grill-llm:test'
+
+export type TestResult = 'ok' | 'fail'
 
 export function getLlmSettings(): LlmSettings | null {
   if (typeof window === 'undefined') return null
@@ -35,4 +38,26 @@ export function clearLlmSettings() {
 
 export function hasClientLlm(): boolean {
   return getLlmSettings() !== null
+}
+
+export function getTestResult(): TestResult | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const v = window.localStorage.getItem(TEST_RESULT_KEY)
+    return v === 'ok' || v === 'fail' ? v : null
+  } catch {
+    return null
+  }
+}
+
+export function setTestResult(r: TestResult) {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(TEST_RESULT_KEY, r)
+  window.dispatchEvent(new CustomEvent('llm-test-result'))
+}
+
+export function clearTestResult() {
+  if (typeof window === 'undefined') return
+  window.localStorage.removeItem(TEST_RESULT_KEY)
+  window.dispatchEvent(new CustomEvent('llm-test-result'))
 }

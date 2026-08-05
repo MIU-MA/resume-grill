@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { CheckCircle, Eye, EyeOff, Loader2, Trash2, XCircle } from 'lucide-react'
-import { clearLlmSettings, getLlmSettings, setLlmSettings, type LlmSettings } from '@/lib/settings'
+import { clearLlmSettings, clearTestResult as clearPersistedTestResult, getLlmSettings, setLlmSettings, setTestResult as persistTestResult, type LlmSettings } from '@/lib/settings'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
 
@@ -26,10 +26,12 @@ function deriveMode(envConfigured: boolean, clientConfigured: boolean): Mode {
   return { label: '规则示例', cls: 'mock' }
 }
 
-const CHIP_VARIANT: Record<Mode['cls'], string> = {
+const CHIP_VARIANT: Record<Mode['cls'] | 'success' | 'danger', string> = {
   local: 'text-success bg-green-soft',
   env: 'text-brand bg-brand-soft',
   mock: 'text-warning bg-warning-soft',
+  success: 'text-success bg-green-soft',
+  danger: 'text-danger bg-danger-soft',
 }
 
 type ModelSettingsProps = {
@@ -65,10 +67,10 @@ export function ModelSettings({ envConfigured, clientConfigured, onClientChanged
 
   const handleSave = () => { setLlmSettings(form); onClientChanged() }
 
-  const handleClear = () => { clearLlmSettings(); setForm(DEFAULTS); setProviderIdx(-1); onClientChanged() }
+  const handleClear = () => { clearLlmSettings(); clearPersistedTestResult(); setForm(DEFAULTS); setProviderIdx(-1); setTestResult('idle'); setTestError(''); onClientChanged() }
 
   const handleTest = async () => {
-    setTestResult('idle'); setTestError(''); setTesting(true)
+    setTestResult('idle'); setTestError(''); clearPersistedTestResult(); setTesting(true)
     try {
       const res = await fetch('/api/test-connection', {
         method: 'POST',
@@ -76,21 +78,22 @@ export function ModelSettings({ envConfigured, clientConfigured, onClientChanged
         body: JSON.stringify({ llm: form }),
       })
       const data = await res.json().catch(() => ({}))
-      setTestResult(res.ok ? 'ok' : 'fail')
-      if (!res.ok) setTestError(data.error ?? '连接失败')
+      if (res.ok) { setTestResult('ok'); persistTestResult('ok') }
+      else { setTestResult('fail'); setTestError(data.error ?? '连接失败'); persistTestResult('fail') }
     } catch {
       setTestResult('fail')
       setTestError('网络请求失败，请检查 Base URL')
+      persistTestResult('fail')
     } finally { setTesting(false) }
   }
 
-  const resetTest = () => { setTestResult('idle'); setTestError('') }
+  const resetTest = () => { setTestResult('idle'); setTestError(''); clearPersistedTestResult() }
 
   return (
     <div className="overflow-hidden rounded-lg border border-line bg-white shadow-[0_12px_40px_rgba(27,40,34,.1)]">
       <div className="border-b border-line bg-surface-soft px-3 py-2">
-        <span className={cn('inline-flex h-[21px] items-center gap-1.5 rounded-lg px-2 text-[10px] font-650 whitespace-nowrap', CHIP_VARIANT[mode.cls])}>
-          <i className="size-[6px] flex-none rounded-full bg-current" />{mode.label}
+        <span className={cn('inline-flex h-[21px] items-center gap-1.5 rounded-lg px-2 text-[10px] font-650 whitespace-nowrap', CHIP_VARIANT[testResult === 'ok' ? 'success' : testResult === 'fail' ? 'danger' : mode.cls])}>
+          <i className="size-[6px] flex-none rounded-full bg-current" />{testResult === 'ok' ? '已连接' : testResult === 'fail' ? '连接失败' : mode.label}
         </span>
       </div>
       <div className="flex flex-col gap-3 p-3">

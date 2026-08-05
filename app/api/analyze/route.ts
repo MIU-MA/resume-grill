@@ -16,7 +16,6 @@ const requestSchema = z.object({
   analysisGoal: analysisGoalSchema.default('overall'),
   reviewedCandidates: z.array(reviewedCandidateSchema).min(1).max(80).optional(),
   jobDescription: z.string().trim().max(12000).optional(),
-  // 可选：前端在设置页填入的 Key；未填则回落服务端 env，再无则走规则示例。
   llm: z
     .object({
       baseUrl: z.string().optional(),
@@ -54,7 +53,7 @@ export async function POST(request: Request) {
         }),
         llmAnalysisSchema,
         config,
-        { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 4000 },
+        { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 10000 },
       )
       const filteredClaims = partial.claims.flatMap((claim) => {
         if (isExcludedClaimContent(claim.content)) return []

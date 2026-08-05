@@ -4,12 +4,11 @@ import type { ReactNode } from 'react'
 import type { ResumeAnalysis } from '@/domain/resume-schema'
 import { Toast } from '@/components/ui/Toast'
 import { WorkspaceTopBar } from '@/components/workspace/WorkspaceTopBar'
-
-type LlmMode = { label: string; cls: 'local' | 'env' | 'mock' } | null
+import type { LlmMode } from '@/lib/use-llm-status'
 
 type WorkspaceShellProps = {
   analysis: ResumeAnalysis
-  llmMode: LlmMode
+  llmMode: LlmMode | null
   envConfigured: boolean
   clientConfigured: boolean
   toast: string
