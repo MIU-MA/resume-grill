@@ -85,8 +85,28 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
           )
           return
         }
+
+        if (session.summaryStatus === 'failed') {
+          lines.push(
+            '',
+            `### 第 ${i + 1} 版（${session.version}）测试报告`,
+            '- 总结状态：生成失败',
+            `- 有效回答轮数：${session.rounds.filter((round) => round.action === 'answer').length}`,
+            '- 说明：问答记录已保留，请重新生成总结后再查看掌握度。',
+          )
+          return
+        }
+
         const s = session.finalResult
-        if (!s) return
+        if (!s) {
+          lines.push(
+            '',
+            `### 第 ${i + 1} 版（${session.version}）测试报告`,
+            '- 总结状态：正在生成',
+            `- 有效回答轮数：${session.rounds.filter((round) => round.action === 'answer').length}`,
+          )
+          return
+        }
         const annotations = session.rounds
           .map((round) => round.annotation?.trim())
           .filter((annotation): annotation is string => Boolean(annotation))

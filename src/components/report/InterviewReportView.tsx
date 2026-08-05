@@ -29,7 +29,7 @@ export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, 
   const scoredSessions = doneSessions.filter((s) => hasFinal(s) && s.latest?.summaryStatus !== 'failed')
   const avgScore = scoredSessions.length > 0
     ? Math.round(scoredSessions.reduce((sum, s) => sum + s.latest!.finalResult!.masteryScore, 0) / scoredSessions.length / 5 * 100)
-    : 0
+    : null
   const masteredSet = new Set(masteredBlindSpotIds)
   const blindSpots = deriveBlindSpots(analysis, sessions)
     .sort((a, b) => Number(masteredSet.has(a.id)) - Number(masteredSet.has(b.id)))
@@ -63,11 +63,11 @@ export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, 
           </div>
         </div>
         <div className="bg-white border border-border rounded-xl shadow-[0_1px_3px_rgba(16,24,40,0.04)] p-6 grid place-items-center text-center">
-          <div className="relative w-[132px] h-[132px] rounded-full grid place-items-center" style={{ background: `conic-gradient(#2563eb 0 ${avgScore}%, #e5e7eb ${avgScore}% 100%)` }}>
+          <div className="relative w-[132px] h-[132px] rounded-full grid place-items-center" style={{ background: `conic-gradient(#2563eb 0 ${avgScore ?? 0}%, #e5e7eb ${avgScore ?? 0}% 100%)` }}>
             <div className="absolute w-[102px] h-[102px] rounded-full bg-white" />
             <span className="relative z-10 text-[28px] font-extrabold tracking-[-0.03em]">
-              {avgScore}
-              <small className="block text-[11px] text-text-tertiary font-semibold tracking-normal mt-1">掌握度</small>
+              {avgScore ?? '--'}
+              <small className="block text-[11px] text-text-tertiary font-semibold tracking-normal mt-1">{avgScore === null ? '暂无评分' : '掌握度'}</small>
             </span>
           </div>
         </div>
@@ -156,40 +156,47 @@ export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, 
           <h3 className="text-[18px] font-bold tracking-[-0.02em] px-1">简历改写建议</h3>
           <div className="p-4 space-y-3.5">
             {doneSessions.map(({ claim, latest }) => {
-              const r = latest?.finalResult
+              const result = latest?.finalResult
               const isFailed = latest?.summaryStatus === 'failed'
-              const isLoading = !r
+              const isLoading = latest?.status === 'done' && latest?.summaryStatus === undefined && result === null
               return (
                 <div key={claim.id} className="bg-white border border-border rounded-xl overflow-hidden">
-                  <div className="flex items-center justify-between gap-4 px-4 py-3 bg-surface-soft border-b border-border">
-                    <span className="text-[13px] font-bold">{claim.title}</span>
-                    {isLoading ? (
-                      <span className="text-text-tertiary text-[12px] inline-flex items-center gap-1.5">
-                        <span className="size-3 rounded-full border-2 border-brand border-t-transparent animate-spin" />正在生成总结…
-                      </span>
-                    ) : isFailed ? (
-                      <span className="text-text-tertiary text-[12px] text-warning">总结生成失败，请重新生成</span>
-                    ) : (
-                      <span className="text-text-tertiary text-[12px]">掌握度 {r!.masteryScore}/5</span>
-                    )}
-                  </div>
                   {isLoading ? (
                     <div className="p-5 space-y-3 animate-pulse">
-                      <div className="h-3 bg-border rounded w-2/3" />
-                      <div className="h-3 bg-border rounded w-1/2" />
-                      <div className="h-3 bg-border rounded w-3/4" />
+                      <div className="h-4 w-1/3 rounded bg-border" />
+                      <div className="h-3 w-2/3 rounded bg-border" />
+                      <div className="h-3 w-1/2 rounded bg-border" />
                     </div>
-                  ) : (
+                  ) : isFailed ? (
+                    <div className="flex items-center justify-between gap-4 p-5">
+                      <div>
+                        <p className="text-[13px] font-semibold text-warning">总结生成失败</p>
+                        <p className="mt-1 text-[12px] text-text-tertiary">问答记录已经保存，可以重新生成总结。</p>
+                      </div>
+                      <Button
+                        variant="secondary"
+                        className="text-[12px]"
+                        disabled={regeneratingId === latest!.id}
+                        onClick={() => onRegenerateSummary(claim, latest!)}
+                      >
+                        <RefreshCw size={13} />{regeneratingId === latest!.id ? '正在生成…' : '重新生成报告'}
+                      </Button>
+                    </div>
+                  ) : result ? (
                     <>
-                    <div className="grid grid-cols-4 gap-4 border-b border-border px-5 py-4 max-[900px]:grid-cols-2 max-[520px]:grid-cols-1">
-                      <ReportFact label="回答结论" value={r!.answerSummary || '暂无结论'} />
-                      <ReportFact label="已讲清" value={joinReportItems(r!.canExplain)} tone="success" />
-                      <ReportFact label="尚未讲清" value={joinReportItems(r!.cannotExplain)} tone="warning" />
-                      <ReportFact label="待补强知识点" value={joinReportItems(r!.knowledgeGaps)} />
+                    <div className="flex items-center justify-between gap-4 px-4 py-3 bg-surface-soft border-b border-border">
+                      <span className="text-[13px] font-bold">{claim.title}</span>
+                      <span className="text-text-tertiary text-[12px]">掌握度 {result.masteryScore}/5</span>
                     </div>
-                    {r!.nextAction && (
+                    <div className="grid grid-cols-4 gap-4 border-b border-border px-5 py-4 max-[900px]:grid-cols-2 max-[520px]:grid-cols-1">
+                      <ReportFact label="回答结论" value={result.answerSummary || '暂无结论'} />
+                      <ReportFact label="已讲清" value={joinReportItems(result.canExplain)} tone="success" />
+                      <ReportFact label="尚未讲清" value={joinReportItems(result.cannotExplain)} tone="warning" />
+                      <ReportFact label="待补强知识点" value={joinReportItems(result.knowledgeGaps)} />
+                    </div>
+                    {result.nextAction && (
                       <div className="border-b border-border px-5 py-3">
-                        <ReportFact label="下一步行动" value={r!.nextAction} />
+                        <ReportFact label="下一步行动" value={result.nextAction} />
                       </div>
                     )}
                     <div className="grid grid-cols-2 max-[760px]:grid-cols-1">
@@ -199,24 +206,19 @@ export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, 
                       </div>
                       <div className="p-5 min-h-[140px] bg-success-soft/30 border-l border-border max-[760px]:border-l-0 max-[760px]:border-t">
                         <div className="text-text-tertiary text-[11px] font-bold mb-2">建议版本</div>
-                        <p className="text-success text-[13px] leading-[1.7]">{r!.rewriteSuggestion}</p>
+                        <p className="text-success text-[13px] leading-[1.7]">{result.rewriteSuggestion}</p>
                         <div className="flex items-center gap-2 mt-3">
-                          <Button variant="ghost" className="text-[12px]" onClick={() => onRewrite(claim, r!.rewriteSuggestion)}>
+                          <Button variant="ghost" className="text-[12px]" onClick={() => onRewrite(claim, result.rewriteSuggestion)}>
                             <ArrowRight size={13} />重新测试
                           </Button>
-                          <Button variant="ghost" className="text-[12px]" onClick={() => navigator.clipboard?.writeText(r!.rewriteSuggestion)}>
+                          <Button variant="ghost" className="text-[12px]" onClick={() => navigator.clipboard?.writeText(result.rewriteSuggestion)}>
                             <Clipboard size={13} />复制
                           </Button>
-                          {latest!.summaryStatus === 'failed' && (
-                            <Button variant="ghost" className="text-[12px]" disabled={regeneratingId === latest!.id} onClick={() => onRegenerateSummary(claim, latest!)}>
-                              <RefreshCw size={13} />重新生成报告
-                            </Button>
-                          )}
                         </div>
                       </div>
                     </div>
                     </>
-                  )}
+                  ) : null}
                 </div>
               )
             })}

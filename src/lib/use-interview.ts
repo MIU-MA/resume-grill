@@ -108,13 +108,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
     const snapshot = activeClaimSnapshot ?? claim
     const sessionId = `${snapshot.id}:v${version}`
     const claimAnalysis = cache.current.get(cacheKey(snapshot))!
-    let finalResult: FinalResult = {
-      masteryScore: 0, masteryLevel: 'not_demonstrated',
-      canExplain: [], cannotExplain: ['总结生成失败'],
-      knowledgeGaps: [], rewriteSuggestion: '',
-      answerSummary: '本次总结没有成功生成，但问答记录已经保留。',
-      nextAction: '稍后重新生成总结。',
-    }
+    let finalResult: FinalResult | null = null
     let summarySucceeded = false
 
     // 先保存 without summaryStatus，UI 会显示 loading
