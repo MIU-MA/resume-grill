@@ -25,7 +25,7 @@ export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, 
   })
   const doneSessions = sessionList.filter((s) => s.status === 'done')
   const hasFinal = (s: typeof doneSessions[number]) => s.latest?.finalResult != null
-  const summarizing = doneSessions.some((s) => !hasFinal(s))
+  const summarizing = doneSessions.some((s) => !hasFinal(s) && s.latest?.summaryStatus === undefined)
   const scoredSessions = doneSessions.filter((s) => hasFinal(s) && s.latest?.summaryStatus !== 'failed')
   const avgScore = scoredSessions.length > 0
     ? Math.round(scoredSessions.reduce((sum, s) => sum + s.latest!.finalResult!.masteryScore, 0) / scoredSessions.length / 5 * 100)
@@ -170,8 +170,8 @@ export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, 
                   ) : isFailed ? (
                     <div className="flex items-center justify-between gap-4 p-5">
                       <div>
-                        <p className="text-[13px] font-semibold text-warning">总结生成失败</p>
-                        <p className="mt-1 text-[12px] text-text-tertiary">问答记录已经保存，可以重新生成总结。</p>
+                        <p className="text-[13px] font-semibold text-text-primary">{claim.title}</p>
+                        <p className="mt-1 text-[12px] text-warning">总结生成失败，问答记录已经保存。</p>
                       </div>
                       <Button
                         variant="secondary"
