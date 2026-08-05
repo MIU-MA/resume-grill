@@ -18,8 +18,57 @@ export const CLAIM_CATEGORY_LABELS: Record<ClaimCategory, string> = {
   metric: '数据声明',
 }
 
-export const riskLevelSchema = z.enum(['high', 'medium', 'low'])
-export type RiskLevel = z.infer<typeof riskLevelSchema>
+export const masteryDimensionSchema = z.enum([
+  'context',
+  'practice',
+  'principle',
+  'decision',
+  'troubleshooting',
+  'boundary',
+])
+export type MasteryDimension = z.infer<typeof masteryDimensionSchema>
+
+export const MASTERY_DIMENSION_LABELS: Record<MasteryDimension, string> = {
+  context: '背景与动机',
+  practice: '实践与实现',
+  principle: '原理与机制',
+  decision: '决策与取舍',
+  troubleshooting: '问题与排查',
+  boundary: '限制与边界',
+}
+
+export const masteryPointSchema = z.object({
+  point: z.string().max(60),
+  dimension: masteryDimensionSchema,
+  importance: z.enum(['high', 'medium', 'low']),
+})
+export type MasteryPoint = z.infer<typeof masteryPointSchema>
+
+export const testPrioritySchema = z.enum(['high', 'medium', 'low'])
+export type TestPriority = z.infer<typeof testPrioritySchema>
+
+export const TEST_PRIORITY_LABELS: Record<TestPriority, string> = {
+  high: '优先测试',
+  medium: '建议测试',
+  low: '可选测试',
+}
+
+export const compactClaimSchema = z.object({
+  candidateIndex: z.number().int().nonnegative(),
+  category: claimCategorySchema,
+  capability: z.string().max(40),
+  masteryPoints: z.array(masteryPointSchema).min(3).max(4),
+  initialQuestion: z.string().max(120),
+})
+export type CompactClaim = z.infer<typeof compactClaimSchema>
+
+export const compactAnalysisSchema = z.object({
+  candidate: z.string(),
+  role: z.string(),
+  summary: z.string().max(100),
+  claims: z.array(compactClaimSchema).min(3).max(4),
+})
+export type CompactAnalysis = z.infer<typeof compactAnalysisSchema>
 
 export const llmResumeClaimSchema = z.object({
   content: z.string(),
@@ -27,19 +76,14 @@ export const llmResumeClaimSchema = z.object({
   category: claimCategorySchema,
   role: z.string(),
   sourceSection: z.string(),
-  exaggerationRisk: riskLevelSchema,
-  interviewRisk: riskLevelSchema,
-  evidenceGap: z.array(z.string()),
-  evidence: z.array(z.string()),
+  capability: z.string(),
+  masteryPoints: z.array(masteryPointSchema).min(1),
   initialQuestion: z.string(),
   initialIntent: z.string().optional().default(''),
-  evaluationPoints: z.array(z.string()).min(1),
-  verifyPoints: z.array(z.object({
-    point: z.string(),
-    importance: z.enum(['high', 'medium', 'low']),
-  })).optional().default([]),
   trapPoints: z.array(z.string()).optional().default([]),
+  testPriority: testPrioritySchema.optional().default('medium'),
 })
+export type LlmResumeClaim = z.infer<typeof llmResumeClaimSchema>
 
 export const resumeClaimSchema = llmResumeClaimSchema.extend({
   id: z.string().min(1),
@@ -78,12 +122,19 @@ export function createClaimId(
 }
 
 export function attachClaimIds(
-  claims: z.infer<typeof llmResumeClaimSchema>[],
+  claims: LlmResumeClaim[],
 ): ResumeClaim[] {
   return claims.map((claim, index) => ({
     ...claim,
     id: createClaimId(claim, index),
   }))
+}
+
+export function computeTestPriority(points: MasteryPoint[]): TestPriority {
+  const highCount = points.filter((p) => p.importance === 'high').length
+  if (highCount >= 3) return 'high'
+  if (highCount >= 1) return 'medium'
+  return 'low'
 }
 
 export const resumeAnalysisSchema = z.object({

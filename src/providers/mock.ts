@@ -2,9 +2,9 @@ import {
   resumeAnalysisSchema,
   createClaimId,
   type ClaimCategory,
+  type MasteryPoint,
   type ResumeAnalysis,
   type ResumeClaim,
-  type RiskLevel,
 } from '@/domain/resume-schema'
 import { buildStructuredResumeInput, extractLooseClaimCandidates, extractResumeClaimCandidates } from '@/lib/resume-structure'
 import type { AnalysisGoal, ReviewedCandidate } from '@/domain/analysis-config'
@@ -25,65 +25,88 @@ const ROLE_RULES: { role: string; keywords: string[] }[] = [
 
 const CATEGORY_RULES: { category: ClaimCategory; keywords: string[] }[] = [
   { category: 'metric', keywords: ['万', '用户量', '人数', '团队', '预算', '规模', 'DAU', 'MAU', '亿元', '千万'] },
-  {
-    category: 'achievement',
-    keywords: ['提升', '降低', '增长', '减少', '优化', '缩短', '提高', '下降', '节约', '增加', '%'],
-  },
+  { category: 'achievement', keywords: ['提升', '降低', '增长', '减少', '优化', '缩短', '提高', '下降', '节约', '增加', '%'] },
   { category: 'leadership', keywords: ['带领', '管理', '组建', '搭建', '主导', '统筹', '培养', '团队', '负责设计', '建立'] },
   { category: 'responsibility', keywords: ['负责', '主导', '参与', '承担', '牵头', '组织', '推动'] },
   { category: 'skill', keywords: ['熟练', '掌握', '使用', '熟悉', '精通', '运用'] },
 ]
 
-const CATEGORY_TEMPLATES: Record<
-  ClaimCategory,
-  { gaps: string[]; question: string; points: string[]; followUps: string[] }
-> = {
+type MockTemplate = {
+  capability: string
+  question: string
+  masteryPoints: MasteryPoint[]
+  traps: string[]
+}
+
+const CATEGORY_TEMPLATES: Record<ClaimCategory, MockTemplate> = {
   achievement: {
-    gaps: ['改造前的基线数据', '个人贡献与团队贡献的区分', '指标的统计口径与时间窗口'],
-    question: '这个成果的基线是多少？具体如何计算的？',
-    points: ['说明改造前后的量化指标', '区分个人与团队的贡献', '说明指标如何统计与验证'],
-    followUps: ['你个人贡献和团队贡献分别占多少？', '这个指标的统计口径是什么？', '如果没有你，这个结果是否仍会发生？'],
+    capability: '量化成果达成能力',
+    question: '这个成果的基线是多少？具体如何计算和验证的？',
+    masteryPoints: [
+      { point: '说明改造前后的量化指标', dimension: 'context', importance: 'high' },
+      { point: '能区分个人与团队的贡献', dimension: 'decision', importance: 'high' },
+      { point: '说明指标如何统计与验证', dimension: 'principle', importance: 'high' },
+      { point: '说明具体的执行过程', dimension: 'practice', importance: 'medium' },
+      { point: '说明方案的限制或副作用', dimension: 'boundary', importance: 'medium' },
+    ],
+    traps: ['只提结果不提过程', '无法区分个人和团队贡献'],
   },
   responsibility: {
-    gaps: ['具体负责的决策范围', '与他人职责的边界', '决策带来的影响'],
-    question: '“负责”具体包括哪些决策？你的决策权到哪里？',
-    points: ['说明具体职责范围', '说明如何发现问题', '说明决策带来的结果'],
-    followUps: ['你负责的关键决策有哪些？', '和别人职责的边界在哪？', '上线后用什么验证效果？'],
+    capability: '职责承担与决策执行能力',
+    question: '你说的"负责"具体包括哪些决策？你的决策权到哪里？',
+    masteryPoints: [
+      { point: '说明具体职责范围和决策权', dimension: 'context', importance: 'high' },
+      { point: '说明如何发现和定义问题', dimension: 'decision', importance: 'high' },
+      { point: '说明具体的执行过程', dimension: 'practice', importance: 'high' },
+      { point: '说明决策带来的实际结果', dimension: 'principle', importance: 'medium' },
+      { point: '说明职责与他人职责的边界', dimension: 'boundary', importance: 'medium' },
+    ],
+    traps: ['只说负责不说具体决策', '描述过于笼统没有细节'],
   },
   metric: {
-    gaps: ['规模的统计方式', '规模对应的周期', '同行业可比基准'],
-    question: '这个数字的统计口径是什么？覆盖多长时间？',
-    points: ['说明规模如何统计', '说明对应的时间周期', '提供可对比的基准'],
-    followUps: ['这个规模怎么统计出来的？', '和同行业相比处于什么水平？', '规模背后的关键驱动是什么？'],
+    capability: '数据统计与归因分析能力',
+    question: '这个数字怎么统计出来的？统计口径和周期是什么？',
+    masteryPoints: [
+      { point: '说明数据的统计方式', dimension: 'practice', importance: 'high' },
+      { point: '说明统计口径和时间周期', dimension: 'principle', importance: 'high' },
+      { point: '能提供可对比的基准', dimension: 'context', importance: 'high' },
+      { point: '说明数据波动的原因', dimension: 'troubleshooting', importance: 'medium' },
+      { point: '说明数据的局限性', dimension: 'boundary', importance: 'medium' },
+    ],
+    traps: ['无法说明统计口径', '没有对比基准说不出好坏'],
   },
   skill: {
-    gaps: ['使用深度与场景', '遇到过的典型问题', '为什么选它而非替代方案'],
-    question: '你在什么场景下、用到什么程度使用它？',
-    points: ['说明具体使用场景', '说明掌握的深度', '举一个遇到的典型问题'],
-    followUps: ['遇到过什么典型问题？怎么解决的？', '为什么选择它而不是替代方案？', '它的边界和局限是什么？'],
+    capability: '技术实践与工具掌握能力',
+    question: '你在什么场景下、用到什么程度使用它？遇到过什么问题？',
+    masteryPoints: [
+      { point: '说明具体的使用场景', dimension: 'context', importance: 'high' },
+      { point: '说明掌握深度和实际应用', dimension: 'practice', importance: 'high' },
+      { point: '说明为什么选择它而非替代', dimension: 'decision', importance: 'high' },
+      { point: '说明遇到过的典型问题', dimension: 'troubleshooting', importance: 'medium' },
+      { point: '说明它的边界和局限性', dimension: 'boundary', importance: 'medium' },
+    ],
+    traps: ['只会说工具名不会说使用场景', '不了解替代方案'],
   },
   leadership: {
-    gaps: ['团队规模与构成', '你的管理决策', '管理带来的结果'],
-    question: '你带的是什么样的团队？你在其中做了哪些管理决策？',
-    points: ['说明团队规模与构成', '说明关键管理决策', '说明管理带来的结果'],
-    followUps: ['团队多大？怎么分工的？', '你做过哪些关键的管理决策？', '管理前后团队有什么变化？'],
+    capability: '团队管理与组织协调能力',
+    question: '你带的是什么样的团队？你在其中做了哪些关键的管理决策？',
+    masteryPoints: [
+      { point: '说明团队规模和构成', dimension: 'context', importance: 'high' },
+      { point: '说明关键管理决策', dimension: 'decision', importance: 'high' },
+      { point: '说明管理带来的实际结果', dimension: 'practice', importance: 'high' },
+      { point: '说明管理过程中解决的问题', dimension: 'troubleshooting', importance: 'medium' },
+      { point: '说明管理方式的局限性', dimension: 'boundary', importance: 'medium' },
+    ],
+    traps: ['只说管人说不出团队构成', '无法说出具体的管理决策'],
   },
 }
 
 const DEFAULT_INTENTS: Record<ClaimCategory, string> = {
-  achievement: '验证成果真实性和个人贡献占比',
+  achievement: '验证成果归因和个人贡献占比',
   responsibility: '确认职责深度和决策边界',
   metric: '核实数据口径和统计方式',
   skill: '评估技能掌握程度和实际场景',
   leadership: '了解团队构成和关键管理决策',
-}
-
-const CATEGORY_TRAP_MAP: Record<ClaimCategory, string[]> = {
-  achievement: ['只提结果不提过程', '无法区分个人和团队贡献'],
-  responsibility: ['只说负责不说具体的决策', '描述过于笼统'],
-  metric: ['无法说明统计口径', '没有对比基准'],
-  skill: ['只会说工具名不会说使用场景', '不了解替代方案'],
-  leadership: ['只说管理团队不说团队构成', '无法说明管理决策'],
 }
 
 function detectRole(text: string): string {
@@ -111,10 +134,6 @@ function hasNumber(s: string): boolean {
   return /\d/.test(s)
 }
 
-function extractMetrics(content: string): string[] {
-  return [...new Set(content.match(/\d+(?:\.\d+)?\s*(?:%|万\+?|亿|人|元|秒|分钟|小时|天|fps|ms|条|个|次|倍)/gi) ?? [])]
-}
-
 function qualityScore(s: string): number {
   let score = 0
   if (hasNumber(s)) score += 4
@@ -135,17 +154,6 @@ function goalScore(candidate: ReviewedCandidate, goal: AnalysisGoal): number {
   return 0
 }
 
-function riskFor(category: ClaimCategory, numbered: boolean): { exaggerationRisk: RiskLevel; interviewRisk: RiskLevel } {
-  const map: Record<ClaimCategory, { exag: RiskLevel; intv: RiskLevel }> = {
-    achievement: numbered ? { exag: 'medium', intv: 'high' } : { exag: 'low', intv: 'medium' },
-    metric: numbered ? { exag: 'medium', intv: 'high' } : { exag: 'low', intv: 'medium' },
-    leadership: { exag: 'medium', intv: 'high' },
-    responsibility: { exag: 'low', intv: 'medium' },
-    skill: { exag: 'low', intv: 'medium' },
-  }
-  return { exaggerationRisk: map[category].exag, interviewRisk: map[category].intv }
-}
-
 export function mockAnalyze(
   rawText: string,
   sourceFile: string,
@@ -159,11 +167,11 @@ export function mockAnalyze(
     ?? (structuredCandidates.length > 0 ? structuredCandidates : extractLooseClaimCandidates(rawText))
 
   const ranked = candidates
-    .map((candidate) => ({
-      candidate,
-      score: qualityScore(candidate.content)
-        + (/技能|技术|专业能力|competenc|skills?/i.test(candidate.sourceSection) ? 3 : 0)
-        + goalScore(candidate, analysisGoal),
+    .map((c) => ({
+      candidate: c,
+      score: qualityScore(c.content)
+        + (/技能|技术|专业能力|competenc|skills?/i.test(c.sourceSection) ? 3 : 0)
+        + goalScore(c, analysisGoal),
     }))
     .filter((item) => Boolean(options.candidates) || item.score > 0)
     .sort((a, b) => b.score - a.score)
@@ -175,26 +183,18 @@ export function mockAnalyze(
   const claims: ResumeClaim[] = finalPool.map(({ content, sourceSection }, index) => {
     const category = detectCategory(content, sourceSection)
     const tpl = CATEGORY_TEMPLATES[category]
-    const r = riskFor(category, hasNumber(content))
-    const metrics = extractMetrics(content)
     const claim = {
       content,
       title: content.length > 14 ? `${content.slice(0, 14)}…` : content,
       category,
       role,
       sourceSection,
-      exaggerationRisk: r.exaggerationRisk,
-      interviewRisk: r.interviewRisk,
-      evidence: metrics.length > 0 ? [`原文给出的量化信息：${metrics.join('、')}`] : [],
-      evidenceGap: tpl.gaps,
+      capability: tpl.capability,
+      masteryPoints: tpl.masteryPoints,
       initialQuestion: tpl.question,
       initialIntent: DEFAULT_INTENTS[category] ?? '',
-      evaluationPoints: tpl.points,
-      verifyPoints: tpl.points.map((point, i) => ({
-        point,
-        importance: (i === 0 ? 'high' : 'medium') as 'high' | 'medium' | 'low',
-      })),
-      trapPoints: CATEGORY_TRAP_MAP[category] ?? [],
+      trapPoints: tpl.traps,
+      testPriority: 'medium' as const,
     }
     return { ...claim, id: createClaimId(claim, index) }
   })

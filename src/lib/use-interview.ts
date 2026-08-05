@@ -255,16 +255,10 @@ function hashClaimContent(content: string): number {
 
 function buildClaimAnalysisFromClaim(claim: ResumeClaim): ClaimAnalysis {
   const verifyPoints: Array<{ point: string; importance: 'high' | 'medium' | 'low' }> =
-    (claim.verifyPoints && claim.verifyPoints.length > 0)
-      ? claim.verifyPoints.map((vp) => ({
-          point: vp.point,
-          importance: (vp.importance === 'high' || vp.importance === 'medium' || vp.importance === 'low')
-            ? vp.importance : 'medium',
-        }))
-      : claim.evaluationPoints.map((point, i) => ({
-          point,
-          importance: (i === 0 ? 'high' : 'medium') as 'high' | 'medium' | 'low',
-        }))
+    claim.masteryPoints.map((mp) => ({
+      point: mp.point,
+      importance: mp.importance,
+    }))
 
   return {
     level: claim.role,

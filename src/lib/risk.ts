@@ -1,22 +1,22 @@
-import type { ResumeClaim, RiskLevel } from '@/domain/resume-schema'
+import type { ResumeClaim, TestPriority } from '@/domain/resume-schema'
 
-export type { RiskLevel }
+export type { TestPriority }
 
-export type RiskMeta = {
-  level: RiskLevel
+export type PriorityMeta = {
+  level: TestPriority
   label: string
+  description: string
   color: 'red' | 'amber' | 'green'
-  emoji: string
 }
 
-export const RISK_META: Record<RiskLevel, RiskMeta> = {
-  high: { level: 'high', label: '高风险', color: 'red', emoji: '🔥' },
-  medium: { level: 'medium', label: '中风险', color: 'amber', emoji: '⚠️' },
-  low: { level: 'low', label: '较稳固', color: 'green', emoji: '✓' },
+export const PRIORITY_META: Record<TestPriority, PriorityMeta> = {
+  high: { level: 'high', label: '优先测试', description: '掌握要点多，面试被问到概率高', color: 'red' },
+  medium: { level: 'medium', label: '建议测试', description: '值得追问，可根据时间安排', color: 'amber' },
+  low: { level: 'low', label: '可选测试', description: '能力点已较清晰，风险较低', color: 'green' },
 }
 
-export function claimRisk(claim: ResumeClaim): RiskMeta {
-  return RISK_META[claim.interviewRisk]
+export function claimPriority(claim: ResumeClaim): PriorityMeta {
+  return PRIORITY_META[claim.testPriority]
 }
 
 export type AuditStats = {
@@ -24,20 +24,20 @@ export type AuditStats = {
   highCount: number
   mediumCount: number
   lowCount: number
-  totalGaps: number
+  totalMasteryPoints: number
 }
 
 export function computeStats(claims: ResumeClaim[]): AuditStats {
   if (claims.length === 0) {
-    return { claimCount: 0, highCount: 0, mediumCount: 0, lowCount: 0, totalGaps: 0 }
+    return { claimCount: 0, highCount: 0, mediumCount: 0, lowCount: 0, totalMasteryPoints: 0 }
   }
-  const byRisk = (level: RiskLevel) => claims.filter((c) => c.interviewRisk === level).length
-  const totalGaps = claims.reduce((sum, c) => sum + c.evidenceGap.length, 0)
+  const byPrio = (level: TestPriority) => claims.filter((c) => c.testPriority === level).length
+  const totalMasteryPoints = claims.reduce((sum, c) => sum + c.masteryPoints.length, 0)
   return {
     claimCount: claims.length,
-    highCount: byRisk('high'),
-    mediumCount: byRisk('medium'),
-    lowCount: byRisk('low'),
-    totalGaps,
+    highCount: byPrio('high'),
+    mediumCount: byPrio('medium'),
+    lowCount: byPrio('low'),
+    totalMasteryPoints,
   }
 }

@@ -21,15 +21,14 @@ describe('mockAnalyze', () => {
     expect(a1.role).not.toBe(a2.role)
   })
 
-  it('输出风险三件套 exaggerationRisk/interviewRisk/evidenceGap', () => {
+  it('输出 masteryPoints / capability / testPriority', () => {
     const a = mockAnalyze(SALE_RESUME, 'r.txt')
     for (const c of a.claims) {
-      expect(['high', 'medium', 'low']).toContain(c.exaggerationRisk)
-      expect(['high', 'medium', 'low']).toContain(c.interviewRisk)
-      expect(Array.isArray(c.evidenceGap)).toBe(true)
-      expect('askLikelihood' in c).toBe(false)
-      expect('evidenceStrength' in c).toBe(false)
-      expect('quote' in c).toBe(false)
+      expect(['high', 'medium', 'low']).toContain(c.testPriority)
+      expect(Array.isArray(c.masteryPoints)).toBe(true)
+      expect(c.masteryPoints.length).toBeGreaterThan(0)
+      expect(typeof c.capability).toBe('string')
+      expect(c.capability.length).toBeGreaterThan(0)
     }
   })
 

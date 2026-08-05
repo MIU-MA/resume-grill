@@ -7,8 +7,13 @@ const analysis: ResumeAnalysis = {
   candidate: '张三', role: '后端开发', sourceFile: 'resume.txt', rawText: '负责接口幂等设计', summary: '',
   claims: [{
     id: 'claim-1', content: '负责接口幂等设计', title: '接口幂等', category: 'responsibility', role: '后端开发',
-    sourceSection: '项目经历', exaggerationRisk: 'medium', interviewRisk: 'medium', evidenceGap: [], evidence: [],
-    initialQuestion: '怎么做的？', evaluationPoints: ['说明方案'],
+    sourceSection: '项目经历',
+    capability: '接口幂等设计',
+    masteryPoints: [{ point: '说明方案', dimension: 'practice', importance: 'high' }],
+    initialQuestion: '怎么做的？',
+    initialIntent: '',
+    trapPoints: [],
+    testPriority: 'medium',
   }],
 }
 

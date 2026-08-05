@@ -59,7 +59,7 @@ export async function POST(request: Request) {
       .join('\n\n')
     const userPrompt = [
       `声明: ${body.claim.content}`,
-      `验证要点: ${body.claim.evaluationPoints.join('、')}`,
+      `验证要点: ${body.claim.masteryPoints.map((mp) => `[${mp.dimension}] ${mp.point}`).join('、')}`,
       '',
       '对话历史（含每轮评估）：',
       history || '(无追问记录)',

@@ -1,11 +1,11 @@
-import { CLAIM_CATEGORY_LABELS, type ResumeAnalysis } from '@/domain/resume-schema'
-import { RISK_META } from '@/lib/risk'
+import { CLAIM_CATEGORY_LABELS, MASTERY_DIMENSION_LABELS, type ResumeAnalysis } from '@/domain/resume-schema'
+import { PRIORITY_META } from '@/lib/risk'
 import type { InterviewSession } from '@/domain/interview-schema'
 import { deriveBlindSpots } from '@/lib/blind-spots'
 
 export function buildReport(analysis: ResumeAnalysis): string {
   const lines = [
-    '# 简历声明风险报告',
+    '# 能力测试报告',
     '',
     `候选人：${analysis.candidate} · ${analysis.role}`,
     `来源文件：${analysis.sourceFile}`,
@@ -16,18 +16,20 @@ export function buildReport(analysis: ResumeAnalysis): string {
   appendJobMatch(lines, analysis)
 
   for (const claim of analysis.claims) {
-    const risk = RISK_META[claim.interviewRisk]
+    const prio = PRIORITY_META[claim.testPriority]
     lines.push(
       `## ${claim.title}`,
       '',
       `- 类型：${CLAIM_CATEGORY_LABELS[claim.category]}`,
+      `- 核心能力：${claim.capability}`,
       `- 声明内容：${claim.content}`,
-      `- 面试风险：${risk.label}`,
-      `- 可信风险：${RISK_META[claim.exaggerationRisk].label}`,
-      `- 证据缺失：${claim.evidenceGap.join('；') || '无'}`,
-      `- 评估要点：${claim.evaluationPoints.join('；')}`,
-      '',
+      `- 测试优先级：${prio.label}`,
+      `- 掌握要点：`,
     )
+    claim.masteryPoints.forEach((mp) => {
+      lines.push(`  - [${MASTERY_DIMENSION_LABELS[mp.dimension]}] ${mp.point} (${mp.importance})`)
+    })
+    lines.push('')
   }
 
   return lines.join('\n')
@@ -35,7 +37,7 @@ export function buildReport(analysis: ResumeAnalysis): string {
 
 export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<string, InterviewSession[]>, masteredBlindSpotIds: string[] = []): string {
   const lines = [
-    '# 简历追问与改写报告',
+    '# 简历能力测试与改写报告',
     '',
     `候选人：${analysis.candidate} · ${analysis.role}`,
     `来源文件：${analysis.sourceFile}`,
@@ -47,30 +49,31 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
   const masteredSet = new Set(masteredBlindSpotIds)
   const blindSpots = deriveBlindSpots(analysis, sessions)
   if (blindSpots.length > 0) {
-    lines.push('## 待补强盲区', '')
+    lines.push('## 待补强知识点', '')
     blindSpots.forEach((spot) => {
       lines.push(
         `### ${masteredSet.has(spot.id) ? '已掌握' : '待补强'}：${spot.annotation}`,
         `- 对应声明：${spot.claim.title}`,
         `- 当时问题：${spot.question}`,
-        `- 通俗说明：${spot.explanation || '无'}`,
+        `- 说明：${spot.explanation || '无'}`,
         '',
       )
     })
   }
 
   for (const claim of analysis.claims) {
-    const risk = RISK_META[claim.interviewRisk]
+    const prio = PRIORITY_META[claim.testPriority]
     const claimSessions = sessions[claim.id] ?? []
     lines.push(
       `## ${claim.title}`,
       '',
       `- 类型：${CLAIM_CATEGORY_LABELS[claim.category]}`,
+      `- 核心能力：${claim.capability}`,
       `- 声明内容：${claim.content}`,
-      `- 面试风险：${risk.label} / 可信风险：${RISK_META[claim.exaggerationRisk].label}`,
+      `- 测试优先级：${prio.label}`,
     )
     if (claimSessions.length === 0) {
-      lines.push('- 面试状态：未追问')
+      lines.push('- 测试状态：未测试')
     } else {
       claimSessions.forEach((session, i) => {
         if (session.status === 'in_progress') {
@@ -92,18 +95,18 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
           .map((round) => round.question)
         lines.push(
           '',
-          `### 第 ${i + 1} 版（${session.version}）追问报告`,
+          `### 第 ${i + 1} 版（${session.version}）测试报告`,
           `- 有效回答轮数：${session.rounds.filter((round) => round.action === 'answer').length}`,
           `- 已掌握并跳过：${skippedQuestions.join('；') || '无'}`,
           `- 不懂批注：${annotations.join('；') || '无'}`,
-          `- 可信度：${'★'.repeat(s.confidence)}${'☆'.repeat(5 - s.confidence)}`,
-          `- 风险级别：${RISK_META[s.risk].label}`,
+          `- 掌握度：${'★'.repeat(s.confidence)}${'☆'.repeat(5 - s.confidence)}`,
+          `- 风险级别：${PRIORITY_META[s.risk as keyof typeof PRIORITY_META]?.label ?? s.risk}`,
           `- 能解释：${s.canExplain.join('、') || '无'}`,
           `- 无法解释：${s.cannotExplain.join('、') || '无'}`,
           `- 建议：${s.suggestions.join('；') || '无'}`,
           `- 回答结论：${s.answerSummary || '无'}`,
-          `- 已证明证据：${s.evidenceUsed?.join('；') || s.canExplain.join('；') || '无'}`,
-          `- 仍缺证据：${s.missingEvidence?.join('；') || s.cannotExplain.join('；') || '无'}`,
+          `- 回答证据：${s.evidenceUsed?.join('；') || s.canExplain.join('；') || '无'}`,
+          `- 尚未讲清：${s.missingEvidence?.join('；') || s.cannotExplain.join('；') || '无'}`,
           `- 下一步行动：${s.nextAction || '无'}`,
           '',
           `- 本次测试声明：${session.claimContent}`,
@@ -146,11 +149,11 @@ export function downloadText(filename: string, content: string) {
 }
 
 export function downloadReport(analysis: ResumeAnalysis) {
-  downloadText(`简历声明报告-${analysis.candidate}.md`, buildReport(analysis))
+  downloadText(`能力测试报告-${analysis.candidate}.md`, buildReport(analysis))
 }
 
 export function downloadFullReport(analysis: ResumeAnalysis, sessions: Record<string, InterviewSession[]>, masteredBlindSpotIds: string[] = []) {
-  downloadText(`简历追问报告-${analysis.candidate}.md`, buildFullReport(analysis, sessions, masteredBlindSpotIds))
+  downloadText(`能力测试报告-${analysis.candidate}.md`, buildFullReport(analysis, sessions, masteredBlindSpotIds))
 }
 
 export function downloadJsonExport(analysis: ResumeAnalysis, sessions: Record<string, InterviewSession[]>, masteredBlindSpotIds: string[] = []) {

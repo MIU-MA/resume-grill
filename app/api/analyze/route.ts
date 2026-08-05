@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { attachClaimIds, llmAnalysisSchema, resumeAnalysisSchema } from '@/domain/resume-schema'
+import { attachClaimIds, compactAnalysisSchema, computeTestPriority, resumeAnalysisSchema } from '@/domain/resume-schema'
 import { ANALYZE_SYSTEM_PROMPT, buildAnalyzeUserPrompt } from '@/lib/prompts'
 import { ANALYZE_TIMEOUT, MAX_RAWTEXT, getClientIp, rateLimit, withTimeout } from '@/lib/server-limits'
 import { llmStructured, resolveLlmConfig } from '@/providers/openai-compatible'
@@ -44,26 +44,43 @@ export async function POST(request: Request) {
     const candidates = body.reviewedCandidates ?? extractResumeClaimCandidates(body.rawText)
     const config = resolveLlmConfig(body.llm ?? null)
     if (config) {
-      const partial = await llmStructured(
+      const compact = await llmStructured(
         ANALYZE_SYSTEM_PROMPT,
         buildAnalyzeUserPrompt(body.rawText, {
           analysisGoal: body.analysisGoal,
           reviewedCandidates: body.reviewedCandidates,
-          jobDescription: body.jobDescription,
         }),
-        llmAnalysisSchema,
+        compactAnalysisSchema,
         config,
-        { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 10000 },
+        { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 4000 },
       )
-      const filteredClaims = partial.claims.flatMap((claim) => {
+
+      const backfilledClaims = compact.claims.map((claim) => {
+        const source = candidates[claim.candidateIndex]
+        if (!source) throw new Error(`候选索引 ${claim.candidateIndex} 无效`)
+
+        return {
+          content: source.content,
+          sourceSection: source.sourceSection,
+          title: claim.capability,
+          category: claim.category,
+          role: compact.role,
+          capability: claim.capability,
+          masteryPoints: claim.masteryPoints,
+          initialQuestion: claim.initialQuestion,
+          initialIntent: `验证：${claim.masteryPoints[0]?.point ?? '该项能力'}`,
+          trapPoints: [] as string[],
+          testPriority: computeTestPriority(claim.masteryPoints),
+        }
+      })
+
+      const filteredClaims = backfilledClaims.flatMap((claim) => {
         if (isExcludedClaimContent(claim.content)) return []
         const source = matchClaimCandidate(claim.content, candidates)
         if (!source && (body.reviewedCandidates || !isClaimGroundedInRawText(claim.content, body.rawText))) return []
-        return [{
-          ...claim,
-          sourceSection: (source?.sourceSection ?? claim.sourceSection.trim()) || '经历内容',
-        }]
+        return [{ ...claim, sourceSection: (source?.sourceSection ?? claim.sourceSection.trim()) || '经历内容' }]
       })
+
       const seen = new Set<string>()
       const uniqueClaims = filteredClaims.filter((claim) => {
         const key = `${claim.sourceSection}\n${claim.content.replace(/\s+/g, '')}`
@@ -71,11 +88,13 @@ export async function POST(request: Request) {
         seen.add(key)
         return true
       })
+
       if (uniqueClaims.length === 0) {
         throw new Error('未识别到可验证的经历陈述，请检查简历正文是否包含具体职责、行动或成果。')
       }
+
       const analysis = resumeAnalysisSchema.parse({
-        ...partial,
+        ...compact,
         claims: attachClaimIds(uniqueClaims),
         sourceFile: body.sourceFile,
         rawText: body.rawText,
@@ -83,7 +102,7 @@ export async function POST(request: Request) {
         reviewedCandidates: body.reviewedCandidates,
         jobDescription: body.jobDescription,
         jobMatch: body.jobDescription
-          ? partial.jobMatch ?? buildHeuristicJobMatch(body.jobDescription, candidates)
+          ? buildHeuristicJobMatch(body.jobDescription, candidates)
           : undefined,
       })
       return NextResponse.json(analysis)

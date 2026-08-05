@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { riskLevelSchema } from '@/domain/resume-schema'
+
+const riskLevelSchema = z.enum(['high', 'medium', 'low'])
 
 export const verifyPointSchema = z.object({
   point: z.string(),

@@ -34,15 +34,17 @@ export function buildInterviewContinueUser(
   trapPoints: string[],
 ): string {
   const coveredPoints = rounds.at(-1)?.evaluation.coveredPoints ?? []
-  const missingPoints = claim.evaluationPoints.filter((p) => !coveredPoints.includes(p))
+  const allPoints = claim.masteryPoints.map((mp) => mp.point)
+  const missingPoints = allPoints.filter((p) => !coveredPoints.includes(p))
   return [
     `声明：${claim.content}`,
+    `核心能力：${claim.capability}`,
     `岗位：${claim.role}`,
     '',
     '允许返回的评估要点（coveredPoints 必须逐字取自这里）：',
-    claim.evaluationPoints.join('\n'),
+    allPoints.join('\n'),
     '',
-    '验证要点：',
+    '掌握维度参考（优先追问 context/practice/principle/decision 等高重要性维度）：',
     verifyPoints.map((v) => `[${v.importance}] ${v.point}`).join('\n'),
     '',
     '常见陷阱：',

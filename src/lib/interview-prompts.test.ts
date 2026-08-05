@@ -9,12 +9,12 @@ const claim: ResumeClaim = {
   category: 'responsibility',
   role: '后端开发',
   sourceSection: '项目经历',
-  exaggerationRisk: 'medium',
-  interviewRisk: 'medium',
-  evidenceGap: [],
-  evidence: [],
+  capability: '接口幂等设计',
+  masteryPoints: [{ point: '说明具体方案', dimension: 'practice', importance: 'high' }],
   initialQuestion: '如何实现？',
-  evaluationPoints: ['说明具体方案'],
+  initialIntent: '',
+  trapPoints: [],
+  testPriority: 'medium',
 }
 
 describe('interview prompts', () => {

@@ -112,7 +112,7 @@ function App() {
       <WorkspaceHeader
         mode={mode}
         highCount={stats.highCount}
-        totalGaps={stats.totalGaps}
+        totalMasteryPoints={stats.totalMasteryPoints}
         claimCount={stats.claimCount}
         completedClaimCount={completedClaimCount}
         coveredLength={interview.covered.length}

@@ -71,17 +71,19 @@ export async function POST(request: Request) {
     const hasAnswer = body.action === 'answer' && body.answer.length > 0
     const isSkip = body.action === 'skip'
 
+    const allMasteryPoints = body.claim.masteryPoints.map((mp) => mp.point)
+
     const currentCoverage = sanitizeCoverage(
       hasAnswer ? result.evaluation.coveredPoints : [],
-      body.claim.evaluationPoints,
+      allMasteryPoints,
     )
-    const coveredPoints = mergeCoveredPoints(body.rounds, currentCoverage.covered, body.claim.evaluationPoints)
-    const missingPoints = body.claim.evaluationPoints.filter((point) => !coveredPoints.includes(point))
+    const coveredPoints = mergeCoveredPoints(body.rounds, currentCoverage.covered, allMasteryPoints)
+    const missingPoints = allMasteryPoints.filter((point) => !coveredPoints.includes(point))
 
     const importantPoints = body.verifyPoints
-      .filter((point) => point.importance === 'high')
-      .map((point) => point.point)
-      .filter((point) => body.claim.evaluationPoints.includes(point))
+      .filter((vp) => vp.importance === 'high')
+      .map((vp) => vp.point)
+      .filter((point) => allMasteryPoints.includes(point))
     const roundNumber = body.rounds.filter((round) => round.answer.trim().length > 0).length + (hasAnswer ? 1 : 0)
     const interactionCount = body.rounds.filter((round) => round.action !== 'clarify').length + (hasAnswer || isSkip ? 1 : 0)
     const isFinal = isSkip

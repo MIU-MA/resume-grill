@@ -122,12 +122,39 @@ export async function updateMasteredBlindSpots(
 }
 
 function migrateLegacyRecord(record: SavedRecord): SavedRecord {
-  const legacyClaims = record.analysis.claims as Array<ResumeClaim & { id?: string }>
-  const claims = legacyClaims.filter((claim) => !isExcludedClaimContent(claim.content)).map((claim, index) => ({
-    ...claim,
-    id: claim.id || createClaimId(claim, index),
-    evidence: claim.evidence.filter((item) => !/^(?:简历中已给出量化数据|简历中提及该表述)$/.test(item)),
-  }))
+  const legacyClaims = record.analysis.claims as Array<ResumeClaim & { id?: string; evidence?: string[]; evaluationPoints?: string[]; verifyPoints?: Array<{ point: string; importance: string }>; exaggerationRisk?: string; interviewRisk?: string; evidenceGap?: string[] }>
+  const claims = legacyClaims.filter((claim) => !isExcludedClaimContent(claim.content)).map((claim, index) => {
+    // 迁移旧字段到新结构
+    type SafeMasteryPoint = { point: string; dimension: 'context' | 'practice' | 'principle' | 'decision' | 'troubleshooting' | 'boundary'; importance: 'high' | 'medium' | 'low' }
+    const safeImportance = (v: string): 'high' | 'medium' | 'low' =>
+      v === 'high' ? 'high' : v === 'low' ? 'low' : 'medium'
+
+    const legacyPoints: SafeMasteryPoint[] = claim.verifyPoints
+      ? claim.verifyPoints.map((vp) => ({ point: vp.point, dimension: 'practice' as const, importance: safeImportance(vp.importance) }))
+      : Array.isArray(claim.evaluationPoints)
+        ? claim.evaluationPoints.map((p: string, i: number) => ({ point: p, dimension: 'practice' as const, importance: (i === 0 ? 'high' : 'medium') as 'high' | 'medium' | 'low' }))
+        : []
+
+    const masteryPoints: SafeMasteryPoint[] = (claim.masteryPoints && claim.masteryPoints.length > 0)
+      ? claim.masteryPoints as SafeMasteryPoint[]
+      : legacyPoints.length > 0
+        ? legacyPoints
+        : [{ point: '需要验证该声明的真实性', dimension: 'practice' as const, importance: 'high' as const }]
+
+    const safePriority: 'high' | 'medium' | 'low' =
+      (claim as Record<string, unknown>).testPriority === 'high' ? 'high'
+        : (claim as Record<string, unknown>).testPriority === 'low' ? 'low'
+        : 'medium'
+    const { evidence, evaluationPoints, verifyPoints, exaggerationRisk, interviewRisk, evidenceGap, ...rest } = claim
+    return {
+      ...rest,
+      id: claim.id || createClaimId(claim as unknown as Parameters<typeof createClaimId>[0], index),
+      masteryPoints,
+      capability: (claim as Record<string, unknown>).capability as string ?? '未知能力',
+      testPriority: safePriority,
+      initialIntent: (claim as Record<string, unknown>).initialIntent as string ?? '',
+    }
+  })
   const sessions: Record<string, InterviewSession[]> = {}
 
   claims.forEach((claim) => {

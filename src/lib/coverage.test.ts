@@ -4,7 +4,7 @@ import { sanitizeCoverage } from './coverage'
 const points = ['说明基线', '区分个人贡献', '说明统计口径']
 
 describe('sanitizeCoverage', () => {
-  it('丢弃不属于 evaluationPoints 的伪造项', () => {
+  it('丢弃不属于允许要点的伪造项', () => {
     const { covered, missing } = sanitizeCoverage(['说明基线', '伪造要点', '编造的'], points)
     expect(covered).toEqual(['说明基线'])
     expect(missing).toEqual(['区分个人贡献', '说明统计口径'])

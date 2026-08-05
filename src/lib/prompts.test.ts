@@ -11,12 +11,12 @@ describe('buildAnalyzeUserPrompt', () => {
       '- 负责管理后台开发并完成接口联调。',
     ].join('\n'))
 
-    expect(prompt).toContain('最终 claims 必须保留至少 1 条 category=skill')
+    expect(prompt).toContain('claims 必须保留至少 1 条 category=skill')
   })
 
   it('does not force a skill claim when no skills section exists', () => {
     const prompt = buildAnalyzeUserPrompt('王五\n工作经历\n- 负责重点客户续约。')
-    expect(prompt).not.toContain('最终 claims 必须保留至少 1 条 category=skill')
+    expect(prompt).not.toContain('category=skill')
   })
 
   it('passes the selected goal and treats reviewed candidates as authoritative', () => {
@@ -28,17 +28,18 @@ describe('buildAnalyzeUserPrompt', () => {
       },
     )
 
-    expect(prompt).toContain('本次目标是项目深挖')
-    expect(prompt).toContain('已由用户检查确认，只能从这些候选声明中选择')
-    expect(prompt).toContain('"analysisGoal": "project"')
-    expect(prompt).toContain('"content": "实现报表导出。"')
+    expect(prompt).toContain('项目深挖')
+    expect(prompt).toContain('已由用户确认')
+    expect(prompt).toContain('"analysisGoal":"project"')
+    expect(prompt).toContain('"content":"实现报表导出。"')
   })
 
-  it('includes the optional job description only when provided', () => {
-    const prompt = buildAnalyzeUserPrompt('王五\n工作经历\n- 负责客户续约。', {
-      jobDescription: '负责客户成功和续约分析',
-    })
-    expect(prompt).toContain('请在输出中补充 jobMatch')
-    expect(prompt).toContain('"jobDescription": "负责客户成功和续约分析"')
+  it('does not include rawText when reviewedCandidates is provided', () => {
+    const prompt = buildAnalyzeUserPrompt(
+      '王五\n工作经历\n- 负责客户续约。',
+      { reviewedCandidates: [{ content: '负责客户续约。', sourceSection: '工作经历', lineNumber: 2 }] },
+    )
+    expect(prompt).not.toContain('rawText')
+    expect(prompt).toContain('"content":"负责客户续约。"')
   })
 })

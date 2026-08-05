@@ -1,28 +1,32 @@
 import { describe, it, expect } from 'vitest'
-import { computeStats, RISK_META } from './risk'
+import { computeStats, PRIORITY_META } from './risk'
 import type { ResumeClaim } from '@/domain/resume-schema'
 
-const claim = (interviewRisk: 'high' | 'medium' | 'low', gaps = 1): ResumeClaim => ({
-  id: `claim-${interviewRisk}`,
+const claim = (testPriority: 'high' | 'medium' | 'low', masteryCount = 3): ResumeClaim => ({
+  id: `claim-${testPriority}`,
   content: 'q',
   title: 't',
   category: 'achievement',
   role: '销售',
   sourceSection: '工作经历',
-  exaggerationRisk: 'medium',
-  interviewRisk,
-  evidence: [],
-  evidenceGap: Array.from({ length: gaps }, () => 'g'),
+  capability: '测试能力',
+  masteryPoints: Array.from({ length: masteryCount }, (_, i) => ({
+    point: `要点 ${i + 1}`,
+    dimension: 'practice' as const,
+    importance: (i === 0 ? 'high' : 'medium') as 'high' | 'medium' | 'low',
+  })),
   initialQuestion: 'q',
-  evaluationPoints: ['p1', 'p2'],
+  initialIntent: '',
+  trapPoints: [],
+  testPriority,
 })
 
-describe('RISK_META', () => {
-  it('三档风险有正确的标签与颜色', () => {
-    expect(RISK_META.high.color).toBe('red')
-    expect(RISK_META.high.label).toBe('高风险')
-    expect(RISK_META.medium.color).toBe('amber')
-    expect(RISK_META.low.color).toBe('green')
+describe('PRIORITY_META', () => {
+  it('三档优先级有正确的标签与颜色', () => {
+    expect(PRIORITY_META.high.color).toBe('red')
+    expect(PRIORITY_META.high.label).toBe('优先测试')
+    expect(PRIORITY_META.medium.color).toBe('amber')
+    expect(PRIORITY_META.low.color).toBe('green')
   })
 })
 
@@ -33,15 +37,15 @@ describe('computeStats', () => {
       highCount: 0,
       mediumCount: 0,
       lowCount: 0,
-      totalGaps: 0,
+      totalMasteryPoints: 0,
     })
   })
-  it('按面试风险统计高中低数量与缺口数', () => {
-    const stats = computeStats([claim('high', 1), claim('medium', 2), claim('low', 1)])
+  it('按测试优先级统计高中低数量与能力要点数', () => {
+    const stats = computeStats([claim('high', 4), claim('medium', 3), claim('low', 2)])
     expect(stats.claimCount).toBe(3)
     expect(stats.highCount).toBe(1)
     expect(stats.mediumCount).toBe(1)
     expect(stats.lowCount).toBe(1)
-    expect(stats.totalGaps).toBe(4)
+    expect(stats.totalMasteryPoints).toBe(9)
   })
 })

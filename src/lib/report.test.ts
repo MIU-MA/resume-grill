@@ -18,12 +18,15 @@ const analysis: ResumeAnalysis = {
       category: 'achievement',
       role: '销售',
       sourceSection: '工作经历',
-      exaggerationRisk: 'medium',
-      interviewRisk: 'high',
-      evidence: ['简历中提及该表述'],
-      evidenceGap: ['改造前的基线数据'],
+      capability: '销售业绩达成能力',
+      masteryPoints: [
+        { point: '说明改造前后的量化指标', dimension: 'context', importance: 'high' },
+        { point: '区分个人与团队贡献', dimension: 'decision', importance: 'high' },
+      ],
       initialQuestion: '基线是多少？',
-      evaluationPoints: ['说明改造前后的量化指标'],
+      initialIntent: '',
+      trapPoints: ['只提结果不提过程'],
+      testPriority: 'high',
     },
   ],
 }
@@ -34,27 +37,27 @@ describe('buildReport', () => {
     expect(report).toContain('候选人：张明 · 销售')
     expect(report).toContain('来源文件：resume.txt')
   })
-  it('包含声明内容、缺口与类型标签', () => {
+  it('包含声明内容、核心能力与类型标签', () => {
     const report = buildReport(analysis)
     expect(report).toContain('季度销售额提升 30%')
-    expect(report).toContain('改造前的基线数据')
+    expect(report).toContain('核心能力：销售业绩达成能力')
     expect(report).toContain('成果声明')
   })
-  it('输出风险级别而非旧数值', () => {
+  it('输出测试优先级', () => {
     const report = buildReport(analysis)
-    expect(report).toContain('面试风险：高风险')
-    expect(report).toContain('可信风险：中风险')
-    expect(report).not.toContain('可验证难度')
+    expect(report).toContain('测试优先级：优先测试')
+    expect(report).not.toContain('面试风险')
     expect(report).not.toContain('被追问概率')
   })
 
   it('exports annotated blind spots and their mastered status', () => {
     const claim = analysis.claims[0]
+    const allPoints = claim.masteryPoints.map((mp) => mp.point)
     const session: InterviewSession = {
       id: `${claim.id}:v1`, claimContent: claim.content, claimAnalysis: null, finalResult: null, status: 'done', version: 1,
       rounds: [{
         action: 'clarify', question: '基线是什么意思？', answer: '', annotation: '不理解基线', nextReason: '解释术语',
-        evaluation: { score: 0, coveredPoints: [], missingPoints: claim.evaluationPoints, answerSuggestion: '基线是改进前用于比较的数据。' },
+        evaluation: { score: 0, coveredPoints: [], missingPoints: allPoints, answerSuggestion: '基线是改进前用于比较的数据。' },
       }],
     }
     const id = createBlindSpotId(claim.id, '不理解基线')
@@ -65,6 +68,7 @@ describe('buildReport', () => {
 
   it('exports skipped questions without treating them as answers', () => {
     const claim = analysis.claims[0]
+    const allPoints = claim.masteryPoints.map((mp) => mp.point)
     const session: InterviewSession = {
       id: `${claim.id}:v1`, claimContent: claim.content, claimAnalysis: null,
       finalResult: {
@@ -74,7 +78,7 @@ describe('buildReport', () => {
       status: 'done', version: 1,
       rounds: [{
         action: 'skip', question: '基线是多少？', answer: '', annotation: '', nextReason: '转向下一点',
-        evaluation: { score: 0, coveredPoints: [], missingPoints: claim.evaluationPoints, answerSuggestion: '' },
+        evaluation: { score: 0, coveredPoints: [], missingPoints: allPoints, answerSuggestion: '' },
       }],
     }
     const report = buildFullReport(analysis, { [claim.id]: [session] })

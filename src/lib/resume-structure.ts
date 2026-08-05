@@ -225,3 +225,4 @@ function uniqueCandidates(candidates: ResumeClaimCandidate[]): ResumeClaimCandid
     return true
   })
 }
+

@@ -47,7 +47,7 @@ export function InterviewView({
 }: InterviewViewProps) {
   const chatEndRef = useRef<HTMLDivElement>(null)
   const [annotationOpen, setAnnotationOpen] = useState(false)
-  const totalPoints = selected.evaluationPoints.length
+  const totalPoints = selected.masteryPoints.length
   const coverage = totalPoints > 0 ? Math.round((covered.length / totalPoints) * 100) : 0
   const answeredTurnCount = turns.filter((turn) => turn.action === 'answer').length
 

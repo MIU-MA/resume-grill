@@ -5,7 +5,7 @@ import type { Mode } from '@/types'
 type WorkspaceHeaderProps = {
   mode: Mode
   highCount: number
-  totalGaps: number
+  totalMasteryPoints: number
   claimCount: number
   completedClaimCount: number
   coveredLength: number
@@ -13,16 +13,16 @@ type WorkspaceHeaderProps = {
 }
 
 const TABS: { key: Mode; label: string }[] = [
-  { key: 'audit', label: '声明审计' },
-  { key: 'interview', label: '压力测试' },
-  { key: 'report', label: '分析报告' },
+  { key: 'audit', label: '能力清单' },
+  { key: 'interview', label: '能力测试' },
+  { key: 'report', label: '测试报告' },
 ]
 
 const STATS: Array<
   [string, (p: WorkspaceHeaderProps) => string | number, string, string]
 > = [
-  ['高风险声明', (p) => p.highCount, 'text-danger', '建议优先准备证据'],
-  ['证据缺口', (p) => p.totalGaps, 'text-warning', '集中在量化口径和贡献'],
+  ['优先测试', (p) => p.highCount, 'text-danger', '能力要点多，建议优先追问'],
+  ['能力要点', (p) => p.totalMasteryPoints, 'text-warning', '覆盖各项核心维度'],
   ['可追问声明', (p) => p.claimCount, '', '覆盖项目、技能和成果'],
   [
     '已完成测试',
@@ -35,7 +35,7 @@ const STATS: Array<
 export function WorkspaceHeader({
   mode,
   highCount,
-  totalGaps,
+  totalMasteryPoints,
   claimCount,
   completedClaimCount,
   coveredLength,
@@ -44,7 +44,7 @@ export function WorkspaceHeader({
   const props: WorkspaceHeaderProps = {
     mode,
     highCount,
-    totalGaps,
+    totalMasteryPoints,
     claimCount,
     completedClaimCount,
     coveredLength,
@@ -57,13 +57,13 @@ export function WorkspaceHeader({
       <section className="flex items-end justify-between gap-6 mb-5">
         <div>
           <div className="text-brand text-[12px] font-bold uppercase tracking-[0.08em] mb-2">
-            Resume audit
+            能力清单
           </div>
           <h1 className="m-0 text-[28px] font-bold tracking-[-0.035em]">
-            找出简历里最容易被问穿的那句话
+            找出简历中最容易被问穿的那句话
           </h1>
           <p className="mt-2 text-text-tertiary text-[14px] leading-relaxed">
-            不是随机生成八股，而是逐条验证经历中的证据、边界和真实贡献。
+            不判断简历真假，而是通过追问检查你是否真正掌握了所写的能力。
           </p>
         </div>
         <div

@@ -8,7 +8,8 @@ type InterviewStatusProps = {
 }
 
 export function InterviewStatusPanel({ selected, roundCount, covered }: InterviewStatusProps) {
-  const total = selected.evaluationPoints.length
+  const allPoints = selected.masteryPoints.map((mp) => mp.point)
+  const total = allPoints.length
   const coverage = total > 0 ? Math.round((covered.length / total) * 100) : 0
   const coveredSet = new Set(covered)
 
@@ -34,7 +35,7 @@ export function InterviewStatusPanel({ selected, roundCount, covered }: Intervie
             <span className="text-[13px] font-semibold text-text-primary">考察状态</span>
           </div>
           <ol className="space-y-2">
-            {selected.evaluationPoints.map((point, i) => {
+            {allPoints.map((point, i) => {
               const done = coveredSet.has(point)
               return (
                 <li key={point} className="flex items-start gap-2 text-[13px]">
