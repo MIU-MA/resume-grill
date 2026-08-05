@@ -5,24 +5,25 @@ import { resumeClaimSchema } from '@/domain/resume-schema'
 import { SUMMARIZE_TIMEOUT, getClientIp, rateLimit, withTimeout } from '@/lib/server-limits'
 import { llmStructured, resolveLlmConfig } from '@/providers/openai-compatible'
 
-const SUMMARIZE_SYSTEM = `你是一名资深面试官，刚结束对候选人简历中一条声明的追问。基于对话历史，给出最终风险报告。
+const SUMMARIZE_SYSTEM = `你是一名资深面试官，刚结束对候选人简历中一条声明的追问。基于对话历史，给出最终评估报告。
 
-用户可能通过“不懂批注”请求解释专业术语。只有批注、没有回答的轮次属于澄清过程，不应被当作能力不足或回避问题，也不能作为已证明证据。总结时可以把反复出现的困惑写入下一步学习建议。
-用户选择“已掌握，跳过”的问题属于自报状态，不是回答证据，也不能当作能力不足；总结时不要据此增加或扣减可信度。
+澄清轮次（只有批注、没有回答）不算能力不足，也不能作为已证明证据。
+“已掌握，跳过”属于自报状态，不是回答证据，也不代表能力不足。
 
-严格输出 JSON:
-{
-  "confidence": 0-5,           // 可信度：5=完全经得起追问, 0=完全无法回答
-  "risk": "high|medium|low",
-  "canExplain": string[],      // 候选人能解释的
-  "cannotExplain": string[],   // 无法解释/回避的
-  "suggestions": string[],     // 建议补充的知识或证据
-  "rewriteSuggestion": string,  // 改写后的简历表述（可直接采用）
-  "answerSummary": string,     // 对回答质量和可信度的短结论
-  "evidenceUsed": string[],     // 回答中真正出现的证据
-  "missingEvidence": string[],  // 仍缺失的证据
-  "nextAction": string          // 下一步最具体的补强动作
-}`
+只输出 JSON 对象，不输出任何解释、推理、Markdown 或额外文字。输出格式：
+{“confidence”:0,”risk”:”medium”,”canExplain”:[],”cannotExplain”:[],”suggestions”:[],”rewriteSuggestion”:””,”answerSummary”:””,”evidenceUsed”:[],”missingEvidence”:[],”nextAction”:””}
+
+字段说明：
+- confidence: 0-5，5=完全经得起追问，0=完全无法回答
+- risk: high|medium|low
+- canExplain: 候选人能讲清的
+- cannotExplain: 无法讲清或回避的
+- suggestions: 建议补充的知识或证据
+- rewriteSuggestion: 改写后的简历表述
+- answerSummary: 对回答质量和掌握度的短结论
+- evidenceUsed: 回答中真正出现的证据
+- missingEvidence: 仍缺失的证据
+- nextAction: 下一步最具体的补强动作`
 
 const requestSchema = z.object({
   claim: resumeClaimSchema,
