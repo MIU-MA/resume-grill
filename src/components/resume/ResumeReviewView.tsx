@@ -7,12 +7,14 @@ import {
   BarChart3,
   BriefcaseBusiness,
   Check,
+  ChevronDown,
   Combine,
   FileText,
   Layers3,
   ListChecks,
   Loader2,
   RefreshCw,
+  Settings,
   Target,
   Trash2,
   Users,
@@ -21,6 +23,7 @@ import {
 } from 'lucide-react'
 import type { ExtractedText } from '@/lib/pdf'
 import { Button } from '@/components/ui/Button'
+import { ModelSettings } from '@/components/settings/ModelSettings'
 import {
   ANALYSIS_GOALS,
   type AnalysisGoal,
@@ -49,6 +52,9 @@ type ResumeReviewViewProps = {
   extracted: ExtractedText
   analyzing: boolean
   error: string | null
+  envConfigured: boolean
+  clientConfigured: boolean
+  onClientChanged: () => void
   onConfirm: (submission: ResumeReviewSubmission, sourceFile: string) => void
   onBack: () => void
 }
@@ -74,7 +80,7 @@ const GOAL_ICONS: Record<AnalysisGoal, LucideIcon> = {
   leadership: Users,
 }
 
-export function ResumeReviewView({ sourceFile, extracted, analyzing, error, onConfirm, onBack }: ResumeReviewViewProps) {
+export function ResumeReviewView({ sourceFile, extracted, analyzing, error, envConfigured, clientConfigured, onClientChanged, onConfirm, onBack }: ResumeReviewViewProps) {
   const [text, setText] = useState(extracted.text)
   const [structureText, setStructureText] = useState(extracted.text)
   const [sections, setSections] = useState(() => parseResumeStructure(extracted.text))
@@ -82,6 +88,7 @@ export function ResumeReviewView({ sourceFile, extracted, analyzing, error, onCo
   const [tab, setTab] = useState<'structure' | 'raw'>('structure')
   const [analysisGoal, setAnalysisGoal] = useState<AnalysisGoal>('overall')
   const [jobDescription, setJobDescription] = useState('')
+  const [settingsOpen, setSettingsOpen] = useState(true)
 
   const selectedCandidates = candidates.filter((candidate) => candidate.enabled && candidate.content.trim().length >= 2)
   const groupedCandidates = useMemo(() => groupCandidates(candidates), [candidates])
@@ -184,6 +191,24 @@ export function ResumeReviewView({ sourceFile, extracted, analyzing, error, onCo
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className="mt-5 border-t border-line pt-4">
+              <button type="button" onClick={() => setSettingsOpen((v) => !v)} className="flex w-full items-center justify-between gap-2 text-left" aria-expanded={settingsOpen}>
+                <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+                  <Settings size={14} className="flex-none text-text-tertiary" />
+                  <span className="text-[13px] font-bold">模型配置</span>
+                </span>
+                <ChevronDown size={14} className={`flex-none text-text-tertiary transition-transform ${settingsOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {!envConfigured && !clientConfigured && (
+                <p className="m-0 mt-1.5 text-[11px] font-semibold text-warning">未配置 · 真实简历分析需先配置</p>
+              )}
+              {settingsOpen && (
+                <div className="mt-3">
+                  <ModelSettings envConfigured={envConfigured} clientConfigured={clientConfigured} onClientChanged={onClientChanged} />
+                </div>
+              )}
             </div>
           </aside>
 

@@ -45,8 +45,56 @@ function App() {
   const activeClaim = interview.activeClaimSnapshot ?? selected
 
   const handleTabChange = (tab: Mode) => {
+    // 点击当前 tab，不重复初始化
+    if (tab === mode) return
+
+    if (tab === 'interview') {
+      if (!selected) return
+
+      // 当前内存中已经有该声明的未完成测试，直接返回页面
+      const hasActiveInterview =
+        interview.activeClaimSnapshot?.id === selected.id &&
+        !interview.done &&
+        Boolean(interview.currentQuestion)
+
+      if (hasActiveInterview) {
+        replace('workspace', 'interview')
+        window.scrollTo({ top: 0, left: 0 })
+        return
+      }
+
+      const inProgressSession = (workspace.sessions[selected.id] ?? [])
+        .filter((session) => session.status === 'in_progress')
+        .sort((a, b) => b.version - a.version)[0]
+
+      if (inProgressSession) {
+        interview.reset()
+
+        const restored = interview.restore(
+          selected,
+          inProgressSession,
+        )
+
+        if (restored) {
+          restoredRef.current = true
+
+          replace('workspace', 'interview')
+          window.scrollTo({ top: 0, left: 0 })
+          return
+        }
+      }
+
+      void actions.startInterview()
+      return
+    }
+
     replace('workspace', tab)
-    if (tab === 'audit') interview.reset()
+
+    if (tab === 'audit') {
+      interview.reset()
+    }
+
+    window.scrollTo({ top: 0, left: 0 })
   }
 
   const handleRerun = () => {
@@ -74,6 +122,9 @@ function App() {
           extracted={workspace.pendingExtracted.extracted}
           analyzing={analysis.analyzing}
           error={workspace.error}
+          envConfigured={workspace.envConfigured}
+          clientConfigured={workspace.clientConfigured}
+          onClientChanged={workspace.refreshClientLlm}
           onConfirm={analysis.handleConfirmText}
           onBack={analysis.replaceResume}
         />
