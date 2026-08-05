@@ -52,7 +52,7 @@ export async function POST(request: Request) {
         }),
         compactAnalysisSchema,
         config,
-        { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 8000 },
+        { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 12000 },
       )
 
       const backfilledClaims = compact.claims.map((claim) => {
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
           masteryPoints: claim.masteryPoints,
           initialQuestion: claim.initialQuestion,
           initialIntent: `验证：${claim.masteryPoints[0]?.point ?? '该项能力'}`,
-          trapPoints: [] as string[],
+          trapPoints: claim.trapPoints,
           testPriority: computeTestPriority(claim.masteryPoints),
         }
       })

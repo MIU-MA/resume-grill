@@ -38,7 +38,7 @@ export const MASTERY_DIMENSION_LABELS: Record<MasteryDimension, string> = {
 }
 
 export const masteryPointSchema = z.object({
-  point: z.string().max(60),
+  point: z.string().max(30),
   dimension: masteryDimensionSchema,
   importance: z.enum(['high', 'medium', 'low']),
 })
@@ -57,8 +57,9 @@ export const compactClaimSchema = z.object({
   candidateIndex: z.number().int().nonnegative(),
   category: claimCategorySchema,
   capability: z.string().max(40),
-  masteryPoints: z.array(masteryPointSchema).min(3).max(6),
+  masteryPoints: z.array(masteryPointSchema).min(2).max(4),
   initialQuestion: z.string().max(120),
+  trapPoints: z.array(z.string().max(40)).max(2),
 })
 export type CompactClaim = z.infer<typeof compactClaimSchema>
 

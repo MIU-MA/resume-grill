@@ -16,7 +16,14 @@ describe('parseModelJson', () => {
     })
   })
 
-  it('rejects truncated JSON', () => {
-    expect(() => parseModelJson('{"candidate":"张三","claims":[')).toThrow()
+  it('repairs truncated JSON by closing unmatched brackets', () => {
+    expect(parseModelJson('{"candidate":"张三","claims":[')).toEqual({
+      candidate: '张三',
+      claims: [],
+    })
+  })
+
+  it('rejects JSON truncated mid-string', () => {
+    expect(() => parseModelJson('{"candidate":"张')).toThrow()
   })
 })

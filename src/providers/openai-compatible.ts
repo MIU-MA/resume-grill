@@ -38,7 +38,6 @@ export async function llmStructured<T>(
     throw new Error('LLM 未配置：请在设置中填写 baseUrl / apiKey / model，或在服务端 .env.local 配置环境变量。')
   }
 
-  // SSRF 防护
   await assertAllowedBaseUrl(resolved.baseUrl)
 
   const body: Record<string, unknown> = {
@@ -67,12 +66,10 @@ export async function llmStructured<T>(
     if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
       throw new Error('模型请求超时，请稍后重试或缩短输入。')
     }
-    // 网络层失败
     throw new Error(`无法连接模型服务（${resolved.baseUrl}）：请检查 Base URL 是否可达或网络连接。`)
   }
 
   if (!res.ok) {
-    // 模型返回错误
     const detail = await res.text()
     throw new Error(`模型请求失败（${res.status}）：${detail.slice(0, 200)}`)
   }
@@ -85,7 +82,6 @@ export async function llmStructured<T>(
     }>
   }
   const choice = data.choices?.[0]
-  // 推理模型可能输出在 reasoning_content
   const content = normalizeMessageContent(choice?.message?.content) || normalizeMessageContent(choice?.message?.reasoning_content) || choice?.text
   if (!content) throw new Error('模型返回为空')
 
@@ -136,6 +132,9 @@ export function parseModelJson(content: string): unknown {
     }
   }
 
+  const repaired = tryRepairTruncated(trimmed)
+  if (repaired) return repaired
+
   for (let index = 0; index < trimmed.length; index++) {
     if (trimmed[index] !== '{' && trimmed[index] !== '[') continue
     const candidate = readBalancedJson(trimmed, index)
@@ -146,10 +145,6 @@ export function parseModelJson(content: string): unknown {
       }
     }
   }
-
-  // 回退：尝试补全截断的 JSON
-  const repaired = tryRepairTruncated(trimmed)
-  if (repaired) return repaired
 
   throw new Error('No valid JSON object found')
 }
