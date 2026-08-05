@@ -85,13 +85,14 @@ export async function llmStructured<T>(
   const content = normalizeMessageContent(choice?.message?.content) || normalizeMessageContent(choice?.message?.reasoning_content) || choice?.text
   if (!content) throw new Error('模型返回为空')
 
+  if (choice?.finish_reason === 'length') {
+    throw new Error('模型输出因长度限制被截断，请重试或提高模型的最大输出长度。')
+  }
+
   let parsed: unknown
   try {
     parsed = parseModelJson(content)
   } catch {
-    if (choice?.finish_reason === 'length') {
-      throw new Error('模型输出因长度限制被截断，请重试或提高模型的最大输出长度。')
-    }
     throw new Error('模型返回不是合法 JSON，请确认所选模型支持 JSON 输出。')
   }
 

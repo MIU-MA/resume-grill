@@ -72,8 +72,8 @@ describe('buildReport', () => {
     const session: InterviewSession = {
       id: `${claim.id}:v1`, claimContent: claim.content, claimAnalysis: null,
       finalResult: {
-        confidence: 0, risk: 'medium', canExplain: [], cannotExplain: [], suggestions: [],
-        rewriteSuggestion: '', answerSummary: '', evidenceUsed: [], missingEvidence: [], nextAction: '',
+        masteryScore: 0, masteryLevel: 'not_demonstrated', canExplain: [], cannotExplain: [],
+        knowledgeGaps: [], rewriteSuggestion: '', answerSummary: '', nextAction: '',
       },
       status: 'done', version: 1,
       rounds: [{

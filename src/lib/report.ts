@@ -93,20 +93,19 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
         const skippedQuestions = session.rounds
           .filter((round) => round.action === 'skip')
           .map((round) => round.question)
+        const masteryLabel = s.masteryLevel === 'mastered' ? '掌握较好' : s.masteryLevel === 'partial' ? '部分掌握' : '尚未讲清'
         lines.push(
           '',
           `### 第 ${i + 1} 版（${session.version}）测试报告`,
           `- 有效回答轮数：${session.rounds.filter((round) => round.action === 'answer').length}`,
           `- 已掌握并跳过：${skippedQuestions.join('；') || '无'}`,
           `- 不懂批注：${annotations.join('；') || '无'}`,
-          `- 掌握度：${'★'.repeat(s.confidence)}${'☆'.repeat(5 - s.confidence)}`,
-          `- 风险级别：${PRIORITY_META[s.risk as keyof typeof PRIORITY_META]?.label ?? s.risk}`,
-          `- 能解释：${s.canExplain.join('、') || '无'}`,
-          `- 无法解释：${s.cannotExplain.join('、') || '无'}`,
-          `- 建议：${s.suggestions.join('；') || '无'}`,
+          `- 掌握度：${'★'.repeat(s.masteryScore)}${'☆'.repeat(5 - s.masteryScore)}`,
+          `- 掌握状态：${masteryLabel}`,
+          `- 已讲清：${s.canExplain.join('、') || '无'}`,
+          `- 尚未讲清：${s.cannotExplain.join('、') || '无'}`,
+          `- 知识缺口：${s.knowledgeGaps.join('；') || '无'}`,
           `- 回答结论：${s.answerSummary || '无'}`,
-          `- 回答证据：${s.evidenceUsed?.join('；') || s.canExplain.join('；') || '无'}`,
-          `- 尚未讲清：${s.missingEvidence?.join('；') || s.cannotExplain.join('；') || '无'}`,
           `- 下一步行动：${s.nextAction || '无'}`,
           '',
           `- 本次测试声明：${session.claimContent}`,

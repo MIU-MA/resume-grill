@@ -70,7 +70,7 @@ describe('mockAnalyze', () => {
     expect(a.reviewedCandidates).toHaveLength(1)
   })
 
-  it('技能真实性目标优先排列技能声明', () => {
+  it('技能深度目标优先排列技能声明', () => {
     const a = mockAnalyze([
       '李华',
       '技术能力',

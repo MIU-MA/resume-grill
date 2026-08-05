@@ -4,7 +4,7 @@ import { buildStructuredResumeInput, parseResumeStructure } from '@/lib/resume-s
 const GOAL_INSTRUCTIONS: Record<AnalysisGoal, string> = {
   overall: '全面检查：在项目、技能、成果、职责之间保持覆盖平衡。',
   project: '项目深挖：优先选择项目中的关键决策、复杂问题、个人贡献和技术取舍。',
-  skills: '技能真实性：优先选择技能声明及其真实使用场景、掌握深度和能力边界。',
+  skills: '技能深度：优先选择技能声明及其真实使用场景、掌握深度和能力边界。',
   achievement: '成果与数据：优先选择量化成果，检查指标口径、基线、归因和可复现性。',
   leadership: '管理与协作：优先选择主导、统筹、协作、决策和职责边界相关声明。',
 }

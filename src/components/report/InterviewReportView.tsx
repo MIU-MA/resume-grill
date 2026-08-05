@@ -24,8 +24,8 @@ export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, 
     return { claim, sessions: list, latest, status: latest?.status ?? 'todo' }
   })
   const doneSessions = sessionList.filter((s) => s.status === 'done' && s.latest?.finalResult)
-  const avgConf = doneSessions.length > 0
-    ? Math.round(doneSessions.reduce((sum, s) => sum + s.latest!.finalResult!.confidence, 0) / doneSessions.length / 5 * 100)
+  const avgScore = doneSessions.length > 0
+    ? Math.round(doneSessions.reduce((sum, s) => sum + s.latest!.finalResult!.masteryScore, 0) / doneSessions.length / 5 * 100)
     : 0
   const masteredSet = new Set(masteredBlindSpotIds)
   const blindSpots = deriveBlindSpots(analysis, sessions)
@@ -37,10 +37,10 @@ export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, 
       {/* 总结 + score ring */}
       <div className="grid grid-cols-[minmax(0,1fr)_300px] gap-4 max-[1050px]:grid-cols-1">
         <div className="bg-white border border-border rounded-xl shadow-[0_1px_3px_rgba(16,24,40,0.04)] p-6">
-          <div className="text-brand text-[12px] font-bold uppercase tracking-[0.08em] mb-2">Session report</div>
-          <h2 className="m-0 text-[21px] font-bold tracking-[-0.025em]">本次简历压力测试</h2>
+          <div className="text-brand text-[12px] font-bold uppercase tracking-[0.08em] mb-2">能力测试报告</div>
+          <h2 className="m-0 text-[21px] font-bold tracking-[-0.025em]">本次能力测试</h2>
           <p className="mt-2 text-text-tertiary text-[13px] leading-relaxed">
-            已完成 {doneSessions.length} 条声明测试。当前主要风险不是基础知识，而是证据不足和表达范围过大。
+            已完成 {doneSessions.length} 条声明测试。不是判断简历真假，而是检查你是否能讲清所写的每一项能力。
           </p>
           <div className="mt-5 space-y-3">
             {doneSessions.slice(0, 3).map((s, i) => {
@@ -58,11 +58,11 @@ export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, 
           </div>
         </div>
         <div className="bg-white border border-border rounded-xl shadow-[0_1px_3px_rgba(16,24,40,0.04)] p-6 grid place-items-center text-center">
-          <div className="relative w-[132px] h-[132px] rounded-full grid place-items-center" style={{ background: `conic-gradient(#2563eb 0 ${avgConf}%, #e5e7eb ${avgConf}% 100%)` }}>
+          <div className="relative w-[132px] h-[132px] rounded-full grid place-items-center" style={{ background: `conic-gradient(#2563eb 0 ${avgScore}%, #e5e7eb ${avgScore}% 100%)` }}>
             <div className="absolute w-[102px] h-[102px] rounded-full bg-white" />
             <span className="relative z-10 text-[28px] font-extrabold tracking-[-0.03em]">
-              {avgConf}
-              <small className="block text-[11px] text-text-tertiary font-semibold tracking-normal mt-1">证据完整度</small>
+              {avgScore}
+              <small className="block text-[11px] text-text-tertiary font-semibold tracking-normal mt-1">掌握度</small>
             </span>
           </div>
         </div>
@@ -110,8 +110,8 @@ export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, 
             <div className="flex items-center gap-2.5">
               <BookOpen size={17} className="text-brand" />
               <div>
-                <h2 className="m-0 text-[15px] font-bold">待补强盲区</h2>
-                <p className="mt-1 text-[12px] text-text-tertiary">来自压力测试中的不懂批注，并保留当时的问题语境。</p>
+                <h2 className="m-0 text-[15px] font-bold">待补强知识点</h2>
+                <p className="mt-1 text-[12px] text-text-tertiary">来自能力测试中的不懂批注，并保留当时的问题语境。</p>
               </div>
             </div>
             <span className="text-[12px] font-semibold text-warning">{unresolvedBlindSpots} 项待补强</span>
@@ -156,13 +156,13 @@ export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, 
                 <div key={claim.id} className="bg-white border border-border rounded-xl overflow-hidden">
                   <div className="flex items-center justify-between gap-4 px-4 py-3 bg-surface-soft border-b border-border">
                     <span className="text-[13px] font-bold">{claim.title}</span>
-                    <span className="text-text-tertiary text-[12px]">可信度 {r.confidence}/5</span>
+                    <span className="text-text-tertiary text-[12px]">掌握度 {r.masteryScore}/5</span>
                   </div>
                   <div className="grid grid-cols-4 gap-4 border-b border-border px-5 py-4 max-[900px]:grid-cols-2 max-[520px]:grid-cols-1">
                     <ReportFact label="回答结论" value={r.answerSummary || '暂无结论'} />
-                    <ReportFact label="已证明" value={joinReportItems(r.evidenceUsed?.length > 0 ? r.evidenceUsed : r.canExplain)} tone="success" />
-                    <ReportFact label="仍缺证据" value={joinReportItems(r.missingEvidence?.length > 0 ? r.missingEvidence : r.cannotExplain)} tone="warning" />
-                    <ReportFact label="下一步行动" value={r.nextAction || joinReportItems(r.suggestions)} />
+                    <ReportFact label="已讲清" value={joinReportItems(r.canExplain)} tone="success" />
+                    <ReportFact label="尚未讲清" value={joinReportItems(r.cannotExplain)} tone="warning" />
+                    <ReportFact label="下一步行动" value={r.nextAction || joinReportItems(r.knowledgeGaps)} />
                   </div>
                   <div className="grid grid-cols-2 max-[760px]:grid-cols-1">
                     <div className="p-5 min-h-[140px]">

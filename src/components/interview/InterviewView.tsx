@@ -62,7 +62,7 @@ export function InterviewView({
         {/* 顶部 */}
         <div className="flex h-[48px] items-center justify-between border-b border-border px-6 flex-none">
           <button type="button" className="flex items-center gap-2 text-[13px] text-text-tertiary hover:text-text-secondary bg-transparent" onClick={onBackToAudit}>
-            <ArrowLeft size={15} />返回审计
+            <ArrowLeft size={15} />返回能力清单
           </button>
           <div className="text-center">
             <span className="text-[14px] font-semibold text-text-primary">第 {answeredTurnCount + 1} 轮追问</span>

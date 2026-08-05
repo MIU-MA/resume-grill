@@ -139,13 +139,21 @@ function migrateLegacyRecord(record: SavedRecord): SavedRecord {
       ? claim.masteryPoints as SafeMasteryPoint[]
       : legacyPoints.length > 0
         ? legacyPoints
-        : [{ point: '需要验证该声明的真实性', dimension: 'practice' as const, importance: 'high' as const }]
+        : [{ point: '需要验证是否掌握该项能力', dimension: 'practice' as const, importance: 'high' as const }]
 
     const safePriority: 'high' | 'medium' | 'low' =
       (claim as Record<string, unknown>).testPriority === 'high' ? 'high'
         : (claim as Record<string, unknown>).testPriority === 'low' ? 'low'
         : 'medium'
-    const { evidence, evaluationPoints, verifyPoints, exaggerationRisk, interviewRisk, evidenceGap, ...rest } = claim
+    const {
+      evidence: _evidence,
+      evaluationPoints: _evaluationPoints,
+      verifyPoints: _verifyPoints,
+      exaggerationRisk: _exaggerationRisk,
+      interviewRisk: _interviewRisk,
+      evidenceGap: _evidenceGap,
+      ...rest
+    } = claim
     return {
       ...rest,
       id: claim.id || createClaimId(claim as unknown as Parameters<typeof createClaimId>[0], index),

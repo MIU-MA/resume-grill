@@ -5,25 +5,23 @@ import { resumeClaimSchema } from '@/domain/resume-schema'
 import { SUMMARIZE_TIMEOUT, getClientIp, rateLimit, withTimeout } from '@/lib/server-limits'
 import { llmStructured, resolveLlmConfig } from '@/providers/openai-compatible'
 
-const SUMMARIZE_SYSTEM = `你是一名资深面试官，刚结束对候选人简历中一条声明的追问。基于对话历史，给出最终评估报告。
+const SUMMARIZE_SYSTEM = `你是一名资深面试官，刚结束对候选人简历中一条声明的追问。基于对话历史，给出最终能力评估报告。
 
-澄清轮次（只有批注、没有回答）不算能力不足，也不能作为已证明证据。
+澄清轮次（只有批注、没有回答）不算能力不足。
 “已掌握，跳过”属于自报状态，不是回答证据，也不代表能力不足。
 
 只输出 JSON 对象，不输出任何解释、推理、Markdown 或额外文字。输出格式：
-{“confidence”:0,”risk”:”medium”,”canExplain”:[],”cannotExplain”:[],”suggestions”:[],”rewriteSuggestion”:””,”answerSummary”:””,”evidenceUsed”:[],”missingEvidence”:[],”nextAction”:””}
+{“masteryScore”:0,”masteryLevel”:”not_demonstrated”,”canExplain”:[],”cannotExplain”:[],”knowledgeGaps”:[],”answerSummary”:””,”nextAction”:””,”rewriteSuggestion”:””}
 
 字段说明：
-- confidence: 0-5，5=完全经得起追问，0=完全无法回答
-- risk: high|medium|low
+- masteryScore: 0-5，5=完全经得起追问，0=完全无法回答
+- masteryLevel: mastered=掌握较好, partial=部分掌握, not_demonstrated=尚未讲清
 - canExplain: 候选人能讲清的
-- cannotExplain: 无法讲清或回避的
-- suggestions: 建议补充的知识或证据
-- rewriteSuggestion: 改写后的简历表述
+- cannotExplain: 尚未讲清或回避的
+- knowledgeGaps: 需要补强的知识点
 - answerSummary: 对回答质量和掌握度的短结论
-- evidenceUsed: 回答中真正出现的证据
-- missingEvidence: 仍缺失的证据
-- nextAction: 下一步最具体的补强动作`
+- nextAction: 下一步最具体的补强动作
+- rewriteSuggestion: 改写后的简历表述`
 
 const requestSchema = z.object({
   claim: resumeClaimSchema,

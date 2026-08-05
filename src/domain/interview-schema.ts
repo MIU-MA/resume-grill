@@ -1,7 +1,5 @@
 import { z } from 'zod'
 
-const riskLevelSchema = z.enum(['high', 'medium', 'low'])
-
 export const verifyPointSchema = z.object({
   point: z.string(),
   importance: z.enum(['high', 'medium', 'low']),
@@ -78,16 +76,14 @@ export const interviewContinueSchema = z.object({
 export type InterviewContinueResult = z.infer<typeof interviewContinueSchema>
 
 export const finalResultSchema = z.object({
-  confidence: z.number().min(0).max(5),
-  risk: riskLevelSchema,
+  masteryScore: z.number().min(0).max(5),
+  masteryLevel: z.enum(['mastered', 'partial', 'not_demonstrated']),
   canExplain: z.array(z.string()),
   cannotExplain: z.array(z.string()),
-  suggestions: z.array(z.string()),
-  rewriteSuggestion: z.string(),
+  knowledgeGaps: z.array(z.string()).default([]),
   answerSummary: z.string().default(''),
-  evidenceUsed: z.array(z.string()).default([]),
-  missingEvidence: z.array(z.string()).default([]),
   nextAction: z.string().default(''),
+  rewriteSuggestion: z.string(),
 })
 export type FinalResult = z.infer<typeof finalResultSchema>
 

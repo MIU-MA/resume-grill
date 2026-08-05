@@ -107,11 +107,11 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
   const finalizeSession = useCallback(async (claim: ResumeClaim, finalRounds: InterviewRound[]) => {
     const snapshot = activeClaimSnapshot ?? claim
     let finalResult: FinalResult = {
-      confidence: 0, risk: 'medium',
+      masteryScore: 0, masteryLevel: 'not_demonstrated',
       canExplain: [], cannotExplain: ['总结生成失败'],
-      suggestions: [], rewriteSuggestion: '',
+      knowledgeGaps: [], rewriteSuggestion: '',
       answerSummary: '本次总结没有成功生成，但问答记录已经保留。',
-      evidenceUsed: [], missingEvidence: [], nextAction: '稍后重新生成总结。',
+      nextAction: '稍后重新生成总结。',
     }
     let summarySucceeded = false
     try {
