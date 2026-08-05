@@ -6,12 +6,12 @@ import { clearLlmSettings, clearTestResult as clearPersistedTestResult, getLlmSe
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
 
-const DEFAULTS: LlmSettings = { baseUrl: 'https://api.openai.com/v1', apiKey: '', model: 'gpt-5.3-instant' }
+const DEFAULTS: LlmSettings = { baseUrl: 'https://api.openai.com/v1', apiKey: '', model: 'gpt-5.4-mini' }
 
 type Provider = { label: string; baseUrl: string; model: string }
 
 const PROVIDERS: Provider[] = [
-  { label: 'OpenAI', baseUrl: 'https://api.openai.com/v1', model: 'gpt-5.3-instant' },
+  { label: 'OpenAI', baseUrl: 'https://api.openai.com/v1', model: 'gpt-5.4-mini' },
   { label: 'DeepSeek', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-v4-flash' },
   { label: '通义千问', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: 'qwen3.7-plus' },
   { label: '智谱 GLM', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', model: 'glm-5.2' },
@@ -119,7 +119,7 @@ export function ModelSettings({ envConfigured, clientConfigured, onClientChanged
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-[10px] font-700 text-text-secondary">Model</span>
-          <input type="text" className={inputCls} value={form.model} onChange={(e) => { setForm((f) => ({ ...f, model: e.target.value })); resetTest() }} placeholder="gpt-5.3-instant" />
+          <input type="text" className={inputCls} value={form.model} onChange={(e) => { setForm((f) => ({ ...f, model: e.target.value })); resetTest() }} placeholder="gpt-5.4-mini" />
         </label>
 
         {testError && (

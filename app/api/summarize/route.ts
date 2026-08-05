@@ -11,7 +11,7 @@ const SUMMARIZE_SYSTEM = `你是一名资深面试官，刚结束对候选人简
 “已掌握，跳过”属于自报状态，不是回答证据，也不代表能力不足。
 
 只输出 JSON 对象，不输出任何解释、推理、Markdown 或额外文字。输出格式：
-{“masteryScore”:0,”canExplain”:[],”cannotExplain”:[],”knowledgeGaps”:[],”answerSummary”:””,”nextAction”:””,”rewriteSuggestion”:””}
+{"masteryScore":0,"canExplain":[],"cannotExplain":[],"knowledgeGaps":[],"answerSummary":"","nextAction":"","rewriteSuggestion":""}
 
 字段说明：
 - masteryScore: 0-5，5=完全经得起追问，0=完全无法回答

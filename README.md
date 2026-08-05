@@ -35,7 +35,7 @@ Resume Grill 将简历中的项目、技能和成果转化为能力测试，通�
 |  盲区管理 | 标记知识点为已掌握，基于原声明创建新测试版本 |
 |  导出 | 支持导出 Markdown 格式报告 |
 
-未配置模型时，应用仍可提供基于规则的简历分析预览。连续追问、回答判断和复盘需要一个可用的 OpenAI Chat Completions 兼容接口。
+未配置模型时，可以使用仓库附带的示例简历体验规则分析；分析真实简历以及连续追问、回答判断和复盘，需要可用的 OpenAI Chat Completions 兼容接口。
 
 ## 界面预览
 
@@ -93,7 +93,7 @@ npm run build
 ```bash
 OPENAI_BASE_URL=https://api.openai.com/v1
 OPENAI_API_KEY=sk-…
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_MODEL=gpt-5.4-mini
 ```
 
 API Key 仅由本机 Next.js Route Handler 读取，不会发送到前端。
