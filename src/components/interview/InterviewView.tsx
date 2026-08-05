@@ -198,7 +198,7 @@ export function InterviewView({
                   <div className="flex items-center gap-2">
                     <Button variant="secondary" size="large" disabled={loading} onClick={onSkip}>跳过此题</Button>
                     <Button variant="primary" size="large" disabled={(answer.trim().length === 0 && annotation.trim().length === 0) || loading} onClick={onSubmit} loading={loading}>
-                      {answer.trim() ? '提交回答' : '提交批注'}
+                      提交回答
                     </Button>
                   </div>
                 </div>

@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       '请用 JSON 回复 ok',
       echoSchema,
       config,
-      { signal: withTimeout(TEST_CONNECTION_TIMEOUT), maxTokens: 50 },
+      { signal: withTimeout(TEST_CONNECTION_TIMEOUT), maxTokens: 300 },
     )
 
     return NextResponse.json({ success: true, model: config.model })
