@@ -33,7 +33,7 @@ export type InterviewViewData = {
   skip: (claim: ResumeClaim) => Promise<void>
   reset: () => void
   regenerateSummary: (claim: ResumeClaim, session: InterviewSession) => Promise<boolean>
-  regenerating: boolean
+  regeneratingId: string | null
 }
 
 type WorkspaceContentProps = {
@@ -91,7 +91,7 @@ export function WorkspaceContent({
         onRetest={onRetest}
         onRewrite={onRewrite}
         onRegenerateSummary={onRegenerateSummary}
-        regenerating={iv.regenerating}
+        regeneratingId={iv.regeneratingId}
       />
     )
   }

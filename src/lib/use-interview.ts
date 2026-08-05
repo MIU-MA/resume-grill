@@ -106,6 +106,8 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
 
   const finalizeSession = useCallback(async (claim: ResumeClaim, finalRounds: InterviewRound[]) => {
     const snapshot = activeClaimSnapshot ?? claim
+    const sessionId = `${snapshot.id}:v${version}`
+    const claimAnalysis = cache.current.get(cacheKey(snapshot))!
     let finalResult: FinalResult = {
       masteryScore: 0, masteryLevel: 'not_demonstrated',
       canExplain: [], cannotExplain: ['总结生成失败'],
@@ -114,6 +116,18 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       nextAction: '稍后重新生成总结。',
     }
     let summarySucceeded = false
+
+    // 先保存 without summaryStatus，UI 会显示 loading
+    onSessionSaved(snapshot.id, {
+      id: sessionId,
+      claimContent: snapshot.content,
+      rounds: finalRounds,
+      claimAnalysis,
+      finalResult: null,
+      status: 'done',
+      version,
+    })
+
     try {
       const llm = getLlmSettings()
       const body: any = { claim: snapshot, rounds: finalRounds }; if (llm) body.llm = llm
@@ -125,11 +139,12 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
         finalResult = data; summarySucceeded = true
       }
     } catch { onToast('总结请求失败，问答记录仍会保存。') }
+
     onSessionSaved(snapshot.id, {
-      id: `${snapshot.id}:v${version}`,
+      id: sessionId,
       claimContent: snapshot.content,
       rounds: finalRounds,
-      claimAnalysis: cache.current.get(cacheKey(snapshot))!,
+      claimAnalysis,
       finalResult,
       status: 'done',
       version,
@@ -200,7 +215,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
 
   const skip = useCallback((claim: ResumeClaim) => continueInterview(claim, 'skip'), [continueInterview])
 
-  const [regenerating, setRegenerating] = useState(false)
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null)
 
   const regenerateSummary = useCallback(async (claim: ResumeClaim, session: InterviewSession) => {
     const snapshot: ResumeClaim = session.claimContent && session.claimContent !== claim.content
@@ -208,7 +223,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       : claim
     const claimAnalysis = session.claimAnalysis ?? buildClaimAnalysisFromClaim(snapshot)
     cache.current.set(cacheKey(snapshot), claimAnalysis)
-    setRegenerating(true)
+    setRegeneratingId(session.id)
     try {
       const llm = getLlmSettings()
       const body: any = { claim: snapshot, rounds: session.rounds }; if (llm) body.llm = llm
@@ -233,7 +248,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
     } catch (e) {
       onError(e instanceof Error ? e.message : '重新生成总结失败')
       return false
-    } finally { setRegenerating(false) }
+    } finally { setRegeneratingId(null) }
   }, [onError, onToast, onSessionSaved])
 
   const covered = rounds[rounds.length - 1]?.evaluation?.coveredPoints ?? []
@@ -241,7 +256,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
   return {
     rounds, currentQuestion, currentIntent, answer, setAnswer, annotation, setAnnotation, loading, done,
     activeClaimSnapshot, version, covered,
-    reset, start, restore, submit, skip, regenerateSummary, regenerating,
+    reset, start, restore, submit, skip, regenerateSummary, regeneratingId,
   }
 }
 

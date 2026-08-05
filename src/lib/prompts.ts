@@ -1,5 +1,5 @@
-import type { AnalysisGoal, ReviewedCandidate } from '@/domain/analysis-config'
-import { buildStructuredResumeInput, parseResumeStructure } from '@/lib/resume-structure'
+import type { AnalysisGoal } from '@/domain/analysis-config'
+import { buildStructuredResumeInput } from '@/lib/resume-structure'
 
 const GOAL_INSTRUCTIONS: Record<AnalysisGoal, string> = {
   overall: '全面检查：在项目、技能、成果、职责之间保持覆盖平衡。',
@@ -33,56 +33,27 @@ export const ANALYZE_SYSTEM_PROMPT = `你是一名资深面试官。从候选池
 不编造、不输出解释、不输出额外字段、不输出 Markdown。
 只返回一个 JSON 对象。`
 
-export function buildAnalyzeUserPrompt(
-  rawText: string,
-  options: { analysisGoal?: AnalysisGoal; reviewedCandidates?: ReviewedCandidate[]; jobDescription?: string } = {},
-): string {
-  const analysisGoal = options.analysisGoal ?? 'overall'
-
-  if (options.reviewedCandidates) {
-    const identity = detectIdentity(rawText)
-    return [
-      '以下候选池已由用户确认，只能从中选择，用 candidateIndex 引用。',
-      GOAL_INSTRUCTIONS[analysisGoal],
-      '',
-      JSON.stringify({
-        analysisGoal,
-        identity,
-        candidates: options.reviewedCandidates.map((c, i) => ({
-          index: i,
-          content: c.content,
-          sourceSection: c.sourceSection,
-        })),
-      }),
-    ].join('\n')
-  }
-
+export function buildAnalyzeUserPrompt(rawText: string, candidates: Array<{ content: string; sourceSection: string }>, analysisGoal: AnalysisGoal): string {
   const detected = buildStructuredResumeInput(rawText)
   const hasSkill = detected.claimCandidates.some((c) =>
     /技能|技术|能力|skills?|competenc/i.test(c.sourceSection),
   )
 
   return [
-    '请根据原始文本与结构化提示识别候选人，选择最值得追问的能力声明。',
-    'structuredHint 是本地启发式结果，可能因 PDF 排版不完整；需结合 rawText 判断。',
+    '只从以下候选池中选择声明（通过 candidateIndex 引用），不要输出简历原文。',
     GOAL_INSTRUCTIONS[analysisGoal],
     hasSkill && (analysisGoal === 'overall' || analysisGoal === 'skills')
-      ? '本简历存在技能/技术声明，claims 必须保留至少 1 条 category=skill。'
+      ? '候选池中存在技能声明，claims 必须保留至少 1 条 category=skill。'
       : '',
     '',
     JSON.stringify({
-      rawText,
       analysisGoal,
-      structuredHint: detected,
+      identity: detected.identity,
+      candidates: candidates.map((c, i) => ({
+        index: i,
+        content: c.content,
+        sourceSection: c.sourceSection,
+      })),
     }),
   ].join('\n')
-}
-
-function detectIdentity(rawText: string): string[] {
-  const CONTACT = /@|(?:电话|手机|邮箱|微信|地址|现居|籍贯|性别|年龄|出生|政治面貌|婚姻|期望薪资)\s*[：:]|https?:\/\//i
-  return parseResumeStructure(rawText)
-    .filter((s) => s.kind === 'general')
-    .flatMap((s) => s.lines.map((l) => l.text))
-    .filter((line) => !CONTACT.test(line))
-    .slice(0, 6)
 }

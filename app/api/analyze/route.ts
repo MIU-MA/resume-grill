@@ -41,22 +41,20 @@ export async function POST(request: Request) {
   }
 
   try {
-    const candidates = body.reviewedCandidates ?? extractResumeClaimCandidates(body.rawText)
+    const rawCandidates = body.reviewedCandidates ?? extractResumeClaimCandidates(body.rawText)
+    const promptCandidates = rawCandidates.slice(0, 20)
     const config = resolveLlmConfig(body.llm ?? null)
     if (config) {
       const compact = await llmStructured(
         ANALYZE_SYSTEM_PROMPT,
-        buildAnalyzeUserPrompt(body.rawText, {
-          analysisGoal: body.analysisGoal,
-          reviewedCandidates: body.reviewedCandidates,
-        }),
+        buildAnalyzeUserPrompt(body.rawText, promptCandidates, body.analysisGoal),
         compactAnalysisSchema,
         config,
         { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 12000 },
       )
 
       const backfilledClaims = compact.claims.map((claim) => {
-        const source = candidates[claim.candidateIndex]
+        const source = promptCandidates[claim.candidateIndex]
         if (!source) throw new Error(`候选索引 ${claim.candidateIndex} 无效`)
 
         return {
@@ -76,7 +74,7 @@ export async function POST(request: Request) {
 
       const filteredClaims = backfilledClaims.flatMap((claim) => {
         if (isExcludedClaimContent(claim.content)) return []
-        const source = matchClaimCandidate(claim.content, candidates)
+        const source = matchClaimCandidate(claim.content, rawCandidates)
         if (!source && (body.reviewedCandidates || !isClaimGroundedInRawText(claim.content, body.rawText))) return []
         return [{ ...claim, sourceSection: (source?.sourceSection ?? claim.sourceSection.trim()) || '经历内容' }]
       })
@@ -102,7 +100,7 @@ export async function POST(request: Request) {
         reviewedCandidates: body.reviewedCandidates,
         jobDescription: body.jobDescription,
         jobMatch: body.jobDescription
-          ? buildHeuristicJobMatch(body.jobDescription, candidates)
+          ? buildHeuristicJobMatch(body.jobDescription, rawCandidates)
           : undefined,
       })
       return NextResponse.json(analysis)
