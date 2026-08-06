@@ -45,13 +45,11 @@ function App() {
   const activeClaim = interview.activeClaimSnapshot ?? selected
 
   const handleTabChange = (tab: Mode) => {
-    // 点击当前 tab，不重复初始化
     if (tab === mode) return
 
     if (tab === 'interview') {
       if (!selected) return
 
-      // 当前内存中已经有该声明的未完成测试，直接返回页面
       const hasActiveInterview =
         interview.activeClaimSnapshot?.id === selected.id &&
         !interview.done &&

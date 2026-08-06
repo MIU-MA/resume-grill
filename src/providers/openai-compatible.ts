@@ -31,7 +31,7 @@ export async function llmStructured<T>(
   userPrompt: string,
   schema: ZodType<T>,
   config?: LlmConfig | null,
-  options?: { signal?: AbortSignal; maxTokens?: number },
+  options?: { signal?: AbortSignal; maxTokens?: number; repair?: (value: unknown) => unknown },
 ): Promise<T> {
   const resolved = config ?? getLlmConfig()
   if (!resolved) {
@@ -100,15 +100,21 @@ export async function llmStructured<T>(
     parsed = parsed[0]
   }
 
+  if (options?.repair) {
+    parsed = options.repair(parsed)
+  }
+
   const validated = schema.safeParse(parsed)
   if (!validated.success) {
     const issue = validated.error.issues[0]
     const path = issue?.path.length ? issue.path.join('.') : '根对象'
+    const issues = validated.error.issues.map((i) => `${i.path.join('.') || '根对象'}: ${i.message}`)
     if (process.env.NODE_ENV !== 'production') {
-      console.error('[llmStructured] schema 校验失败，模型原文:', content.slice(0, 500))
-      console.error('[llmStructured] 解析后:', JSON.stringify(parsed).slice(0, 500))
+      console.error('[llmStructured] schema 校验失败，issues:\n' + issues.join('\n'))
+      console.error('[llmStructured] 模型原文:', content.slice(0, 2000))
+      console.error('[llmStructured] 解析后:', JSON.stringify(parsed).slice(0, 2000))
     } else {
-      console.error('[llmStructured] schema validation failed', { model: resolved.model, path })
+      console.error('[llmStructured] schema validation failed', { model: resolved.model, issues })
     }
     throw new Error(`模型 JSON 字段不完整：${path} ${issue?.message ?? '格式不符合要求'}`)
   }
