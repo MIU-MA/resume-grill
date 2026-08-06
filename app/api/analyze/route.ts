@@ -51,7 +51,7 @@ export async function POST(request: Request) {
         buildAnalyzeUserPrompt(body.rawText, promptCandidates, body.analysisGoal),
         compactAnalysisSchema,
         config,
-        { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 240000, repair: (value) => repairCompactAnalysis(value, goalClaimCount(body.analysisGoal)) },
+        { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 24000, repair: (value) => repairCompactAnalysis(value, goalClaimCount(body.analysisGoal)) },
       )
 
       const backfilledClaims = compact.claims.flatMap((claim) => {
