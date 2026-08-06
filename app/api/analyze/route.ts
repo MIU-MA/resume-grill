@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { attachClaimIds, compactAnalysisSchema, computeTestPriority, resumeAnalysisSchema } from '@/domain/resume-schema'
+import { attachClaimIds, compactAnalysisSchema, computeTestPriority, repairCompactAnalysis, resumeAnalysisSchema } from '@/domain/resume-schema'
 import { ANALYZE_SYSTEM_PROMPT, buildAnalyzeUserPrompt } from '@/lib/prompts'
 import { ANALYZE_TIMEOUT, MAX_RAWTEXT, getClientIp, rateLimit, withTimeout } from '@/lib/server-limits'
 import { llmStructured, resolveLlmConfig } from '@/providers/openai-compatible'
@@ -51,14 +51,14 @@ export async function POST(request: Request) {
         buildAnalyzeUserPrompt(body.rawText, promptCandidates, body.analysisGoal),
         compactAnalysisSchema,
         config,
-        { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 12000 },
+        { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 240000, repair: repairCompactAnalysis },
       )
 
-      const backfilledClaims = compact.claims.map((claim) => {
+      const backfilledClaims = compact.claims.flatMap((claim) => {
         const source = promptCandidates[claim.candidateIndex]
-        if (!source) throw new Error(`候选索引 ${claim.candidateIndex} 无效`)
+        if (!source) return []
 
-        return {
+        return [{
           content: source.content,
           sourceSection: source.sourceSection,
           title: claim.capability,
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
           initialIntent: `验证：${claim.masteryPoints[0]?.point ?? '该项能力'}`,
           trapPoints: claim.trapPoints,
           testPriority: computeTestPriority(claim.masteryPoints),
-        }
+        }]
       })
 
       const filteredClaims = backfilledClaims.flatMap((claim) => {

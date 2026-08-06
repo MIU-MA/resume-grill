@@ -65,7 +65,7 @@ export async function POST(request: Request) {
       ),
       interviewContinueSchema,
       config,
-      { signal: withTimeout(INTERVIEW_TIMEOUT), maxTokens: 8000 },
+      { signal: withTimeout(INTERVIEW_TIMEOUT), maxTokens: 16000 },
     )
 
     const hasAnswer = body.action === 'answer' && body.answer.length > 0
