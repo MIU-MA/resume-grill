@@ -146,7 +146,7 @@ export function useSpeechInput({ onFinalTranscript, onError }: Options) {
 
   const stop = () => {
     recognitionRef.current?.stop()
-    setListening(false)
+    // 不在此处 setListening(false)：等待 onend 处理完最后一段识别结果后再解锁提交。
   }
 
   return {

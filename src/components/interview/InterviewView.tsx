@@ -250,7 +250,7 @@ export function InterviewView({
                       </Button>
                     )}
                     <Button variant="secondary" size="large" disabled={loading} onClick={onSkip}>跳过此题</Button>
-                    <Button variant="primary" size="large" disabled={!answer.trim() || loading || speech.listening} onClick={onSubmit} loading={loading}>
+                    <Button variant="primary" size="large" disabled={(answer.trim().length === 0 && annotation.trim().length === 0) || loading || speech.listening} onClick={onSubmit} loading={loading}>
                       提交回答
                     </Button>
                   </div>
