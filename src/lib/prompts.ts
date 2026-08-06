@@ -1,4 +1,4 @@
-import type { AnalysisGoal } from '@/domain/analysis-config'
+import { goalClaimCount, type AnalysisGoal } from '@/domain/analysis-config'
 import { buildStructuredResumeInput } from '@/lib/resume-structure'
 
 const GOAL_INSTRUCTIONS: Record<AnalysisGoal, string> = {
@@ -9,7 +9,7 @@ const GOAL_INSTRUCTIONS: Record<AnalysisGoal, string> = {
   leadership: '管理与协作：优先选择主导、统筹、协作、决策和职责边界相关声明。',
 }
 
-export const ANALYZE_SYSTEM_PROMPT = `你是一名资深面试官。从候选池中选出最值得追问的 3~4 条能力声明。
+export const ANALYZE_SYSTEM_PROMPT = `你是一名资深面试官。从候选池中选出最值得追问的若干条能力声明，具体条数由用户指令中的目标数量决定。
 
 你的任务是：这条声明代表候选人需要掌握什么能力？掌握这项能力需要能讲清楚什么？
 
@@ -24,7 +24,7 @@ export const ANALYZE_SYSTEM_PROMPT = `你是一名资深面试官。从候选池
 每条 claim 的字段及硬性长度限制：
 - candidateIndex: 输入候选池中的整数索引
 - category: skill|responsibility|achievement|leadership|metric
-- capability: 核心能力，≤20 个汉字
+- capability: 核心能力，≤30 个汉字
 - masteryPoints: 2~4 条。每条 { "point": "≤30 个汉字", "dimension": "context|practice|principle|decision|troubleshooting|boundary", "importance": "high|medium|low" }
   dimension: context=为什么做, practice=具体怎么做, principle=为什么有效, decision=为什么选这个, troubleshooting=遇到过什么问题, boundary=有什么限制
 - initialQuestion: 首轮追问，≤60 个汉字，直接问具体行为不要铺垫
@@ -42,6 +42,7 @@ export function buildAnalyzeUserPrompt(rawText: string, candidates: Array<{ cont
   return [
     '只从以下候选池中选择声明（通过 candidateIndex 引用），不要输出简历原文。',
     GOAL_INSTRUCTIONS[analysisGoal],
+    `本次分析目标需要输出 ${goalClaimCount(analysisGoal)} 条声明（claims.length 必须等于该数量）。`,
     hasSkill && (analysisGoal === 'overall' || analysisGoal === 'skills')
       ? '候选池中存在技能声明，claims 必须保留至少 1 条 category=skill。'
       : '',

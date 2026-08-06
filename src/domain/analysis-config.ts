@@ -14,13 +14,18 @@ export const ANALYSIS_GOALS: Array<{
   value: AnalysisGoal
   label: string
   description: string
+  claimCount: number
 }> = [
-  { value: 'overall', label: '全面检查', description: '平衡项目、技能、成果与职责' },
-  { value: 'project', label: '项目深挖', description: '优先检查项目决策和个人贡献' },
-  { value: 'skills', label: '技能深度', description: '优先验证技能深度和使用边界' },
-  { value: 'achievement', label: '成果与数据', description: '优先追问指标口径和结果归因' },
-  { value: 'leadership', label: '管理与协作', description: '优先检查职责边界和关键决策' },
+  { value: 'overall', label: '全面检查', description: '平衡项目、技能、成果与职责', claimCount: 6 },
+  { value: 'project', label: '项目深挖', description: '优先检查项目决策和个人贡献', claimCount: 4 },
+  { value: 'skills', label: '技能深度', description: '优先验证技能深度和使用边界', claimCount: 4 },
+  { value: 'achievement', label: '成果与数据', description: '优先追问指标口径和结果归因', claimCount: 4 },
+  { value: 'leadership', label: '管理与协作', description: '优先检查职责边界和关键决策', claimCount: 2 },
 ]
+
+export function goalClaimCount(goal: AnalysisGoal): number {
+  return ANALYSIS_GOALS.find((item) => item.value === goal)?.claimCount ?? 4
+}
 
 export const reviewedCandidateSchema = z.object({
   content: z.string().trim().min(2).max(500),

@@ -319,6 +319,7 @@ export function ResumeReviewView({ sourceFile, extracted, analyzing, error, envC
                       <input type="radio" name="analysis-goal" value={goal.value} checked={active} onChange={() => setAnalysisGoal(goal.value)} className="sr-only" />
                       <span className="flex items-center gap-2 text-[12px] font-bold text-text-primary">
                         <Icon size={14} className={active ? 'text-brand' : 'text-text-tertiary'} />{goal.label}
+                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${active ? 'bg-brand/10 text-brand' : 'bg-surface-soft text-text-tertiary'}`}>约 {goal.claimCount} 条</span>
                         {active && <Check size={13} className="ml-auto text-brand" />}
                       </span>
                       <span className="mt-1.5 block text-[11px] leading-relaxed text-text-tertiary">{goal.description}</span>

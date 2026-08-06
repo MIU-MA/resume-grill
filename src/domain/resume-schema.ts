@@ -67,23 +67,18 @@ export const compactAnalysisSchema = z.object({
   candidate: z.string(),
   role: z.string(),
   summary: z.string().max(100),
-  claims: z.array(compactClaimSchema).min(1).max(4),
+  claims: z.array(compactClaimSchema).min(1).max(6),
 })
 export type CompactAnalysis = z.infer<typeof compactAnalysisSchema>
 
-/**
- * 模型偶尔会超出数量/长度上限（如 masteryPoints 给了 5 条、字符串超长），
- * 导致 schema 校验失败整单报错。此函数在解析后、校验前做无损的「收敛」：
- * 只截断到 schema 允许的上限，不新增、不修改内容。校验通过时该操作是空操作。
- */
-export function repairCompactAnalysis(value: unknown): unknown {
+export function repairCompactAnalysis(value: unknown, maxClaims = 6): unknown {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return value
   const source = value as Record<string, unknown>
   return {
     ...source,
     summary: truncateText(source.summary, 100),
     claims: Array.isArray(source.claims)
-      ? source.claims.slice(0, 4).map(repairCompactClaim)
+      ? source.claims.slice(0, maxClaims).map(repairCompactClaim)
       : source.claims,
   }
 }

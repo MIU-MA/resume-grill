@@ -7,7 +7,7 @@ import { llmStructured, resolveLlmConfig } from '@/providers/openai-compatible'
 import { mockAnalyze } from '@/providers/mock'
 import { isExcludedClaimContent } from '@/lib/claim-filter'
 import { extractResumeClaimCandidates, isClaimGroundedInRawText, matchClaimCandidate } from '@/lib/resume-structure'
-import { analysisGoalSchema, reviewedCandidateSchema } from '@/domain/analysis-config'
+import { analysisGoalSchema, goalClaimCount, reviewedCandidateSchema } from '@/domain/analysis-config'
 import { buildHeuristicJobMatch } from '@/lib/job-match'
 
 const requestSchema = z.object({
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
         buildAnalyzeUserPrompt(body.rawText, promptCandidates, body.analysisGoal),
         compactAnalysisSchema,
         config,
-        { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 240000, repair: repairCompactAnalysis },
+        { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 240000, repair: (value) => repairCompactAnalysis(value, goalClaimCount(body.analysisGoal)) },
       )
 
       const backfilledClaims = compact.claims.flatMap((claim) => {

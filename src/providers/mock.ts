@@ -7,7 +7,7 @@ import {
   type ResumeClaim,
 } from '@/domain/resume-schema'
 import { buildStructuredResumeInput, extractLooseClaimCandidates, extractResumeClaimCandidates } from '@/lib/resume-structure'
-import type { AnalysisGoal, ReviewedCandidate } from '@/domain/analysis-config'
+import { goalClaimCount, type AnalysisGoal, type ReviewedCandidate } from '@/domain/analysis-config'
 import { buildHeuristicJobMatch } from '@/lib/job-match'
 
 const ROLE_RULES: { role: string; keywords: string[] }[] = [
@@ -175,7 +175,7 @@ export function mockAnalyze(
     }))
     .filter((item) => Boolean(options.candidates) || item.score > 0)
     .sort((a, b) => b.score - a.score)
-  const selected = ranked.slice(0, 6)
+  const selected = ranked.slice(0, goalClaimCount(analysisGoal))
   const bestSkill = ranked.find((item) => /技能|技术|专业能力|competenc|skills?/i.test(item.candidate.sourceSection))
   if (bestSkill && !selected.includes(bestSkill)) selected[selected.length - 1] = bestSkill
   const finalPool = selected.map((item) => item.candidate)
