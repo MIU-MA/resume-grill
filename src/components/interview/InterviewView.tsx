@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ArrowRight, Check, CircleHelp, Lightbulb, MessageSquareText } from 'lucide-react'
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
+import { ArrowLeft, ArrowRight, Check, CircleHelp, Lightbulb, MessageSquareText, Mic, Square } from 'lucide-react'
 import type { ResumeClaim } from '@/domain/resume-schema'
 import type { InterviewAction } from '@/domain/interview-schema'
 import { Button } from '@/components/ui/Button'
+import { useSpeechInput } from '@/lib/use-speech-input'
 
 type Turn = { action: InterviewAction; question: string; answer: string; annotation?: string; answerSuggestion?: string; intent?: string; evidenceQuotes?: string[] }
 
@@ -18,7 +19,7 @@ type InterviewViewProps = {
   done: boolean
   version: number
   error: string | null
-  onAnswerChange: (value: string) => void
+  onAnswerChange: Dispatch<SetStateAction<string>>
   onAnnotationChange: (value: string) => void
   onSubmit: () => void
   onSkip: () => void
@@ -50,6 +51,24 @@ export function InterviewView({
   const totalPoints = selected.masteryPoints.length
   const coverage = totalPoints > 0 ? Math.round((covered.length / totalPoints) * 100) : 0
   const answeredTurnCount = turns.filter((turn) => turn.action === 'answer').length
+
+  const [speechError, setSpeechError] = useState('')
+  const speech = useSpeechInput({
+    onFinalTranscript: (transcript) => {
+      onAnswerChange((current) => {
+        const existing = current.trimEnd()
+
+        if (!existing) {
+          return transcript
+        }
+
+        return `${existing}${needsSeparator(existing) ? '，' : ''}${transcript}`
+      })
+    },
+    onError: (message) => {
+      setSpeechError(message)
+    },
+  })
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -169,10 +188,24 @@ export function InterviewView({
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' && !event.shiftKey) {
                       event.preventDefault()
-                      if ((answer.trim().length > 0 || annotation.trim().length > 0) && !loading) onSubmit()
+                      if ((answer.trim().length > 0 || annotation.trim().length > 0) && !loading && !speech.listening) onSubmit()
                     }
                   }}
                 />
+                {speech.listening && (
+                  <div className="flex items-center gap-2 text-[12px] text-brand">
+                    <span className="size-2 animate-pulse rounded-full bg-danger" />
+                    {speech.interimText
+                      ? `正在识别：${speech.interimText}`
+                      : '正在听，请开始说话…'}
+                  </div>
+                )}
+                {speechError && !speech.listening && (
+                  <div className="flex items-center gap-2 text-[12px] text-danger">
+                    <CircleHelp size={13} className="flex-none" />
+                    {speechError}
+                  </div>
+                )}
                 <div>
                   <button
                     type="button"
@@ -196,8 +229,28 @@ export function InterviewView({
                 <div className="flex items-center justify-between">
                   <span className="text-text-tertiary text-[12px]">Shift + Enter 换行 · 建议 80–300 字</span>
                   <div className="flex items-center gap-2">
+                    {speech.supported && (
+                      <Button
+                        variant="secondary"
+                        size="large"
+                        disabled={loading}
+                        onClick={speech.listening ? speech.stop : () => { setSpeechError(''); speech.start() }}
+                      >
+                        {speech.listening ? (
+                          <>
+                            <Square size={14} />
+                            停止语音
+                          </>
+                        ) : (
+                          <>
+                            <Mic size={15} />
+                            语音输入
+                          </>
+                        )}
+                      </Button>
+                    )}
                     <Button variant="secondary" size="large" disabled={loading} onClick={onSkip}>跳过此题</Button>
-                    <Button variant="primary" size="large" disabled={(answer.trim().length === 0 && annotation.trim().length === 0) || loading} onClick={onSubmit} loading={loading}>
+                    <Button variant="primary" size="large" disabled={!answer.trim() || loading || speech.listening} onClick={onSubmit} loading={loading}>
                       提交回答
                     </Button>
                   </div>
@@ -213,4 +266,8 @@ export function InterviewView({
       </div>
     </main>
   )
+}
+
+function needsSeparator(value: string) {
+  return !/[，。！？；：,.!?;:]$/.test(value)
 }

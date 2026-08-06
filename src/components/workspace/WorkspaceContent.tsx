@@ -1,5 +1,6 @@
 'use client'
 
+import type { Dispatch, SetStateAction } from 'react'
 import type { ResumeAnalysis, ResumeClaim } from '@/domain/resume-schema'
 import type { InterviewAction, InterviewSession } from '@/domain/interview-schema'
 import type { Mode } from '@/types'
@@ -27,7 +28,7 @@ export type InterviewViewData = {
   annotation: string
   version: number
   activeClaimSnapshot: ResumeClaim | null
-  setAnswer: (v: string) => void
+  setAnswer: Dispatch<SetStateAction<string>>
   setAnnotation: (v: string) => void
   submit: (claim: ResumeClaim) => Promise<void>
   skip: (claim: ResumeClaim) => Promise<void>
