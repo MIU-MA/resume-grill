@@ -89,6 +89,7 @@ export function ResumeReviewView({ sourceFile, extracted, analyzing, error, envC
   const [analysisGoal, setAnalysisGoal] = useState<AnalysisGoal>('overall')
   const [jobDescription, setJobDescription] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(true)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   const selectedCandidates = candidates.filter((candidate) => candidate.enabled && candidate.content.trim().length >= 2)
   const groupedCandidates = useMemo(() => groupCandidates(candidates), [candidates])
@@ -267,14 +268,28 @@ export function ResumeReviewView({ sourceFile, extracted, analyzing, error, envC
                               aria-label={`保留声明：${candidate.content}`}
                             />
                           </label>
-                          <textarea
-                            value={candidate.content}
-                            onChange={(event) => updateCandidate(candidate.id, { content: event.target.value })}
-                            disabled={analyzing}
-                            rows={Math.max(2, Math.ceil(candidate.content.length / 48))}
-                            className="min-h-[58px] min-w-0 flex-1 resize-y rounded-lg border border-border bg-white px-3 py-2 text-[13px] leading-relaxed text-text-primary focus:border-brand focus:shadow-[0_0_0_3px_rgba(37,99,235,0.1)]"
-                            aria-label={`${section}声明内容`}
-                          />
+                          {editingId === candidate.id ? (
+                            <textarea
+                              autoFocus
+                              value={candidate.content}
+                              onChange={(event) => updateCandidate(candidate.id, { content: event.target.value })}
+                              onBlur={() => setEditingId(null)}
+                              disabled={analyzing}
+                              rows={Math.max(2, Math.ceil(candidate.content.length / 48))}
+                              className="min-h-[58px] min-w-0 flex-1 resize-y rounded-lg border border-brand bg-white px-3 py-2 text-[13px] leading-relaxed text-text-primary focus:border-brand focus:shadow-[0_0_0_3px_rgba(37,99,235,0.1)]"
+                              aria-label={`${section}声明内容`}
+                            />
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setEditingId(candidate.id)}
+                              disabled={analyzing}
+                              className="min-h-[58px] min-w-0 flex-1 cursor-pointer rounded-lg border border-transparent bg-white px-3 py-2 text-left text-[13px] leading-relaxed text-text-primary transition-colors hover:border-border hover:bg-surface-soft disabled:cursor-default disabled:opacity-60"
+                              aria-label={`编辑声明：${candidate.content}`}
+                            >
+                              {candidate.content.trim() || <span className="text-text-tertiary">点击编辑声明…</span>}
+                            </button>
+                          )}
                           <div className="flex flex-none items-center gap-1 pt-1">
                             <button
                               type="button"
