@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, Check, CircleHelp, Lightbulb, MessageSquareText,
 import type { ResumeClaim } from '@/domain/resume-schema'
 import type { InterviewAction } from '@/domain/interview-schema'
 import { Button } from '@/components/ui/Button'
-import { useSpeechInput } from '@/lib/use-speech-input'
+import { useSpeechInput } from '@/hooks/use-speech-input'
 
 type Turn = { action: InterviewAction; question: string; answer: string; annotation?: string; answerSuggestion?: string; intent?: string; evidenceQuotes?: string[] }
 

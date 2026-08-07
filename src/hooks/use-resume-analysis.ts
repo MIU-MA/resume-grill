@@ -18,7 +18,7 @@ import {
   type SavedRecord,
 } from '@/lib/storage'
 import type { ResumeReviewSubmission } from '@/components/resume/ResumeReviewView'
-import type { AppNavigation, UseResumeWorkspace } from './types'
+import type { AppNavigation, UseResumeWorkspace } from '@/lib/types'
 
 export function useResumeAnalysis(
   ws: UseResumeWorkspace,

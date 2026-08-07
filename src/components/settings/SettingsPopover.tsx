@@ -1,8 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Settings } from 'lucide-react'
 import { ModelSettings } from '@/components/settings/ModelSettings'
+import { useClickOutside } from '@/hooks/use-click-outside'
 
 type SettingsPopoverProps = {
   envConfigured: boolean
@@ -23,14 +24,7 @@ export function SettingsPopover({ envConfigured, clientConfigured, onClientChang
   }, [onOpenChange])
   const ref = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open, setOpen])
+  useClickOutside(ref, useCallback(() => setOpen(false), [setOpen]), open)
 
   return (
     <div className="relative" ref={ref}>

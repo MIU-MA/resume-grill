@@ -11,8 +11,8 @@ import {
   upsertSession,
   type SavedRecord,
 } from '@/lib/storage'
-import type { Phase } from '@/lib/use-app-navigation'
-import { useLlmStatus } from '@/lib/use-llm-status'
+import type { Phase } from '@/hooks/use-app-navigation'
+import { useLlmStatus } from '@/hooks/use-llm-status'
 
 export function useResumeWorkspace(phase: Phase) {
   const { envConfigured, clientConfigured, mode: llmMode, refresh: refreshClientLlm } =

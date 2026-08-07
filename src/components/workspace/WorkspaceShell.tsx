@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import type { ResumeAnalysis } from '@/domain/resume-schema'
 import { Toast } from '@/components/ui/Toast'
 import { WorkspaceTopBar } from '@/components/workspace/WorkspaceTopBar'
-import type { LlmMode } from '@/lib/use-llm-status'
+import type { LlmMode } from '@/hooks/use-llm-status'
 
 type WorkspaceShellProps = {
   analysis: ResumeAnalysis

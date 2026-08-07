@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect } from 'react'
 import { Download, FileJson, FileText } from 'lucide-react'
 import type { ResumeAnalysis } from '@/domain/resume-schema'
 import { Button } from '@/components/ui/Button'
 import { SettingsPopover } from '@/components/settings/SettingsPopover'
-import type { LlmMode } from '@/lib/use-llm-status'
+import { useDropdown } from '@/hooks/use-dropdown'
+import type { LlmMode } from '@/hooks/use-llm-status'
 
 type WorkspaceTopBarProps = {
   analysis: ResumeAnalysis
@@ -17,16 +17,7 @@ type WorkspaceTopBarProps = {
 }
 
 export function WorkspaceTopBar({ analysis, llmMode, envConfigured, clientConfigured, onClientChanged, onExport, onExportJson, onLogoClick }: WorkspaceTopBarProps) {
-  const [menuOpen, setMenuOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
-    }
-    if (menuOpen) document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [menuOpen])
+  const { open, toggle, close, ref: menuRef } = useDropdown()
 
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-white/92 backdrop-blur-lg px-7 sticky top-0 z-30">
@@ -50,20 +41,20 @@ export function WorkspaceTopBar({ analysis, llmMode, envConfigured, clientConfig
         )}
         <SettingsPopover envConfigured={envConfigured} clientConfigured={clientConfigured} onClientChanged={onClientChanged} compact />
         <div ref={menuRef} className="relative">
-          <Button variant="secondary" onClick={() => setMenuOpen((o) => !o)}><Download size={16} />导出</Button>
-          {menuOpen && (
+          <Button variant="secondary" onClick={toggle}><Download size={16} />导出</Button>
+          {open && (
             <div className="absolute right-0 top-full mt-1 w-44 rounded-lg border border-border bg-white shadow-[0_4px_16px_rgba(16,24,40,0.08)] py-1 z-40">
               <button
                 type="button"
                 className="flex w-full items-center gap-2 px-3.5 py-2.5 text-[13px] text-text-primary hover:bg-surface-hover transition-colors"
-                onClick={() => { onExport(); setMenuOpen(false) }}
+                onClick={() => { onExport(); close() }}
               >
                 <FileText size={15} className="text-text-tertiary" />Markdown 报告
               </button>
               <button
                 type="button"
                 className="flex w-full items-center gap-2 px-3.5 py-2.5 text-[13px] text-text-primary hover:bg-surface-hover transition-colors"
-                onClick={() => { onExportJson(); setMenuOpen(false) }}
+                onClick={() => { onExportJson(); close() }}
               >
                 <FileJson size={15} className="text-text-tertiary" />JSON 数据备份
               </button>

@@ -4,7 +4,7 @@ import { useCallback } from 'react'
 import type { ResumeClaim } from '@/domain/resume-schema'
 import { downloadFullReport, downloadJsonExport } from '@/lib/report'
 import { updateMasteredBlindSpots, updatePreparedClaims } from '@/lib/storage'
-import type { AppNavigation, UseResumeWorkspace } from './types'
+import type { AppNavigation, UseResumeWorkspace } from '@/lib/types'
 
 type InterviewHandle = {
   reset: () => void
