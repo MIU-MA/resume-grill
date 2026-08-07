@@ -14,7 +14,7 @@ export function InterviewStatusPanel({ selected, roundCount, covered }: Intervie
   const coveredSet = new Set(covered)
 
   return (
-    <aside className="w-[320px] flex-none overflow-y-auto bg-surface-soft max-lg:hidden" style={{ maxHeight: 'calc(100vh - 60px)' }}>
+    <aside className="w-[320px] flex-none overflow-y-auto bg-surface-soft max-lg:hidden">
       <div className="px-5 py-5 space-y-5">
         {/* 本轮进度 */}
         <div>

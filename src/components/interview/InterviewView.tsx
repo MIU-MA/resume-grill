@@ -47,6 +47,7 @@ export function InterviewView({
   onBackToAudit,
 }: InterviewViewProps) {
   const chatEndRef = useRef<HTMLDivElement>(null)
+  const currentQuestionRef = useRef<HTMLDivElement>(null)
   const [annotationOpen, setAnnotationOpen] = useState(false)
   const totalPoints = selected.masteryPoints.length
   const coverage = totalPoints > 0 ? Math.round((covered.length / totalPoints) * 100) : 0
@@ -70,12 +71,18 @@ export function InterviewView({
     },
   })
 
+  const prevQuestionRef = useRef(currentQuestion)
   useEffect(() => {
+    if (currentQuestion && currentQuestion !== prevQuestionRef.current) {
+      // 进入新问题：自动滚到当前问题卡片
+      currentQuestionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+    prevQuestionRef.current = currentQuestion
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [turns.length])
+  }, [currentQuestion, turns.length])
 
   return (
-    <main className="flex w-full border-r border-border min-w-0 bg-white overflow-hidden" style={{ maxHeight: 'calc(100vh - 60px)' }}>
+    <main className="flex h-[calc(100dvh-128px)] w-full min-w-0 overflow-hidden border-r border-border bg-white">
       {/* 主面试区 */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* 顶部 */}
@@ -86,6 +93,7 @@ export function InterviewView({
           <div className="text-center">
             <span className="text-[14px] font-semibold text-text-primary">第 {answeredTurnCount + 1} 轮追问</span>
             <span className="ml-2 text-[13px] text-text-tertiary">{selected.title}</span>
+            {version > 1 && <span className="ml-2 rounded bg-brand-soft px-1.5 py-0.5 text-[11px] font-medium text-brand">v{version}</span>}
           </div>
           <span className="text-[12px] text-text-tertiary">{covered.length}/{totalPoints} 项已验证</span>
         </div>
@@ -96,13 +104,6 @@ export function InterviewView({
             {error && (
               <div className="rounded-lg border border-danger/20 bg-danger-soft px-4 py-3 mb-6 text-[14px] text-danger">{error}</div>
             )}
-
-            {/* 声明原文 */}
-            <div className="rounded-lg border border-border bg-surface-soft px-4 py-3 mb-8">
-              <span className="text-text-tertiary text-[12px] font-medium">正在验证的声明</span>
-              <p className="mt-1 text-[14px] text-text-primary leading-relaxed">"{selected.content}"</p>
-              {version > 1 && <span className="mt-2 inline-block rounded bg-brand-soft px-2 py-0.5 text-[11px] text-brand">改写版本 v{version}</span>}
-            </div>
 
             {/* 历史问答 */}
             {turns.map((turn, i) => (
@@ -125,12 +126,7 @@ export function InterviewView({
                   <p className="text-[14px] text-text-secondary leading-relaxed">{turn.action === 'skip' ? '用户主动跳过（未验证），不会计入掌握度。' : turn.answer || '未作答，已请求换一种问法。'}</p>
                 </div>
                 {turn.evidenceQuotes && turn.evidenceQuotes.length > 0 && (
-                  <div className="mt-2 rounded-lg border border-border bg-surface-soft px-3.5 py-2.5">
-                    <div className="text-[12px] font-semibold text-text-tertiary mb-1.5">判定依据</div>
-                    {turn.evidenceQuotes.map((quote, j) => (
-                      <p key={j} className="text-[13px] text-text-secondary leading-relaxed">"{quote}"</p>
-                    ))}
-                  </div>
+                  <p className="mt-1.5 pl-1 text-[12px] leading-relaxed text-text-tertiary">判定依据：{turn.evidenceQuotes.slice(0, 2).join('；')}</p>
                 )}
                 {turn.annotation && (
                   <div className="mt-2 flex items-start gap-2 rounded-lg border border-warning/25 bg-warning-soft px-3.5 py-2.5 text-[13px] leading-relaxed text-text-secondary">
@@ -151,12 +147,14 @@ export function InterviewView({
 
             {/* 当前问题 */}
             {currentQuestion && !done && (
-              <div className="rounded-lg border border-brand bg-brand-soft px-5 py-4 mb-6">
-                <div className="flex items-center gap-2 text-[12px] font-medium text-brand mb-2">
-                  <MessageSquareText size={14} />当前问题
+              <div ref={currentQuestionRef} className="mb-6 scroll-mt-4">
+                <div className="rounded-xl border-2 border-brand bg-white px-5 py-4 shadow-[0_1px_6px_rgba(16,24,40,0.06)]">
+                  <div className="mb-1.5 flex items-center gap-2 text-[12px] font-bold text-brand">
+                    <MessageSquareText size={14} />当前问题
+                  </div>
+                  <p className="text-[15px] font-semibold leading-relaxed text-text-primary">{currentQuestion}</p>
+                  {currentIntent && <p className="mt-1 text-[13px] leading-relaxed text-text-secondary">{currentIntent}</p>}
                 </div>
-                <p className="text-[15px] font-medium text-text-primary leading-relaxed mb-1">{currentQuestion}</p>
-                {currentIntent && <p className="text-[13px] text-text-secondary leading-relaxed mt-1.5">{currentIntent}</p>}
               </div>
             )}
 
