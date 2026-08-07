@@ -8,6 +8,8 @@ import { ClaimAuditView } from '@/components/audit/ClaimAuditView'
 import { InterviewView } from '@/components/interview/InterviewView'
 import { InterviewStatusPanel } from '@/components/interview/InterviewStatusPanel'
 import { InterviewReportView } from '@/components/report/InterviewReportView'
+import { KnowledgeView } from '@/components/knowledge/KnowledgeView'
+import type { KnowledgeItem, KnowledgeItemInput, KnowledgeItemPatch } from '@/lib/knowledge'
 
 export type InterviewViewData = {
   rounds: Array<{
@@ -46,6 +48,11 @@ type WorkspaceContentProps = {
   activeClaim: ResumeClaim
   preparedClaimIds: string[]
   masteredBlindSpotIds: string[]
+  knowledgeItems: KnowledgeItem[]
+  onToggleKnowledgeItem: (id: string) => void
+  onDeleteKnowledgeItem: (id: string) => void
+  onUpdateKnowledgeItem: (id: string, patch: KnowledgeItemPatch) => void
+  onAddKnowledgeItem: (input: KnowledgeItemInput) => void
   error: string | null
   iv: InterviewViewData
   onSelect: (index: number) => void
@@ -69,6 +76,11 @@ export function WorkspaceContent({
   activeClaim,
   preparedClaimIds,
   masteredBlindSpotIds,
+  knowledgeItems,
+  onToggleKnowledgeItem,
+  onDeleteKnowledgeItem,
+  onUpdateKnowledgeItem,
+  onAddKnowledgeItem,
   error,
   iv,
   onSelect,
@@ -112,6 +124,20 @@ export function WorkspaceContent({
         onTogglePrepared={onTogglePrepared}
         onStartInterview={onStartInterview}
         onReport={onReport}
+      />
+    )
+  }
+
+  if (mode === 'knowledge') {
+    return (
+      <KnowledgeView
+        analysis={analysis}
+        knowledgeItems={knowledgeItems}
+        onToggle={onToggleKnowledgeItem}
+        onDelete={onDeleteKnowledgeItem}
+        onUpdate={onUpdateKnowledgeItem}
+        onAdd={onAddKnowledgeItem}
+        onRetest={onRetest}
       />
     )
   }

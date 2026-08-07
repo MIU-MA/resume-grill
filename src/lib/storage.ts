@@ -4,6 +4,7 @@ import { get, set, del, keys } from 'idb-keyval'
 import { createClaimId, type ResumeAnalysis, type ResumeClaim } from '@/domain/resume-schema'
 import type { InterviewSession } from '@/domain/interview-schema'
 import { isExcludedClaimContent } from '@/lib/claim-filter'
+import type { KnowledgeItem } from '@/lib/knowledge'
 
 export type SavedRecord = {
   id: string
@@ -191,4 +192,20 @@ function migrateLegacyRecord(record: SavedRecord): SavedRecord {
     preparedClaimIds: record.preparedClaimIds ?? [],
     masteredBlindSpotIds: record.masteredBlindSpotIds ?? [],
   }
+}
+
+// ── 漏洞与知识点（全局独立存储）───────────────────────────────
+// 用无 `resume-grill:` 前缀的独立 key，避免被 listRecords 当作简历 record 误处理。
+
+const KNOWLEDGE_ITEMS_KEY = 'knowledge-items'
+
+export async function loadKnowledgeItems(): Promise<KnowledgeItem[]> {
+  if (typeof window === 'undefined') return []
+  const items = (await get(KNOWLEDGE_ITEMS_KEY)) as KnowledgeItem[] | undefined
+  return Array.isArray(items) ? items : []
+}
+
+export async function saveKnowledgeItems(items: KnowledgeItem[]): Promise<void> {
+  if (typeof window === 'undefined') return
+  await set(KNOWLEDGE_ITEMS_KEY, items)
 }

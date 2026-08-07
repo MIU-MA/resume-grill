@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from 'react'
 import type { ResumeAnalysis } from '@/domain/resume-schema'
 import type { InterviewSession } from '@/domain/interview-schema'
 import type { ExtractedText } from '@/lib/pdf'
+import type { KnowledgeItem } from '@/lib/knowledge'
 import type { SavedRecord } from '@/lib/storage'
 import type { Mode } from '@/types'
 
@@ -29,6 +30,8 @@ export type UseResumeWorkspace = {
   setPreparedClaimIds: Dispatch<SetStateAction<string[]>>
   masteredBlindSpotIds: string[]
   setMasteredBlindSpotIds: Dispatch<SetStateAction<string[]>>
+  knowledgeItems: KnowledgeItem[]
+  setKnowledgeItems: Dispatch<SetStateAction<KnowledgeItem[]>>
   recordId: string | null
   setRecordId: Dispatch<SetStateAction<string | null>>
   recovering: boolean

@@ -10,6 +10,7 @@ export function parseAppPath(pathname: string): { phase: Phase; mode: Mode } {
   if (pathname === '/review') return { phase: 'review', mode: 'audit' }
   if (pathname === '/interview') return { phase: 'workspace', mode: 'interview' }
   if (pathname === '/report') return { phase: 'workspace', mode: 'report' }
+  if (pathname === '/knowledge') return { phase: 'workspace', mode: 'knowledge' }
   if (pathname === '/audit') return { phase: 'workspace', mode: 'audit' }
   return { phase: 'upload', mode: 'audit' }
 }

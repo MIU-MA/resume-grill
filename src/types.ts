@@ -1,1 +1,1 @@
-export type Mode = 'audit' | 'interview' | 'report'
+export type Mode = 'audit' | 'interview' | 'report' | 'knowledge'

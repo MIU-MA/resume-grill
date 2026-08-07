@@ -11,6 +11,7 @@ import { useClaimActions } from '@/hooks/use-claim-actions'
 import { useInterview } from '@/hooks/use-interview'
 import { useResumeAnalysis } from '@/hooks/use-resume-analysis'
 import { useResumeWorkspace } from '@/hooks/use-resume-workspace'
+import { useKnowledgeActions } from '@/hooks/use-knowledge-actions'
 import type { Mode } from '@/types'
 
 function App() {
@@ -24,7 +25,20 @@ function App() {
   const navigation = { push, replace }
   const analysis = useResumeAnalysis(workspace, navigation)
   const actions = useClaimActions(workspace, interview, navigation)
-  const { selected, stats, completedClaimCount } = workspace
+  const knowledgeActions = useKnowledgeActions(workspace)
+  const { selected, stats } = workspace
+
+  // 报告页「标记已掌握」与知识页掌握状态双向同步
+  const handleToggleBlindSpot = (blindSpotId: string) => {
+    actions.toggleBlindSpotMastered(blindSpotId)
+    const item = workspace.knowledgeItems.find((i) => i.id === blindSpotId)
+    if (item && item.source === 'blind-spot') {
+      const nextStatus = item.status === 'mastered' ? 'open' : 'mastered'
+      workspace.setKnowledgeItems((items) =>
+        items.map((i) => (i.id === blindSpotId ? { ...i, status: nextStatus, updatedAt: Date.now() } : i)),
+      )
+    }
+  }
 
   const restoredRef = useRef(false)
   useEffect(() => {
@@ -143,11 +157,6 @@ function App() {
     >
       <WorkspaceHeader
         mode={mode}
-        highCount={stats.highCount}
-        totalMasteryPoints={stats.totalMasteryPoints}
-        claimCount={stats.claimCount}
-        completedClaimCount={completedClaimCount}
-        coveredLength={interview.covered.length}
         onTabChange={handleTabChange}
       />
       <WorkspaceContent
@@ -159,11 +168,16 @@ function App() {
         activeClaim={activeClaim!}
         preparedClaimIds={workspace.preparedClaimIds}
         masteredBlindSpotIds={workspace.masteredBlindSpotIds}
+        knowledgeItems={workspace.knowledgeItems}
+        onToggleKnowledgeItem={knowledgeActions.toggleMastered}
+        onDeleteKnowledgeItem={knowledgeActions.removeItem}
+        onUpdateKnowledgeItem={knowledgeActions.updateItem}
+        onAddKnowledgeItem={knowledgeActions.addItem}
         error={workspace.error}
         iv={interview}
         onSelect={actions.selectClaim}
         onTogglePrepared={actions.togglePrepared}
-        onToggleBlindSpot={actions.toggleBlindSpotMastered}
+        onToggleBlindSpot={handleToggleBlindSpot}
         onStartInterview={actions.startInterview}
         onReport={actions.goReport}
         onRetest={actions.retestClaim}
