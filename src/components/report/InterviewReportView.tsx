@@ -34,6 +34,11 @@ export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, 
   const blindSpots = deriveBlindSpots(analysis, sessions)
     .sort((a, b) => Number(masteredSet.has(a.id)) - Number(masteredSet.has(b.id)))
   const unresolvedBlindSpots = blindSpots.filter((spot) => !masteredSet.has(spot.id)).length
+  const allDoneSessions = analysis.claims.flatMap((claim) =>
+    (sessions[claim.id] ?? [])
+      .filter((session) => session.status === 'done')
+      .map((session) => ({ claim, session })),
+  )
 
   return (
     <div className="space-y-4">
@@ -43,7 +48,7 @@ export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, 
           <div className="text-brand text-[12px] font-bold uppercase tracking-[0.08em] mb-2">能力测试报告</div>
           <h2 className="m-0 text-[21px] font-bold tracking-[-0.025em]">本次能力测试</h2>
           <p className="mt-2 text-text-tertiary text-[13px] leading-relaxed">
-            已完成 {doneSessions.length} 条声明测试。{summarizing ? '正在生成总结…' : '不是判断简历真假，而是检查你是否能讲清所写的每一项能力。'}
+            已完成 {doneSessions.length} 条声明测试。{summarizing ? '正在生成总结…' : ' '}
           </p>
           <div className="mt-5 space-y-3">
             {doneSessions.slice(0, 3).map((s, i) => {
@@ -80,7 +85,7 @@ export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, 
               <Target size={16} className="text-brand" />
               <div>
                 <h2 className="m-0 text-[15px] font-bold">岗位匹配</h2>
-                <p className="mt-1 text-[12px] text-text-tertiary">根据目标岗位描述检查简历证据，不代表候选人已经具备该能力。</p>
+                <p className="mt-1 text-[12px] text-text-tertiary">根据目标岗位描述检查简历证据。</p>
               </div>
             </div>
             <span className="text-[12px] text-text-tertiary">{analysis.jobMatch.requirements.length} 项要求</span>
@@ -151,41 +156,49 @@ export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, 
       )}
 
       {/* 改写建议 */}
-      {doneSessions.length > 0 && (
+      {allDoneSessions.length > 0 && (
         <div className="space-y-3.5">
           <h3 className="text-[18px] font-bold tracking-[-0.02em] px-1">简历改写建议</h3>
           <div className="p-4 space-y-3.5">
-            {doneSessions.map(({ claim, latest }) => {
-              const result = latest?.finalResult
-              const isFailed = latest?.summaryStatus === 'failed'
-              const isLoading = latest?.status === 'done' && latest?.summaryStatus === undefined && result === null
+            {allDoneSessions.map(({ claim, session }) => {
+              const result = session.finalResult
+              const isFailed = session.summaryStatus === 'failed'
+              const isLoading = session.status === 'done' && session.summaryStatus === undefined && result === null
+              const versionCount = (sessions[claim.id] ?? []).filter((s) => s.status === 'done').length
+              const showVersion = versionCount > 1
               return (
-                <div key={claim.id} className="bg-white border border-border rounded-xl overflow-hidden">
+                <div key={`${claim.id}:${session.id}`} className="bg-white border border-border rounded-xl overflow-hidden">
                   {isLoading ? (
-                    <div className="p-5 space-y-3 animate-pulse">
-                      <div className="h-4 w-1/3 rounded bg-border" />
-                      <div className="h-3 w-2/3 rounded bg-border" />
-                      <div className="h-3 w-1/2 rounded bg-border" />
-                    </div>
-                  ) : isFailed ? (
-                    <div className="flex items-center justify-between gap-4 p-5">
-                      <div>
-                        <p className="text-[13px] font-semibold text-text-primary">{claim.title}</p>
-                        <p className="mt-1 text-[12px] text-warning">总结生成失败，问答记录已经保存。</p>
+                      <div className="p-5 space-y-3 animate-pulse">
+                        <div className="h-4 w-1/3 rounded bg-border" />
+                        <div className="h-3 w-2/3 rounded bg-border" />
+                        <div className="h-3 w-1/2 rounded bg-border" />
                       </div>
-                      <Button
-                        variant="secondary"
-                        className="text-[12px]"
-                        disabled={regeneratingId === latest!.id}
-                        onClick={() => onRegenerateSummary(claim, latest!)}
-                      >
-                        <RefreshCw size={13} />{regeneratingId === latest!.id ? '正在生成…' : '重新生成报告'}
-                      </Button>
-                    </div>
-                  ) : result ? (
-                    <>
+                    ) : isFailed ? (
+                      <div className="flex items-center justify-between gap-4 p-5">
+                        <div>
+                          <p className="flex items-center gap-2 text-[13px] font-semibold text-text-primary">
+                            {claim.title}
+                            {showVersion && <span className="rounded bg-brand-soft px-1.5 py-0.5 text-[11px] font-medium text-brand">v{session.version}</span>}
+                          </p>
+                          <p className="mt-1 text-[12px] text-warning">总结生成失败，问答记录已经保存。</p>
+                        </div>
+                        <Button
+                          variant="secondary"
+                          className="text-[12px]"
+                          disabled={regeneratingId === session.id}
+                          onClick={() => onRegenerateSummary(claim, session)}
+                        >
+                          <RefreshCw size={13} />{regeneratingId === session.id ? '正在生成…' : '重新生成报告'}
+                        </Button>
+                      </div>
+                    ) : result ? (
+                      <>
                     <div className="flex items-center justify-between gap-4 px-4 py-3 bg-surface-soft border-b border-border">
-                      <span className="text-[13px] font-bold">{claim.title}</span>
+                      <span className="flex items-center gap-2 text-[13px] font-bold">
+                        {claim.title}
+                        {showVersion && <span className="rounded bg-brand-soft px-1.5 py-0.5 text-[11px] font-medium text-brand">v{session.version}</span>}
+                      </span>
                       <span className="text-text-tertiary text-[12px]">掌握度 {result.masteryScore}/5</span>
                     </div>
                     <div className="grid grid-cols-4 gap-4 border-b border-border px-5 py-4 max-[900px]:grid-cols-2 max-[520px]:grid-cols-1">
@@ -202,7 +215,7 @@ export function InterviewReportView({ analysis, sessions, masteredBlindSpotIds, 
                     <div className="grid grid-cols-2 max-[760px]:grid-cols-1">
                       <div className="p-5 min-h-[140px]">
                         <div className="text-text-tertiary text-[11px] font-bold mb-2">原文</div>
-                        <p className="text-text-secondary text-[13px] leading-[1.7]">{claim.content}</p>
+                        <p className="text-text-secondary text-[13px] leading-[1.7]">{session.claimContent || claim.content}</p>
                       </div>
                       <div className="p-5 min-h-[140px] bg-success-soft/30 border-l border-border max-[760px]:border-l-0 max-[760px]:border-t">
                         <div className="text-text-tertiary text-[11px] font-bold mb-2">建议版本</div>
