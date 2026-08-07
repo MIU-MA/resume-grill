@@ -88,9 +88,10 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
       <SettingsPopover envConfigured={envConfigured} clientConfigured={clientConfigured} onClientChanged={onClientChanged} open={settingsOpen} onOpenChange={setSettingsOpen} />
 
       <div className="mb-10 text-center">
-        <h1 className="text-[28px] font-bold tracking-tight text-text-primary leading-[1.2] mb-3">找出简历里最容易被问穿的那句话</h1>
-        <p className="text-text-secondary text-[15px] leading-relaxed max-w-[520px] mx-auto">
-          上传简历，让 AI 面试官帮你评估经历的可信度，并为你提供潜在的追问方向。
+        <img src="/favicon.svg" alt="简历拷打机" className="mx-auto mb-4 block size-13" />
+        <h1 className="mb-3 text-[28px] font-bold leading-[1.2] tracking-tight text-text-primary">resume-grill</h1>
+        <p className="mx-auto max-w-[520px] text-[15px] leading-relaxed text-text-secondary">
+          上传简历，让 AI 帮你排查经历盲区，预测面试官的追问逻辑。
         </p>
       </div>
 

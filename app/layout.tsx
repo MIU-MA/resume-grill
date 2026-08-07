@@ -3,8 +3,8 @@ import type { ReactNode } from 'react'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: '简历拷打机',
-  description: '把简历里的项目和成果提前问一遍，看看哪些地方还讲不清。',
+  title: 'resume-grill',
+  description: '对简历里的项目成果做一次深度排查，提前暴露还没讲透的盲区。',
   icons: { icon: '/favicon.svg?v=2' },
 }
 

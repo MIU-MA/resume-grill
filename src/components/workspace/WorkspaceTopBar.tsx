@@ -32,9 +32,11 @@ export function WorkspaceTopBar({ analysis, llmMode, envConfigured, clientConfig
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-white/92 backdrop-blur-lg px-7 sticky top-0 z-30">
       <div className="flex items-center gap-3 min-w-0">
-        <div className="grid size-9 place-items-center rounded-[10px] bg-text-primary text-white font-extrabold tracking-[-0.03em] shadow-[0_1px_3px_rgba(16,24,40,0.04)] flex-none">
-          <button type="button" onClick={onLogoClick} className="cursor-pointer" title="返回上传页"><span className="text-[13px]">RG</span></button>
-        </div>
+        <button type="button" onClick={onLogoClick} className="flex cursor-pointer items-center gap-2" title="返回上传页">
+          <span className="grid size-9 flex-none place-items-center overflow-hidden rounded-[10px] bg-white shadow-[0_1px_3px_rgba(16,24,40,0.04)]">
+            <img src="/favicon.svg" alt="简历拷打机" className="size-9" />
+          </span>
+        </button>
         <div className="flex min-w-0 flex-col">
           <strong className="text-[15px] font-bold tracking-[-0.01em]">{analysis.candidate} · {analysis.role}</strong>
           <span className="text-text-tertiary text-[12px] mt-0.5 truncate">{analysis.sourceFile}</span>
@@ -48,7 +50,6 @@ export function WorkspaceTopBar({ analysis, llmMode, envConfigured, clientConfig
           </span>
         )}
         <SettingsPopover envConfigured={envConfigured} clientConfigured={clientConfigured} onClientChanged={onClientChanged} compact />
-        <Button variant="ghost" onClick={onRerun} className="hidden md:inline-flex"><MoreHorizontal size={16} /></Button>
         <div ref={menuRef} className="relative">
           <Button variant="secondary" onClick={() => setMenuOpen((o) => !o)}><Download size={16} />导出</Button>
           {menuOpen && (

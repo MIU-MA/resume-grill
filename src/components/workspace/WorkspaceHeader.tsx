@@ -60,10 +60,10 @@ export function WorkspaceHeader({
             能力清单
           </div>
           <h1 className="m-0 text-[28px] font-bold tracking-[-0.035em]">
-            找出简历中最容易被问穿的那句话
+            提前锁定简历中最容易卡壳的细节。
           </h1>
           <p className="mt-2 text-text-tertiary text-[14px] leading-relaxed">
-            不判断简历真假，而是通过追问检查你是否真正掌握了所写的能力。
+            通过层层深挖，帮你确认是不是真的吃透了写在纸上的经历。
           </p>
         </div>
         <div
