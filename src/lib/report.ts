@@ -77,11 +77,13 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
     } else {
       claimSessions.forEach((session, i) => {
         if (session.status === 'in_progress') {
+          const lastRound = session.rounds.at(-1)
+          const coveredPoints = lastRound?.evaluation?.coveredPoints ?? []
           lines.push(
             '',
             `### 第 ${i + 1} 版（${session.version}）进行中`,
             `- 已完成交互：${session.rounds.length} 轮`,
-            `- 已覆盖要点：${session.rounds.at(-1)?.evaluation.coveredPoints.join('；') || '无'}`,
+            `- 已覆盖要点：${coveredPoints.join('；') || '无'}`,
           )
           return
         }

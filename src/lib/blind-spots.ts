@@ -25,7 +25,7 @@ export function deriveBlindSpots(
           claim,
           annotation,
           question: round.question,
-          explanation: round.evaluation.answerSuggestion.trim(),
+          explanation: round.evaluation.answerSuggestion?.trim() ?? '',
         })
       }
     }

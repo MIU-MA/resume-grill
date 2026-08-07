@@ -40,4 +40,20 @@ describe('blind spots', () => {
   it('keeps IDs stable across whitespace differences', () => {
     expect(createBlindSpotId('claim-1', '不理解 幂等')).toBe(createBlindSpotId('claim-1', '不理解幂等'))
   })
+
+  it('does not crash when an old round is missing answerSuggestion', () => {
+    const legacySession: InterviewSession = {
+      ...session,
+      rounds: [{
+        ...session.rounds[0],
+        evaluation: { score: 0, coveredPoints: [], missingPoints: ['说明方案'] }, // 无 answerSuggestion
+      }],
+    }
+    expect(deriveBlindSpots(analysis, { 'claim-1': [legacySession] })).toEqual([
+      expect.objectContaining({
+        annotation: '不理解幂等是什么意思',
+        explanation: '',
+      }),
+    ])
+  })
 })
