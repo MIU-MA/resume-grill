@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Check } from 'lucide-react'
 import { CLAIM_CATEGORY_LABELS, type ResumeAnalysis, type TestPriority } from '@/domain/resume-schema'
 import { PRIORITY_META } from '@/lib/risk'
 
@@ -19,10 +20,11 @@ type ClaimListProps = {
   analysis: ResumeAnalysis
   selectedIndex: number
   preparedClaimIds: string[]
+  completedClaimIds: string[]
   onSelect: (index: number) => void
 }
 
-export function ClaimList({ analysis, selectedIndex, preparedClaimIds, onSelect }: ClaimListProps) {
+export function ClaimList({ analysis, selectedIndex, preparedClaimIds, completedClaimIds, onSelect }: ClaimListProps) {
   const [filter, setFilter] = useState<TestPriority | 'all'>('all')
 
   const visible = analysis.claims
@@ -67,6 +69,7 @@ export function ClaimList({ analysis, selectedIndex, preparedClaimIds, onSelect 
                 <div className="flex items-center justify-between gap-3 mb-2">
                   <span className={`inline-flex items-center gap-2 min-h-6 rounded-full px-2.5 text-[11px] font-bold before:content-[''] before:size-1.5 before:rounded-full before:bg-current ${PRIORITY_CLS[claim.testPriority]}`}>{prio.label}</span>
                   <span className="flex items-center gap-2 text-text-tertiary text-[11px]">
+                    {completedClaimIds.includes(claim.id) && <span className="inline-flex items-center gap-1 font-semibold text-success"><Check size={12} />已完成</span>}
                     {preparedClaimIds.includes(claim.id) && <span className="font-semibold text-success">已准备</span>}
                     <span className="font-mono">{String(originalIndex + 1).padStart(2, '0')}</span>
                   </span>

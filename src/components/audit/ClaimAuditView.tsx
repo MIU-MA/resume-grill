@@ -6,6 +6,7 @@ type AuditViewProps = {
   analysis: ResumeAnalysis
   selectedIndex: number
   preparedClaimIds: string[]
+  completedClaimIds: string[]
   error: string | null
   onSelect: (index: number) => void
   onTogglePrepared: (claimId: string) => void
@@ -13,7 +14,7 @@ type AuditViewProps = {
   onReport: () => void
 }
 
-export function ClaimAuditView({ analysis, selectedIndex, preparedClaimIds, error, onSelect, onTogglePrepared, onStartInterview }: AuditViewProps) {
+export function ClaimAuditView({ analysis, selectedIndex, preparedClaimIds, completedClaimIds, error, onSelect, onTogglePrepared, onStartInterview }: AuditViewProps) {
   const selected = analysis.claims[selectedIndex]
 
   return (
@@ -22,7 +23,7 @@ export function ClaimAuditView({ analysis, selectedIndex, preparedClaimIds, erro
         <div className="col-span-full bg-danger-soft border border-danger/20 rounded-xl px-5 py-3 text-[14px] text-danger">{error}</div>
       )}
       <aside className="bg-white border border-border rounded-xl shadow-[0_1px_3px_rgba(16,24,40,0.04)] overflow-hidden max-h-[650px]">
-        <ClaimList analysis={analysis} selectedIndex={selectedIndex} preparedClaimIds={preparedClaimIds} onSelect={onSelect} />
+        <ClaimList analysis={analysis} selectedIndex={selectedIndex} preparedClaimIds={preparedClaimIds} completedClaimIds={completedClaimIds} onSelect={onSelect} />
       </aside>
       <article className="bg-white border border-border rounded-xl shadow-[0_1px_3px_rgba(16,24,40,0.04)] overflow-hidden">
         <ClaimDetail claim={selected} prepared={preparedClaimIds.includes(selected.id)} onTogglePrepared={() => onTogglePrepared(selected.id)} onStartInterview={onStartInterview} />

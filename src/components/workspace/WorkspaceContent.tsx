@@ -98,11 +98,15 @@ export function WorkspaceContent({
   }
 
   if (mode === 'audit') {
+    const completedClaimIds = analysis.claims
+      .filter((claim) => (sessions[claim.id] ?? []).some((s) => s.status === 'done'))
+      .map((claim) => claim.id)
     return (
       <ClaimAuditView
         analysis={analysis}
         selectedIndex={selectedIndex}
         preparedClaimIds={preparedClaimIds}
+        completedClaimIds={completedClaimIds}
         error={error}
         onSelect={onSelect}
         onTogglePrepared={onTogglePrepared}
