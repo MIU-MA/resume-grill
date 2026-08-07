@@ -14,7 +14,6 @@ type WorkspaceShellProps = {
   toast: string
   children: ReactNode
   onClientChanged: () => void
-  onRerun: () => void
   onExport: () => void
   onExportJson: () => void
   onLogoClick: () => void
@@ -29,7 +28,6 @@ export function WorkspaceShell({
   toast,
   children,
   onClientChanged,
-  onRerun,
   onExport,
   onExportJson,
   onLogoClick,
@@ -45,7 +43,6 @@ export function WorkspaceShell({
         envConfigured={envConfigured}
         clientConfigured={clientConfigured}
         onClientChanged={onClientChanged}
-        onRerun={onRerun}
         onExport={onExport}
         onExportJson={onExportJson}
         onLogoClick={onLogoClick}

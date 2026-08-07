@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Download, FileJson, FileText, MoreHorizontal } from 'lucide-react'
+import { Download, FileJson, FileText } from 'lucide-react'
 import type { ResumeAnalysis } from '@/domain/resume-schema'
 import { Button } from '@/components/ui/Button'
 import { SettingsPopover } from '@/components/settings/SettingsPopover'
@@ -11,13 +11,12 @@ type WorkspaceTopBarProps = {
   envConfigured: boolean
   clientConfigured: boolean
   onClientChanged: () => void
-  onRerun: () => void
   onExport: () => void
   onExportJson: () => void
   onLogoClick: () => void
 }
 
-export function WorkspaceTopBar({ analysis, llmMode, envConfigured, clientConfigured, onClientChanged, onRerun, onExport, onExportJson, onLogoClick }: WorkspaceTopBarProps) {
+export function WorkspaceTopBar({ analysis, llmMode, envConfigured, clientConfigured, onClientChanged, onExport, onExportJson, onLogoClick }: WorkspaceTopBarProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 

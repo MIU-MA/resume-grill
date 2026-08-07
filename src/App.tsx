@@ -6,7 +6,6 @@ import { ResumeImportView } from '@/components/resume/ResumeImportView'
 import { WorkspaceHeader } from '@/components/workspace/WorkspaceHeader'
 import { WorkspaceShell } from '@/components/workspace/WorkspaceShell'
 import { WorkspaceContent } from '@/components/workspace/WorkspaceContent'
-import { extractResumeClaimCandidates } from '@/lib/resume-structure'
 import { useAppNavigation } from '@/lib/use-app-navigation'
 import { useClaimActions } from '@/lib/use-claim-actions'
 import { useInterview } from '@/lib/use-interview'
@@ -95,21 +94,6 @@ function App() {
     window.scrollTo({ top: 0, left: 0 })
   }
 
-  const handleRerun = () => {
-    if (!workspace.analysis) return
-    const a = workspace.analysis
-    analysis.handleConfirmText(
-      {
-        rawText: a.rawText,
-        analysisGoal: a.analysisGoal ?? 'overall',
-        reviewedCandidates:
-          a.reviewedCandidates ?? extractResumeClaimCandidates(a.rawText),
-        jobDescription: a.jobDescription ?? '',
-      },
-      a.sourceFile,
-    )
-  }
-
   if (workspace.recovering) return <div className="min-h-screen bg-bg" />
 
   if (phase === 'upload' || !workspace.analysis || !selected || !stats) {
@@ -152,7 +136,6 @@ function App() {
       clientConfigured={workspace.clientConfigured}
       toast={workspace.toast}
       onClientChanged={workspace.refreshClientLlm}
-      onRerun={handleRerun}
       onExport={actions.exportFull}
       onExportJson={actions.exportJson}
       onLogoClick={analysis.replaceResume}
