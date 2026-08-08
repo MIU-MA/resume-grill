@@ -2,10 +2,6 @@
 
 import { useEffect, type RefObject } from 'react'
 
-/**
- * 点击 ref 指向元素外部时触发 onOutside（用于关闭下拉/浮层）。
- * enabled 为 false 时不监听，避免在关闭态白挂事件。
- */
 export function useClickOutside(
   ref: RefObject<HTMLElement | null>,
   onOutside: (e: MouseEvent) => void,

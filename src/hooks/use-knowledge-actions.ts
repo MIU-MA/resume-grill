@@ -4,11 +4,6 @@ import { useCallback } from 'react'
 import { createManualKnowledgeItemId, type KnowledgeItemPatch, type KnowledgeItemInput } from '@/lib/knowledge'
 import type { UseResumeWorkspace } from '@/lib/types'
 
-/**
- * 漏洞与知识点清单的 CRUD 操作。
- * 动作只 setState，落盘由 use-resume-workspace 的持久化 effect 统一处理。
- * blind-spot 项的掌握状态与 masteredBlindSpotIds 双写，保证报告页视图一致。
- */
 export function useKnowledgeActions(ws: UseResumeWorkspace) {
   const toggleMastered = useCallback(
     (id: string) => {

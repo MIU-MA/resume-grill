@@ -91,7 +91,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
         <img src="/favicon.svg" alt="简历拷打机" className="mx-auto mb-4 block size-13" />
         <h1 className="mb-3 text-[28px] font-bold leading-[1.2] tracking-tight text-text-primary">resume-grill</h1>
         <p className="mx-auto max-w-[520px] text-[15px] leading-relaxed text-text-secondary">
-          上传简历，让 AI 帮你排查经历盲区，预测面试官的追问逻辑。
+          上传简历，让 AI 帮你排查盲区，预测面试官的追问逻辑。
         </p>
       </div>
 
