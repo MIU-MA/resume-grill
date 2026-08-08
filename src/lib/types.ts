@@ -32,6 +32,8 @@ export type UseResumeWorkspace = {
   setMasteredBlindSpotIds: Dispatch<SetStateAction<string[]>>
   knowledgeItems: KnowledgeItem[]
   setKnowledgeItems: Dispatch<SetStateAction<KnowledgeItem[]>>
+  dismissedKnowledgeItemIds: string[]
+  setDismissedKnowledgeItemIds: Dispatch<SetStateAction<string[]>>
   recordId: string | null
   setRecordId: Dispatch<SetStateAction<string | null>>
   recovering: boolean

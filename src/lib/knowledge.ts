@@ -28,7 +28,6 @@ export type KnowledgeItemInput = {
   note?: string
 }
 
-/** 知识点稳定 id：FNV-1a 哈希（同文本恒同 id，去空白/大小写） */
 export function createKnowledgeItemId(text: string): string {
   const normalized = text.replace(/\s+/g, '').toLowerCase()
   let hash = 0x811c9dc5
@@ -39,10 +38,6 @@ export function createKnowledgeItemId(text: string): string {
   return `knowledge-${(hash >>> 0).toString(36)}`
 }
 
-/**
- * 从 sessions 推导漏洞（盲点批注）+ 知识点（finalResult.knowledgeGaps）。
- * 盲点 status 取 masteredBlindSpotIds；知识点恒为 open。
- */
 export function deriveKnowledgeItems(
   analysis: ResumeAnalysis,
   sessions: Record<string, InterviewSession[]>,
@@ -91,10 +86,6 @@ export function deriveKnowledgeItems(
   return items
 }
 
-/**
- * 只把缺失的 id 并入当前列表；无新增时返回原引用（避免触发下游 effect）。
- * 已存在的条目保留用户对 status/title/note 的修改，不回写覆盖。
- */
 export function mergeKnowledgeItems(
   current: KnowledgeItem[],
   derived: KnowledgeItem[],
@@ -105,10 +96,18 @@ export function mergeKnowledgeItems(
   return [...current, ...fresh]
 }
 
-/** 手动新增条目的 id（随机） */
 export function createManualKnowledgeItemId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return `manual-${crypto.randomUUID()}`
   }
   return `manual-${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`
+}
+
+export function filterDismissedKnowledgeItems(
+  items: KnowledgeItem[],
+  dismissedIds: string[],
+): KnowledgeItem[] {
+  if (dismissedIds.length === 0) return items
+  const dismissedSet = new Set(dismissedIds)
+  return items.filter((item) => !dismissedSet.has(item.id))
 }

@@ -11,9 +11,12 @@ import {
   upsertSession,
   loadKnowledgeItems,
   saveKnowledgeItems,
+  loadDismissedKnowledgeItemIds,
+  saveDismissedKnowledgeItemIds,
+  updateMasteredBlindSpots,
   type SavedRecord,
 } from '@/lib/storage'
-import { deriveKnowledgeItems, mergeKnowledgeItems, type KnowledgeItem } from '@/lib/knowledge'
+import { deriveKnowledgeItems, mergeKnowledgeItems, filterDismissedKnowledgeItems, type KnowledgeItem } from '@/lib/knowledge'
 import type { Phase } from '@/hooks/use-app-navigation'
 import { useLlmStatus } from '@/hooks/use-llm-status'
 
@@ -32,6 +35,7 @@ export function useResumeWorkspace(phase: Phase) {
   const [preparedClaimIds, setPreparedClaimIds] = useState<string[]>([])
   const [masteredBlindSpotIds, setMasteredBlindSpotIds] = useState<string[]>([])
   const [knowledgeItems, setKnowledgeItems] = useState<KnowledgeItem[]>([])
+  const [dismissedKnowledgeItemIds, setDismissedKnowledgeItemIds] = useState<string[]>([])
   const [recordId, setRecordId] = useState<string | null>(null)
   const [recovering, setRecovering] = useState(false)
   const [recoveredFromStorage, setRecoveredFromStorage] = useState(false)
@@ -100,7 +104,6 @@ export function useResumeWorkspace(phase: Phase) {
       })
       .catch(() => {})
       .finally(() => setRecovering(false))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -112,27 +115,40 @@ export function useResumeWorkspace(phase: Phase) {
       .finally(() => setLoadingRecords(false))
   }, [phase])
 
-  // 挂载时恢复全局漏洞/知识点清单（不绑定单份简历）
   useEffect(() => {
     loadKnowledgeItems()
       .then((items) => setKnowledgeItems(items))
       .catch(() => {})
+    loadDismissedKnowledgeItemIds()
+      .then((ids) => setDismissedKnowledgeItemIds(ids))
+      .catch(() => {})
   }, [])
 
-  // 自动合并：sessions/analysis/mastered 变化时把新推导项并入（只增缺失 id）
   useEffect(() => {
     if (!analysis) return
-    const derived = deriveKnowledgeItems(analysis, sessions, masteredBlindSpotIds)
+    const derived = filterDismissedKnowledgeItems(
+      deriveKnowledgeItems(analysis, sessions, masteredBlindSpotIds),
+      dismissedKnowledgeItemIds,
+    )
     setKnowledgeItems((current) => mergeKnowledgeItems(current, derived))
-  }, [analysis, sessions, masteredBlindSpotIds])
+  }, [analysis, sessions, masteredBlindSpotIds, dismissedKnowledgeItemIds])
 
-  // 持久化：knowledgeItems 变化时统一落盘（动作只 setState，由这里写库）
   useEffect(() => {
     if (analysis) {
       saveKnowledgeItems(knowledgeItems).catch(() => undefined)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [knowledgeItems])
+
+  useEffect(() => {
+    saveDismissedKnowledgeItemIds(dismissedKnowledgeItemIds).catch(() => undefined)
+  }, [dismissedKnowledgeItemIds])
+
+  useEffect(() => {
+    if (!recordId || !analysis) return
+    updateMasteredBlindSpots(recordId, analysis, masteredBlindSpotIds).catch(
+      () => undefined,
+    )
+  }, [masteredBlindSpotIds, recordId])
 
   const activeClaimBase = (rewriteContent: string | null): ResumeClaim => {
     if (!selected) throw new Error('no selected claim')
@@ -158,6 +174,8 @@ export function useResumeWorkspace(phase: Phase) {
     setMasteredBlindSpotIds,
     knowledgeItems,
     setKnowledgeItems,
+    dismissedKnowledgeItemIds,
+    setDismissedKnowledgeItemIds,
     recordId,
     setRecordId,
     recovering,

@@ -3,7 +3,7 @@
 import { useCallback } from 'react'
 import type { ResumeClaim } from '@/domain/resume-schema'
 import { downloadFullReport, downloadJsonExport } from '@/lib/report'
-import { updateMasteredBlindSpots, updatePreparedClaims } from '@/lib/storage'
+import { updatePreparedClaims } from '@/lib/storage'
 import type { AppNavigation, UseResumeWorkspace } from '@/lib/types'
 
 type InterviewHandle = {
@@ -41,11 +41,6 @@ export function useClaimActions(
         const next = current.includes(blindSpotId)
           ? current.filter((id) => id !== blindSpotId)
           : [...current, blindSpotId]
-        if (ws.recordId && ws.analysis) {
-          updateMasteredBlindSpots(ws.recordId, ws.analysis, next).catch(
-            () => undefined,
-          )
-        }
         return next
       })
     },

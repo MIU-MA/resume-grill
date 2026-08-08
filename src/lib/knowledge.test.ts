@@ -3,6 +3,7 @@ import { createBlindSpotId } from './blind-spots'
 import {
   createKnowledgeItemId,
   deriveKnowledgeItems,
+  filterDismissedKnowledgeItems,
   mergeKnowledgeItems,
   type KnowledgeItem,
 } from './knowledge'
@@ -111,5 +112,35 @@ describe('mergeKnowledgeItems', () => {
     const merged = mergeKnowledgeItems([userEdited], derived)
     expect(merged[0].title).toBe('用户改过的标题')
     expect(merged[0].status).toBe('mastered')
+  })
+})
+
+describe('filterDismissedKnowledgeItems', () => {
+  const items: KnowledgeItem[] = [
+    {
+      id: 'a', source: 'blind-spot', title: '漏洞A', detail: '', claimId: 'claim-1',
+      claimTitle: '接口幂等', status: 'open', note: '', createdAt: 1, updatedAt: 1,
+    },
+    {
+      id: 'b', source: 'knowledge-gap', title: '知识点B', detail: '', claimId: 'claim-1',
+      claimTitle: '接口幂等', status: 'open', note: '', createdAt: 2, updatedAt: 2,
+    },
+  ]
+
+  it('keeps items when nothing is dismissed', () => {
+    expect(filterDismissedKnowledgeItems(items, [])).toBe(items)
+  })
+
+  it('removes dismissed ids', () => {
+    const filtered = filterDismissedKnowledgeItems(items, ['a'])
+    expect(filtered.map((i) => i.id)).toEqual(['b'])
+  })
+
+  it('dismissed ids block auto re-adding on subsequent derives', () => {
+    // 模拟：用户删除了 'a'，之后 sessions 再次派生包含 'a'，应被过滤
+    const derivedAgain = [...items] // 假设 deriveKnowledgeItems 再次返回 a 和 b
+    const filtered = filterDismissedKnowledgeItems(derivedAgain, ['a'])
+    const merged = mergeKnowledgeItems([], filtered)
+    expect(merged.map((i) => i.id)).toEqual(['b'])
   })
 })

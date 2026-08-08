@@ -17,7 +17,6 @@ export function useKnowledgeActions(ws: UseResumeWorkspace) {
         ),
       )
 
-      // blind-spot 项双写 masteredBlindSpotIds（报告页保持一致）
       if (item.source === 'blind-spot') {
         ws.setMasteredBlindSpotIds((current) => {
           const next =
@@ -37,6 +36,9 @@ export function useKnowledgeActions(ws: UseResumeWorkspace) {
     (id: string) => {
       ws.setKnowledgeItems((items) => items.filter((i) => i.id !== id))
       ws.setMasteredBlindSpotIds((current) => current.filter((bid) => bid !== id))
+      ws.setDismissedKnowledgeItemIds((current) =>
+        current.includes(id) ? current : [...current, id],
+      )
     },
     [ws],
   )

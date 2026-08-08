@@ -198,6 +198,7 @@ function migrateLegacyRecord(record: SavedRecord): SavedRecord {
 // 用无 `resume-grill:` 前缀的独立 key，避免被 listRecords 当作简历 record 误处理。
 
 const KNOWLEDGE_ITEMS_KEY = 'knowledge-items'
+const DISMISSED_KNOWLEDGE_IDS_KEY = 'knowledge-dismissed'
 
 export async function loadKnowledgeItems(): Promise<KnowledgeItem[]> {
   if (typeof window === 'undefined') return []
@@ -208,4 +209,16 @@ export async function loadKnowledgeItems(): Promise<KnowledgeItem[]> {
 export async function saveKnowledgeItems(items: KnowledgeItem[]): Promise<void> {
   if (typeof window === 'undefined') return
   await set(KNOWLEDGE_ITEMS_KEY, items)
+}
+
+/** 用户明确忽略（删除）的派生知识项 id，持久化防止被自动重新收录 */
+export async function loadDismissedKnowledgeItemIds(): Promise<string[]> {
+  if (typeof window === 'undefined') return []
+  const ids = (await get(DISMISSED_KNOWLEDGE_IDS_KEY)) as string[] | undefined
+  return Array.isArray(ids) ? ids : []
+}
+
+export async function saveDismissedKnowledgeItemIds(ids: string[]): Promise<void> {
+  if (typeof window === 'undefined') return
+  await set(DISMISSED_KNOWLEDGE_IDS_KEY, ids)
 }
