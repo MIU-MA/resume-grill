@@ -36,6 +36,7 @@ export function useResumeWorkspace(phase: Phase) {
   const [masteredBlindSpotIds, setMasteredBlindSpotIds] = useState<string[]>([])
   const [knowledgeItems, setKnowledgeItems] = useState<KnowledgeItem[]>([])
   const [dismissedKnowledgeItemIds, setDismissedKnowledgeItemIds] = useState<string[]>([])
+  const [knowledgeHydrationStatus, setKnowledgeHydrationStatus] = useState<'pending' | 'hydrated' | 'error'>('pending')
   const [recordId, setRecordId] = useState<string | null>(null)
   const [recovering, setRecovering] = useState(false)
   const [recoveredFromStorage, setRecoveredFromStorage] = useState(false)
@@ -52,6 +53,12 @@ export function useResumeWorkspace(phase: Phase) {
   const workspaceRef = useRef({ recordId, analysis })
   workspaceRef.current = { recordId, analysis }
 
+  const reportStorageError = useCallback((action: string, e?: unknown) => {
+    const message = e instanceof Error ? e.name || '未知错误' : '未知错误'
+    console.error(`[resume-grill] ${action}失败 (${message})`, e instanceof Error ? { name: e.name, message: e.message } : e)
+    showToast(`本地保存失败：${action}未成功，刷新后可能丢失`)
+  }, [showToast])
+
   const handleSessionSaved = useCallback(
     (claimId: string, session: InterviewSession) => {
       setSessions((prev) => {
@@ -67,10 +74,12 @@ export function useResumeWorkspace(phase: Phase) {
       })
       const { recordId: rid, analysis: a } = workspaceRef.current
       if (rid && a) {
-        upsertSession(rid, a, claimId, session).catch(() => undefined)
+        upsertSession(rid, a, claimId, session).catch((e) =>
+          reportStorageError('保存面试记录', e),
+        )
       }
     },
-    [],
+    [reportStorageError],
   )
 
   const selected = analysis?.claims[selectedIndex] ?? null
@@ -116,39 +125,45 @@ export function useResumeWorkspace(phase: Phase) {
   }, [phase])
 
   useEffect(() => {
-    loadKnowledgeItems()
-      .then((items) => setKnowledgeItems(items))
-      .catch(() => {})
-    loadDismissedKnowledgeItemIds()
-      .then((ids) => setDismissedKnowledgeItemIds(ids))
-      .catch(() => {})
-  }, [])
+    Promise.all([loadKnowledgeItems(), loadDismissedKnowledgeItemIds()])
+      .then(([items, ids]) => {
+        setKnowledgeItems(items)
+        setDismissedKnowledgeItemIds(ids)
+        setKnowledgeHydrationStatus('hydrated')
+      })
+      .catch((e) => {
+        reportStorageError('加载本地知识点', e)
+        setKnowledgeHydrationStatus('error')
+      })
+  }, [reportStorageError])
 
   useEffect(() => {
-    if (!analysis) return
+    if (!analysis || knowledgeHydrationStatus !== 'hydrated') return
     const derived = filterDismissedKnowledgeItems(
       deriveKnowledgeItems(analysis, sessions, masteredBlindSpotIds),
       dismissedKnowledgeItemIds,
     )
     setKnowledgeItems((current) => mergeKnowledgeItems(current, derived))
-  }, [analysis, sessions, masteredBlindSpotIds, dismissedKnowledgeItemIds])
+  }, [analysis, sessions, masteredBlindSpotIds, dismissedKnowledgeItemIds, knowledgeHydrationStatus])
 
   useEffect(() => {
-    if (analysis) {
-      saveKnowledgeItems(knowledgeItems).catch(() => undefined)
+    if (analysis && knowledgeHydrationStatus === 'hydrated') {
+      saveKnowledgeItems(knowledgeItems).catch((e) => reportStorageError('保存本地知识点', e))
     }
-  }, [knowledgeItems])
+  }, [knowledgeItems, analysis, knowledgeHydrationStatus, reportStorageError])
 
   useEffect(() => {
-    saveDismissedKnowledgeItemIds(dismissedKnowledgeItemIds).catch(() => undefined)
-  }, [dismissedKnowledgeItemIds])
+    if (knowledgeHydrationStatus === 'hydrated') {
+      saveDismissedKnowledgeItemIds(dismissedKnowledgeItemIds).catch((e) => reportStorageError('保存忽略列表', e))
+    }
+  }, [dismissedKnowledgeItemIds, knowledgeHydrationStatus, reportStorageError])
 
   useEffect(() => {
     if (!recordId || !analysis) return
-    updateMasteredBlindSpots(recordId, analysis, masteredBlindSpotIds).catch(
-      () => undefined,
+    updateMasteredBlindSpots(recordId, analysis, masteredBlindSpotIds).catch((e) =>
+      reportStorageError('保存掌握状态', e),
     )
-  }, [masteredBlindSpotIds, recordId])
+  }, [masteredBlindSpotIds, recordId, analysis, reportStorageError])
 
   const activeClaimBase = (rewriteContent: string | null): ResumeClaim => {
     if (!selected) throw new Error('no selected claim')
