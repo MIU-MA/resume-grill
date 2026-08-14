@@ -91,6 +91,46 @@ npm run build
 - [示例岗位描述](examples/sample-job-description.txt)
 - [材料说明](examples/README.md)
 
+## Docker 部署
+
+项目提供多阶段 `Dockerfile`（基于 Next.js standalone 输出，非 root 运行），可用 Docker 或 Compose 一键部署。
+
+**前置要求：** Docker ≥ 24
+
+### 使用 docker compose
+
+```bash
+# 构建并启动（默认端口 3000）
+docker compose up -d --build
+```
+
+### 使用 docker run
+
+```bash
+docker build -t resume-grill .
+docker run -d -p 3000:3000 resume-grill
+```
+
+### 配置模型
+
+模型配置通过运行时环境变量注入，三者都填则服务端直接用此 Key：
+
+```bash
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_API_KEY=sk-…
+OPENAI_MODEL=gpt-5.4-mini
+```
+
+使用 compose 时，在 `.env` 文件中填入上述变量（`docker compose` 会自动读取），或直接在 `docker-compose.yml` 的 `environment` 段配置。
+
+### 自建模型 / Ollama
+
+访问本机或局域网地址需在服务端配置白名单（见下方「模型配置」）：
+
+```bash
+ALLOWED_LLM_BASE_URLS=http://127.0.0.1:11434
+```
+
 ## 模型配置
 
 项目使用 OpenAI Chat Completions 兼容接口，提供两种本地配置方式。
