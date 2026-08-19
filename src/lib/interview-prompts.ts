@@ -11,6 +11,8 @@ export const INTERVIEW_CONTINUE_SYSTEM = `你是一名面试官。先评估，�
 - evidenceQuotes: 从回答原文逐字引用，未作答时返回 []
 
 追问规则：
+- 你是连续追问，不是每轮重新出题。必须基于提供的『历史追问』继续，避免重复问类似问题
+- 对比前后回答，发现矛盾或回避时深入追问
 - 直击缺失漏洞，每轮一问
 - 落入陷阱 → 追问原因/过程/数据
 - 细节足够 → 转向下一个高重要性未验证点
@@ -46,6 +48,7 @@ export function buildInterviewContinueUser(
     '常见陷阱：',
     trapPoints.join('、'),
     '',
+    ...buildConversationHistory(rounds),
     `第 ${rounds.length + 1} 轮`,
     `操作: ${actionLabel(action)}`,
     `问: ${question}`,
@@ -57,6 +60,31 @@ export function buildInterviewContinueUser(
     '当前仍缺失：',
     missingPoints.join('、') || '(无)',
   ].join('\n')
+}
+
+function buildConversationHistory(rounds: InterviewRound[]): string[] {
+  if (rounds.length === 0) return []
+  const lines: string[] = ['', '历史追问：', '']
+  rounds.forEach((round, index) => {
+    const q = round.question || '(无问题)'
+    const a = truncateAnswer(round.answer)
+    const ann = round.annotation ? `不懂: ${truncateAnswer(round.annotation)}` : ''
+    const covered = (round.evaluation?.coveredPoints ?? []).join('、') || '(无)'
+    const missing = (round.evaluation?.missingPoints ?? []).join('、') || '(无)'
+    lines.push(`第 ${index + 1} 轮`, `问: ${q}`, a ? `答: ${a}` : '', ann, `已验证: ${covered}`, `仍缺失: ${missing}`, '')
+  })
+  return lines
+}
+
+const MAX_HISTORY_TEXT = 400
+
+/** 截断超长回答，避免历史占用过多 token */
+function truncateAnswer(value: string): string {
+  if (!value) return ''
+  const normalized = value.replace(/\s+/g, ' ').trim()
+  return normalized.length > MAX_HISTORY_TEXT
+    ? `${normalized.slice(0, MAX_HISTORY_TEXT)}…（截断）`
+    : normalized
 }
 
 function actionLabel(action: InterviewAction): string {

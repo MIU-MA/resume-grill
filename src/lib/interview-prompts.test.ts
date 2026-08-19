@@ -47,12 +47,12 @@ describe('interview prompts', () => {
     expect(prompt).toContain('操作: 已掌握，跳过（未验证）')
   })
 
-  it('does not include full history, only accumulated state', () => {
+  it('includes compressed conversation history so follow-ups build on it', () => {
     const rounds = [{
       action: 'answer' as const,
-      question: 'Q1', questionIntent: 'test intent',
-      answer: 'A1', annotation: '',
-      evaluation: { score: 60, coveredPoints: ['P1'], missingPoints: ['P2'], answerSuggestion: '', evidenceQuotes: ['原文'] },
+      question: '如何保证接口幂等？', questionIntent: 'test intent',
+      answer: '用了乐观锁和版本号。', annotation: '',
+      evaluation: { score: 60, coveredPoints: ['说明具体方案'], missingPoints: [], answerSuggestion: '', evidenceQuotes: ['原文'] },
       nextReason: '追问',
     }]
     const prompt = buildInterviewContinueUser(
@@ -65,8 +65,33 @@ describe('interview prompts', () => {
       [{ point: '说明具体方案', importance: 'high' }],
       ['只说概念'],
     )
-    expect(prompt).toContain('当前已覆盖')
-    expect(prompt).toContain('P1')
-    expect(prompt).not.toContain('得分60')
+    expect(prompt).toContain('历史追问：')
+    expect(prompt).toContain('第 1 轮')
+    expect(prompt).toContain('问: 如何保证接口幂等？')
+    expect(prompt).toContain('答: 用了乐观锁和版本号。')
+    expect(prompt).toContain('已验证: 说明具体方案')
+    expect(prompt).toContain('仍缺失: (无)')
+  })
+
+  it('truncates very long answers in history to bound token usage', () => {
+    const longAnswer = 'x'.repeat(1000)
+    const rounds = [{
+      action: 'answer' as const,
+      question: 'Q1', questionIntent: '',
+      answer: longAnswer, annotation: '',
+      evaluation: { score: 60, coveredPoints: [], missingPoints: [], answerSuggestion: '', evidenceQuotes: [] },
+      nextReason: '追问',
+    }]
+    const prompt = buildInterviewContinueUser(
+      claim,
+      'Q2', 'A2', '',
+      'answer',
+      rounds,
+      [],
+      [],
+    )
+    expect(prompt).toContain('…（截断）')
+    // 400 字符上限 + 截断标识
+    expect(prompt).not.toContain('x'.repeat(500))
   })
 })

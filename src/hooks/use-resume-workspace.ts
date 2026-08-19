@@ -113,6 +113,7 @@ export function useResumeWorkspace(phase: Phase) {
       })
       .catch(() => {})
       .finally(() => setRecovering(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
