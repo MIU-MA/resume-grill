@@ -49,10 +49,10 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
   const masteredSet = new Set(masteredBlindSpotIds)
   const blindSpots = deriveBlindSpots(analysis, sessions)
   if (blindSpots.length > 0) {
-    lines.push('## 待补强知识点', '')
+    lines.push('## 知识盲区', '')
     blindSpots.forEach((spot) => {
       lines.push(
-        `### ${masteredSet.has(spot.id) ? '已掌握' : '待补强'}：${spot.annotation}`,
+        `### ${masteredSet.has(spot.id) ? '已掌握' : '未掌握'}：${spot.annotation}`,
         `- 对应声明：${spot.claim.title}`,
         `- 当时问题：${spot.question}`,
         `- 说明：${spot.explanation || '无'}`,
@@ -121,7 +121,7 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
           `### 第 ${i + 1} 版（${session.version}）测试报告`,
           `- 有效回答轮数：${session.rounds.filter((round) => round.action === 'answer').length}`,
           `- 用户主动跳过（未验证）：${skippedQuestions.join('；') || '无'}`,
-          `- 不懂批注：${annotations.join('；') || '无'}`,
+          `- 没听懂：${annotations.join('；') || '无'}`,
           `- 掌握度：${'★'.repeat(s.masteryScore)}${'☆'.repeat(5 - s.masteryScore)}`,
           `- 掌握状态：${masteryLabel}`,
           `- 已讲清：${s.canExplain.join('、') || '无'}`,

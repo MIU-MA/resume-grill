@@ -3,7 +3,6 @@
 import { useEffect, useRef } from 'react'
 import { ResumeReviewView } from '@/components/resume/ResumeReviewView'
 import { ResumeImportView } from '@/components/resume/ResumeImportView'
-import { WorkspaceHeader } from '@/components/workspace/WorkspaceHeader'
 import { WorkspaceShell } from '@/components/workspace/WorkspaceShell'
 import { WorkspaceContent } from '@/components/workspace/WorkspaceContent'
 import { useAppNavigation } from '@/hooks/use-app-navigation'
@@ -27,8 +26,6 @@ function App() {
   const actions = useClaimActions(workspace, interview, navigation)
   const knowledgeActions = useKnowledgeActions(workspace)
   const { selected, stats } = workspace
-
-  // 报告页「标记已掌握」与知识页掌握状态双向同步
   const handleToggleBlindSpot = (blindSpotId: string) => {
     actions.toggleBlindSpotMastered(blindSpotId)
     const item = workspace.knowledgeItems.find((i) => i.id === blindSpotId)
@@ -149,16 +146,14 @@ function App() {
       envConfigured={workspace.envConfigured}
       clientConfigured={workspace.clientConfigured}
       toast={workspace.toast}
+      mode={mode}
+      onTabChange={handleTabChange}
       onClientChanged={workspace.refreshClientLlm}
       onExport={actions.exportFull}
       onExportJson={actions.exportJson}
       onLogoClick={analysis.replaceResume}
       onDismissToast={() => workspace.setToast('')}
     >
-      <WorkspaceHeader
-        mode={mode}
-        onTabChange={handleTabChange}
-      />
       <WorkspaceContent
         mode={mode}
         analysis={workspace.analysis}
@@ -171,6 +166,7 @@ function App() {
         knowledgeItems={workspace.knowledgeItems}
         onToggleKnowledgeItem={knowledgeActions.toggleMastered}
         onDeleteKnowledgeItem={knowledgeActions.removeItem}
+        onRestoreKnowledgeItem={knowledgeActions.restoreItem}
         onUpdateKnowledgeItem={knowledgeActions.updateItem}
         onAddKnowledgeItem={knowledgeActions.addItem}
         error={workspace.error}

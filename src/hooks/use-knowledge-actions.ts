@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
-import { createManualKnowledgeItemId, type KnowledgeItemPatch, type KnowledgeItemInput } from '@/lib/knowledge'
+import { createManualKnowledgeItemId, type KnowledgeItem, type KnowledgeItemPatch, type KnowledgeItemInput } from '@/lib/knowledge'
 import type { UseResumeWorkspace } from '@/lib/types'
 
 export function useKnowledgeActions(ws: UseResumeWorkspace) {
@@ -76,5 +76,20 @@ export function useKnowledgeActions(ws: UseResumeWorkspace) {
     [ws],
   )
 
-  return { toggleMastered, removeItem, updateItem, addItem }
+  const restoreItem = useCallback(
+    (item: KnowledgeItem) => {
+      ws.setKnowledgeItems((items) =>
+        items.some((i) => i.id === item.id) ? items : [item, ...items],
+      )
+      ws.setDismissedKnowledgeItemIds((current) => current.filter((id) => id !== item.id))
+      if (item.source === 'blind-spot' && item.status === 'mastered') {
+        ws.setMasteredBlindSpotIds((current) =>
+          current.includes(item.id) ? current : [...current, item.id],
+        )
+      }
+    },
+    [ws],
+  )
+
+  return { toggleMastered, removeItem, updateItem, addItem, restoreItem }
 }

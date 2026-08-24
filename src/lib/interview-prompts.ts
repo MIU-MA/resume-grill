@@ -7,7 +7,7 @@ export const INTERVIEW_CONTINUE_SYSTEM = `你是一名面试官。先评估，�
 - score: 0-100。具体数据/案例/决策→60+；概念/工具名→30-；完全回避/未作答→0
 - coveredPoints: 必须逐字取自评估要点，未作答时为空
 - missingPoints: 仍未覆盖的评估要点，未作答时为全部
-- answerSuggestion: 2-4 句更可信的回答示范，缺失处用"[补充具体数据]"占位；clarify 时用通俗解释
+- answerSuggestion: 2-4 句更可信的回答示范，缺失处用"[补充具体数据]"占位；若本轮同时有『不懂』，在示范中顺带通俗解释该术语；clarify 时以通俗解释为主
 - evidenceQuotes: 从回答原文逐字引用，未作答时返回 []
 
 追问规则：

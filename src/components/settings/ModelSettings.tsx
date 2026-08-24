@@ -27,10 +27,10 @@ function deriveMode(envConfigured: boolean, clientConfigured: boolean): Mode {
 }
 
 const CHIP_VARIANT: Record<Mode['cls'] | 'success' | 'danger', string> = {
-  local: 'text-success bg-green-soft',
+  local: 'text-success bg-success-soft',
   env: 'text-brand bg-brand-soft',
   mock: 'text-warning bg-warning-soft',
-  success: 'text-success bg-green-soft',
+  success: 'text-success bg-success-soft',
   danger: 'text-danger bg-danger-soft',
 }
 

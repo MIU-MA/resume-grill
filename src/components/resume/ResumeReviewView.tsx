@@ -19,6 +19,7 @@ import {
   Trash2,
   Users,
   Wrench,
+  X,
   type LucideIcon,
 } from 'lucide-react'
 import type { ExtractedText } from '@/lib/pdf'
@@ -88,11 +89,23 @@ export function ResumeReviewView({ sourceFile, extracted, analyzing, error, envC
   const [tab, setTab] = useState<'structure' | 'raw'>('structure')
   const [analysisGoal, setAnalysisGoal] = useState<AnalysisGoal>('overall')
   const [jobDescription, setJobDescription] = useState('')
-  const [settingsOpen, setSettingsOpen] = useState(true)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [goalOpen, setGoalOpen] = useState(false)
+  const [jdOpen, setJdOpen] = useState(false)
+  const [lastDeleted, setLastDeleted] = useState<{ candidate: ReviewCandidate; index: number } | null>(null)
 
   const selectedCandidates = candidates.filter((candidate) => candidate.enabled && candidate.content.trim().length >= 2)
   const groupedCandidates = useMemo(() => groupCandidates(candidates), [candidates])
+  const projectSectionTitles = useMemo(
+    () =>
+      new Set(
+        sections
+          .filter((section) => ['work', 'internship', 'project'].includes(section.kind))
+          .map((section) => section.title),
+      ),
+    [sections],
+  )
   const experienceSections = sections.filter((section) => ['work', 'internship', 'project'].includes(section.kind)).length
   const skillClaims = candidates.filter((candidate) => isSkillSection(candidate.sourceSection)).length
   const structureChanged = text !== structureText
@@ -111,7 +124,43 @@ export function ResumeReviewView({ sourceFile, extracted, analyzing, error, envC
   }
 
   const deleteCandidate = (id: string) => {
-    setCandidates((current) => current.filter((candidate) => candidate.id !== id))
+    setCandidates((current) => {
+      const index = current.findIndex((candidate) => candidate.id === id)
+      const candidate = current[index]
+      if (!candidate) return current
+      setLastDeleted({ candidate, index })
+      return current.filter((item) => item.id !== id)
+    })
+  }
+
+  const undoDelete = () => {
+    if (!lastDeleted) return
+    setCandidates((current) => {
+      const next = [...current]
+      next.splice(Math.min(lastDeleted.index, next.length), 0, lastDeleted.candidate)
+      return next
+    })
+    setLastDeleted(null)
+  }
+
+  const selectAll = () =>
+    setCandidates((current) => current.map((candidate) => ({ ...candidate, enabled: true })))
+  const clearAll = () =>
+    setCandidates((current) => current.map((candidate) => ({ ...candidate, enabled: false })))
+  const keepProjects = () =>
+    setCandidates((candidateList) =>
+      candidateList.map((candidate) => ({
+        ...candidate,
+        enabled: projectSectionTitles.has(candidate.sourceSection),
+      })),
+    )
+
+  const scrollToSection = (index: number) => {
+    if (tab !== 'structure') setTab('structure')
+    // 切到结构视图后等待渲染再滚动
+    setTimeout(() => {
+      document.getElementById(`resume-section-${index}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, tab === 'structure' ? 0 : 30)
   }
 
   const mergeWithNext = (id: string) => {
@@ -170,7 +219,7 @@ export function ResumeReviewView({ sourceFile, extracted, analyzing, error, envC
         </header>
 
         <div className="grid grid-cols-[260px_minmax(0,1fr)] gap-5 max-lg:grid-cols-1">
-          <aside className="self-start rounded-xl border border-border bg-white px-5 py-5 shadow-[0_1px_3px_rgba(16,24,40,0.04)] lg:sticky lg:top-5">
+          <aside className="self-start rounded-xl border border-line bg-white px-5 py-5 shadow-[0_1px_3px_rgba(16,24,40,0.04)] lg:sticky lg:top-5">
             <div className="mb-4 flex items-center gap-2">
               <Layers3 size={16} className="text-brand" />
               <h2 className="m-0 text-[14px] font-bold">解析概况</h2>
@@ -186,10 +235,16 @@ export function ResumeReviewView({ sourceFile, extracted, analyzing, error, envC
               <div className="mb-2 text-[11px] font-semibold text-text-tertiary">识别到的章节</div>
               <div className="space-y-1">
                 {sections.map((section, index) => (
-                  <div key={`${section.title}-${index}`} className="flex items-center justify-between gap-3 py-1.5 text-[12px]">
+                  <button
+                    key={`${section.title}-${index}`}
+                    type="button"
+                    onClick={() => scrollToSection(index)}
+                    className="flex w-full items-center justify-between gap-3 rounded-md py-1.5 text-[12px] transition-colors hover:bg-surface-soft hover:px-1"
+                    title="点击定位到该章节"
+                  >
                     <span className="min-w-0 truncate text-text-secondary">{section.title || SECTION_LABELS[section.kind]}</span>
                     <span className="flex-none text-[11px] text-text-tertiary">{section.lines.length} 行</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -205,6 +260,9 @@ export function ResumeReviewView({ sourceFile, extracted, analyzing, error, envC
               {!envConfigured && !clientConfigured && (
                 <p className="m-0 mt-1.5 text-[11px] font-semibold text-warning">未配置 · 真实简历分析需先配置</p>
               )}
+              {(envConfigured || clientConfigured) && !settingsOpen && (
+                <p className="m-0 mt-1.5 text-[11px] font-semibold text-success">模型已连接 · 点击展开查看配置</p>
+              )}
               {settingsOpen && (
                 <div className="mt-3">
                   <ModelSettings envConfigured={envConfigured} clientConfigured={clientConfigured} onClientChanged={onClientChanged} />
@@ -213,11 +271,17 @@ export function ResumeReviewView({ sourceFile, extracted, analyzing, error, envC
             </div>
           </aside>
 
-          <main className="min-w-0 overflow-hidden rounded-xl border border-border bg-white shadow-[0_1px_3px_rgba(16,24,40,0.04)]">
+          <main className="min-w-0 overflow-hidden rounded-xl border border-line bg-white shadow-[0_1px_3px_rgba(16,24,40,0.04)]">
             <div className="flex h-12 items-center border-b border-line px-5" role="tablist" aria-label="简历检查视图">
               <ReviewTab active={tab === 'structure'} onClick={() => setTab('structure')}>结构与声明</ReviewTab>
               <ReviewTab active={tab === 'raw'} onClick={() => setTab('raw')}>原始文本</ReviewTab>
-              <span className="ml-auto text-[12px] text-text-tertiary">已保留 {selectedCandidates.length} / {candidates.length} 条</span>
+              <span className="ml-auto flex items-center gap-1.5 text-[12px] text-text-tertiary">
+              <span className="flex-none">已保留 {selectedCandidates.length} / {candidates.length} 条</span>
+              <span className="mx-1 h-4 w-px flex-none bg-line" />
+              <button type="button" onClick={selectAll} className="bg-transparent text-brand hover:underline">全选</button>
+              <button type="button" onClick={clearAll} className="bg-transparent text-text-tertiary hover:text-text-secondary hover:underline">清空</button>
+              <button type="button" onClick={keepProjects} className="bg-transparent text-text-tertiary hover:text-text-secondary hover:underline">仅项目经历</button>
+            </span>
             </div>
 
             {tab === 'raw' ? (
@@ -232,7 +296,7 @@ export function ResumeReviewView({ sourceFile, extracted, analyzing, error, envC
                   </Button>
                 </div>
                 <textarea
-                  className="min-h-[520px] w-full resize-y rounded-xl border border-border-strong bg-white p-4 text-[13px] leading-[1.75] text-text-primary focus:border-brand focus:shadow-[0_0_0_3px_rgba(37,99,235,0.1)]"
+                  className="min-h-[520px] w-full resize-y rounded-xl border border-line-strong bg-white p-4 text-[13px] leading-[1.75] text-text-primary focus:border-brand focus:shadow-[0_0_0_3px_rgba(37,99,235,0.1)]"
                   value={text}
                   onChange={(event) => setText(event.target.value)}
                   disabled={analyzing}
@@ -250,7 +314,7 @@ export function ResumeReviewView({ sourceFile, extracted, analyzing, error, envC
                   </div>
                 ) : groupedCandidates.map(([section, items]) => (
                   <div key={section} className="border-b border-line last:border-b-0">
-                    <div className="flex items-center justify-between bg-surface-soft px-5 py-2.5">
+                    <div id={`resume-section-${sections.findIndex((s) => s.title === section)}`} className="flex items-center justify-between bg-surface-soft px-5 py-2.5 scroll-mt-20">
                       <h2 className="m-0 text-[12px] font-bold text-text-secondary">{section}</h2>
                       <span className="text-[11px] text-text-tertiary">{items.length} 条</span>
                     </div>
@@ -284,7 +348,7 @@ export function ResumeReviewView({ sourceFile, extracted, analyzing, error, envC
                               type="button"
                               onClick={() => setEditingId(candidate.id)}
                               disabled={analyzing}
-                              className="min-h-[58px] min-w-0 flex-1 cursor-pointer rounded-lg border border-transparent bg-white px-3 py-2 text-left text-[13px] leading-relaxed text-text-primary transition-colors hover:border-border hover:bg-surface-soft disabled:cursor-default disabled:opacity-60"
+                              className="min-h-[58px] min-w-0 flex-1 cursor-pointer rounded-lg border border-transparent bg-white px-3 py-2 text-left text-[13px] leading-relaxed text-text-primary transition-colors hover:border-line hover:bg-surface-soft disabled:cursor-default disabled:opacity-60"
                               aria-label={`编辑声明：${candidate.content}`}
                             >
                               {candidate.content.trim() || <span className="text-text-tertiary">点击编辑声明…</span>}
@@ -320,48 +384,61 @@ export function ResumeReviewView({ sourceFile, extracted, analyzing, error, envC
               </section>
             )}
 
-            <section className="border-t border-line px-5 py-5">
-              <div className="mb-3">
-                <h2 className="m-0 text-[14px] font-bold">本次分析目标</h2>
-                <p className="mt-1 text-[12px] text-text-tertiary">决定模型优先选择和追问哪类声明。</p>
-              </div>
-              <div className="grid grid-cols-5 gap-2 max-xl:grid-cols-3 max-md:grid-cols-1" role="radiogroup" aria-label="分析目标">
-                {ANALYSIS_GOALS.map((goal) => {
-                  const Icon = GOAL_ICONS[goal.value]
-                  const active = analysisGoal === goal.value
-                  return (
-                    <label key={goal.value} className={`min-w-0 cursor-pointer rounded-lg border px-3 py-3 transition-colors ${active ? 'border-brand bg-brand-soft' : 'border-border bg-white hover:border-border-strong'}`}>
-                      <input type="radio" name="analysis-goal" value={goal.value} checked={active} onChange={() => setAnalysisGoal(goal.value)} className="sr-only" />
-                      <span className="flex items-center gap-2 text-[12px] font-bold text-text-primary">
-                        <Icon size={14} className={active ? 'text-brand' : 'text-text-tertiary'} />{goal.label}
-                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${active ? 'bg-brand/10 text-brand' : 'bg-surface-soft text-text-tertiary'}`}>约 {goal.claimCount} 条</span>
-                        {active && <Check size={13} className="ml-auto text-brand" />}
-                      </span>
-                      <span className="mt-1.5 block text-[11px] leading-relaxed text-text-tertiary">{goal.description}</span>
-                    </label>
-                  )
-                })}
-              </div>
+            <section className="border-t border-line px-5 py-4">
+              <button type="button" onClick={() => setGoalOpen((v) => !v)} className="flex w-full items-center justify-between gap-3 text-left" aria-expanded={goalOpen}>
+                <div>
+                  <h2 className="m-0 text-[14px] font-bold">本次分析目标</h2>
+                  <p className="mt-1 text-[12px] text-text-tertiary">决定模型优先选择和追问哪类声明。</p>
+                </div>
+                <span className="flex flex-none items-center gap-2 text-[12px] text-text-tertiary">
+                  {ANALYSIS_GOALS.find((g) => g.value === analysisGoal)?.label}
+                  <ChevronDown size={14} className={`transition-transform ${goalOpen ? 'rotate-180' : ''}`} />
+                </span>
+              </button>
+              {goalOpen && (
+                <div className="mt-3 grid grid-cols-5 gap-2 max-xl:grid-cols-3 max-md:grid-cols-1" role="radiogroup" aria-label="分析目标">
+                  {ANALYSIS_GOALS.map((goal) => {
+                    const Icon = GOAL_ICONS[goal.value]
+                    const active = analysisGoal === goal.value
+                    return (
+                      <label key={goal.value} className={`min-w-0 cursor-pointer rounded-lg border px-3 py-3 transition-colors ${active ? 'border-brand bg-brand-soft' : 'border-line bg-white hover:border-line-strong'}`}>
+                        <input type="radio" name="analysis-goal" value={goal.value} checked={active} onChange={() => setAnalysisGoal(goal.value)} className="sr-only" />
+                        <span className="flex items-center gap-2 text-[12px] font-bold text-text-primary">
+                          <Icon size={14} className={active ? 'text-brand' : 'text-text-tertiary'} />{goal.label}
+                          <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${active ? 'bg-brand/10 text-brand' : 'bg-surface-soft text-text-tertiary'}`}>约 {goal.claimCount} 条</span>
+                          {active && <Check size={13} className="ml-auto text-brand" />}
+                        </span>
+                        <span className="mt-1.5 block text-[11px] leading-relaxed text-text-tertiary">{goal.description}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
             </section>
 
-            <section className="border-t border-line px-5 py-5">
-              <div className="mb-3 flex items-start justify-between gap-4">
+            <section className="border-t border-line px-5 py-4">
+              <button type="button" onClick={() => setJdOpen((v) => !v)} className="flex w-full items-center justify-between gap-3 text-left" aria-expanded={jdOpen}>
                 <div>
                   <h2 className="m-0 text-[14px] font-bold">目标岗位描述 <span className="font-normal text-text-tertiary">可选</span></h2>
                   <p className="mt-1 text-[12px] text-text-tertiary">填写后会增加岗位匹配、简历缺口和针对性追问。</p>
                 </div>
-                {jobDescription.trim() && <span className="text-[11px] font-semibold text-brand">已加入匹配</span>}
-              </div>
-              <textarea
-                className="min-h-[120px] w-full resize-y rounded-xl border border-border-strong bg-white p-4 text-[13px] leading-[1.75] text-text-primary placeholder:text-text-tertiary focus:border-brand focus:shadow-[0_0_0_3px_rgba(37,99,235,0.1)]"
-                value={jobDescription}
-                onChange={(event) => setJobDescription(event.target.value)}
-                disabled={analyzing}
-                placeholder="粘贴目标岗位的职责和任职要求…"
-              />
+                <span className="flex flex-none items-center gap-2 text-[12px] text-text-tertiary">
+                  {jobDescription.trim() && <span className="font-semibold text-brand">{jobDescription.trim().length} 字</span>}
+                  <ChevronDown size={14} className={`transition-transform ${jdOpen ? 'rotate-180' : ''}`} />
+                </span>
+              </button>
+              {jdOpen && (
+                <textarea
+                  className="mt-3 min-h-[120px] w-full resize-y rounded-xl border border-line-strong bg-white p-4 text-[13px] leading-[1.75] text-text-primary placeholder:text-text-tertiary focus:border-brand focus:shadow-[0_0_0_3px_rgba(37,99,235,0.1)]"
+                  value={jobDescription}
+                  onChange={(event) => setJobDescription(event.target.value)}
+                  disabled={analyzing}
+                  placeholder="粘贴目标岗位的职责和任职要求…"
+                />
+              )}
             </section>
 
-            <footer className="flex items-center justify-between gap-4 border-t border-line bg-surface-soft px-5 py-4 max-md:flex-col max-md:items-stretch">
+            <footer className="sticky bottom-0 z-10 flex items-center justify-between gap-4 border-t border-line bg-surface-soft px-5 py-4 shadow-[0_-4px_12px_rgba(16,24,40,0.04)] max-md:flex-col max-md:items-stretch">
               <div className="text-[12px] text-text-tertiary">
                 {structureChanged ? '原始文本已变化，需重新识别结构' : `将提交 ${selectedCandidates.length} 条已确认声明`}
               </div>
@@ -381,6 +458,16 @@ export function ResumeReviewView({ sourceFile, extracted, analyzing, error, envC
           </main>
         </div>
       </div>
+
+      {lastDeleted && (
+        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl border border-line bg-white px-4 py-2.5 shadow-[0_8px_24px_rgba(16,24,40,0.12)]">
+          <span className="max-w-[320px] truncate text-[13px] text-text-secondary">已删除「{lastDeleted.candidate.content.slice(0, 24)}」</span>
+          <button type="button" onClick={undoDelete} className="bg-transparent text-[13px] font-semibold text-brand hover:underline">撤销</button>
+          <button type="button" onClick={() => setLastDeleted(null)} className="grid size-6 place-items-center rounded-md bg-transparent text-text-tertiary hover:bg-surface-hover" aria-label="关闭">
+            <X size={14} />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

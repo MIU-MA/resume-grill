@@ -98,7 +98,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
       <div className="w-full max-w-[720px]">
         <div className="mx-auto max-w-[480px]">
         {/* Tab */}
-        <div className="flex border-b border-border mb-6">
+        <div className="flex border-b border-line mb-6">
           {(['file', 'paste'] as Tab[]).map((t) => (
             <button key={t} type="button" onClick={() => setTab(t)} className={`px-4 py-2.5 text-[14px] font-medium border-b-2 transition-colors ${tab === t ? 'border-brand text-brand' : 'border-transparent text-text-tertiary hover:text-text-secondary'}`}>{t === 'file' ? '上传文件' : '粘贴文本'}</button>
           ))}
@@ -108,7 +108,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
           <>
             <label
               className={`flex min-h-[160px] cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-white px-8 py-10 text-center transition-colors ${
-                dragOver ? 'border-brand bg-brand-soft' : 'border-border hover:border-brand hover:bg-brand-soft'
+                dragOver ? 'border-brand bg-brand-soft' : 'border-line hover:border-brand hover:bg-brand-soft'
               }`}
               onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
               onDragEnter={(e) => { e.preventDefault(); setDragOver(true) }}
@@ -149,7 +149,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
         ) : (
           <>
             <textarea
-              className="w-full min-h-[200px] resize-y rounded-xl border border-border-strong bg-white p-4 text-[14px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-[#60a5fa] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.1)]"
+              className="w-full min-h-[200px] resize-y rounded-xl border border-line-strong bg-white p-4 text-[14px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-[#60a5fa] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.1)]"
               placeholder="直接粘贴简历文本…"
               value={paste}
               onChange={(event) => setPaste(event.target.value)}
@@ -171,7 +171,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
         </div>
 
         {(loadingRecords || savedRecords.length > 0) && (
-          <section className="mt-10 border-t border-border pt-7" aria-labelledby="saved-resumes-title">
+          <section className="mt-10 border-t border-line pt-7" aria-labelledby="saved-resumes-title">
             <div className="mb-3 flex items-end justify-between gap-4 px-1">
               <div>
                 <h2 id="saved-resumes-title" className="text-[15px] font-bold text-text-primary">本地简历</h2>
@@ -187,7 +187,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
                 {savedRecords.map((record) => {
                   const completed = Object.values(record.sessions).flat().filter((session) => session.status === 'done').length
                   return (
-                    <div key={record.id} className="flex items-center gap-3 rounded-lg border border-border bg-white px-4 py-3 shadow-[0_1px_3px_rgba(16,24,40,0.04)]">
+                    <div key={record.id} className="flex items-center gap-3 rounded-lg border border-line bg-white px-4 py-3 shadow-[0_1px_3px_rgba(16,24,40,0.04)]">
                       <div className="grid size-9 flex-none place-items-center rounded-lg bg-surface-soft text-text-tertiary">
                         <FileText size={17} />
                       </div>

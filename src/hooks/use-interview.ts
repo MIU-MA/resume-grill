@@ -111,7 +111,6 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
     let finalResult: FinalResult | null = null
     let summarySucceeded = false
 
-    // 先保存 without summaryStatus，UI 会显示 loading
     onSessionSaved(snapshot.id, {
       id: sessionId,
       claimContent: snapshot.content,
@@ -174,7 +173,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       if (!claimAnalysis) throw new Error('声明分析未找到，请重新开始追问')
       const llm = getLlmSettings()
       const submittedAnswer = action === 'answer' ? answer : ''
-      const submittedAnnotation = action === 'clarify' ? annotation : ''
+      const submittedAnnotation = action === 'skip' ? '' : annotation
       const body: any = {
         claim: snapshot,
         action, question: currentQuestion,

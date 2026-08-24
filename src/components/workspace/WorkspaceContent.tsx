@@ -1,6 +1,6 @@
 'use client'
 
-import type { Dispatch, SetStateAction } from 'react'
+import { useState, type Dispatch, type SetStateAction } from 'react'
 import type { ResumeAnalysis, ResumeClaim } from '@/domain/resume-schema'
 import type { InterviewAction, InterviewSession } from '@/domain/interview-schema'
 import type { Mode } from '@/types'
@@ -51,6 +51,7 @@ type WorkspaceContentProps = {
   knowledgeItems: KnowledgeItem[]
   onToggleKnowledgeItem: (id: string) => void
   onDeleteKnowledgeItem: (id: string) => void
+  onRestoreKnowledgeItem: (item: KnowledgeItem) => void
   onUpdateKnowledgeItem: (id: string, patch: KnowledgeItemPatch) => void
   onAddKnowledgeItem: (input: KnowledgeItemInput) => void
   error: string | null
@@ -79,6 +80,7 @@ export function WorkspaceContent({
   knowledgeItems,
   onToggleKnowledgeItem,
   onDeleteKnowledgeItem,
+  onRestoreKnowledgeItem,
   onUpdateKnowledgeItem,
   onAddKnowledgeItem,
   error,
@@ -94,56 +96,67 @@ export function WorkspaceContent({
   onFinish,
   onBackToAudit,
 }: WorkspaceContentProps) {
+  const [strictMode, setStrictMode] = useState(true)
+  // 窄屏下右侧考察面板以抽屉呈现
+  const [statusOpen, setStatusOpen] = useState(false)
+
   if (mode === 'report') {
     return (
-      <InterviewReportView
-        analysis={analysis}
-        sessions={sessions}
-        masteredBlindSpotIds={masteredBlindSpotIds}
-        onToggleBlindSpot={onToggleBlindSpot}
-        onRetest={onRetest}
-        onRewrite={onRewrite}
-        onRegenerateSummary={onRegenerateSummary}
-        regeneratingId={iv.regeneratingId}
-      />
+      <div className="h-full overflow-y-auto py-6 pb-12">
+        <InterviewReportView
+          analysis={analysis}
+          sessions={sessions}
+          masteredBlindSpotIds={masteredBlindSpotIds}
+          onToggleBlindSpot={onToggleBlindSpot}
+          onRetest={onRetest}
+          onRewrite={onRewrite}
+          onRegenerateSummary={onRegenerateSummary}
+          regeneratingId={iv.regeneratingId}
+        />
+      </div>
     )
   }
 
   if (mode === 'audit') {
-    const completedClaimIds = analysis.claims
-      .filter((claim) => (sessions[claim.id] ?? []).some((s) => s.status === 'done'))
-      .map((claim) => claim.id)
     return (
-      <ClaimAuditView
-        analysis={analysis}
-        selectedIndex={selectedIndex}
-        preparedClaimIds={preparedClaimIds}
-        completedClaimIds={completedClaimIds}
-        error={error}
-        onSelect={onSelect}
-        onTogglePrepared={onTogglePrepared}
-        onStartInterview={onStartInterview}
-        onReport={onReport}
-      />
+      <div className="h-full min-h-0 py-6 pb-12 max-[760px]:overflow-y-auto">
+        <ClaimAuditView
+          analysis={analysis}
+          selectedIndex={selectedIndex}
+          preparedClaimIds={preparedClaimIds}
+          sessions={sessions}
+          error={error}
+          onSelect={onSelect}
+          onTogglePrepared={onTogglePrepared}
+          onStartInterview={onStartInterview}
+          onReport={onReport}
+        />
+      </div>
     )
   }
 
   if (mode === 'knowledge') {
     return (
-      <KnowledgeView
-        analysis={analysis}
-        knowledgeItems={knowledgeItems}
-        onToggle={onToggleKnowledgeItem}
-        onDelete={onDeleteKnowledgeItem}
-        onUpdate={onUpdateKnowledgeItem}
-        onAdd={onAddKnowledgeItem}
-        onRetest={onRetest}
-      />
+      <div className="h-full overflow-y-auto py-6 pb-12">
+        <KnowledgeView
+          analysis={analysis}
+          knowledgeItems={knowledgeItems}
+          onToggle={onToggleKnowledgeItem}
+          onDelete={onDeleteKnowledgeItem}
+          onRestore={onRestoreKnowledgeItem}
+          onUpdate={onUpdateKnowledgeItem}
+          onAdd={onAddKnowledgeItem}
+          onRetest={onRetest}
+        />
+      </div>
     )
   }
 
   return (
-    <div className="flex border border-border rounded-lg overflow-hidden">
+    <div className="relative flex h-full min-h-0 border border-line rounded-lg overflow-hidden">
+      {statusOpen && (
+        <div className="fixed inset-0 z-30 bg-black/20 lg:hidden" onClick={() => setStatusOpen(false)} aria-hidden="true" />
+      )}
       <InterviewView
         selected={activeClaim}
         turns={iv.rounds.map((r) => ({
@@ -164,6 +177,10 @@ export function WorkspaceContent({
         annotation={iv.annotation}
         version={iv.version}
         error={error}
+        strictMode={strictMode}
+        onToggleStrict={() => setStrictMode((v) => !v)}
+        statusOpen={statusOpen}
+        onToggleStatus={() => setStatusOpen((v) => !v)}
         onAnswerChange={iv.setAnswer}
         onSubmit={() => iv.submit(selected)}
         onSkip={() => iv.skip(selected)}
@@ -175,6 +192,9 @@ export function WorkspaceContent({
         selected={activeClaim}
         roundCount={iv.rounds.filter((r) => r.answer.trim().length > 0).length}
         covered={iv.covered}
+        strictMode={strictMode}
+        statusOpen={statusOpen}
+        onClose={() => setStatusOpen(false)}
       />
     </div>
   )

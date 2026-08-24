@@ -14,45 +14,32 @@ const TABS: { key: Mode; label: string }[] = [
   { key: 'knowledge', label: '漏洞与知识点' },
 ]
 
-export function WorkspaceHeader({
-  mode,
-  onTabChange,
-}: WorkspaceHeaderProps) {
+export function WorkspaceHeader({ mode, onTabChange }: WorkspaceHeaderProps) {
   return (
-    <>
-      {/* ── 标题栏 + 模式切换 ─────────────────────────── */}
-      <section className="flex items-end justify-between gap-6 mb-5">
-        <div>
-          <div className="text-brand text-[12px] font-bold uppercase tracking-[0.08em] mb-2">
-            能力清单
-          </div>
-          <h1 className="m-0 text-[28px] font-bold tracking-[-0.035em]">
-            提前锁定简历中最容易卡壳的细节。
-          </h1>
-          <p className="mt-2 text-text-tertiary text-[14px] leading-relaxed">
-            通过层层深挖，帮你确认是不是真的吃透了写在纸上的经历。
-          </p>
-        </div>
-        <div
-          className="inline-flex bg-[#eceff3] rounded-[10px] p-1 gap-0.5 flex-none"
-          role="tablist"
-        >
-          {TABS.map(({ key, label }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => onTabChange(key)}
-              className={`h-[34px] px-4 rounded-[7px] text-[13px] font-semibold transition-colors ${
-                mode === key
-                  ? 'bg-white text-text-primary shadow-[0_1px_3px_rgba(16,24,40,0.04)]'
-                  : 'bg-transparent text-text-tertiary hover:text-text-secondary'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </section>
-    </>
+    <nav
+      className="flex h-[44px] flex-none items-stretch gap-0.5 border-b border-line bg-bg px-7 max-md:px-4 overflow-x-auto"
+      role="tablist"
+      aria-label="工作区页面"
+    >
+      {TABS.map(({ key, label }) => {
+        const isActive = mode === key
+        return (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            onClick={() => onTabChange(key)}
+            className={`relative flex-none bg-transparent px-3.5 text-[13px] font-semibold whitespace-nowrap transition-colors ${
+              isActive
+                ? 'text-brand after:absolute after:inset-x-2 after:bottom-0 after:h-[2px] after:rounded-full after:bg-brand'
+                : 'text-text-tertiary hover:text-text-secondary'
+            }`}
+          >
+            {label}
+          </button>
+        )
+      })}
+    </nav>
   )
 }
