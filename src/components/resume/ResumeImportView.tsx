@@ -91,7 +91,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
         <img src="/favicon.svg" alt="简历拷打机" className="mx-auto mb-4 block size-13" />
         <h1 className="mb-3 text-[28px] font-bold leading-[1.2] tracking-tight text-text-primary">resume-grill</h1>
         <p className="mx-auto max-w-[520px] text-[15px] leading-relaxed text-text-secondary">
-          上传简历，让 AI 帮你排查盲区，预测面试官的追问逻辑。
+          上传简历，让 AI 帮你排查盲区。
         </p>
       </div>
 
@@ -107,7 +107,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
         {tab === 'file' ? (
           <>
             <label
-              className={`flex min-h-[160px] cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-white px-8 py-10 text-center transition-colors ${
+              className={`flex min-h-[160px] cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-dashed bg-white px-8 py-10 text-center transition-colors ${
                 dragOver ? 'border-brand bg-brand-soft' : 'border-line hover:border-brand hover:bg-brand-soft'
               }`}
               onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
@@ -116,7 +116,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
               onDrop={(e) => { e.preventDefault(); setDragOver(false); const file = e.dataTransfer.files?.[0]; if (file) handleFile(file) }}
             >
               <input type="file" accept=".pdf,.txt,.md,.docx" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) handleFile(file) }} />
-              <div className="grid size-12 place-items-center rounded-xl bg-surface-soft">
+              <div className="grid size-12 place-items-center rounded-lg bg-surface-soft">
                 <Upload size={22} className="text-text-tertiary" />
               </div>
               <div>
@@ -149,7 +149,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
         ) : (
           <>
             <textarea
-              className="w-full min-h-[200px] resize-y rounded-xl border border-line-strong bg-white p-4 text-[14px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-[#60a5fa] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.1)]"
+              className="min-h-[200px] w-full resize-y rounded-lg border border-line-strong bg-white p-4 text-[14px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-[#60a5fa] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.1)]"
               placeholder="直接粘贴简历文本…"
               value={paste}
               onChange={(event) => setPaste(event.target.value)}
@@ -187,7 +187,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
                 {savedRecords.map((record) => {
                   const completed = Object.values(record.sessions).flat().filter((session) => session.status === 'done').length
                   return (
-                    <div key={record.id} className="flex items-center gap-3 rounded-lg border border-line bg-white px-4 py-3 shadow-[0_1px_3px_rgba(16,24,40,0.04)]">
+                    <div key={record.id} className="flex items-center gap-3 rounded-lg border border-line bg-white px-4 py-3 shadow-card">
                       <div className="grid size-9 flex-none place-items-center rounded-lg bg-surface-soft text-text-tertiary">
                         <FileText size={17} />
                       </div>
@@ -197,7 +197,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
                           <span className="truncate text-[12px] text-text-tertiary">{record.analysis.role}</span>
                         </span>
                         <span className="mt-1 block truncate text-[11px] text-text-tertiary">
-                          {record.analysis.sourceFile} · {record.analysis.claims.length} 条声明 · 已完成 {completed} 次测试 · {formatUpdatedAt(record.updatedAt)}
+                          {record.analysis.sourceFile} · {record.analysis.claims.length} 个要点 · 已练习 {completed} 次 · {formatUpdatedAt(record.updatedAt)}
                         </span>
                       </button>
                       <button type="button" className="grid size-8 flex-none place-items-center rounded-lg text-text-tertiary hover:bg-danger-soft hover:text-danger" onClick={() => handleDelete(record)} title="删除本地记录" aria-label={`删除 ${record.analysis.candidate} 的本地记录`}>

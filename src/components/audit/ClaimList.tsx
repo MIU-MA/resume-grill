@@ -1,163 +1,198 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Bookmark, Check } from 'lucide-react'
-import { CLAIM_CATEGORY_LABELS, type ResumeAnalysis, type TestPriority } from '@/domain/resume-schema'
-import type { ClaimStatus } from '@/components/audit/ClaimAuditView'
+import {
+  CLAIM_CATEGORY_LABELS,
+  type ResumeAnalysis,
+  type TestPriority,
+} from '@/domain/resume-schema'
+import { ClaimBatchActions } from '@/components/audit/ClaimBatchActions'
+import { ClaimListToolbar } from '@/components/audit/ClaimListToolbar'
+import type { ClaimFilter } from '@/components/audit/claim-list-types'
+import { WEAK_SCORE_THRESHOLD, type ClaimProgress } from '@/lib/risk'
 
-const PRIORITY_FILTERS: { label: string; value: TestPriority | 'all' }[] = [
-  { label: '全部', value: 'all' },
-  { label: '优先测试', value: 'high' },
-  { label: '建议测试', value: 'medium' },
-  { label: '可选测试', value: 'low' },
-]
-
-const STATUS_FILTERS: { label: string; value: ClaimStatus | 'all' }[] = [
-  { label: '全部', value: 'all' },
-  { label: '待测试', value: 'todo' },
-  { label: '已准备', value: 'prepared' },
-  { label: '已完成', value: 'done' },
-]
-
-const STATUS_LABEL: Record<ClaimStatus, string> = {
-  done: '已完成',
-  prepared: '已准备',
-  todo: '待测试',
-}
-
-const STATUS_CLS: Record<ClaimStatus, string> = {
-  done: 'bg-success-soft text-success',
-  prepared: 'bg-brand-soft text-brand',
-  todo: 'bg-surface-hover text-text-tertiary',
-}
-
-type ClaimListProps = {
+type Props = {
   analysis: ResumeAnalysis
   selectedIndex: number
-  statusByClaim: Record<string, ClaimStatus>
-  masteryByClaim: Record<string, number>
+  progressByClaim: Record<string, ClaimProgress>
+  claimPriorityOverrides: Record<string, TestPriority>
   onSelect: (index: number) => void
-  onTogglePrepared: (claimId: string) => void
+  onTogglePrepared: (id: string) => void
   onReport: () => void
+  onBatchTogglePrepared: (ids: string[]) => void
+  onSetClaimsPriority: (ids: string[], priority: TestPriority) => void
 }
 
-export function ClaimList({ analysis, selectedIndex, statusByClaim, masteryByClaim, onSelect, onTogglePrepared, onReport }: ClaimListProps) {
-  const [statusFilter, setStatusFilter] = useState<ClaimStatus | 'all'>('all')
-  const [priorityFilter, setPriorityFilter] = useState<TestPriority | 'all'>('all')
+const STATUS_LABEL = {
+  done: '已练习',
+  prepared: '已准备',
+  todo: '未练习',
+} as const
 
-  const visible = analysis.claims
-    .map((claim, originalIndex) => ({ claim, originalIndex }))
-    .filter(({ claim }) => {
-      if (statusFilter !== 'all' && statusByClaim[claim.id] !== statusFilter) return false
-      if (priorityFilter !== 'all' && claim.testPriority !== priorityFilter) return false
-      return true
-    })
+const PRIORITY_BORDER: Record<TestPriority, string> = {
+  high: 'border-danger',
+  medium: 'border-warning',
+  low: 'border-line-strong',
+}
 
-  const statusLabel = statusFilter === 'all' ? '全部状态' : STATUS_LABEL[statusFilter]
+export function ClaimList({
+  analysis,
+  selectedIndex,
+  progressByClaim,
+  claimPriorityOverrides,
+  onSelect,
+  onTogglePrepared,
+  onReport,
+  onBatchTogglePrepared,
+  onSetClaimsPriority,
+}: Props) {
+  const [filter, setFilter] = useState<ClaimFilter>('all')
+  const [multi, setMulti] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+
+  const visible = useMemo(
+    () =>
+      analysis.claims
+        .map((claim, index) => ({ claim, index }))
+        .filter(({ claim }) => {
+          const progress = progressByClaim[claim.id]
+          const priority =
+            claimPriorityOverrides[claim.id] ?? claim.testPriority
+
+          if (filter === 'high') return priority === 'high'
+          if (filter === 'untested') return progress.status === 'todo'
+          if (filter === 'weak') {
+            return (
+              progress.latestScore !== null &&
+              progress.latestScore <= WEAK_SCORE_THRESHOLD
+            )
+          }
+          return true
+        }),
+    [analysis.claims, claimPriorityOverrides, filter, progressByClaim],
+  )
+
+  const toggleSelected = (claimId: string) => {
+    setSelectedIds((ids) =>
+      ids.includes(claimId)
+        ? ids.filter((id) => id !== claimId)
+        : [...ids, claimId],
+    )
+  }
+
+  const leaveMultiSelect = () => {
+    setMulti(false)
+    setSelectedIds([])
+  }
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-white">
-      {/* 头部：标题 + 筛选 */}
-      <div className="px-3.5 pt-[14px] pb-2 border-b border-line flex-none">
-        <div className="flex items-baseline justify-between gap-2 mb-2.5">
-          <div className="text-[15px] font-bold">能力清单</div>
-          <div className="text-text-tertiary text-[12px]">{statusLabel} · {visible.length} 条</div>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="flex items-center gap-0.5 overflow-x-auto">
-            {STATUS_FILTERS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setStatusFilter(opt.value)}
-                className={`flex-none rounded-md px-2 py-1 text-[11px] font-semibold transition-colors ${
-                  statusFilter === opt.value
-                    ? 'bg-brand-soft text-brand'
-                    : 'bg-transparent text-text-tertiary hover:text-text-secondary'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          <select
-            className="ml-auto h-[26px] flex-none text-[11px] border border-line rounded-md bg-white text-text-secondary px-1.5 cursor-pointer"
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value as TestPriority | 'all')}
-            aria-label="按优先级筛选"
-          >
-            {PRIORITY_FILTERS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </div>
-      </div>
+    <div className="flex h-full min-h-0 flex-col">
+      <ClaimListToolbar
+        filter={filter}
+        multi={multi}
+        onFilterChange={(nextFilter) => {
+          setFilter(nextFilter)
+          setSelectedIds([])
+        }}
+        onToggleMulti={() => {
+          if (multi) leaveMultiSelect()
+          else setMulti(true)
+        }}
+      />
 
-      {/* 列表 */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-1 scroll-smooth">
-        {visible.length === 0 ? (
-          <div className="text-center text-text-tertiary text-[13px] py-10">没有匹配的声明</div>
-        ) : (
-          visible.map(({ claim, originalIndex }) => {
-            const status = statusByClaim[claim.id] ?? 'todo'
-            const mastery = masteryByClaim[claim.id]
-            const isActive = originalIndex === selectedIndex
-            const isDone = status === 'done'
-            return (
-              <div
-                key={claim.id}
-                className={`flex items-stretch rounded-[10px] border transition-colors overflow-hidden ${
-                  isActive
-                    ? 'border-brand/30 bg-brand-soft shadow-[inset_2px_0_0_#2563eb]'
-                    : 'border-transparent hover:border-line hover:bg-surface-soft'
-                }`}
+      <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto p-2">
+        {visible.map(({ claim, index }) => {
+          const progress = progressByClaim[claim.id]
+          const active = index === selectedIndex
+          const checked = selectedIds.includes(claim.id)
+          const priority =
+            claimPriorityOverrides[claim.id] ?? claim.testPriority
+
+          return (
+            <div
+              key={claim.id}
+              className={`flex items-center gap-2 border-l-[3px] px-2 py-2 ${
+                active && !multi
+                  ? 'border-brand bg-brand-soft'
+                  : `${PRIORITY_BORDER[priority]} hover:bg-surface-hover`
+              }`}
+            >
+              {multi && (
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggleSelected(claim.id)}
+                  aria-label={`选择 ${claim.title}`}
+                />
+              )}
+              <button
+                type="button"
+                onClick={() =>
+                  multi ? toggleSelected(claim.id) : onSelect(index)
+                }
+                className="min-w-0 flex-1 text-left"
               >
+                <span className="flex items-center gap-2">
+                  <span className="truncate text-[13px] font-medium">
+                    {claim.content}
+                  </span>
+                  {progress.status === 'done' ? (
+                    <Check size={14} className="flex-none text-success" />
+                  ) : progress.status === 'prepared' ? (
+                    <Bookmark
+                      size={14}
+                      className="flex-none text-text-tertiary"
+                    />
+                  ) : null}
+                </span>
+                <span className="mt-1 block truncate text-[11px] text-text-tertiary">
+                  {CLAIM_CATEGORY_LABELS[claim.category]} · {claim.capability} ·{' '}
+                  {progress.status === 'done'
+                    ? `${progress.covered}/${progress.total} · 得分 ${progress.latestScore}/5`
+                    : STATUS_LABEL[progress.status]}
+                </span>
+              </button>
+              {!multi && progress.status === 'prepared' && (
                 <button
                   type="button"
-                  onClick={() => onSelect(originalIndex)}
-                  className="min-w-0 flex-1 px-3 py-3 text-left"
+                  onClick={() => onTogglePrepared(claim.id)}
+                  className="text-[11px] text-text-tertiary hover:text-text-primary"
                 >
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${STATUS_CLS[status]}`}>
-                      {isDone ? <Check size={10} /> : null}
-                      {STATUS_LABEL[status]}
-                    </span>
-                    {isDone && mastery != null && (
-                      <span className="text-[11px] font-semibold text-success">掌握 {mastery}/5</span>
-                    )}
-                  </div>
-                  <p className="text-[13px] leading-[1.5] text-text-primary line-clamp-2">{claim.content}</p>
-                  <div className="mt-1.5 text-[11px] text-text-tertiary truncate">
-                    {CLAIM_CATEGORY_LABELS[claim.category]} · {claim.capability}
-                  </div>
+                  取消
                 </button>
-
-                {/* 右侧操作列：已准备书签 + 查看报告 */}
-                <div className="flex flex-none flex-col items-center justify-between gap-2 py-2.5 pr-2">
-                  <button
-                    type="button"
-                    onClick={() => onTogglePrepared(claim.id)}
-                    className="grid size-7 place-items-center rounded-md transition-colors hover:bg-brand-soft"
-                    title={status === 'prepared' ? '取消已准备' : '加入准备计划'}
-                    aria-label={status === 'prepared' ? '取消已准备' : '加入准备计划'}
-                    aria-pressed={status === 'prepared'}
-                  >
-                    <Bookmark size={14} className={`${status === 'prepared' ? 'fill-brand text-brand' : 'text-text-tertiary'}`} />
-                  </button>
-                  {isDone && (
-                    <button
-                      type="button"
-                      onClick={onReport}
-                      className="text-[11px] font-semibold text-brand hover:underline"
-                      title="查看该声明的测试报告"
-                    >
-                      报告
-                    </button>
-                  )}
-                </div>
-              </div>
-            )
-          })
+              )}
+              {!multi && progress.status === 'done' && (
+                <button
+                  type="button"
+                  onClick={onReport}
+                  className="text-[11px] text-brand"
+                >
+                  复盘
+                </button>
+              )}
+            </div>
+          )
+        })}
+        {visible.length === 0 && (
+          <p className="px-3 py-8 text-center text-[12px] text-text-tertiary">
+            没有符合当前筛选的简历要点
+          </p>
         )}
       </div>
+
+      {multi && (
+        <ClaimBatchActions
+          selectedIds={selectedIds}
+          onMarkPrepared={() => {
+            onBatchTogglePrepared(selectedIds)
+            setSelectedIds([])
+          }}
+          onSetPriority={(priority) => {
+            onSetClaimsPriority(selectedIds, priority)
+            setSelectedIds([])
+          }}
+          onExit={leaveMultiSelect}
+        />
+      )}
     </div>
   )
 }

@@ -37,15 +37,15 @@ describe('buildReport', () => {
     expect(report).toContain('候选人：张明 · 销售')
     expect(report).toContain('来源文件：resume.txt')
   })
-  it('包含声明内容、核心能力与类型标签', () => {
+  it('包含简历原文、主要考察与类型标签', () => {
     const report = buildReport(analysis)
     expect(report).toContain('季度销售额提升 30%')
-    expect(report).toContain('核心能力：销售业绩达成能力')
-    expect(report).toContain('成果声明')
+    expect(report).toContain('主要考察：销售业绩达成能力')
+    expect(report).toContain('项目成果')
   })
-  it('输出测试优先级', () => {
+  it('输出练习顺序', () => {
     const report = buildReport(analysis)
-    expect(report).toContain('测试优先级：优先测试')
+    expect(report).toContain('练习顺序：重点练习')
     expect(report).not.toContain('面试风险')
     expect(report).not.toContain('被追问概率')
   })
@@ -62,7 +62,7 @@ describe('buildReport', () => {
     }
     const id = createBlindSpotId(claim.id, '不理解基线')
     const report = buildFullReport(analysis, { [claim.id]: [session] }, [id])
-    expect(report).toContain('已掌握：不理解基线')
+    expect(report).toContain('已学会：不理解基线')
     expect(report).toContain('基线是改进前用于比较的数据')
   })
 
@@ -83,6 +83,6 @@ describe('buildReport', () => {
     }
     const report = buildFullReport(analysis, { [claim.id]: [session] })
     expect(report).toContain('有效回答轮数：0')
-    expect(report).toContain('用户主动跳过（未验证）：基线是多少？')
+    expect(report).toContain('跳过的问题：基线是多少？')
   })
 })

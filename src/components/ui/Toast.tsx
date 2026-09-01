@@ -12,7 +12,7 @@ export function Toast({ message, onDismiss }: ToastProps) {
 
   return (
     <div
-      className="fixed top-[116px] left-1/2 z-50 flex max-w-[520px] -translate-x-1/2 items-center gap-2 rounded-lg border border-line-strong bg-white px-4 py-2.5 text-[14px] text-text-primary shadow-[0_1px_3px_rgba(16,24,40,0.04)]"
+      className="fixed left-1/2 top-[68px] z-50 flex max-w-[calc(100%-32px)] -translate-x-1/2 items-center gap-2 rounded-lg border border-line-strong bg-white px-4 py-2.5 text-[14px] text-text-primary shadow-card"
       role="status"
     >
       <Check size={15} className="text-success" />

@@ -9,7 +9,9 @@
 
   --color-text-primary: #101828;
   --color-text-secondary: #475467;
-  --color-text-tertiary: #98a2b3;
+  --color-text-tertiary: #667085;
+  --color-text-muted: #98a2b3;
+  --shadow-card: 0 1px 3px rgba(16, 24, 40, 0.05);
 
   --color-line: #eaecf0;
   --color-line-strong: #e2e5e9;

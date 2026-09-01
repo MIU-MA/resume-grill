@@ -123,14 +123,6 @@ OPENAI_MODEL=gpt-5.4-mini
 
 使用 compose 时，在 `.env` 文件中填入上述变量（`docker compose` 会自动读取），或直接在 `docker-compose.yml` 的 `environment` 段配置。
 
-### 自建模型 / Ollama
-
-访问本机或局域网地址需在服务端配置白名单（见下方「模型配置」）：
-
-```bash
-ALLOWED_LLM_BASE_URLS=http://127.0.0.1:11434
-```
-
 ## 模型配置
 
 项目使用 OpenAI Chat Completions 兼容接口，提供两种本地配置方式。

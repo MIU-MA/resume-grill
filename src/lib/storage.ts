@@ -1,7 +1,7 @@
 'use client'
 
 import { get, set, del, keys } from 'idb-keyval'
-import { createClaimId, type ResumeAnalysis, type ResumeClaim } from '@/domain/resume-schema'
+import { createClaimId, type ResumeAnalysis, type ResumeClaim, type TestPriority } from '@/domain/resume-schema'
 import type { InterviewSession } from '@/domain/interview-schema'
 import { isExcludedClaimContent } from '@/lib/claim-filter'
 import type { KnowledgeItem } from '@/lib/knowledge'
@@ -12,6 +12,7 @@ export type SavedRecord = {
   sessions: Record<string, InterviewSession[]>
   preparedClaimIds: string[]
   masteredBlindSpotIds: string[]
+  claimPriorityOverrides?: Record<string, TestPriority>
   updatedAt: number
 }
 
@@ -75,6 +76,7 @@ export async function upsertSession(
     sessions: {},
     preparedClaimIds: [],
     masteredBlindSpotIds: [],
+    claimPriorityOverrides: {},
     updatedAt: Date.now(),
   }
   const list = existing.sessions[claimId] ?? []
@@ -97,6 +99,7 @@ export async function updatePreparedClaims(
     sessions: {},
     preparedClaimIds: [],
     masteredBlindSpotIds: [],
+    claimPriorityOverrides: {},
     updatedAt: Date.now(),
   }
   existing.preparedClaimIds = preparedClaimIds
@@ -115,9 +118,29 @@ export async function updateMasteredBlindSpots(
     sessions: {},
     preparedClaimIds: [],
     masteredBlindSpotIds: [],
+    claimPriorityOverrides: {},
     updatedAt: Date.now(),
   }
   existing.masteredBlindSpotIds = masteredBlindSpotIds
+  existing.updatedAt = Date.now()
+  await saveRecord(existing)
+}
+
+export async function updateClaimPriorityOverrides(
+  recordId: string,
+  analysis: ResumeAnalysis,
+  overrides: Record<string, TestPriority>,
+): Promise<void> {
+  const existing = (await loadRecord(recordId)) ?? {
+    id: recordId,
+    analysis,
+    sessions: {},
+    preparedClaimIds: [],
+    masteredBlindSpotIds: [],
+    claimPriorityOverrides: {},
+    updatedAt: Date.now(),
+  }
+  existing.claimPriorityOverrides = overrides
   existing.updatedAt = Date.now()
   await saveRecord(existing)
 }
@@ -191,10 +214,11 @@ function migrateLegacyRecord(record: SavedRecord): SavedRecord {
     sessions,
     preparedClaimIds: record.preparedClaimIds ?? [],
     masteredBlindSpotIds: record.masteredBlindSpotIds ?? [],
+    claimPriorityOverrides: record.claimPriorityOverrides ?? {},
   }
 }
 
-// ── 漏洞与知识点（全局独立存储）───────────────────────────────
+// ── 复习笔记（全局独立存储）─────────────────────────────────
 // 用无 `resume-grill:` 前缀的独立 key，避免被 listRecords 当作简历 record 误处理。
 
 const KNOWLEDGE_ITEMS_KEY = 'knowledge-items'

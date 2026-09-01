@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ResumeAnalysis, ResumeClaim } from '@/domain/resume-schema'
+import type { ResumeAnalysis, ResumeClaim, TestPriority } from '@/domain/resume-schema'
 import type { InterviewSession } from '@/domain/interview-schema'
 import { computeStats } from '@/lib/risk'
 import type { ExtractedText } from '@/lib/pdf'
@@ -34,6 +34,7 @@ export function useResumeWorkspace(phase: Phase) {
   const [sessions, setSessions] = useState<Record<string, InterviewSession[]>>({})
   const [preparedClaimIds, setPreparedClaimIds] = useState<string[]>([])
   const [masteredBlindSpotIds, setMasteredBlindSpotIds] = useState<string[]>([])
+  const [claimPriorityOverrides, setClaimPriorityOverrides] = useState<Record<string, TestPriority>>({})
   const [knowledgeItems, setKnowledgeItems] = useState<KnowledgeItem[]>([])
   const [dismissedKnowledgeItemIds, setDismissedKnowledgeItemIds] = useState<string[]>([])
   const [knowledgeHydrationStatus, setKnowledgeHydrationStatus] = useState<'pending' | 'hydrated' | 'error'>('pending')
@@ -48,6 +49,14 @@ export function useResumeWorkspace(phase: Phase) {
   const showToast = useCallback((m: string, d = 3200) => {
     setToast(m)
     window.setTimeout(() => setToast(''), d)
+  }, [])
+
+  const refreshSavedRecords = useCallback(() => {
+    setLoadingRecords(true)
+    listRecords()
+      .then(setSavedRecords)
+      .catch(() => setSavedRecords([]))
+      .finally(() => setLoadingRecords(false))
   }, [])
 
   const workspaceRef = useRef({ recordId, analysis })
@@ -103,6 +112,7 @@ export function useResumeWorkspace(phase: Phase) {
           setSessions(record.sessions)
           setPreparedClaimIds(record.preparedClaimIds)
           setMasteredBlindSpotIds(record.masteredBlindSpotIds)
+          setClaimPriorityOverrides(record.claimPriorityOverrides ?? {})
           const activeClaimId = window.sessionStorage.getItem('resume-grill:active-claim')
           const index = activeClaimId
             ? record.analysis.claims.findIndex((c) => c.id === activeClaimId)
@@ -208,6 +218,9 @@ export function useResumeWorkspace(phase: Phase) {
     selected,
     stats,
     completedClaimCount,
+    claimPriorityOverrides,
+    setClaimPriorityOverrides,
+    refreshSavedRecords,
     activeClaimBase,
     handleSessionSaved,
   }

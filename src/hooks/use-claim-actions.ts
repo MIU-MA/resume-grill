@@ -1,9 +1,9 @@
 'use client'
 
 import { useCallback } from 'react'
-import type { ResumeClaim } from '@/domain/resume-schema'
+import type { ResumeClaim, TestPriority } from '@/domain/resume-schema'
 import { downloadFullReport, downloadJsonExport } from '@/lib/report'
-import { updatePreparedClaims } from '@/lib/storage'
+import { updatePreparedClaims, updateClaimPriorityOverrides } from '@/lib/storage'
 import type { AppNavigation, UseResumeWorkspace } from '@/lib/types'
 
 type InterviewHandle = {
@@ -41,6 +41,47 @@ export function useClaimActions(
         const next = current.includes(blindSpotId)
           ? current.filter((id) => id !== blindSpotId)
           : [...current, blindSpotId]
+        return next
+      })
+    },
+    [ws],
+  )
+
+  /** 批量统一设置优先级，一次 diff + 一次持久化 */
+  const setClaimsPriority = useCallback(
+    (ids: string[], priority: TestPriority) => {
+      ws.setClaimPriorityOverrides((current) => {
+        const next = { ...current }
+        for (const id of ids) {
+          const original = ws.analysis?.claims.find(
+            (claim) => claim.id === id,
+          )?.testPriority
+          if (original === priority) delete next[id]
+          else next[id] = priority
+        }
+        if (ws.recordId && ws.analysis) {
+          updateClaimPriorityOverrides(ws.recordId, ws.analysis, next).catch(
+            () => undefined,
+          )
+        }
+        return next
+      })
+    },
+    [ws],
+  )
+
+  /** 批量标记为已准备（只增不删），一次持久化 */
+  const togglePreparedMany = useCallback(
+    (ids: string[]) => {
+      ws.setPreparedClaimIds((current) => {
+        const set = new Set(current)
+        for (const id of ids) set.add(id)
+        const next = [...set]
+        if (ws.recordId && ws.analysis) {
+          updatePreparedClaims(ws.recordId, ws.analysis, next).catch(
+            () => undefined,
+          )
+        }
         return next
       })
     },
@@ -123,6 +164,8 @@ export function useClaimActions(
   return {
     togglePrepared,
     toggleBlindSpotMastered,
+    setClaimsPriority,
+    togglePreparedMany,
     selectClaim,
     startInterview,
     startRewriteInterview,

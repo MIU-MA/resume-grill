@@ -1,10 +1,21 @@
 import type { Dispatch, SetStateAction } from 'react'
-import type { ResumeAnalysis } from '@/domain/resume-schema'
+import type { ResumeAnalysis, TestPriority } from '@/domain/resume-schema'
 import type { InterviewSession } from '@/domain/interview-schema'
 import type { ExtractedText } from '@/lib/pdf'
 import type { KnowledgeItem } from '@/lib/knowledge'
 import type { SavedRecord } from '@/lib/storage'
 import type { Mode } from '@/types'
+import type {
+  AnalysisGoal,
+  ReviewedCandidate,
+} from '@/domain/analysis-config'
+
+export type ResumeReviewSubmission = {
+  rawText: string
+  analysisGoal: AnalysisGoal
+  reviewedCandidates: ReviewedCandidate[]
+  jobDescription: string
+}
 
 export type AppNavigation = {
   push: (phase: 'upload' | 'review' | 'workspace', mode?: Mode) => void
@@ -50,5 +61,8 @@ export type UseResumeWorkspace = {
 
   selected: ResumeAnalysis['claims'][number] | null
   completedClaimCount: number
+  claimPriorityOverrides: Record<string, TestPriority>
+  setClaimPriorityOverrides: Dispatch<SetStateAction<Record<string, TestPriority>>>
+  refreshSavedRecords: () => void
   handleSessionSaved: (claimId: string, session: InterviewSession) => void
 }

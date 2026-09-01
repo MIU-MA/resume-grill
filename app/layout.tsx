@@ -4,7 +4,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'resume-grill',
-  description: '对简历里的项目成果做一次深度排查，提前暴露还没讲透的盲区。',
+  description: '找出简历里容易被追问的地方，提前练一遍回答。',
   icons: { icon: '/favicon.svg?v=2' },
 }
 

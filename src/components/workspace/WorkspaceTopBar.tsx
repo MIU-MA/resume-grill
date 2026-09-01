@@ -1,67 +1,99 @@
-import { Download, FileJson, FileText } from 'lucide-react'
+import { Download, FileJson, FileText, Settings } from 'lucide-react'
 import type { ResumeAnalysis } from '@/domain/resume-schema'
 import { Button } from '@/components/ui/Button'
-import { SettingsPopover } from '@/components/settings/SettingsPopover'
 import { useDropdown } from '@/hooks/use-dropdown'
 import type { LlmMode } from '@/hooks/use-llm-status'
 
-type WorkspaceTopBarProps = {
+type Props = {
   analysis: ResumeAnalysis
   llmMode: LlmMode | null
-  envConfigured: boolean
-  clientConfigured: boolean
-  onClientChanged: () => void
   onExport: () => void
   onExportJson: () => void
-  onLogoClick: () => void
+  onOpenSettings: () => void
 }
 
-export function WorkspaceTopBar({ analysis, llmMode, envConfigured, clientConfigured, onClientChanged, onExport, onExportJson, onLogoClick }: WorkspaceTopBarProps) {
-  const { open, toggle, close, ref: menuRef } = useDropdown()
+export function WorkspaceTopBar({
+  analysis,
+  llmMode,
+  onExport,
+  onExportJson,
+  onOpenSettings,
+}: Props) {
+  const exportMenu = useDropdown()
 
   return (
-    <header className="flex h-[60px] items-center justify-between border-b border-line bg-white/92 backdrop-blur-lg px-7">
-      <div className="flex items-center gap-3 min-w-0">
-        <button type="button" onClick={onLogoClick} className="flex cursor-pointer items-center gap-2" title="返回上传页">
-          <span className="grid size-9 flex-none place-items-center overflow-hidden rounded-[10px] bg-white shadow-[0_1px_3px_rgba(16,24,40,0.04)]">
-            <img src="/favicon.svg" alt="简历拷打机" className="size-9" />
-          </span>
-        </button>
+    <>
+      <div className="flex min-w-0 items-center gap-3">
+        <img
+          src="/favicon.svg"
+          alt="简历拷打机"
+          className="size-8 flex-none max-[520px]:hidden"
+        />
         <div className="flex min-w-0 flex-col">
-          <strong className="text-[15px] font-bold tracking-[-0.01em]">{analysis.candidate} · {analysis.role}</strong>
-          <span className="text-text-tertiary text-[12px] mt-0.5 truncate">{analysis.sourceFile}</span>
+          <strong className="truncate text-[14px] font-bold">
+            {analysis.candidate} · {analysis.role}
+          </strong>
+          <span className="mt-0.5 truncate text-[11px] text-text-tertiary max-[520px]:hidden">
+            {analysis.sourceFile}
+          </span>
         </div>
       </div>
-      <div className="flex items-center gap-2 flex-none">
+      <div className="flex flex-none items-center gap-2">
         {llmMode && (
-          <span className="text-text-tertiary text-[12px] hidden md:inline-flex items-center gap-2">
-            <span className={`size-1.5 rounded-full ${llmMode.testResult === 'ok' ? 'bg-success' : llmMode.testResult === 'fail' ? 'bg-danger' : llmMode.cls === 'local' ? 'bg-success' : llmMode.cls === 'env' ? 'bg-brand' : 'bg-warning'}`} />
-            {llmMode.testResult === 'ok' ? '已连接' : llmMode.testResult === 'fail' ? '连接失败' : llmMode.label}
+          <span className="hidden items-center gap-1.5 text-[11px] text-text-tertiary md:inline-flex">
+            <i
+              className={`size-1.5 rounded-full ${
+                llmMode.testResult === 'ok'
+                  ? 'bg-success'
+                  : llmMode.cls === 'env'
+                    ? 'bg-brand'
+                    : 'bg-warning'
+              }`}
+            />
+            {llmMode.testResult === 'ok' ? '已连接' : llmMode.label}
           </span>
         )}
-        <SettingsPopover envConfigured={envConfigured} clientConfigured={clientConfigured} onClientChanged={onClientChanged} compact />
-        <div ref={menuRef} className="relative">
-          <Button variant="secondary" onClick={toggle}><Download size={16} />导出</Button>
-          {open && (
-            <div className="absolute right-0 top-full mt-1 w-44 rounded-lg border border-line bg-white shadow-[0_4px_16px_rgba(16,24,40,0.08)] py-1 z-40">
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className="grid size-8 place-items-center rounded-md text-text-tertiary hover:bg-surface-hover"
+          aria-label="模型设置"
+        >
+          <Settings size={16} />
+        </button>
+        <div ref={exportMenu.ref} className="relative">
+          <Button variant="secondary" onClick={exportMenu.toggle}>
+            <Download size={15} />
+            <span className="hidden sm:inline">导出</span>
+          </Button>
+          {exportMenu.open && (
+            <div className="absolute right-0 top-full z-20 mt-1 w-40 rounded-lg border border-line bg-white p-1 shadow-[0_8px_24px_rgba(16,24,40,.12)]">
               <button
                 type="button"
-                className="flex w-full items-center gap-2 px-3.5 py-2.5 text-[13px] text-text-primary hover:bg-surface-hover transition-colors"
-                onClick={() => { onExport(); close() }}
+                onClick={() => {
+                  onExport()
+                  exportMenu.close()
+                }}
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[12px] hover:bg-surface-hover"
               >
-                <FileText size={15} className="text-text-tertiary" />Markdown 报告
+                <FileText size={14} />
+                导出 Markdown
               </button>
               <button
                 type="button"
-                className="flex w-full items-center gap-2 px-3.5 py-2.5 text-[13px] text-text-primary hover:bg-surface-hover transition-colors"
-                onClick={() => { onExportJson(); close() }}
+                onClick={() => {
+                  onExportJson()
+                  exportMenu.close()
+                }}
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[12px] hover:bg-surface-hover"
               >
-                <FileJson size={15} className="text-text-tertiary" />JSON 数据备份
+                <FileJson size={14} />
+                导出 JSON
               </button>
             </div>
           )}
         </div>
       </div>
-    </header>
+    </>
   )
 }

@@ -17,8 +17,11 @@ import {
   saveRecord,
   type SavedRecord,
 } from '@/lib/storage'
-import type { ResumeReviewSubmission } from '@/components/resume/ResumeReviewView'
-import type { AppNavigation, UseResumeWorkspace } from '@/lib/types'
+import type {
+  AppNavigation,
+  ResumeReviewSubmission,
+  UseResumeWorkspace,
+} from '@/lib/types'
 
 export function useResumeAnalysis(
   ws: UseResumeWorkspace,
@@ -33,6 +36,7 @@ export function useResumeAnalysis(
       ws.setSessions(record.sessions)
       ws.setPreparedClaimIds(record.preparedClaimIds)
       ws.setMasteredBlindSpotIds(record.masteredBlindSpotIds)
+      ws.setClaimPriorityOverrides(record.claimPriorityOverrides ?? {})
       ws.setRecordId(record.id)
       ws.setSelectedIndex(0)
       ws.setPendingExtracted(null)
@@ -141,12 +145,16 @@ export function useResumeAnalysis(
           : []
         const retainedMasteredBlindSpots =
           existing?.masteredBlindSpotIds ?? []
+        const retainedPriorityOverrides = Object.fromEntries(
+          Object.entries(existing?.claimPriorityOverrides ?? {}).filter(([id]) => data.claims.some((claim) => claim.id === id)),
+        )
 
         ws.setAnalysis(data)
         ws.setSelectedIndex(0)
         ws.setSessions(retainedSessions)
         ws.setPreparedClaimIds(retainedPrepared)
         ws.setMasteredBlindSpotIds(retainedMasteredBlindSpots)
+        ws.setClaimPriorityOverrides(retainedPriorityOverrides)
         push('workspace', 'audit')
 
         const id = ws.recordId ?? existing?.id ?? newRecordId(data)
@@ -158,6 +166,7 @@ export function useResumeAnalysis(
           sessions: retainedSessions,
           preparedClaimIds: retainedPrepared,
           masteredBlindSpotIds: retainedMasteredBlindSpots,
+          claimPriorityOverrides: retainedPriorityOverrides,
           updatedAt: Date.now(),
         }).catch(() => undefined)
         ws.showToast(
@@ -178,6 +187,7 @@ export function useResumeAnalysis(
     ws.setSessions({})
     ws.setPreparedClaimIds([])
     ws.setMasteredBlindSpotIds([])
+    ws.setClaimPriorityOverrides({})
     ws.setRecordId(null)
     ws.setError(null)
     ws.setRecoveredFromStorage(false)

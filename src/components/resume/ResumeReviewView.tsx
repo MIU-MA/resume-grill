@@ -4,49 +4,25 @@ import { useMemo, useState, type ReactNode } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
-  BarChart3,
-  BriefcaseBusiness,
-  Check,
-  ChevronDown,
-  Combine,
   FileText,
-  Layers3,
-  ListChecks,
   Loader2,
-  RefreshCw,
-  Settings,
-  Target,
-  Trash2,
-  Users,
-  Wrench,
   X,
-  type LucideIcon,
 } from 'lucide-react'
 import type { ExtractedText } from '@/lib/pdf'
 import { Button } from '@/components/ui/Button'
-import { ModelSettings } from '@/components/settings/ModelSettings'
+import type { AnalysisGoal } from '@/domain/analysis-config'
+import { parseResumeStructure } from '@/lib/resume-structure'
+import type { ResumeReviewSubmission } from '@/lib/types'
+import type { ReviewCandidate } from '@/components/resume/resume-review-types'
 import {
-  ANALYSIS_GOALS,
-  type AnalysisGoal,
-  type ReviewedCandidate,
-} from '@/domain/analysis-config'
-import {
-  extractResumeClaimCandidates,
-  parseResumeStructure,
-  type ResumeSectionKind,
-} from '@/lib/resume-structure'
-
-export type ResumeReviewSubmission = {
-  rawText: string
-  analysisGoal: AnalysisGoal
-  reviewedCandidates: ReviewedCandidate[]
-  jobDescription: string
-}
-
-type ReviewCandidate = ReviewedCandidate & {
-  id: string
-  enabled: boolean
-}
+  createReviewCandidates,
+  groupCandidates,
+  isSkillSection,
+} from '@/components/resume/resume-review-utils'
+import { ResumeReviewSidebar } from '@/components/resume/ResumeReviewSidebar'
+import { ResumeTextEditor } from '@/components/resume/ResumeTextEditor'
+import { ResumeCandidateList } from '@/components/resume/ResumeCandidateList'
+import { ResumeAnalysisOptions } from '@/components/resume/ResumeAnalysisOptions'
 
 type ResumeReviewViewProps = {
   sourceFile: string
@@ -58,27 +34,6 @@ type ResumeReviewViewProps = {
   onClientChanged: () => void
   onConfirm: (submission: ResumeReviewSubmission, sourceFile: string) => void
   onBack: () => void
-}
-
-const SECTION_LABELS: Record<ResumeSectionKind, string> = {
-  general: '个人概况',
-  profile: '个人总结',
-  education: '教育经历',
-  work: '工作经历',
-  internship: '实习经历',
-  project: '项目经历',
-  skills: '技能能力',
-  awards: '奖项证书',
-  selfReview: '自我评价',
-  custom: '其他章节',
-}
-
-const GOAL_ICONS: Record<AnalysisGoal, LucideIcon> = {
-  overall: ListChecks,
-  project: BriefcaseBusiness,
-  skills: Wrench,
-  achievement: BarChart3,
-  leadership: Users,
 }
 
 export function ResumeReviewView({ sourceFile, extracted, analyzing, error, envConfigured, clientConfigured, onClientChanged, onConfirm, onBack }: ResumeReviewViewProps) {
@@ -199,7 +154,7 @@ export function ResumeReviewView({ sourceFile, extracted, analyzing, error, envC
           <div>
             <div className="mb-2 text-[12px] font-bold uppercase tracking-[0.08em] text-brand">Resume audit</div>
             <h1 className="m-0 text-[28px] font-bold tracking-[-0.035em] text-text-primary">确认简历结构与分析范围</h1>
-            <p className="mt-2 text-[14px] leading-relaxed text-text-tertiary">检查章节和候选声明，最终分析只使用你保留的内容。</p>
+            <p className="mt-2 text-[14px] leading-relaxed text-text-tertiary">检查章节和可练习的内容，分析时只使用你保留的部分。</p>
           </div>
           <div className="flex flex-col items-end gap-3 text-[12px] text-text-tertiary max-md:items-start">
             <div className="flex items-center gap-2 text-[11px] font-semibold">
@@ -219,61 +174,22 @@ export function ResumeReviewView({ sourceFile, extracted, analyzing, error, envC
         </header>
 
         <div className="grid grid-cols-[260px_minmax(0,1fr)] gap-5 max-lg:grid-cols-1">
-          <aside className="self-start rounded-xl border border-line bg-white px-5 py-5 shadow-[0_1px_3px_rgba(16,24,40,0.04)] lg:sticky lg:top-5">
-            <div className="mb-4 flex items-center gap-2">
-              <Layers3 size={16} className="text-brand" />
-              <h2 className="m-0 text-[14px] font-bold">解析概况</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-4 border-b border-line pb-5">
-              <DiagnosticStat label="章节" value={sections.length} />
-              <DiagnosticStat label="经历章节" value={experienceSections} />
-              <DiagnosticStat label="技能声明" value={skillClaims} />
-              <DiagnosticStat label="候选声明" value={candidates.length} />
-            </div>
+          <ResumeReviewSidebar
+            sections={sections}
+            experienceSectionCount={experienceSections}
+            skillClaimCount={skillClaims}
+            candidateCount={candidates.length}
+            settingsOpen={settingsOpen}
+            envConfigured={envConfigured}
+            clientConfigured={clientConfigured}
+            onToggleSettings={() => setSettingsOpen((open) => !open)}
+            onClientChanged={onClientChanged}
+            onSectionClick={scrollToSection}
+          />
 
-            <div className="pt-4">
-              <div className="mb-2 text-[11px] font-semibold text-text-tertiary">识别到的章节</div>
-              <div className="space-y-1">
-                {sections.map((section, index) => (
-                  <button
-                    key={`${section.title}-${index}`}
-                    type="button"
-                    onClick={() => scrollToSection(index)}
-                    className="flex w-full items-center justify-between gap-3 rounded-md py-1.5 text-[12px] transition-colors hover:bg-surface-soft hover:px-1"
-                    title="点击定位到该章节"
-                  >
-                    <span className="min-w-0 truncate text-text-secondary">{section.title || SECTION_LABELS[section.kind]}</span>
-                    <span className="flex-none text-[11px] text-text-tertiary">{section.lines.length} 行</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-5 border-t border-line pt-4">
-              <button type="button" onClick={() => setSettingsOpen((v) => !v)} className="flex w-full items-center justify-between gap-2 text-left" aria-expanded={settingsOpen}>
-                <span className="flex min-w-0 flex-wrap items-center gap-1.5">
-                  <Settings size={14} className="flex-none text-text-tertiary" />
-                  <span className="text-[13px] font-bold">模型配置</span>
-                </span>
-                <ChevronDown size={14} className={`flex-none text-text-tertiary transition-transform ${settingsOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {!envConfigured && !clientConfigured && (
-                <p className="m-0 mt-1.5 text-[11px] font-semibold text-warning">未配置 · 真实简历分析需先配置</p>
-              )}
-              {(envConfigured || clientConfigured) && !settingsOpen && (
-                <p className="m-0 mt-1.5 text-[11px] font-semibold text-success">模型已连接 · 点击展开查看配置</p>
-              )}
-              {settingsOpen && (
-                <div className="mt-3">
-                  <ModelSettings envConfigured={envConfigured} clientConfigured={clientConfigured} onClientChanged={onClientChanged} />
-                </div>
-              )}
-            </div>
-          </aside>
-
-          <main className="min-w-0 overflow-hidden rounded-xl border border-line bg-white shadow-[0_1px_3px_rgba(16,24,40,0.04)]">
+          <main className="min-w-0 overflow-hidden rounded-lg border border-line bg-white shadow-card">
             <div className="flex h-12 items-center border-b border-line px-5" role="tablist" aria-label="简历检查视图">
-              <ReviewTab active={tab === 'structure'} onClick={() => setTab('structure')}>结构与声明</ReviewTab>
+              <ReviewTab active={tab === 'structure'} onClick={() => setTab('structure')}>结构与要点</ReviewTab>
               <ReviewTab active={tab === 'raw'} onClick={() => setTab('raw')}>原始文本</ReviewTab>
               <span className="ml-auto flex items-center gap-1.5 text-[12px] text-text-tertiary">
               <span className="flex-none">已保留 {selectedCandidates.length} / {candidates.length} 条</span>
@@ -285,162 +201,42 @@ export function ResumeReviewView({ sourceFile, extracted, analyzing, error, envC
             </div>
 
             {tab === 'raw' ? (
-              <section className="p-5">
-                <div className="mb-3 flex items-center justify-between gap-4">
-                  <div>
-                    <h2 className="m-0 text-[14px] font-bold">PDF 提取文本</h2>
-                    <p className="mt-1 text-[12px] text-text-tertiary">修正文字或顺序后，重新识别章节和候选声明。</p>
-                  </div>
-                  <Button variant="secondary" onClick={refreshStructure} disabled={!structureChanged || analyzing}>
-                    <RefreshCw size={14} />重新识别结构
-                  </Button>
-                </div>
-                <textarea
-                  className="min-h-[520px] w-full resize-y rounded-xl border border-line-strong bg-white p-4 text-[13px] leading-[1.75] text-text-primary focus:border-brand focus:shadow-[0_0_0_3px_rgba(37,99,235,0.1)]"
-                  value={text}
-                  onChange={(event) => setText(event.target.value)}
-                  disabled={analyzing}
-                  placeholder="简历文本…"
-                />
-                {structureChanged && <p className="mt-2 text-[12px] text-warning">文本已修改，请重新识别结构后再分析。</p>}
-              </section>
+              <ResumeTextEditor
+                text={text}
+                structureChanged={structureChanged}
+                analyzing={analyzing}
+                onTextChange={setText}
+                onRefreshStructure={refreshStructure}
+              />
             ) : (
-              <section>
-                {groupedCandidates.length === 0 ? (
-                  <div className="px-6 py-16 text-center">
-                    <Target size={24} className="mx-auto mb-3 text-text-tertiary" />
-                    <p className="m-0 text-[14px] font-semibold">没有识别到候选声明</p>
-                    <p className="mt-2 text-[12px] text-text-tertiary">切换到原始文本检查章节标题和列表内容。</p>
-                  </div>
-                ) : groupedCandidates.map(([section, items]) => (
-                  <div key={section} className="border-b border-line last:border-b-0">
-                    <div id={`resume-section-${sections.findIndex((s) => s.title === section)}`} className="flex items-center justify-between bg-surface-soft px-5 py-2.5 scroll-mt-20">
-                      <h2 className="m-0 text-[12px] font-bold text-text-secondary">{section}</h2>
-                      <span className="text-[11px] text-text-tertiary">{items.length} 条</span>
-                    </div>
-                    {items.map((candidate) => {
-                      const index = candidates.findIndex((item) => item.id === candidate.id)
-                      const canMerge = candidates[index + 1]?.sourceSection === candidate.sourceSection
-                      return (
-                        <div key={candidate.id} className={`flex items-start gap-3 border-t border-line px-5 py-4 first:border-t-0 ${candidate.enabled ? '' : 'bg-surface-soft opacity-65'}`}>
-                          <label className="mt-2 grid size-5 flex-none place-items-center">
-                            <input
-                              type="checkbox"
-                              checked={candidate.enabled}
-                              onChange={(event) => updateCandidate(candidate.id, { enabled: event.target.checked })}
-                              className="size-4 accent-brand"
-                              aria-label={`保留声明：${candidate.content}`}
-                            />
-                          </label>
-                          {editingId === candidate.id ? (
-                            <textarea
-                              autoFocus
-                              value={candidate.content}
-                              onChange={(event) => updateCandidate(candidate.id, { content: event.target.value })}
-                              onBlur={() => setEditingId(null)}
-                              disabled={analyzing}
-                              rows={Math.max(2, Math.ceil(candidate.content.length / 48))}
-                              className="min-h-[58px] min-w-0 flex-1 resize-y rounded-lg border border-brand bg-white px-3 py-2 text-[13px] leading-relaxed text-text-primary focus:border-brand focus:shadow-[0_0_0_3px_rgba(37,99,235,0.1)]"
-                              aria-label={`${section}声明内容`}
-                            />
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setEditingId(candidate.id)}
-                              disabled={analyzing}
-                              className="min-h-[58px] min-w-0 flex-1 cursor-pointer rounded-lg border border-transparent bg-white px-3 py-2 text-left text-[13px] leading-relaxed text-text-primary transition-colors hover:border-line hover:bg-surface-soft disabled:cursor-default disabled:opacity-60"
-                              aria-label={`编辑声明：${candidate.content}`}
-                            >
-                              {candidate.content.trim() || <span className="text-text-tertiary">点击编辑声明…</span>}
-                            </button>
-                          )}
-                          <div className="flex flex-none items-center gap-1 pt-1">
-                            <button
-                              type="button"
-                              disabled={!canMerge || analyzing}
-                              onClick={() => mergeWithNext(candidate.id)}
-                              className="grid size-8 place-items-center rounded-lg bg-transparent text-text-tertiary hover:bg-brand-soft hover:text-brand disabled:cursor-not-allowed disabled:opacity-30"
-                              title="与下一条合并"
-                              aria-label="与下一条声明合并"
-                            >
-                              <Combine size={15} />
-                            </button>
-                            <button
-                              type="button"
-                              disabled={analyzing}
-                              onClick={() => deleteCandidate(candidate.id)}
-                              className="grid size-8 place-items-center rounded-lg bg-transparent text-text-tertiary hover:bg-danger-soft hover:text-danger"
-                              title="删除声明"
-                              aria-label="删除声明"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                ))}
-              </section>
+              <ResumeCandidateList
+                groupedCandidates={groupedCandidates}
+                candidates={candidates}
+                sections={sections}
+                editingId={editingId}
+                analyzing={analyzing}
+                onSetEditing={setEditingId}
+                onUpdate={updateCandidate}
+                onMergeWithNext={mergeWithNext}
+                onDelete={deleteCandidate}
+              />
             )}
 
-            <section className="border-t border-line px-5 py-4">
-              <button type="button" onClick={() => setGoalOpen((v) => !v)} className="flex w-full items-center justify-between gap-3 text-left" aria-expanded={goalOpen}>
-                <div>
-                  <h2 className="m-0 text-[14px] font-bold">本次分析目标</h2>
-                  <p className="mt-1 text-[12px] text-text-tertiary">决定模型优先选择和追问哪类声明。</p>
-                </div>
-                <span className="flex flex-none items-center gap-2 text-[12px] text-text-tertiary">
-                  {ANALYSIS_GOALS.find((g) => g.value === analysisGoal)?.label}
-                  <ChevronDown size={14} className={`transition-transform ${goalOpen ? 'rotate-180' : ''}`} />
-                </span>
-              </button>
-              {goalOpen && (
-                <div className="mt-3 grid grid-cols-5 gap-2 max-xl:grid-cols-3 max-md:grid-cols-1" role="radiogroup" aria-label="分析目标">
-                  {ANALYSIS_GOALS.map((goal) => {
-                    const Icon = GOAL_ICONS[goal.value]
-                    const active = analysisGoal === goal.value
-                    return (
-                      <label key={goal.value} className={`min-w-0 cursor-pointer rounded-lg border px-3 py-3 transition-colors ${active ? 'border-brand bg-brand-soft' : 'border-line bg-white hover:border-line-strong'}`}>
-                        <input type="radio" name="analysis-goal" value={goal.value} checked={active} onChange={() => setAnalysisGoal(goal.value)} className="sr-only" />
-                        <span className="flex items-center gap-2 text-[12px] font-bold text-text-primary">
-                          <Icon size={14} className={active ? 'text-brand' : 'text-text-tertiary'} />{goal.label}
-                          <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${active ? 'bg-brand/10 text-brand' : 'bg-surface-soft text-text-tertiary'}`}>约 {goal.claimCount} 条</span>
-                          {active && <Check size={13} className="ml-auto text-brand" />}
-                        </span>
-                        <span className="mt-1.5 block text-[11px] leading-relaxed text-text-tertiary">{goal.description}</span>
-                      </label>
-                    )
-                  })}
-                </div>
-              )}
-            </section>
-
-            <section className="border-t border-line px-5 py-4">
-              <button type="button" onClick={() => setJdOpen((v) => !v)} className="flex w-full items-center justify-between gap-3 text-left" aria-expanded={jdOpen}>
-                <div>
-                  <h2 className="m-0 text-[14px] font-bold">目标岗位描述 <span className="font-normal text-text-tertiary">可选</span></h2>
-                  <p className="mt-1 text-[12px] text-text-tertiary">填写后会增加岗位匹配、简历缺口和针对性追问。</p>
-                </div>
-                <span className="flex flex-none items-center gap-2 text-[12px] text-text-tertiary">
-                  {jobDescription.trim() && <span className="font-semibold text-brand">{jobDescription.trim().length} 字</span>}
-                  <ChevronDown size={14} className={`transition-transform ${jdOpen ? 'rotate-180' : ''}`} />
-                </span>
-              </button>
-              {jdOpen && (
-                <textarea
-                  className="mt-3 min-h-[120px] w-full resize-y rounded-xl border border-line-strong bg-white p-4 text-[13px] leading-[1.75] text-text-primary placeholder:text-text-tertiary focus:border-brand focus:shadow-[0_0_0_3px_rgba(37,99,235,0.1)]"
-                  value={jobDescription}
-                  onChange={(event) => setJobDescription(event.target.value)}
-                  disabled={analyzing}
-                  placeholder="粘贴目标岗位的职责和任职要求…"
-                />
-              )}
-            </section>
+            <ResumeAnalysisOptions
+              analysisGoal={analysisGoal}
+              goalOpen={goalOpen}
+              jobDescription={jobDescription}
+              jobDescriptionOpen={jdOpen}
+              analyzing={analyzing}
+              onToggleGoal={() => setGoalOpen((open) => !open)}
+              onGoalChange={setAnalysisGoal}
+              onToggleJobDescription={() => setJdOpen((open) => !open)}
+              onJobDescriptionChange={setJobDescription}
+            />
 
             <footer className="sticky bottom-0 z-10 flex items-center justify-between gap-4 border-t border-line bg-surface-soft px-5 py-4 shadow-[0_-4px_12px_rgba(16,24,40,0.04)] max-md:flex-col max-md:items-stretch">
               <div className="text-[12px] text-text-tertiary">
-                {structureChanged ? '原始文本已变化，需重新识别结构' : `将提交 ${selectedCandidates.length} 条已确认声明`}
+                {structureChanged ? '原始文本已变化，需要重新识别结构' : `将使用 ${selectedCandidates.length} 个已确认要点`}
               </div>
               <div className="flex items-center justify-end gap-2">
                 <Button variant="secondary" onClick={onBack} disabled={analyzing}>
@@ -460,7 +256,7 @@ export function ResumeReviewView({ sourceFile, extracted, analyzing, error, envC
       </div>
 
       {lastDeleted && (
-        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl border border-line bg-white px-4 py-2.5 shadow-[0_8px_24px_rgba(16,24,40,0.12)]">
+        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-line bg-white px-4 py-2.5 shadow-[0_8px_24px_rgba(16,24,40,0.12)]">
           <span className="max-w-[320px] truncate text-[13px] text-text-secondary">已删除「{lastDeleted.candidate.content.slice(0, 24)}」</span>
           <button type="button" onClick={undoDelete} className="bg-transparent text-[13px] font-semibold text-brand hover:underline">撤销</button>
           <button type="button" onClick={() => setLastDeleted(null)} className="grid size-6 place-items-center rounded-md bg-transparent text-text-tertiary hover:bg-surface-hover" aria-label="关闭">
@@ -468,37 +264,6 @@ export function ResumeReviewView({ sourceFile, extracted, analyzing, error, envC
           </button>
         </div>
       )}
-    </div>
-  )
-}
-
-function createReviewCandidates(text: string): ReviewCandidate[] {
-  return extractResumeClaimCandidates(text).map((candidate, index) => ({
-    ...candidate,
-    id: `candidate-${candidate.lineNumber}-${index}`,
-    enabled: true,
-  }))
-}
-
-function groupCandidates(candidates: ReviewCandidate[]): Array<[string, ReviewCandidate[]]> {
-  const groups = new Map<string, ReviewCandidate[]>()
-  candidates.forEach((candidate) => {
-    const current = groups.get(candidate.sourceSection) ?? []
-    current.push(candidate)
-    groups.set(candidate.sourceSection, current)
-  })
-  return [...groups.entries()]
-}
-
-function isSkillSection(sourceSection: string): boolean {
-  return /技能|技术|能力|skills?|competenc/i.test(sourceSection)
-}
-
-function DiagnosticStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div>
-      <div className="text-[20px] font-bold text-text-primary">{value}</div>
-      <div className="mt-1 text-[11px] text-text-tertiary">{label}</div>
     </div>
   )
 }

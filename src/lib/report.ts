@@ -5,7 +5,7 @@ import { deriveBlindSpots } from '@/lib/blind-spots'
 
 export function buildReport(analysis: ResumeAnalysis): string {
   const lines = [
-    '# 能力测试报告',
+    '# 简历要点',
     '',
     `候选人：${analysis.candidate} · ${analysis.role}`,
     `来源文件：${analysis.sourceFile}`,
@@ -21,10 +21,10 @@ export function buildReport(analysis: ResumeAnalysis): string {
       `## ${claim.title}`,
       '',
       `- 类型：${CLAIM_CATEGORY_LABELS[claim.category]}`,
-      `- 核心能力：${claim.capability}`,
-      `- 声明内容：${claim.content}`,
-      `- 测试优先级：${prio.label}`,
-      `- 掌握要点：`,
+      `- 主要考察：${claim.capability}`,
+      `- 简历原文：${claim.content}`,
+      `- 练习顺序：${prio.label}`,
+      `- 面试官会听什么：`,
     )
     claim.masteryPoints.forEach((mp) => {
       lines.push(`  - [${MASTERY_DIMENSION_LABELS[mp.dimension]}] ${mp.point} (${mp.importance})`)
@@ -37,7 +37,7 @@ export function buildReport(analysis: ResumeAnalysis): string {
 
 export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<string, InterviewSession[]>, masteredBlindSpotIds: string[] = []): string {
   const lines = [
-    '# 简历能力测试与改写报告',
+    '# 模拟面试复盘',
     '',
     `候选人：${analysis.candidate} · ${analysis.role}`,
     `来源文件：${analysis.sourceFile}`,
@@ -49,11 +49,11 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
   const masteredSet = new Set(masteredBlindSpotIds)
   const blindSpots = deriveBlindSpots(analysis, sessions)
   if (blindSpots.length > 0) {
-    lines.push('## 知识盲区', '')
+    lines.push('## 需要复习的内容', '')
     blindSpots.forEach((spot) => {
       lines.push(
-        `### ${masteredSet.has(spot.id) ? '已掌握' : '未掌握'}：${spot.annotation}`,
-        `- 对应声明：${spot.claim.title}`,
+        `### ${masteredSet.has(spot.id) ? '已学会' : '待复习'}：${spot.annotation}`,
+        `- 对应要点：${spot.claim.title}`,
         `- 当时问题：${spot.question}`,
         `- 说明：${spot.explanation || '无'}`,
         '',
@@ -68,12 +68,12 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
       `## ${claim.title}`,
       '',
       `- 类型：${CLAIM_CATEGORY_LABELS[claim.category]}`,
-      `- 核心能力：${claim.capability}`,
-      `- 声明内容：${claim.content}`,
-      `- 测试优先级：${prio.label}`,
+      `- 主要考察：${claim.capability}`,
+      `- 简历原文：${claim.content}`,
+      `- 练习顺序：${prio.label}`,
     )
     if (claimSessions.length === 0) {
-      lines.push('- 测试状态：未测试')
+      lines.push('- 练习状态：未练习')
     } else {
       claimSessions.forEach((session, i) => {
         if (session.status === 'in_progress') {
@@ -83,7 +83,7 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
             '',
             `### 第 ${i + 1} 版（${session.version}）进行中`,
             `- 已完成交互：${session.rounds.length} 轮`,
-            `- 已覆盖要点：${coveredPoints.join('；') || '无'}`,
+            `- 已聊到：${coveredPoints.join('；') || '无'}`,
           )
           return
         }
@@ -91,10 +91,10 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
         if (session.summaryStatus === 'failed') {
           lines.push(
             '',
-            `### 第 ${i + 1} 版（${session.version}）测试报告`,
+            `### 第 ${i + 1} 次练习（v${session.version}）`,
             '- 总结状态：生成失败',
             `- 有效回答轮数：${session.rounds.filter((round) => round.action === 'answer').length}`,
-            '- 说明：问答记录已保留，请重新生成总结后再查看掌握度。',
+            '- 说明：问答记录已保留，请重新整理后再查看得分。',
           )
           return
         }
@@ -103,7 +103,7 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
         if (!s) {
           lines.push(
             '',
-            `### 第 ${i + 1} 版（${session.version}）测试报告`,
+            `### 第 ${i + 1} 次练习（v${session.version}）`,
             '- 总结状态：正在生成',
             `- 有效回答轮数：${session.rounds.filter((round) => round.action === 'answer').length}`,
           )
@@ -115,22 +115,22 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
         const skippedQuestions = session.rounds
           .filter((round) => round.action === 'skip')
           .map((round) => round.question)
-        const masteryLabel = s.masteryLevel === 'mastered' ? '掌握较好' : s.masteryLevel === 'partial' ? '部分掌握' : '尚未讲清'
+        const masteryLabel = s.masteryLevel === 'mastered' ? '回答扎实' : s.masteryLevel === 'partial' ? '基本答到了' : '还没说清楚'
         lines.push(
           '',
-          `### 第 ${i + 1} 版（${session.version}）测试报告`,
+          `### 第 ${i + 1} 次练习（v${session.version}）`,
           `- 有效回答轮数：${session.rounds.filter((round) => round.action === 'answer').length}`,
-          `- 用户主动跳过（未验证）：${skippedQuestions.join('；') || '无'}`,
+          `- 跳过的问题：${skippedQuestions.join('；') || '无'}`,
           `- 没听懂：${annotations.join('；') || '无'}`,
-          `- 掌握度：${'★'.repeat(s.masteryScore)}${'☆'.repeat(5 - s.masteryScore)}`,
-          `- 掌握状态：${masteryLabel}`,
-          `- 已讲清：${s.canExplain.join('、') || '无'}`,
-          `- 尚未讲清：${s.cannotExplain.join('、') || '无'}`,
-          `- 知识缺口：${s.knowledgeGaps.join('；') || '无'}`,
-          `- 回答结论：${s.answerSummary || '无'}`,
-          `- 下一步行动：${s.nextAction || '无'}`,
+          `- 得分：${'★'.repeat(s.masteryScore)}${'☆'.repeat(5 - s.masteryScore)}`,
+          `- 本轮表现：${masteryLabel}`,
+          `- 答得好的地方：${s.canExplain.join('、') || '无'}`,
+          `- 还没说清楚：${s.cannotExplain.join('、') || '无'}`,
+          `- 需要复习：${s.knowledgeGaps.join('；') || '无'}`,
+          `- 总体表现：${s.answerSummary || '无'}`,
+          `- 接下来怎么练：${s.nextAction || '无'}`,
           '',
-          `- 本次测试声明：${session.claimContent}`,
+          `- 本次练习内容：${session.claimContent}`,
           '',
           '改写建议：',
           s.rewriteSuggestion || '暂无改写建议',
@@ -148,9 +148,9 @@ function appendJobMatch(lines: string[], analysis: ResumeAnalysis) {
   lines.push('## 岗位匹配', '')
   analysis.jobMatch.requirements.forEach((item) => {
     lines.push(
-      `### ${item.match === 'strong' ? '匹配较好' : item.match === 'partial' ? '部分匹配' : '缺少证据'}：${item.requirement}`,
+      `### ${item.match === 'strong' ? '比较匹配' : item.match === 'partial' ? '部分匹配' : '简历没写'}：${item.requirement}`,
       `- 说明：${item.note}`,
-      `- 证据：${item.evidence.join('；') || '无'}`,
+      `- 简历内容：${item.evidence.join('；') || '无'}`,
       '',
     )
   })
@@ -170,11 +170,11 @@ export function downloadText(filename: string, content: string) {
 }
 
 export function downloadReport(analysis: ResumeAnalysis) {
-  downloadText(`能力测试报告-${analysis.candidate}.md`, buildReport(analysis))
+  downloadText(`简历要点-${analysis.candidate}.md`, buildReport(analysis))
 }
 
 export function downloadFullReport(analysis: ResumeAnalysis, sessions: Record<string, InterviewSession[]>, masteredBlindSpotIds: string[] = []) {
-  downloadText(`能力测试报告-${analysis.candidate}.md`, buildFullReport(analysis, sessions, masteredBlindSpotIds))
+  downloadText(`面试复盘-${analysis.candidate}.md`, buildFullReport(analysis, sessions, masteredBlindSpotIds))
 }
 
 export function downloadJsonExport(analysis: ResumeAnalysis, sessions: Record<string, InterviewSession[]>, masteredBlindSpotIds: string[] = []) {

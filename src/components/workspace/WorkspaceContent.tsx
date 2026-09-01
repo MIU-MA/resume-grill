@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, type Dispatch, type SetStateAction } from 'react'
-import type { ResumeAnalysis, ResumeClaim } from '@/domain/resume-schema'
+import type { ResumeAnalysis, ResumeClaim, TestPriority } from '@/domain/resume-schema'
 import type { InterviewAction, InterviewSession } from '@/domain/interview-schema'
 import type { Mode } from '@/types'
 import { ClaimAuditView } from '@/components/audit/ClaimAuditView'
@@ -10,6 +10,7 @@ import { InterviewStatusPanel } from '@/components/interview/InterviewStatusPane
 import { InterviewReportView } from '@/components/report/InterviewReportView'
 import { KnowledgeView } from '@/components/knowledge/KnowledgeView'
 import type { KnowledgeItem, KnowledgeItemInput, KnowledgeItemPatch } from '@/lib/knowledge'
+import type { ClaimProgress } from '@/lib/risk'
 
 export type InterviewViewData = {
   rounds: Array<{
@@ -39,97 +40,106 @@ export type InterviewViewData = {
   regeneratingId: string | null
 }
 
+type AuditContent = {
+  selectedIndex: number
+  preparedClaimIds: string[]
+  progressByClaim: Record<string, ClaimProgress>
+  claimPriorityOverrides: Record<string, TestPriority>
+  onSelect: (index: number) => void
+  onTogglePrepared: (claimId: string) => void
+  onSetClaimsPriority: (ids: string[], priority: TestPriority) => void
+  onBatchTogglePrepared: (ids: string[]) => void
+  onStartInterview: () => void
+  onReport: () => void
+}
+
+type KnowledgeContent = {
+  items: KnowledgeItem[]
+  onToggle: (id: string) => void
+  onDelete: (id: string) => void
+  onRestore: (item: KnowledgeItem) => void
+  onUpdate: (id: string, patch: KnowledgeItemPatch) => void
+  onAdd: (input: KnowledgeItemInput) => void
+  onRetest: (claim: ResumeClaim) => void
+}
+
+type ReportContent = {
+  masteredBlindSpotIds: string[]
+  onToggleBlindSpot: (blindSpotId: string) => void
+  onRetest: (claim: ResumeClaim) => void
+  onRewrite: (claim: ResumeClaim, rewrittenContent: string) => void
+  onRegenerateSummary: (claim: ResumeClaim, session: InterviewSession) => void
+}
+
+type InterviewContent = {
+  selected: ResumeClaim
+  activeClaim: ResumeClaim
+  view: InterviewViewData
+  onFinish: () => void
+  onBackToAudit: () => void
+}
+
 type WorkspaceContentProps = {
   mode: Mode
   analysis: ResumeAnalysis
   sessions: Record<string, InterviewSession[]>
-  selectedIndex: number
-  selected: ResumeClaim
-  activeClaim: ResumeClaim
-  preparedClaimIds: string[]
-  masteredBlindSpotIds: string[]
-  knowledgeItems: KnowledgeItem[]
-  onToggleKnowledgeItem: (id: string) => void
-  onDeleteKnowledgeItem: (id: string) => void
-  onRestoreKnowledgeItem: (item: KnowledgeItem) => void
-  onUpdateKnowledgeItem: (id: string, patch: KnowledgeItemPatch) => void
-  onAddKnowledgeItem: (input: KnowledgeItemInput) => void
   error: string | null
-  iv: InterviewViewData
-  onSelect: (index: number) => void
-  onTogglePrepared: (claimId: string) => void
-  onToggleBlindSpot: (blindSpotId: string) => void
-  onStartInterview: () => void
-  onReport: () => void
-  onRetest: (claim: ResumeClaim) => void
-  onRewrite: (claim: ResumeClaim, rewrittenContent: string) => void
-  onRegenerateSummary: (claim: ResumeClaim, session: InterviewSession) => void
-  onFinish: () => void
-  onBackToAudit: () => void
+  audit: AuditContent
+  knowledge: KnowledgeContent
+  report: ReportContent
+  interview: InterviewContent
 }
 
 export function WorkspaceContent({
   mode,
   analysis,
   sessions,
-  selectedIndex,
-  selected,
-  activeClaim,
-  preparedClaimIds,
-  masteredBlindSpotIds,
-  knowledgeItems,
-  onToggleKnowledgeItem,
-  onDeleteKnowledgeItem,
-  onRestoreKnowledgeItem,
-  onUpdateKnowledgeItem,
-  onAddKnowledgeItem,
   error,
-  iv,
-  onSelect,
-  onTogglePrepared,
-  onToggleBlindSpot,
-  onStartInterview,
-  onReport,
-  onRetest,
-  onRewrite,
-  onRegenerateSummary,
-  onFinish,
-  onBackToAudit,
+  audit,
+  knowledge,
+  report,
+  interview,
 }: WorkspaceContentProps) {
   const [strictMode, setStrictMode] = useState(true)
-  // 窄屏下右侧考察面板以抽屉呈现
-  const [statusOpen, setStatusOpen] = useState(false)
+  const [statusOpen, setStatusOpen] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width:1200px)').matches)
 
   if (mode === 'report') {
     return (
-      <div className="h-full overflow-y-auto py-6 pb-12">
-        <InterviewReportView
-          analysis={analysis}
-          sessions={sessions}
-          masteredBlindSpotIds={masteredBlindSpotIds}
-          onToggleBlindSpot={onToggleBlindSpot}
-          onRetest={onRetest}
-          onRewrite={onRewrite}
-          onRegenerateSummary={onRegenerateSummary}
-          regeneratingId={iv.regeneratingId}
-        />
+      <div className="h-full overflow-y-auto px-4 pb-12 pt-6 md:px-6">
+        <div className="mx-auto max-w-[1392px]">
+          <InterviewReportView
+            analysis={analysis}
+            sessions={sessions}
+            claimPriorityOverrides={audit.claimPriorityOverrides}
+            masteredBlindSpotIds={report.masteredBlindSpotIds}
+            onToggleBlindSpot={report.onToggleBlindSpot}
+            onRetest={report.onRetest}
+            onRewrite={report.onRewrite}
+            onRegenerateSummary={report.onRegenerateSummary}
+            regeneratingId={interview.view.regeneratingId}
+          />
+        </div>
       </div>
     )
   }
 
   if (mode === 'audit') {
     return (
-      <div className="h-full min-h-0 py-6 pb-12 max-[760px]:overflow-y-auto">
+      <div className="h-full min-h-0 max-[760px]:overflow-y-auto">
         <ClaimAuditView
           analysis={analysis}
-          selectedIndex={selectedIndex}
-          preparedClaimIds={preparedClaimIds}
+          selectedIndex={audit.selectedIndex}
+          preparedClaimIds={audit.preparedClaimIds}
           sessions={sessions}
           error={error}
-          onSelect={onSelect}
-          onTogglePrepared={onTogglePrepared}
-          onStartInterview={onStartInterview}
-          onReport={onReport}
+          onSelect={audit.onSelect}
+          onTogglePrepared={audit.onTogglePrepared}
+          onStartInterview={audit.onStartInterview}
+          onReport={audit.onReport}
+          progressByClaim={audit.progressByClaim}
+          claimPriorityOverrides={audit.claimPriorityOverrides}
+          onSetClaimsPriority={audit.onSetClaimsPriority}
+          onBatchTogglePrepared={audit.onBatchTogglePrepared}
         />
       </div>
     )
@@ -137,17 +147,19 @@ export function WorkspaceContent({
 
   if (mode === 'knowledge') {
     return (
-      <div className="h-full overflow-y-auto py-6 pb-12">
-        <KnowledgeView
-          analysis={analysis}
-          knowledgeItems={knowledgeItems}
-          onToggle={onToggleKnowledgeItem}
-          onDelete={onDeleteKnowledgeItem}
-          onRestore={onRestoreKnowledgeItem}
-          onUpdate={onUpdateKnowledgeItem}
-          onAdd={onAddKnowledgeItem}
-          onRetest={onRetest}
-        />
+      <div className="h-full overflow-y-auto px-4 pb-12 pt-6 md:px-6">
+        <div className="mx-auto max-w-[1392px]">
+          <KnowledgeView
+            analysis={analysis}
+            knowledgeItems={knowledge.items}
+            onToggle={knowledge.onToggle}
+            onDelete={knowledge.onDelete}
+            onRestore={knowledge.onRestore}
+            onUpdate={knowledge.onUpdate}
+            onAdd={knowledge.onAdd}
+            onRetest={knowledge.onRetest}
+          />
+        </div>
       </div>
     )
   }
@@ -155,11 +167,11 @@ export function WorkspaceContent({
   return (
     <div className="relative flex h-full min-h-0 border border-line rounded-lg overflow-hidden">
       {statusOpen && (
-        <div className="fixed inset-0 z-30 bg-black/20 lg:hidden" onClick={() => setStatusOpen(false)} aria-hidden="true" />
+        <div className="fixed inset-0 z-30 bg-black/20 min-[1200px]:hidden" onClick={() => setStatusOpen(false)} aria-hidden="true" />
       )}
       <InterviewView
-        selected={activeClaim}
-        turns={iv.rounds.map((r) => ({
+        selected={interview.activeClaim}
+        turns={interview.view.rounds.map((r) => ({
           action: r.action,
           question: r.question,
           answer: r.answer,
@@ -168,30 +180,30 @@ export function WorkspaceContent({
           intent: r.questionIntent,
           evidenceQuotes: r.evaluation.evidenceQuotes,
         }))}
-        currentQuestion={iv.currentQuestion || null}
-        currentIntent={iv.currentIntent || null}
-        covered={iv.covered}
-        answer={iv.answer}
-        loading={iv.loading}
-        done={iv.done}
-        annotation={iv.annotation}
-        version={iv.version}
+        currentQuestion={interview.view.currentQuestion || null}
+        currentIntent={interview.view.currentIntent || null}
+        covered={interview.view.covered}
+        answer={interview.view.answer}
+        loading={interview.view.loading}
+        done={interview.view.done}
+        annotation={interview.view.annotation}
+        version={interview.view.version}
         error={error}
         strictMode={strictMode}
         onToggleStrict={() => setStrictMode((v) => !v)}
         statusOpen={statusOpen}
         onToggleStatus={() => setStatusOpen((v) => !v)}
-        onAnswerChange={iv.setAnswer}
-        onSubmit={() => iv.submit(selected)}
-        onSkip={() => iv.skip(selected)}
-        onAnnotationChange={iv.setAnnotation}
-        onFinish={onFinish}
-        onBackToAudit={onBackToAudit}
+        onAnswerChange={interview.view.setAnswer}
+        onSubmit={() => interview.view.submit(interview.selected)}
+        onSkip={() => interview.view.skip(interview.selected)}
+        onAnnotationChange={interview.view.setAnnotation}
+        onFinish={interview.onFinish}
+        onBackToAudit={interview.onBackToAudit}
       />
       <InterviewStatusPanel
-        selected={activeClaim}
-        roundCount={iv.rounds.filter((r) => r.answer.trim().length > 0).length}
-        covered={iv.covered}
+        selected={interview.activeClaim}
+        roundCount={interview.view.rounds.filter((r) => r.answer.trim().length > 0).length}
+        covered={interview.view.covered}
         strictMode={strictMode}
         statusOpen={statusOpen}
         onClose={() => setStatusOpen(false)}

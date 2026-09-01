@@ -11,11 +11,11 @@ export const claimCategorySchema = z.enum([
 export type ClaimCategory = z.infer<typeof claimCategorySchema>
 
 export const CLAIM_CATEGORY_LABELS: Record<ClaimCategory, string> = {
-  skill: '技能声明',
-  responsibility: '责任声明',
-  achievement: '成果声明',
-  leadership: '管理声明',
-  metric: '数据声明',
+  skill: '技能',
+  responsibility: '工作职责',
+  achievement: '项目成果',
+  leadership: '带队经历',
+  metric: '数据成果',
 }
 
 export const masteryDimensionSchema = z.enum([
@@ -48,9 +48,9 @@ export const testPrioritySchema = z.enum(['high', 'medium', 'low'])
 export type TestPriority = z.infer<typeof testPrioritySchema>
 
 export const TEST_PRIORITY_LABELS: Record<TestPriority, string> = {
-  high: '优先测试',
-  medium: '建议测试',
-  low: '可选测试',
+  high: '重点练习',
+  medium: '建议练习',
+  low: '有空再练',
 }
 
 export const compactClaimSchema = z.object({

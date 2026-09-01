@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { ResumeReviewView } from '@/components/resume/ResumeReviewView'
 import { ResumeImportView } from '@/components/resume/ResumeImportView'
 import { WorkspaceShell } from '@/components/workspace/WorkspaceShell'
@@ -12,6 +12,7 @@ import { useResumeAnalysis } from '@/hooks/use-resume-analysis'
 import { useResumeWorkspace } from '@/hooks/use-resume-workspace'
 import { useKnowledgeActions } from '@/hooks/use-knowledge-actions'
 import type { Mode } from '@/types'
+import { effectivePriority, summarizeClaimProgress } from '@/lib/risk'
 
 function App() {
   const { phase, mode, push, replace } = useAppNavigation()
@@ -53,6 +54,43 @@ function App() {
   }, [workspace.recoveredFromStorage, mode, selected, workspace.sessions, interview])
 
   const activeClaim = interview.activeClaimSnapshot ?? selected
+  const claimProgress = useMemo(
+    () =>
+      workspace.analysis
+        ? summarizeClaimProgress(
+            workspace.analysis.claims,
+            workspace.sessions,
+            workspace.preparedClaimIds,
+          )
+        : {},
+    [workspace.analysis, workspace.sessions, workspace.preparedClaimIds],
+  )
+  const sidebarBadges = useMemo(() => {
+    const claims = workspace.analysis?.claims ?? []
+    return {
+      claimTotal: claims.length,
+      highUntested: claims.filter(
+        (claim) =>
+          effectivePriority(claim, workspace.claimPriorityOverrides) ===
+            'high' && claimProgress[claim.id]?.status === 'todo',
+      ).length,
+      testingActive: Object.values(workspace.sessions)
+        .flat()
+        .filter((session) => session.status === 'in_progress').length,
+      testedDone: Object.values(claimProgress).filter(
+        (progress) => progress.status === 'done',
+      ).length,
+      knowledgeOpen: workspace.knowledgeItems.filter(
+        (item) => item.status === 'open',
+      ).length,
+    }
+  }, [
+    workspace.analysis,
+    workspace.claimPriorityOverrides,
+    workspace.sessions,
+    workspace.knowledgeItems,
+    claimProgress,
+  ])
 
   const handleTabChange = (tab: Mode) => {
     if (tab === mode) return
@@ -151,43 +189,82 @@ function App() {
       onClientChanged={workspace.refreshClientLlm}
       onExport={actions.exportFull}
       onExportJson={actions.exportJson}
-      onLogoClick={analysis.replaceResume}
+      badges={sidebarBadges}
+      savedRecords={workspace.savedRecords}
+      loadingRecords={workspace.loadingRecords}
+      refreshSavedRecords={workspace.refreshSavedRecords}
+      onOpenSaved={(record) => {
+        if (
+          interview.rounds.length > 0 &&
+          !interview.done &&
+          !window.confirm('当前练习还没结束，确定切换简历吗？')
+        ) {
+          return false
+        }
+        analysis.openSavedRecord(record)
+        return true
+      }}
+      onDeleteSaved={analysis.removeSavedRecord}
+      onNewResume={() => {
+        if (
+          interview.rounds.length > 0 &&
+          !interview.done &&
+          !window.confirm('当前练习还没结束，确定导入新简历吗？')
+        ) {
+          return false
+        }
+        analysis.replaceResume()
+        return true
+      }}
       onDismissToast={() => workspace.setToast('')}
     >
       <WorkspaceContent
         mode={mode}
         analysis={workspace.analysis}
         sessions={workspace.sessions}
-        selectedIndex={workspace.selectedIndex}
-        selected={selected}
-        activeClaim={activeClaim!}
-        preparedClaimIds={workspace.preparedClaimIds}
-        masteredBlindSpotIds={workspace.masteredBlindSpotIds}
-        knowledgeItems={workspace.knowledgeItems}
-        onToggleKnowledgeItem={knowledgeActions.toggleMastered}
-        onDeleteKnowledgeItem={knowledgeActions.removeItem}
-        onRestoreKnowledgeItem={knowledgeActions.restoreItem}
-        onUpdateKnowledgeItem={knowledgeActions.updateItem}
-        onAddKnowledgeItem={knowledgeActions.addItem}
         error={workspace.error}
-        iv={interview}
-        onSelect={actions.selectClaim}
-        onTogglePrepared={actions.togglePrepared}
-        onToggleBlindSpot={handleToggleBlindSpot}
-        onStartInterview={actions.startInterview}
-        onReport={actions.goReport}
-        onRetest={actions.retestClaim}
-        onRewrite={actions.startRewriteInterview}
-        onRegenerateSummary={interview.regenerateSummary}
-        onFinish={() => {
-          if (interview.done) {
-            actions.goReport()
-            interview.reset()
-          }
+        audit={{
+          selectedIndex: workspace.selectedIndex,
+          preparedClaimIds: workspace.preparedClaimIds,
+          progressByClaim: claimProgress,
+          claimPriorityOverrides: workspace.claimPriorityOverrides,
+          onSelect: actions.selectClaim,
+          onTogglePrepared: actions.togglePrepared,
+          onSetClaimsPriority: actions.setClaimsPriority,
+          onBatchTogglePrepared: actions.togglePreparedMany,
+          onStartInterview: actions.startInterview,
+          onReport: actions.goReport,
         }}
-        onBackToAudit={() => {
-          replace('workspace', 'audit')
-          interview.reset()
+        knowledge={{
+          items: workspace.knowledgeItems,
+          onToggle: knowledgeActions.toggleMastered,
+          onDelete: knowledgeActions.removeItem,
+          onRestore: knowledgeActions.restoreItem,
+          onUpdate: knowledgeActions.updateItem,
+          onAdd: knowledgeActions.addItem,
+          onRetest: actions.retestClaim,
+        }}
+        report={{
+          masteredBlindSpotIds: workspace.masteredBlindSpotIds,
+          onToggleBlindSpot: handleToggleBlindSpot,
+          onRetest: actions.retestClaim,
+          onRewrite: actions.startRewriteInterview,
+          onRegenerateSummary: interview.regenerateSummary,
+        }}
+        interview={{
+          selected,
+          activeClaim: activeClaim!,
+          view: interview,
+          onFinish: () => {
+            if (interview.done) {
+              actions.goReport()
+              interview.reset()
+            }
+          },
+          onBackToAudit: () => {
+            replace('workspace', 'audit')
+            interview.reset()
+          },
         }}
       />
     </WorkspaceShell>

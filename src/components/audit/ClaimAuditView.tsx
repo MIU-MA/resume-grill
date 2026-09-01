@@ -1,20 +1,24 @@
-import { type ResumeAnalysis } from '@/domain/resume-schema'
+import type { ResumeAnalysis, TestPriority } from '@/domain/resume-schema'
 import type { InterviewSession } from '@/domain/interview-schema'
 import { ClaimList } from '@/components/audit/ClaimList'
 import { ClaimDetail } from '@/components/audit/ClaimDetail'
+import { SummaryBar } from '@/components/audit/SummaryBar'
+import type { ClaimProgress } from '@/lib/risk'
 
-export type ClaimStatus = 'done' | 'prepared' | 'todo'
-
-type AuditViewProps = {
+type Props = {
   analysis: ResumeAnalysis
   selectedIndex: number
   preparedClaimIds: string[]
   sessions: Record<string, InterviewSession[]>
   error: string | null
+  progressByClaim: Record<string, ClaimProgress>
+  claimPriorityOverrides: Record<string, TestPriority>
   onSelect: (index: number) => void
-  onTogglePrepared: (claimId: string) => void
+  onTogglePrepared: (id: string) => void
   onStartInterview: () => void
   onReport: () => void
+  onSetClaimsPriority: (ids: string[], priority: TestPriority) => void
+  onBatchTogglePrepared: (ids: string[]) => void
 }
 
 export function ClaimAuditView({
@@ -23,54 +27,62 @@ export function ClaimAuditView({
   preparedClaimIds,
   sessions,
   error,
+  progressByClaim,
+  claimPriorityOverrides,
   onSelect,
   onTogglePrepared,
   onStartInterview,
   onReport,
-}: AuditViewProps) {
+  onSetClaimsPriority,
+  onBatchTogglePrepared,
+}: Props) {
   const selected = analysis.claims[selectedIndex]
 
-  const statusByClaim: Record<string, ClaimStatus> = {}
-  const masteryByClaim: Record<string, number> = {}
-  for (const claim of analysis.claims) {
-    const latestDone = (sessions[claim.id] ?? [])
-      .filter((s) => s.status === 'done')
-      .sort((a, b) => b.version - a.version)[0]
-    const hasDone = latestDone != null
-    if (hasDone) masteryByClaim[claim.id] = latestDone.finalResult?.masteryScore ?? 0
-    statusByClaim[claim.id] = hasDone
-      ? 'done'
-      : preparedClaimIds.includes(claim.id)
-        ? 'prepared'
-        : 'todo'
-  }
-
   return (
-    <div className="grid h-full min-h-0 grid-cols-[320px_minmax(0,1fr)] gap-4 max-[1000px]:grid-cols-[280px_minmax(0,1fr)] max-[760px]:grid-cols-1">
+    <div className="flex h-full min-h-0 flex-col">
+      <SummaryBar
+        claims={analysis.claims}
+        progress={progressByClaim}
+        overrides={claimPriorityOverrides}
+      />
       {error && (
-        <div className="col-span-full bg-danger-soft border border-danger/20 rounded-xl px-5 py-3 text-[14px] text-danger">{error}</div>
+        <div className="mx-4 mt-3 rounded-lg bg-danger-soft px-4 py-2 text-[13px] text-danger">
+          {error}
+        </div>
       )}
-      <aside className="h-full min-h-0 overflow-hidden rounded-xl border border-line bg-white shadow-[0_1px_3px_rgba(16,24,40,0.04)]">
-        <ClaimList
-          analysis={analysis}
-          selectedIndex={selectedIndex}
-          statusByClaim={statusByClaim}
-          masteryByClaim={masteryByClaim}
-          onSelect={onSelect}
-          onTogglePrepared={onTogglePrepared}
-          onReport={onReport}
-        />
-      </aside>
-      <article className="h-full min-h-0 overflow-hidden rounded-xl border border-line bg-white shadow-[0_1px_3px_rgba(16,24,40,0.04)]">
-        <ClaimDetail
-          claim={selected}
-          prepared={preparedClaimIds.includes(selected.id)}
-          mastery={masteryByClaim[selected.id] ?? null}
-          onReport={onReport}
-          onTogglePrepared={() => onTogglePrepared(selected.id)}
-          onStartInterview={onStartInterview}
-        />
-      </article>
+      <div className="grid min-h-0 flex-1 grid-cols-[320px_minmax(0,1fr)] gap-4 p-4 max-[1000px]:grid-cols-[280px_minmax(0,1fr)] max-[760px]:block max-[760px]:overflow-y-auto">
+        <aside className="min-h-0 overflow-hidden bg-white max-[760px]:h-[420px]">
+          <ClaimList
+            analysis={analysis}
+            selectedIndex={selectedIndex}
+            progressByClaim={progressByClaim}
+            claimPriorityOverrides={claimPriorityOverrides}
+            onSelect={onSelect}
+            onTogglePrepared={onTogglePrepared}
+            onReport={onReport}
+            onBatchTogglePrepared={onBatchTogglePrepared}
+            onSetClaimsPriority={onSetClaimsPriority}
+          />
+        </aside>
+        <article className="min-h-0 overflow-hidden bg-white max-[760px]:mt-4 max-[760px]:overflow-visible">
+          <ClaimDetail
+            claim={selected}
+            priority={
+              claimPriorityOverrides[selected.id] ?? selected.testPriority
+            }
+            prepared={preparedClaimIds.includes(selected.id)}
+            mastery={progressByClaim[selected.id]?.latestScore ?? null}
+            progress={progressByClaim[selected.id]}
+            historySessions={sessions[selected.id] ?? []}
+            onReport={onReport}
+            onTogglePrepared={() => onTogglePrepared(selected.id)}
+            onStartInterview={onStartInterview}
+            onSetPriority={(priority) =>
+              onSetClaimsPriority([selected.id], priority)
+            }
+          />
+        </article>
+      </div>
     </div>
   )
 }
