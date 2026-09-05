@@ -21,7 +21,7 @@ import type {
   AppNavigation,
   ResumeReviewSubmission,
   UseResumeWorkspace,
-} from '@/lib/types'
+} from '@/application/types'
 
 export function useResumeAnalysis(
   ws: UseResumeWorkspace,

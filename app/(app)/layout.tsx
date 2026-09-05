@@ -1,5 +1,5 @@
 import { Suspense, type ReactNode } from 'react'
-import App from '@/App'
+import App from '@/application/App'
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (

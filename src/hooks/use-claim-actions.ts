@@ -4,7 +4,7 @@ import { useCallback } from 'react'
 import type { ResumeClaim, TestPriority } from '@/domain/resume-schema'
 import { downloadFullReport, downloadJsonExport } from '@/lib/report'
 import { updatePreparedClaims, updateClaimPriorityOverrides } from '@/lib/storage'
-import type { AppNavigation, UseResumeWorkspace } from '@/lib/types'
+import type { AppNavigation, UseResumeWorkspace } from '@/application/types'
 
 type InterviewHandle = {
   reset: () => void

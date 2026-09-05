@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import { useCallback } from 'react'
-import type { Mode } from '@/types'
+import type { Mode } from '@/application/types'
 
 export type Phase = 'upload' | 'review' | 'workspace'
 

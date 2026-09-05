@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react'
 import { createManualKnowledgeItemId, type KnowledgeItem, type KnowledgeItemPatch, type KnowledgeItemInput } from '@/lib/knowledge'
-import type { UseResumeWorkspace } from '@/lib/types'
+import type { UseResumeWorkspace } from '@/application/types'
 
 export function useKnowledgeActions(ws: UseResumeWorkspace) {
   const toggleMastered = useCallback(
