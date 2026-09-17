@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { analysisGoalSchema, reviewedCandidateSchema } from '@/domain/analysis-config'
+import { resumeDiagnosisSchema } from '@/domain/resume-diagnosis'
 
 export const claimCategorySchema = z.enum([
   'skill',
@@ -186,6 +187,7 @@ export const resumeAnalysisSchema = z.object({
   reviewedCandidates: z.array(reviewedCandidateSchema).optional(),
   jobDescription: z.string().optional(),
   jobMatch: jobMatchSchema.optional(),
+  diagnosis: resumeDiagnosisSchema.optional(),
   claims: z.array(resumeClaimSchema).min(1),
 })
 export type ResumeAnalysis = z.infer<typeof resumeAnalysisSchema>

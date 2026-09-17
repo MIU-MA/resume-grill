@@ -51,12 +51,13 @@ export function ClaimDetail({
   )
 
   return (
-    <div className="h-full min-h-0 overflow-y-auto p-5 md:p-6 max-[760px]:h-auto max-[760px]:overflow-visible max-[520px]:p-4">
+    <div className="claim-detail h-full min-h-0 overflow-y-auto p-5 md:p-8 max-[760px]:h-auto max-[760px]:overflow-visible max-[520px]:p-4">
+      <div className="mx-auto max-w-[clamp(960px,58vw,1440px)]">
       {/* 头部 */}
       <div className="flex items-start justify-between gap-6 border-b border-line pb-5 max-[620px]:flex-col max-[620px]:gap-3">
         <div className="min-w-0">
           <div className="text-text-tertiary text-[12px] mb-2">简历原文</div>
-          <h2 className="m-0 text-[21px] leading-[1.5] tracking-[-0.02em] max-[520px]:text-[18px]">“{claim.content}”</h2>
+          <h2 className="m-0 text-[18px] leading-[1.75]">{claim.content}</h2>
         </div>
         <div className="flex flex-none flex-col items-end gap-2 max-[620px]:w-full max-[620px]:flex-row max-[620px]:flex-wrap max-[620px]:items-center">
           <select
@@ -84,7 +85,7 @@ export function ClaimDetail({
                 onClick={onReport}
                 className="bg-transparent text-[12px] font-semibold text-brand hover:underline"
               >
-                查看报告 →
+                查看复盘 →
               </button>
             </>
           )}
@@ -93,7 +94,7 @@ export function ClaimDetail({
 
       {/* 能力标签 */}
       <div className="mt-5 mb-1">
-        <span className="text-text-tertiary text-[12px]">主要考察</span>
+        <span className="text-text-tertiary text-[12px]">练习主题</span>
       </div>
       <div className="text-[16px] font-bold text-text-primary">{claim.capability}</div>
       {doneSessions.length > 0 && (
@@ -125,7 +126,7 @@ export function ClaimDetail({
       )}
 
       {/* 双列内容 */}
-      <div className="grid grid-cols-[minmax(0,1.15fr)_minmax(260px,.85fr)] gap-6 pt-6 max-[1120px]:grid-cols-1">
+      <div className="claim-detail-grid grid gap-6 pt-6">
         {/* 左列 */}
         <div>
           <section>
@@ -143,7 +144,7 @@ export function ClaimDetail({
             </div>
             <div className="space-y-2.5">
               {claim.trapPoints.length === 0 ? (
-                <p className="text-[13px] text-text-secondary">暂无预判陷阱。</p>
+                <p className="text-[13px] text-text-secondary">暂时没有补充提醒。</p>
               ) : claim.trapPoints.map((trap: string) => (
                 <div key={trap} className="flex items-start gap-3 rounded-lg bg-surface-soft px-3.5 py-3 text-[13px] leading-[1.6] text-text-secondary">
                   <span className="mt-1.5 size-1.5 rounded-full bg-danger flex-none" />
@@ -157,7 +158,7 @@ export function ClaimDetail({
         {/* 右列 */}
         <aside>
           <section>
-            <div className="text-[14px] font-bold mb-3">面试官会听什么</div>
+            <div className="text-[14px] font-bold mb-3">回答时需要讲清</div>
             <div className="space-y-2.5">
               {claim.masteryPoints.map((mp, i) => (
                 <div key={mp.point} className="flex items-start gap-2 text-[12px] text-text-secondary leading-[1.55]">
@@ -181,6 +182,7 @@ export function ClaimDetail({
         <Button variant="primary" size="large" onClick={onStartInterview}>
           <MessageSquareText size={16} />开始模拟面试
         </Button>
+      </div>
       </div>
     </div>
   )

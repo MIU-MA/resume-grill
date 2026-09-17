@@ -42,6 +42,14 @@ export async function POST(request: Request) {
   }
 
   try {
+    if (body.demo) {
+      return NextResponse.json(mockAnalyze(body.rawText, body.sourceFile, {
+        analysisGoal: body.analysisGoal,
+        candidates: body.reviewedCandidates,
+        jobDescription: body.jobDescription,
+      }))
+    }
+
     const rawCandidates = body.reviewedCandidates ?? extractResumeClaimCandidates(body.rawText)
     const promptCandidates = rawCandidates.slice(0, 20)
     const config = resolveLlmConfig(body.llm ?? null)
@@ -67,7 +75,7 @@ export async function POST(request: Request) {
           capability: claim.capability,
           masteryPoints: claim.masteryPoints,
           initialQuestion: claim.initialQuestion,
-          initialIntent: `验证：${claim.masteryPoints[0]?.point ?? '该项能力'}`,
+          initialIntent: `这次先聊：${claim.masteryPoints[0]?.point ?? '这段经历的具体做法'}`,
           trapPoints: claim.trapPoints,
           testPriority: computeTestPriority(claim.masteryPoints),
         }]
@@ -89,7 +97,7 @@ export async function POST(request: Request) {
       })
 
       if (uniqueClaims.length === 0) {
-        throw new Error('未识别到可验证的经历陈述，请检查简历正文是否包含具体职责、行动或成果。')
+        throw new Error('没找到可以练习的经历，请检查导入的文字里是否有具体工作或项目。')
       }
 
       const analysis = resumeAnalysisSchema.parse({
@@ -107,16 +115,8 @@ export async function POST(request: Request) {
       return NextResponse.json(analysis)
     }
 
-    if (body.demo) {
-      return NextResponse.json(mockAnalyze(body.rawText, body.sourceFile, {
-        analysisGoal: body.analysisGoal,
-        candidates: body.reviewedCandidates,
-        jobDescription: body.jobDescription,
-      }))
-    }
-
     return NextResponse.json(
-      { error: '未配置模型服务：真实简历分析需要先配置模型（在首页点击「配置模型」填写 Base URL / API Key / Model）。示例简历体验无需配置。' },
+      { error: '请先在「模型设置」里填写 API Key、模型和服务地址，再生成练习清单。试用示例简历无需配置。' },
       { status: 400 },
     )
   } catch (error) {

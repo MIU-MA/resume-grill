@@ -4,18 +4,20 @@ import type { InterviewSession } from '@/domain/interview-schema'
 import type { ExtractedText } from '@/lib/pdf'
 import type { KnowledgeItem } from '@/lib/knowledge'
 import type { SavedRecord } from '@/lib/storage'
+import type { ResumeDiagnosis } from '@/domain/resume-diagnosis'
 import type {
   AnalysisGoal,
   ReviewedCandidate,
 } from '@/domain/analysis-config'
 
-export type Mode = 'audit' | 'interview' | 'report' | 'knowledge'
+export type Mode = 'diagnosis' | 'audit' | 'interview' | 'report' | 'knowledge' | 'applications'
 
 export type ResumeReviewSubmission = {
   rawText: string
   analysisGoal: AnalysisGoal
   reviewedCandidates: ReviewedCandidate[]
   jobDescription: string
+  diagnosis?: ResumeDiagnosis
 }
 
 export type AppNavigation = {

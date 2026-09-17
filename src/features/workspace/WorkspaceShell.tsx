@@ -12,6 +12,7 @@ import { WorkspaceTopBar } from './WorkspaceTopBar'
 import { HistoryDialog } from '@/features/resume/HistoryDialog'
 import { SettingsDialog } from '@/features/settings/SettingsDialog'
 import { Toast } from '@/components/ui/Toast'
+import { WorkbenchFrame } from '@/components/layout/WorkbenchFrame'
 
 type Props = {
   analysis: ResumeAnalysis
@@ -55,7 +56,7 @@ export function WorkspaceShell(props: Props) {
   }
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-bg">
+    <WorkbenchFrame className="flex">
       <Toast message={props.toast} onDismiss={props.onDismissToast} />
       <WorkspaceSidebar
         variant="dock"
@@ -127,7 +128,7 @@ export function WorkspaceShell(props: Props) {
         clientConfigured={props.clientConfigured}
         onClientChanged={props.onClientChanged}
       />
-    </div>
+    </WorkbenchFrame>
   )
 }
 

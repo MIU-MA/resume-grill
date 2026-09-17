@@ -37,7 +37,7 @@ export function InterviewStatusPanel({ selected, roundCount, covered, strictMode
             </div>
             {strictMode ? (
               <div className="rounded-lg border border-line bg-surface-soft px-3.5 py-3 text-[12px] leading-relaxed text-text-tertiary">
-                正在模拟面试，提示内容已隐藏。切换到「边看边练」可以查看考察内容、提问原因和参考回答。
+                正在模拟面试，提示内容已隐藏。切换到「边看边练」可以查看回答要点、提问原因和参考回答。
               </div>
             ) : (
               <ol className="space-y-2">
@@ -63,10 +63,10 @@ export function InterviewStatusPanel({ selected, roundCount, covered, strictMode
               {roundCount === 0
                 ? '还没有开始回答。'
                 : covered.length === 0
-                ? '还没有有效回答。'
+                ? '目前还没有讲清的要点。'
                 : covered.length >= total
-                ? '所有考察内容都聊到了，回答也比较完整。'
-                : `已经聊到 ${covered.length}/${total} 个考察项，其余内容还没问到。`}
+                ? '列出的要点都已讲到，可以结束后查看复盘。'
+                : `已经聊到 ${covered.length}/${total} 个要点，其余内容还没讲清或尚未问到。`}
             </p>
           </div>
         </div>

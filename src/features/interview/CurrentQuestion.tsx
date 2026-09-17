@@ -37,7 +37,7 @@ export function CurrentQuestion({
           <Check size={16} />本轮追问已完成
         </div>
         <p className="text-[14px] text-text-secondary">
-          聊到 {coveredCount}/{totalCount} 个考察项 ({coveragePercent}%)
+          聊到 {coveredCount}/{totalCount} 个要点 ({coveragePercent}%)
         </p>
       </div>
     )

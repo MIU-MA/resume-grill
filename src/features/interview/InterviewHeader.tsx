@@ -57,9 +57,9 @@ export function InterviewHeader({
             onClick={onToggleStatus}
             className="inline-flex h-[28px] items-center gap-1.5 rounded-lg border border-line bg-white px-2.5 text-[12px] font-medium text-text-secondary"
             aria-pressed={statusOpen}
-            title="展开考察要点"
+            title="展开回答要点"
           >
-            <List size={14} /><span className="max-[520px]:hidden">考察</span>
+            <List size={14} /><span className="max-[520px]:hidden">要点</span>
           </button>
           <div className="inline-flex items-center rounded-lg bg-surface-soft p-0.5 text-[12px] font-medium max-[430px]:hidden">
             <button

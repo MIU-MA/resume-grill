@@ -40,73 +40,73 @@ type MockTemplate = {
 
 const CATEGORY_TEMPLATES: Record<ClaimCategory, MockTemplate> = {
   achievement: {
-    capability: '量化成果达成能力',
-    question: '这个成果的基线是多少？具体如何计算和验证的？',
+    capability: '结果是怎么做出来的',
+    question: '为了得到这个结果，你具体改了哪一处？',
     masteryPoints: [
-      { point: '说明改造前后的量化指标', dimension: 'context', importance: 'high' },
-      { point: '能区分个人与团队的贡献', dimension: 'decision', importance: 'high' },
-      { point: '说明指标如何统计与验证', dimension: 'principle', importance: 'high' },
-      { point: '说明具体的执行过程', dimension: 'practice', importance: 'medium' },
-      { point: '说明方案的限制或副作用', dimension: 'boundary', importance: 'medium' },
+      { point: '改之前和改之后有什么变化', dimension: 'context', importance: 'high' },
+      { point: '哪部分是你做的', dimension: 'decision', importance: 'high' },
+      { point: '这个数字是怎么算的', dimension: 'principle', importance: 'high' },
+      { point: '具体改了什么，怎么做的', dimension: 'practice', importance: 'medium' },
+      { point: '这样做有什么代价', dimension: 'boundary', importance: 'medium' },
     ],
     traps: ['只提结果不提过程', '无法区分个人和团队贡献'],
   },
   responsibility: {
-    capability: '职责承担与决策执行能力',
-    question: '你说的"负责"具体包括哪些决策？你的决策权到哪里？',
+    capability: '你具体负责了什么',
+    question: '这段工作里，哪一部分是你独立完成的？',
     masteryPoints: [
-      { point: '说明具体职责范围和决策权', dimension: 'context', importance: 'high' },
-      { point: '说明如何发现和定义问题', dimension: 'decision', importance: 'high' },
-      { point: '说明具体的执行过程', dimension: 'practice', importance: 'high' },
-      { point: '说明决策带来的实际结果', dimension: 'principle', importance: 'medium' },
-      { point: '说明职责与他人职责的边界', dimension: 'boundary', importance: 'medium' },
+      { point: '负责哪部分，哪些事由你决定', dimension: 'context', importance: 'high' },
+      { point: '当时为什么要做这件事', dimension: 'decision', importance: 'high' },
+      { point: '举一件你实际完成的工作', dimension: 'practice', importance: 'high' },
+      { point: '做完后解决了什么问题', dimension: 'principle', importance: 'medium' },
+      { point: '和同事是怎么分工的', dimension: 'boundary', importance: 'medium' },
     ],
     traps: ['只说负责不说具体决策', '描述过于笼统没有细节'],
   },
   metric: {
-    capability: '数据统计与归因分析能力',
-    question: '这个数字怎么统计出来的？统计口径和周期是什么？',
+    capability: '简历里的数字从哪来',
+    question: '简历里的这个数字，是怎么统计出来的？',
     masteryPoints: [
-      { point: '说明数据的统计方式', dimension: 'practice', importance: 'high' },
-      { point: '说明统计口径和时间周期', dimension: 'principle', importance: 'high' },
-      { point: '能提供可对比的基准', dimension: 'context', importance: 'high' },
-      { point: '说明数据波动的原因', dimension: 'troubleshooting', importance: 'medium' },
-      { point: '说明数据的局限性', dimension: 'boundary', importance: 'medium' },
+      { point: '数据是从哪里取的', dimension: 'practice', importance: 'high' },
+      { point: '算了哪些数据、多长时间', dimension: 'principle', importance: 'high' },
+      { point: '是和什么结果比较的', dimension: 'context', importance: 'high' },
+      { point: '数据变化还有哪些原因', dimension: 'troubleshooting', importance: 'medium' },
+      { point: '这个数字不能说明什么', dimension: 'boundary', importance: 'medium' },
     ],
-    traps: ['无法说明统计口径', '没有对比基准说不出好坏'],
+    traps: ['没说清怎么算的', '只报数字，没有前后对比'],
   },
   skill: {
-    capability: '技术实践与工具掌握能力',
-    question: '你在什么场景下、用到什么程度使用它？遇到过什么问题？',
+    capability: '技术在项目里怎么用',
+    question: '从这里挑一项，说说你最近一次用它做了什么。',
     masteryPoints: [
-      { point: '说明具体的使用场景', dimension: 'context', importance: 'high' },
-      { point: '说明掌握深度和实际应用', dimension: 'practice', importance: 'high' },
-      { point: '说明为什么选择它而非替代', dimension: 'decision', importance: 'high' },
-      { point: '说明遇到过的典型问题', dimension: 'troubleshooting', importance: 'medium' },
-      { point: '说明它的边界和局限性', dimension: 'boundary', importance: 'medium' },
+      { point: '在哪个项目里用过', dimension: 'context', importance: 'high' },
+      { point: '用它具体做了什么', dimension: 'practice', importance: 'high' },
+      { point: '为什么选它，有没有比较过别的方案', dimension: 'decision', importance: 'high' },
+      { point: '遇到过什么问题，后来怎么解决', dimension: 'troubleshooting', importance: 'medium' },
+      { point: '什么情况下不适合用它', dimension: 'boundary', importance: 'medium' },
     ],
     traps: ['只会说工具名不会说使用场景', '不了解替代方案'],
   },
   leadership: {
-    capability: '团队管理与组织协调能力',
-    question: '你带的是什么样的团队？你在其中做了哪些关键的管理决策？',
+    capability: '怎么分工和推进工作',
+    question: '推进这件事时，你做过什么需要和别人商量的决定？',
     masteryPoints: [
-      { point: '说明团队规模和构成', dimension: 'context', importance: 'high' },
-      { point: '说明关键管理决策', dimension: 'decision', importance: 'high' },
-      { point: '说明管理带来的实际结果', dimension: 'practice', importance: 'high' },
-      { point: '说明管理过程中解决的问题', dimension: 'troubleshooting', importance: 'medium' },
-      { point: '说明管理方式的局限性', dimension: 'boundary', importance: 'medium' },
+      { point: '有哪些人参与，各自负责什么', dimension: 'context', importance: 'high' },
+      { point: '你做了什么决定，为什么', dimension: 'decision', importance: 'high' },
+      { point: '最后工作完成得怎么样', dimension: 'practice', importance: 'high' },
+      { point: '意见不一致时怎么处理', dimension: 'troubleshooting', importance: 'medium' },
+      { point: '哪些事情需要别人配合', dimension: 'boundary', importance: 'medium' },
     ],
-    traps: ['只说管人说不出团队构成', '无法说出具体的管理决策'],
+    traps: ['只说协调，没有具体经过', '没说清自己的决定'],
   },
 }
 
 const DEFAULT_INTENTS: Record<ClaimCategory, string> = {
-  achievement: '验证成果归因和个人贡献占比',
-  responsibility: '确认职责深度和决策边界',
-  metric: '核实数据口径和统计方式',
-  skill: '评估技能掌握程度和实际场景',
-  leadership: '了解团队构成和关键管理决策',
+  achievement: '结果写出来了，还需要讲清你是怎么做到的',
+  responsibility: '“负责”范围很大，需要说清你实际做了什么',
+  metric: '需要知道这个数字从哪来、怎么算的',
+  skill: '列出的技术需要有具体用法可以讲',
+  leadership: '需要结合一件具体的事，讲清你怎么和别人合作',
 }
 
 function detectRole(text: string): string {
@@ -200,7 +200,7 @@ export function mockAnalyze(
   })
 
   if (claims.length === 0) {
-    throw new Error('未识别到可验证的经历陈述，请补充具体职责、行动或成果。')
+    throw new Error('没找到可以练习的经历，请补充一段你做过的工作或项目。')
   }
 
   const analysis: ResumeAnalysis = {
@@ -212,7 +212,7 @@ export function mockAnalyze(
     reviewedCandidates: options.candidates,
     jobDescription: options.jobDescription,
     jobMatch: options.jobDescription ? buildHeuristicJobMatch(options.jobDescription, candidates) : undefined,
-    summary: `识别到 ${claims.length} 条可验证声明，岗位倾向「${role}」。未配置模型，以下为规则示例分析。`,
+    summary: `选出了 ${claims.length} 条练习内容。这是免费示例，问题由固定规则生成，未调用模型。`,
     claims,
   }
 

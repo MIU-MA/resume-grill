@@ -13,9 +13,9 @@ export function ReportJobMatch({ jobMatch }: ReportJobMatchProps) {
         <div className="flex items-center gap-2">
           <Target size={16} className="text-brand" />
           <div>
-            <h2 className="m-0 text-[15px] font-bold">岗位匹配</h2>
+            <h2 className="m-0 text-[15px] font-bold">对照岗位要求</h2>
             <p className="mt-1 text-[12px] text-text-tertiary">
-              对照目标岗位，看看简历里还缺什么。
+              看看哪些要求在简历里有对应经历，哪些还没写清。
             </p>
           </div>
         </div>
@@ -44,9 +44,9 @@ export function ReportJobMatch({ jobMatch }: ReportJobMatchProps) {
                 <AlertTriangle size={14} />
               )}
               {item.match === 'strong'
-                ? '比较匹配'
+                ? '有相关经历'
                 : item.match === 'partial'
-                  ? '部分匹配'
+                  ? '还需补充'
                   : '简历没写'}
             </div>
             <p className="m-0 text-[13px] leading-relaxed text-text-primary">
@@ -66,12 +66,12 @@ export function ReportJobMatch({ jobMatch }: ReportJobMatchProps) {
       {(jobMatch.gaps.length > 0 || jobMatch.interviewFocus.length > 0) && (
         <div className="grid grid-cols-2 gap-4 border-t border-line px-5 py-4 max-[720px]:grid-cols-1">
           <ReportFact
-            label="岗位缺口"
+            label="还没写清的要求"
             value={joinReportItems(jobMatch.gaps)}
             tone="warning"
           />
           <ReportFact
-            label="建议优先追问"
+            label="建议先练"
             value={joinReportItems(jobMatch.interviewFocus)}
           />
         </div>

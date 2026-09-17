@@ -2,18 +2,20 @@ import { CLAIM_CATEGORY_LABELS, MASTERY_DIMENSION_LABELS, type ResumeAnalysis } 
 import { PRIORITY_META } from '@/lib/risk'
 import type { InterviewSession } from '@/domain/interview-schema'
 import { deriveBlindSpots } from '@/lib/blind-spots'
+import { buildDiagnosisReport } from '@/lib/resume-diagnosis'
 
 export function buildReport(analysis: ResumeAnalysis): string {
   const lines = [
-    '# 简历要点',
+    '# 面试练习清单',
     '',
-    `候选人：${analysis.candidate} · ${analysis.role}`,
+    `姓名：${analysis.candidate} · ${analysis.role}`,
     `来源文件：${analysis.sourceFile}`,
     '',
     analysis.summary,
     '',
   ]
   appendJobMatch(lines, analysis)
+  if (analysis.diagnosis) lines.push(buildDiagnosisReport(analysis.diagnosis), '')
 
   for (const claim of analysis.claims) {
     const prio = PRIORITY_META[claim.testPriority]
@@ -21,10 +23,10 @@ export function buildReport(analysis: ResumeAnalysis): string {
       `## ${claim.title}`,
       '',
       `- 类型：${CLAIM_CATEGORY_LABELS[claim.category]}`,
-      `- 主要考察：${claim.capability}`,
+      `- 练习主题：${claim.capability}`,
       `- 简历原文：${claim.content}`,
       `- 练习顺序：${prio.label}`,
-      `- 面试官会听什么：`,
+      `- 回答时需要讲清：`,
     )
     claim.masteryPoints.forEach((mp) => {
       lines.push(`  - [${MASTERY_DIMENSION_LABELS[mp.dimension]}] ${mp.point} (${mp.importance})`)
@@ -39,13 +41,14 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
   const lines = [
     '# 模拟面试复盘',
     '',
-    `候选人：${analysis.candidate} · ${analysis.role}`,
+    `姓名：${analysis.candidate} · ${analysis.role}`,
     `来源文件：${analysis.sourceFile}`,
     '',
     analysis.summary,
     '',
   ]
   appendJobMatch(lines, analysis)
+  if (analysis.diagnosis) lines.push(buildDiagnosisReport(analysis.diagnosis), '')
   const masteredSet = new Set(masteredBlindSpotIds)
   const blindSpots = deriveBlindSpots(analysis, sessions)
   if (blindSpots.length > 0) {
@@ -68,7 +71,7 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
       `## ${claim.title}`,
       '',
       `- 类型：${CLAIM_CATEGORY_LABELS[claim.category]}`,
-      `- 主要考察：${claim.capability}`,
+      `- 练习主题：${claim.capability}`,
       `- 简历原文：${claim.content}`,
       `- 练习顺序：${prio.label}`,
     )
@@ -127,7 +130,7 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
           `- 答得好的地方：${s.canExplain.join('、') || '无'}`,
           `- 还没说清楚：${s.cannotExplain.join('、') || '无'}`,
           `- 需要复习：${s.knowledgeGaps.join('；') || '无'}`,
-          `- 总体表现：${s.answerSummary || '无'}`,
+          `- 这次回答：${s.answerSummary || '无'}`,
           `- 接下来怎么练：${s.nextAction || '无'}`,
           '',
           `- 本次练习内容：${session.claimContent}`,
@@ -145,16 +148,16 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
 
 function appendJobMatch(lines: string[], analysis: ResumeAnalysis) {
   if (!analysis.jobMatch) return
-  lines.push('## 岗位匹配', '')
+  lines.push('## 对照岗位要求', '')
   analysis.jobMatch.requirements.forEach((item) => {
     lines.push(
-      `### ${item.match === 'strong' ? '比较匹配' : item.match === 'partial' ? '部分匹配' : '简历没写'}：${item.requirement}`,
+      `### ${item.match === 'strong' ? '有相关经历' : item.match === 'partial' ? '还需补充' : '简历没写'}：${item.requirement}`,
       `- 说明：${item.note}`,
       `- 简历内容：${item.evidence.join('；') || '无'}`,
       '',
     )
   })
-  lines.push(`- 岗位缺口：${analysis.jobMatch.gaps.join('；') || '无'}`, `- 建议优先追问：${analysis.jobMatch.interviewFocus.join('；') || '无'}`, '')
+  lines.push(`- 还没写清的要求：${analysis.jobMatch.gaps.join('；') || '无'}`, `- 建议先练：${analysis.jobMatch.interviewFocus.join('；') || '无'}`, '')
 }
 
 export function downloadText(filename: string, content: string) {
@@ -170,7 +173,7 @@ export function downloadText(filename: string, content: string) {
 }
 
 export function downloadReport(analysis: ResumeAnalysis) {
-  downloadText(`简历要点-${analysis.candidate}.md`, buildReport(analysis))
+  downloadText(`练习清单-${analysis.candidate}.md`, buildReport(analysis))
 }
 
 export function downloadFullReport(analysis: ResumeAnalysis, sessions: Record<string, InterviewSession[]>, masteredBlindSpotIds: string[] = []) {

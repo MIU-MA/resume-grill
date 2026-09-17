@@ -34,7 +34,7 @@ export function SummaryBar({ claims, progress, overrides }: Props) {
         重点 {priorityCount(claims, overrides, 'high')}
       </span>
       <Separator />
-      <span className="whitespace-nowrap">考察项 {pointCount}</span>
+      <span className="whitespace-nowrap">回答要点 {pointCount}</span>
       <Separator />
       <span className="whitespace-nowrap">
         已练习 {tested}/{claims.length}

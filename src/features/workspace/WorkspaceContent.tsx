@@ -11,6 +11,7 @@ import { InterviewReportView } from '@/features/report/InterviewReportView'
 import { KnowledgeView } from '@/features/knowledge/KnowledgeView'
 import type { KnowledgeItem, KnowledgeItemInput, KnowledgeItemPatch } from '@/lib/knowledge'
 import type { ClaimProgress } from '@/lib/risk'
+import { ResumeDiagnosisReport } from '@/features/resume/ResumeDiagnosisReport'
 
 export type InterviewViewData = {
   rounds: Array<{
@@ -103,10 +104,16 @@ export function WorkspaceContent({
   const [strictMode, setStrictMode] = useState(true)
   const [statusOpen, setStatusOpen] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width:1200px)').matches)
 
+  if (mode === 'diagnosis') {
+    return <div className="resume-workbench h-full min-h-0 bg-white">
+      {analysis.diagnosis ? <ResumeDiagnosisReport diagnosis={analysis.diagnosis} /> : <p className="m-0 p-5 text-[13px] leading-relaxed text-text-secondary">这份记录还没有简历检查结果。重新导入同一份简历即可检查；相同内容的练习记录会保留。</p>}
+    </div>
+  }
+
   if (mode === 'report') {
     return (
       <div className="h-full overflow-y-auto px-3 pb-10 pt-4 sm:px-4 md:px-6 md:pt-5">
-        <div className="mx-auto max-w-[1320px]">
+        <div className="mx-auto max-w-[clamp(1320px,62vw,1580px)]">
           <InterviewReportView
             analysis={analysis}
             sessions={sessions}
@@ -148,7 +155,7 @@ export function WorkspaceContent({
   if (mode === 'knowledge') {
     return (
       <div className="h-full overflow-y-auto px-3 pb-10 pt-4 sm:px-4 md:px-6 md:pt-5">
-        <div className="mx-auto max-w-[1320px]">
+        <div className="mx-auto max-w-[clamp(1320px,62vw,1580px)]">
           <KnowledgeView
             analysis={analysis}
             knowledgeItems={knowledge.items}

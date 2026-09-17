@@ -56,7 +56,7 @@ export function InterviewComposer({
 
   return (
     <div className="flex-none border-t border-line bg-white px-4 py-3.5 sm:px-6 sm:py-4">
-      <div className="mx-auto max-w-[720px]">
+      <div className="mx-auto max-w-[clamp(720px,44vw,940px)]">
         {done ? (
           <div className="flex justify-center">
             <Button variant="primary" size="large" onClick={onFinish}>

@@ -54,9 +54,9 @@ export function ResumeAnalysisOptions({
           aria-expanded={goalOpen}
         >
           <div>
-            <h2 className="m-0 text-[14px] font-bold">本次分析目标</h2>
+            <h2 className="m-0 text-[14px] font-bold">这次重点练什么</h2>
             <p className="mt-1 text-[12px] text-text-tertiary">
-              决定优先练习和追问哪类内容。
+              从选中的内容里，优先挑这类问题。
             </p>
           </div>
           <span className="flex flex-none items-center gap-2 text-[12px] text-text-tertiary">
@@ -71,7 +71,7 @@ export function ResumeAnalysisOptions({
           <div
             className="mt-3 grid grid-cols-5 gap-2 max-xl:grid-cols-3 max-md:grid-cols-1"
             role="radiogroup"
-            aria-label="分析目标"
+            aria-label="练习重点"
           >
             {ANALYSIS_GOALS.map((goal) => {
               const Icon = GOAL_ICONS[goal.value]
@@ -133,7 +133,7 @@ export function ResumeAnalysisOptions({
               <span className="font-normal text-text-tertiary">可选</span>
             </h2>
             <p className="mt-1 text-[12px] text-text-tertiary">
-              填写后会增加岗位匹配、简历缺口和针对性追问。
+              贴上招聘要求，看看哪些经历需要补写、哪些问题值得先练。
             </p>
           </div>
           <span className="flex flex-none items-center gap-2 text-[12px] text-text-tertiary">

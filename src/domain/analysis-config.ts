@@ -16,11 +16,11 @@ export const ANALYSIS_GOALS: Array<{
   description: string
   claimCount: number
 }> = [
-  { value: 'overall', label: '全面检查', description: '平衡项目、技能、成果与职责', claimCount: 6 },
-  { value: 'project', label: '项目深挖', description: '优先检查项目决策和个人贡献', claimCount: 4 },
-  { value: 'skills', label: '技能深度', description: '重点看看技能深度和使用边界', claimCount: 4 },
-  { value: 'achievement', label: '成果与数据', description: '优先追问指标口径和结果归因', claimCount: 4 },
-  { value: 'leadership', label: '管理与协作', description: '优先检查职责边界和关键决策', claimCount: 2 },
+  { value: 'overall', label: '都练一遍', description: '项目、技能和工作经历都选一些', claimCount: 6 },
+  { value: 'project', label: '项目经历', description: '怎么做的，为什么这么选，你负责哪部分', claimCount: 4 },
+  { value: 'skills', label: '技术技能', description: '在哪用过，遇到过什么问题', claimCount: 4 },
+  { value: 'achievement', label: '成果与数据', description: '数字怎么来的，你做了哪些改动', claimCount: 4 },
+  { value: 'leadership', label: '管理与协作', description: '怎么分工，有分歧时怎么处理', claimCount: 2 },
 ]
 
 export function goalClaimCount(goal: AnalysisGoal): number {

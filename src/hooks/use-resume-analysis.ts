@@ -89,13 +89,18 @@ export function useResumeAnalysis(
 
         if (
           !ws.recordId &&
+          !ws.pendingExtracted?.demo &&
           existing &&
           existing.analysis.rawText === rawText &&
           sameReview
         ) {
-          openSavedRecord(existing)
+          const restored = submission.diagnosis
+            ? { ...existing, analysis: { ...existing.analysis, diagnosis: submission.diagnosis }, updatedAt: Date.now() }
+            : existing
+          openSavedRecord(restored)
+          if (submission.diagnosis) saveRecord(restored).catch(() => ws.showToast('检查结果未能保存，请先导出备份。'))
           ws.showToast(
-            `已恢复「${existing.analysis.candidate}」的本地分析记录。`,
+            `已打开「${existing.analysis.candidate}」的练习记录。`,
           )
           return
         }
@@ -117,17 +122,18 @@ export function useResumeAnalysis(
           jobDescription,
           demo: ws.pendingExtracted?.demo ?? false,
         }
-        if (llm) body.llm = llm
+        if (llm && !body.demo) body.llm = llm
 
         const res = await fetch('/api/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         })
-        const data = (await res.json()) as ResumeAnalysis | { error: string }
-        if (!res.ok || 'error' in data) {
-          throw new Error('error' in data ? data.error : '分析失败')
+        const responseData = (await res.json()) as ResumeAnalysis | { error: string }
+        if (!res.ok || 'error' in responseData) {
+          throw new Error('error' in responseData ? responseData.error : '分析失败')
         }
+        const data: ResumeAnalysis = { ...responseData, diagnosis: submission.diagnosis }
 
         const retainedSessions = existing
           ? Object.fromEntries(
@@ -170,7 +176,7 @@ export function useResumeAnalysis(
           updatedAt: Date.now(),
         }).catch(() => undefined)
         ws.showToast(
-          `已载入「${data.candidate}」的简历，识别到 ${data.claims.length} 条声明。`,
+          `已为「${data.candidate}」准备 ${data.claims.length} 条练习内容。`,
         )
       } catch (e) {
         ws.setError(e instanceof Error ? e.message : '分析失败')

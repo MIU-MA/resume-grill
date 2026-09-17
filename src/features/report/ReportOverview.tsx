@@ -28,11 +28,11 @@ export function ReportOverview({
           面试复盘
         </div>
         <h2 className="m-0 text-[21px] font-bold tracking-[-0.025em]">
-          最需要处理的 3 件事
+          接下来练什么
         </h2>
         <p className="mt-2 text-[13px] leading-relaxed text-text-tertiary">
           已练习 {doneCount} 个简历要点。
-          {summarizing ? '正在整理结果…' : '每个要点的表现和建议都在下方。'}
+          {summarizing ? '正在整理结果…' : doneCount > 0 ? '每个要点的表现和建议都在下方。' : '选一条经历开始，练完后就能回看回答和建议。'}
         </p>
         <div className="mt-4 space-y-1">
           {topActions.map((action, index) => (
@@ -64,7 +64,7 @@ export function ReportOverview({
           ))}
           {topActions.length === 0 && (
             <p className="m-0 text-[13px] text-text-tertiary">
-              目前没有需要优先处理的内容。
+              {doneCount > 0 ? '暂时没有需要优先补练的内容。' : '可以从你最想在面试里聊的项目开始。'}
             </p>
           )}
         </div>
@@ -81,7 +81,7 @@ export function ReportOverview({
           <span className="relative z-10 text-[28px] font-extrabold tracking-[-0.03em]">
             {averageScore !== null ? averageScore.toFixed(1) : '--'}
             <small className="mt-1 block text-[11px] font-semibold tracking-normal text-text-tertiary">
-              {averageScore === null ? '还没有分数' : '平均得分（/5）'}
+              {averageScore === null ? '还没有分数' : '本次回答均分（/5）'}
             </small>
           </span>
         </div>

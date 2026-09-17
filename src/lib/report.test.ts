@@ -34,13 +34,13 @@ const analysis: ResumeAnalysis = {
 describe('buildReport', () => {
   it('包含候选人与来源', () => {
     const report = buildReport(analysis)
-    expect(report).toContain('候选人：张明 · 销售')
+    expect(report).toContain('姓名：张明 · 销售')
     expect(report).toContain('来源文件：resume.txt')
   })
   it('包含简历原文、主要考察与类型标签', () => {
     const report = buildReport(analysis)
     expect(report).toContain('季度销售额提升 30%')
-    expect(report).toContain('主要考察：销售业绩达成能力')
+    expect(report).toContain('练习主题：销售业绩达成能力')
     expect(report).toContain('项目成果')
   })
   it('输出练习顺序', () => {

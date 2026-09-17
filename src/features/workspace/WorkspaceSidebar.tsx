@@ -9,6 +9,8 @@ import {
   PanelLeftOpen,
   Settings,
   ClipboardList,
+  FileSearch,
+  Mail,
   type LucideIcon,
 } from 'lucide-react'
 import type { Mode } from '@/application/types'
@@ -28,10 +30,12 @@ type NavItem = {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { key: 'audit', label: '能力清单', icon: ListChecks },
-  { key: 'interview', label: '能力测试', icon: MessagesSquare },
-  { key: 'report', label: '测试报告', icon: ClipboardList },
-  { key: 'knowledge', label: '漏洞与知识点', icon: Lightbulb },
+  { key: 'applications', label: '邮箱投递', icon: Mail },
+  { key: 'diagnosis', label: '简历检查', icon: FileSearch },
+  { key: 'audit', label: '练习清单', icon: ListChecks },
+  { key: 'interview', label: '模拟面试', icon: MessagesSquare },
+  { key: 'report', label: '面试复盘', icon: ClipboardList },
+  { key: 'knowledge', label: '待复习', icon: Lightbulb },
 ]
 
 type WorkspaceSidebarProps = {
@@ -69,7 +73,7 @@ export function WorkspaceSidebar({
   const content = (
     <>
       {/* 品牌区 */}
-      <div className={`flex h-14 flex-none items-center gap-2.5 border-b border-line px-4 ${collapsed ? 'justify-center px-0' : ''}`}>
+      <div className={`workspace-brand flex h-14 flex-none items-center gap-2.5 border-b border-line px-4 ${collapsed ? 'justify-center px-0' : ''}`}>
         <button
           type="button"
           onClick={onOpenHistory}
@@ -79,9 +83,9 @@ export function WorkspaceSidebar({
           <img src="/favicon.svg" alt="简历拷打机" className="size-6" />
         </button>
         {!collapsed && (
-          <div className="flex min-w-0 flex-col">
-            <strong className="truncate text-[14px] font-bold tracking-[-0.01em]">工作台</strong>
-            <span className="text-[11px] text-text-tertiary truncate">resume-grill</span>
+          <div className="workspace-nav-label flex min-w-0 flex-col">
+            <strong className="truncate text-[14px] font-bold tracking-[-0.01em]">Resume Grill</strong>
+            <span className="text-[11px] text-text-tertiary truncate">求职工作台</span>
           </div>
         )}
       </div>
@@ -97,20 +101,21 @@ export function WorkspaceSidebar({
                 key={key}
                 type="button"
                 onClick={() => handleNavigate(key)}
-                className={`group relative flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors ${
+                className={`workspace-nav-row group relative flex w-full items-center gap-2.5 px-2.5 py-2 text-[13px] font-medium transition-colors ${
                   collapsed ? 'justify-center px-0' : ''
                 } ${
                   active
-                    ? 'bg-brand-soft text-brand'
+                    ? 'bg-surface-hover text-text-primary'
                     : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
                 }`}
-                title={collapsed ? label : undefined}
+                title={label}
+                aria-label={label}
                 aria-current={active ? 'page' : undefined}
               >
                 {active && <span className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-brand" />}
                 <Icon size={16} className={`flex-none ${active ? 'text-brand' : 'text-text-tertiary group-hover:text-text-secondary'}`} />
-                {!collapsed && <span className="min-w-0 truncate">{label}</span>}
-                {!collapsed && badge}
+                {!collapsed && <span className="workspace-nav-label min-w-0 truncate">{label}</span>}
+                {!collapsed && badge && <span className="workspace-nav-label ml-auto">{badge}</span>}
               </button>
             )
           })}
@@ -122,25 +127,27 @@ export function WorkspaceSidebar({
         <button
           type="button"
           onClick={onOpenHistory}
-          className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary ${collapsed ? 'justify-center px-0' : ''}`}
-          title={collapsed ? '历史简历' : undefined}
+          className={`workspace-nav-row flex w-full items-center gap-2.5 px-2.5 py-2 text-[13px] font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary ${collapsed ? 'justify-center px-0' : ''}`}
+          title="历史简历"
+          aria-label="历史简历"
         >
           <History size={16} className="flex-none text-text-tertiary" />
-          {!collapsed && <span>历史简历</span>}
+          {!collapsed && <span className="workspace-nav-label">历史简历</span>}
         </button>
         <button
           type="button"
           onClick={onOpenSettings}
-          className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary ${collapsed ? 'justify-center px-0' : ''}`}
-          title={collapsed ? '模型设置' : undefined}
+          className={`workspace-nav-row flex w-full items-center gap-2.5 px-2.5 py-2 text-[13px] font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary ${collapsed ? 'justify-center px-0' : ''}`}
+          title={mode === 'applications' ? '邮箱设置' : '模型设置'}
+          aria-label={mode === 'applications' ? '邮箱设置' : '模型设置'}
         >
           <Settings size={16} className="flex-none text-text-tertiary" />
-          {!collapsed && <span>模型设置</span>}
+          {!collapsed && <span className="workspace-nav-label">{mode === 'applications' ? '邮箱设置' : '模型设置'}</span>}
         </button>
         <button
           type="button"
           onClick={onToggleCollapsed}
-          className={`hidden w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text-primary md:flex ${collapsed ? 'justify-center px-0' : ''}`}
+          className={`hidden w-full items-center gap-2.5 px-2.5 py-2 text-[13px] font-medium text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text-primary min-[1200px]:flex ${collapsed ? 'justify-center px-0' : ''}`}
           title={collapsed ? '展开导航' : '收起导航'}
         >
           {collapsed ? <PanelLeftOpen size={16} className="flex-none" /> : <PanelLeftClose size={16} className="flex-none" />}
@@ -174,8 +181,8 @@ export function WorkspaceSidebar({
 
   return (
     <aside
-      className={`hidden flex-none flex-col border-r border-line bg-white transition-[width] duration-200 md:flex ${
-        collapsed ? 'w-[56px]' : 'w-[216px]'
+      className={`workspace-dock hidden flex-none flex-col border-r border-line bg-surface-soft transition-[width] duration-200 md:flex ${
+        collapsed ? 'w-[56px]' : 'w-[clamp(184px,8.4vw,216px)]'
       }`}
     >
       {content}

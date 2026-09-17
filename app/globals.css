@@ -29,7 +29,7 @@
   --color-success: #039855;
   --color-success-soft: #ecfdf3;
 
-  --font-family-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-family-sans: Inter, 'PingFang SC', 'Microsoft YaHei', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --breakpoint-md: 768px;
   --breakpoint-lg: 1200px;
   --animate-spin: spin 1s linear infinite;
@@ -49,11 +49,92 @@
 * { box-sizing: border-box; }
 html, body { min-width: 320px; min-height: 100%; margin: 0; }
 body { min-height: 100vh; background: var(--color-bg); }
-button, textarea, input, select { font: inherit; }
-button { border: 0; cursor: pointer; }
+button { cursor: pointer; }
+
+.resume-workbench {
+  --color-brand: #334d65;
+  --color-brand-hover: #253b50;
+  --color-brand-soft: #edf1f5;
+  --color-line: #e2e6ea;
+  --color-line-strong: #cdd4dc;
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --radius-4xl: 0;
+  --shadow-card: none;
+}
+
+.workbench-stage {
+  display: flex;
+  min-height: 100dvh;
+  background: white;
+}
+.workbench-window {
+  width: 100%;
+  height: 100dvh;
+  min-width: 0;
+  overflow: hidden;
+  background: white;
+}
+.workbench-library { height: auto; min-height: 100dvh; overflow: visible; }
+.library-body { max-width: 1320px; margin: 32px auto; border: 1px solid var(--color-line); }
+.workbench-library > footer { margin-top: auto; }
+@media (min-width: 900px) { .library-body { grid-template-columns: minmax(0, 1fr) minmax(360px, .72fr); } }
+@media (max-width: 1375px) { .library-body { width: calc(100% - 48px); margin-block: 24px; } }
+@media (max-width: 899px) { .library-body { width: 100%; margin: 0; border: 0; } }
+
+.diagnosis-layout { container: diagnosis / inline-size; }
+.diagnosis-report-grid { display: grid; grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
+.diagnosis-summary { display: none; }
+.diagnosis-compact-summary { display: block; }
+.diagnosis-issue-columns { display: grid; gap: 20px; }
+.claim-detail { container: claim-detail / inline-size; }
+.claim-detail-grid { grid-template-columns: minmax(0, 1fr); }
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .workspace-dock { width: 56px; }
+  .workspace-dock .workspace-nav-label { display: none; }
+  .workspace-dock .workspace-nav-row,
+  .workspace-dock .workspace-brand {
+    justify-content: center;
+    padding-inline: 0;
+  }
+}
+
+@container claim-detail (min-width: 800px) {
+  .claim-detail-grid { grid-template-columns: minmax(0, 1.15fr) minmax(260px, .85fr); }
+}
+
+@container diagnosis (min-width: 900px) {
+  .diagnosis-report-grid { grid-template-columns: minmax(0, 1fr) 320px; overflow: hidden; }
+  .diagnosis-summary { display: block; overflow-y: auto; }
+  .diagnosis-findings { overflow-y: auto; }
+  .diagnosis-compact-summary { display: none; }
+}
+@container diagnosis (min-width: 1120px) {
+  .diagnosis-issue-columns { grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 28px; }
+}
 
 button:focus-visible, textarea:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
   outline: 2px solid #60a5fa;
   outline-offset: 2px;
 }
 ::selection { background: #dbeafe; color: #1e40af; }
+
+.mail-work-area { display: grid; grid-template-columns: 290px minmax(0, 1fr); }
+.mail-label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--color-text-secondary); }
+.mail-input { width: 100%; min-width: 0; border: 1px solid var(--color-line-strong); border-radius: 0; background: white; color: var(--color-text-primary); padding: 8px 10px; font: inherit; font-size: 13px; }
+input.mail-input, select.mail-input { height: 36px; }
+.mail-dialog { margin: auto; max-height: calc(100dvh - 32px); overflow-y: auto; border-radius: 0; }
+.mail-record dt { color: var(--color-text-tertiary); }
+.mail-record dd { margin: 0; overflow-wrap: anywhere; }
+@media (min-width: 1500px) { .mail-work-area { grid-template-columns: 320px minmax(0, 1fr); } }
+@media (max-width: 767px) {
+  .mail-work-area { display: flex; flex-direction: column; overflow-y: auto; }
+  .mail-list { flex: none; max-height: 220px; min-height: 110px; border-right: none; border-bottom: 1px solid var(--color-line); }
+  .mail-work-area > section:last-child { overflow-y: visible; flex: none; }
+}

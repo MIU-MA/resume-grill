@@ -63,7 +63,7 @@ export function ResumeCandidateList({
               return (
                 <div
                   key={candidate.id}
-                  className={`flex items-start gap-3 border-t border-line px-5 py-4 first:border-t-0 ${
+                  className={`flex items-start gap-2 border-t border-line px-4 py-2.5 first:border-t-0 sm:gap-3 sm:px-6 ${
                     candidate.enabled ? '' : 'bg-surface-soft opacity-65'
                   }`}
                 >
@@ -71,6 +71,7 @@ export function ResumeCandidateList({
                     <input
                       type="checkbox"
                       checked={candidate.enabled}
+                      disabled={analyzing}
                       onChange={(event) =>
                         onUpdate(candidate.id, {
                           enabled: event.target.checked,
@@ -101,7 +102,7 @@ export function ResumeCandidateList({
                       type="button"
                       onClick={() => onSetEditing(candidate.id)}
                       disabled={analyzing}
-                      className="min-h-[58px] min-w-0 flex-1 cursor-pointer rounded-lg border border-transparent bg-white px-3 py-2 text-left text-[13px] leading-relaxed text-text-primary transition-colors hover:border-line hover:bg-surface-soft disabled:cursor-default disabled:opacity-60"
+                      className="min-h-10 min-w-0 flex-1 cursor-pointer border border-transparent px-2 py-2 text-left text-[13px] leading-[1.75] text-text-primary transition-colors hover:border-line hover:bg-surface-soft disabled:cursor-default disabled:opacity-60"
                       aria-label={`编辑要点：${candidate.content}`}
                     >
                       {candidate.content.trim() || (
@@ -111,7 +112,7 @@ export function ResumeCandidateList({
                       )}
                     </button>
                   )}
-                  <div className="flex flex-none items-center gap-1 pt-1">
+                  <div className="flex flex-none flex-col items-center gap-1 pt-1 sm:flex-row">
                     <button
                       type="button"
                       disabled={!canMerge || analyzing}

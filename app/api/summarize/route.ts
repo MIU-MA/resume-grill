@@ -4,8 +4,11 @@ import { interviewRoundSchema, finalResultSchema } from '@/domain/interview-sche
 import { resumeClaimSchema } from '@/domain/resume-schema'
 import { SUMMARIZE_TIMEOUT, getClientIp, rateLimit, withTimeout } from '@/lib/server-limits'
 import { llmStructured, resolveLlmConfig } from '@/providers/openai-compatible'
+import { RESUME_COACH_STYLE } from '@/lib/prompt-style'
 
-const SUMMARIZE_SYSTEM = `你是一名资深面试官，刚结束对候选人简历中一条声明的追问。基于对话历史，给出最终能力评估报告。
+const SUMMARIZE_SYSTEM = `你刚陪求职者练完简历中的一段经历。根据问答记录，帮用户回顾已经讲清的细节、还需补充的内容，以及下次怎么回答。
+
+${RESUME_COACH_STYLE}
 
 澄清轮次（只有批注、没有回答）不算能力不足。
 “已掌握，跳过”属于自报状态，不是回答证据，也不代表能力不足。
@@ -14,13 +17,13 @@ const SUMMARIZE_SYSTEM = `你是一名资深面试官，刚结束对候选人简
 {"masteryScore":0,"canExplain":[],"cannotExplain":[],"knowledgeGaps":[],"answerSummary":"","nextAction":"","rewriteSuggestion":""}
 
 字段说明：
-- masteryScore: 0-5，5=完全经得起追问，0=完全无法回答
-- canExplain: 候选人能讲清的
-- cannotExplain: 尚未讲清或回避的
-- knowledgeGaps: 需要补强的知识点
-- answerSummary: 对回答质量和掌握度的短结论
-- nextAction: 下一步最具体的补强动作
-- rewriteSuggestion: 改写后的简历表述`
+- masteryScore: 0-5，只针对这次练习，5=问到的关键细节已讲清，0=没有可判断的回答。不能据此判定用户的实际能力。
+- canExplain: 回答中已经讲清的具体内容，每项简短，不泛泛夸奖
+- cannotExplain: 问到了但还没讲清的具体内容；没问到、请求解释或跳过的不能直接算不会
+- knowledgeGaps: 回答中确实暴露出需要复习的知识，写具体概念或问题，没有则返回空数组
+- answerSummary: 用 2-3 句指出哪次回答讲清了什么、哪处还缺细节，不写“综合来看，候选人展现了……”
+- nextAction: 一件现在能做的准备工作，说明要回看哪个做法、找什么材料或重讲哪个问题，不写笼统的“加强学习”
+- rewriteSuggestion: 根据原简历和本次回答，给这条经历一个简洁的改写建议。只重组已经提供的事实，不添加职责、技术、结果或数字；待确认处用【待补充：具体信息】标记`
 
 const requestSchema = z.object({
   claim: resumeClaimSchema,

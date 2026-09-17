@@ -13,6 +13,7 @@ import { useResumeWorkspace } from '@/hooks/use-resume-workspace'
 import { useKnowledgeActions } from '@/hooks/use-knowledge-actions'
 import type { Mode } from '@/application/types'
 import { effectivePriority, summarizeClaimProgress } from '@/lib/risk'
+import { MailWorkbench } from '@/features/applications/MailWorkbench'
 
 function App() {
   const { phase, mode, push, replace } = useAppNavigation()
@@ -145,10 +146,14 @@ function App() {
 
   if (workspace.recovering) return <div className="min-h-screen bg-bg" />
 
+  if (mode === 'applications') return <MailWorkbench badges={sidebarBadges} onNavigate={tab => workspace.analysis ? handleTabChange(tab) : push('upload')} onHome={() => push('upload')} />
+
   if (phase === 'upload' || !workspace.analysis || !selected || !stats) {
     if (phase === 'review' && workspace.pendingExtracted) {
       return (
         <ResumeReviewView
+          key={workspace.pendingExtracted.sourceFile + workspace.pendingExtracted.extracted.text}
+          demo={workspace.pendingExtracted.demo ?? false}
           sourceFile={workspace.pendingExtracted.sourceFile}
           extracted={workspace.pendingExtracted.extracted}
           analyzing={analysis.analyzing}

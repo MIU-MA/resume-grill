@@ -69,7 +69,7 @@ export function ClaimReportDetail({
       ? { label: '回答扎实', className: 'bg-success-soft text-success' }
       : result.masteryScore >= 2
         ? { label: '基本答到了', className: 'bg-warning-soft text-warning' }
-        : { label: '没答出来', className: 'bg-danger-soft text-danger' }
+        : { label: '还没讲清', className: 'bg-danger-soft text-danger' }
   const unclearItems = [
     ...new Set([...result.cannotExplain, ...result.knowledgeGaps]),
   ]
@@ -110,7 +110,7 @@ export function ClaimReportDetail({
 
       <section className="mt-5 border-t border-line pt-4">
         <div className="mb-2 flex items-center gap-2">
-          <strong className="text-[13px]">总体表现</strong>
+          <strong className="text-[13px]">这次回答</strong>
           <span
             className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${confidence.className}`}
           >

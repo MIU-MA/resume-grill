@@ -8,19 +8,19 @@ export function buildHeuristicJobMatch(jobDescription: string, candidates: Revie
       .map((candidate) => ({ candidate, score: overlapScore(requirement, candidate.content) }))
       .sort((a, b) => b.score - a.score)[0]
     if (!best || best.score === 0) {
-      return { requirement, match: 'gap', evidence: [], note: '简历中没有找到直接证据' }
+      return { requirement, match: 'gap', evidence: [], note: '没找到对应经历，如果做过，可以补进简历' }
     }
     return {
       requirement,
       match: best.score >= 2 ? 'strong' : 'partial',
       evidence: [best.candidate.content],
-      note: best.score >= 2 ? '简历中有较明确的相关陈述' : '有相关提及，但还需要补充具体场景或成果',
+      note: best.score >= 2 ? '找到包含相关关键词的经历，具体做法还需在练习中讲清' : '提到了相关内容，还需要写清在哪用过、做了什么',
     }
   })
   return {
     requirements: matches,
     gaps: matches.filter((item) => item.match !== 'strong').map((item) => item.requirement).slice(0, 6),
-    interviewFocus: matches.filter((item) => item.match !== 'strong').map((item) => `如何证明：${item.requirement}`).slice(0, 6),
+    interviewFocus: matches.filter((item) => item.match !== 'strong').map((item) => `准备一段对应经历：${item.requirement}`).slice(0, 6),
   }
 }
 

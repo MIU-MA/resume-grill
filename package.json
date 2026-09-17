@@ -7,26 +7,32 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "mail-agent": "tsx scripts/mail-agent.ts",
     "build": "next build",
     "start": "next start",
     "lint": "oxlint",
     "test": "vitest run"
   },
   "dependencies": {
+    "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
     "idb-keyval": "^6.3.0",
+    "ipaddr.js": "^2.5.0",
     "lucide-react": "^1.27.0",
     "mammoth": "^1.12.0",
     "next": "^16.2.12",
+    "nodemailer": "^10.0.10",
     "pdfjs-dist": "6.2.108",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "tailwind-merge": "^3.6.0",
+    "tsx": "^4.23.13",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^24.13.2",
+    "@types/nodemailer": "^8.0.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "oxlint": "^1.71.0",

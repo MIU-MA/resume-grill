@@ -50,8 +50,8 @@ export function ClaimAuditView({
           {error}
         </div>
       )}
-      <div className="mx-auto grid min-h-0 w-full max-w-[1320px] flex-1 grid-cols-[320px_minmax(0,1fr)] gap-3 px-3 py-3 sm:px-4 md:gap-4 md:px-5 md:py-4 max-[1040px]:grid-cols-[280px_minmax(0,1fr)] max-[760px]:block max-[760px]:overflow-y-auto">
-        <aside className="min-h-0 overflow-hidden rounded-lg bg-white shadow-card ring-1 ring-black/[0.03] max-[760px]:h-[380px]">
+      <div className="grid min-h-0 w-full flex-1 grid-cols-[clamp(260px,27%,clamp(320px,15vw,380px))_minmax(0,1fr)] max-[760px]:block max-[760px]:overflow-y-auto">
+        <aside className="min-h-0 overflow-hidden border-r border-line bg-surface-soft max-[760px]:h-[300px] max-[760px]:border-b max-[760px]:border-r-0">
           <ClaimList
             analysis={analysis}
             selectedIndex={selectedIndex}
@@ -64,7 +64,7 @@ export function ClaimAuditView({
             onSetClaimsPriority={onSetClaimsPriority}
           />
         </aside>
-        <article className="min-h-0 overflow-hidden rounded-lg bg-white shadow-card ring-1 ring-black/[0.03] max-[760px]:mt-3 max-[760px]:overflow-visible">
+        <article className="min-h-0 overflow-hidden bg-white max-[760px]:overflow-visible">
           <ClaimDetail
             claim={selected}
             priority={
