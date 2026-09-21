@@ -1,0 +1,474 @@
+{
+  "fetchedAt": "2026-09-20T08:13:43.174Z",
+  "note": "公开招聘页采集结果，需核对岗位是否仍开放；未发送邮件或提交申请。",
+  "sources": [
+    {
+      "company": "凌思微电子",
+      "url": "https://www.linkedsemi.com/company/join.html",
+      "fetchedAt": "2026-09-20T08:13:39.371Z",
+      "status": "fetched",
+      "title": "加入我们 | LinkedSemi 凌思微电子",
+      "emails": [
+        {
+          "email": "hr@linkedsemi.com",
+          "context": "简历—筛选—面试—复试—offer 【投递请备注：面试岗位+姓名+学校】若有成绩单及项目作品请一并附件提供。 欢迎前来咨询。 简历投递邮箱：hr@linkedsemi.com qfu@linkedsemi.com 联系人kitty：18373950441 招聘职位 职位名称 工作地点 招聘人数 应用（AE FAE ）工程师 上海/北京/深圳 若干 了解详情 工作地点：上海"
+        },
+        {
+          "email": "qfu@linkedsemi.com",
+          "context": "【投递请备注：面试岗位+姓名+学校】若有成绩单及项目作品请一并附件提供。 欢迎前来咨询。 简历投递邮箱：hr@linkedsemi.com qfu@linkedsemi.com 联系人kitty：18373950441 招聘职位 职位名称 工作地点 招聘人数 应用（AE FAE ）工程师 上海/北京/深圳 若干 了解详情 工作地点：上海/北京/深圳 招聘人数：若干 职位类别"
+        }
+      ],
+      "recommendedEmail": "",
+      "jobs": [],
+      "links": [],
+      "pagesRead": 1,
+      "notes": [
+        "未找到可识别的招聘链接。可直接输入招聘页地址；需要登录或依赖脚本加载的职位列表暂不支持。"
+      ]
+    },
+    {
+      "company": "美泰电子",
+      "url": "https://www.mtmems.com/jobs.html",
+      "fetchedAt": "2026-09-20T08:13:39.593Z",
+      "status": "fetched",
+      "title": "加入我们-河北美泰电子科技有限公司官网",
+      "emails": [
+        {
+          "email": "hr@mtmems.com",
+          "context": "投递邮箱：hr@mtmems.com"
+        },
+        {
+          "email": "info@mtmems.com",
+          "context": "info@mtmems.com"
+        }
+      ],
+      "recommendedEmail": "hr@mtmems.com",
+      "jobs": [],
+      "links": [
+        {
+          "url": "https://www.mtmems.com/jobs.html",
+          "label": "加入我们",
+          "kind": "entry",
+          "sourceUrl": "https://www.mtmems.com/jobs.html"
+        }
+      ],
+      "pagesRead": 1,
+      "notes": []
+    },
+    {
+      "company": "微筑科技",
+      "url": "https://www.webuild.cn/join/",
+      "fetchedAt": "2026-09-20T08:13:39.892Z",
+      "status": "fetched",
+      "title": "加入微筑｜招聘岗位与人才发展｜微筑科技",
+      "emails": [
+        {
+          "email": "hr@webuild.cn",
+          "context": "如有补充材料或招聘咨询，请在邮件主题中注明「姓名 + 意向方向」，发送至人力邮箱。hr@webuild.cn ↗"
+        },
+        {
+          "email": "sales@webuild.cn",
+          "context": "件主题中注明「姓名 + 意向方向」，发送至人力邮箱。 hr@webuild.cn ↗ 深圳市微筑科技有限公司 400-1188-058 · sales@webuild.cn 周一至周五（节假日除外）9:00–12:00 · 13:30–18:30 微信公众号 产品 产品总览 智能感知装备 场景算法盒 机器人行动大脑 物理智能平台 方案 方案总览 安全管理 生产管控 智能"
+        }
+      ],
+      "recommendedEmail": "hr@webuild.cn",
+      "jobs": [
+        {
+          "url": "https://www.webuild.cn/join/key-account-manager.html",
+          "role": "大客户经理",
+          "title": "大客户经理｜加入微筑｜微筑科技",
+          "recommendedEmail": "hr@webuild.cn",
+          "emails": [
+            {
+              "email": "hr@webuild.cn",
+              "context": "也可直接发送至 hr@webuild.cn。"
+            },
+            {
+              "email": "sales@webuild.cn",
+              "context": "后将向你的邮箱发送确认邮件。 提交申请 也可直接发送至 hr@webuild.cn。 深圳市微筑科技有限公司 400-1188-058 · sales@webuild.cn 周一至周五（节假日除外）9:00–12:00 · 13:30–18:30 微信公众号 产品 产品总览 智能感知装备 场景算法盒 机器人行动大脑 物理智能平台 方案 方案总览 安全管理 生产管控 智能"
+            }
+          ],
+          "notes": [
+            "未识别到公司名称。",
+            "未识别到单一岗位名称。"
+          ],
+          "fetchedAt": "2026-09-20T08:13:40.282Z"
+        },
+        {
+          "url": "https://www.webuild.cn/join/solutions-manager.html",
+          "role": "解决方案经理",
+          "title": "解决方案经理｜加入微筑｜微筑科技",
+          "recommendedEmail": "hr@webuild.cn",
+          "emails": [
+            {
+              "email": "hr@webuild.cn",
+              "context": "也可直接发送至 hr@webuild.cn。"
+            },
+            {
+              "email": "sales@webuild.cn",
+              "context": "后将向你的邮箱发送确认邮件。 提交申请 也可直接发送至 hr@webuild.cn。 深圳市微筑科技有限公司 400-1188-058 · sales@webuild.cn 周一至周五（节假日除外）9:00–12:00 · 13:30–18:30 微信公众号 产品 产品总览 智能感知装备 场景算法盒 机器人行动大脑 物理智能平台 方案 方案总览 安全管理 生产管控 智能"
+            }
+          ],
+          "notes": [
+            "未识别到公司名称。",
+            "未识别到单一岗位名称。"
+          ],
+          "fetchedAt": "2026-09-20T08:13:40.467Z"
+        },
+        {
+          "url": "https://www.webuild.cn/join/hardware-engineer.html",
+          "role": "硬件工程师",
+          "title": "硬件工程师｜加入微筑｜微筑科技",
+          "recommendedEmail": "hr@webuild.cn",
+          "emails": [
+            {
+              "email": "hr@webuild.cn",
+              "context": "也可直接发送至 hr@webuild.cn。"
+            },
+            {
+              "email": "sales@webuild.cn",
+              "context": "后将向你的邮箱发送确认邮件。 提交申请 也可直接发送至 hr@webuild.cn。 深圳市微筑科技有限公司 400-1188-058 · sales@webuild.cn 周一至周五（节假日除外）9:00–12:00 · 13:30–18:30 微信公众号 产品 产品总览 智能感知装备 场景算法盒 机器人行动大脑 物理智能平台 方案 方案总览 安全管理 生产管控 智能"
+            }
+          ],
+          "notes": [
+            "未识别到公司名称。"
+          ],
+          "fetchedAt": "2026-09-20T08:13:40.627Z"
+        },
+        {
+          "url": "https://www.webuild.cn/join/presales-technical-specialist.html",
+          "role": "售前技术专员",
+          "title": "售前技术专员｜加入微筑｜微筑科技",
+          "recommendedEmail": "hr@webuild.cn",
+          "emails": [
+            {
+              "email": "hr@webuild.cn",
+              "context": "也可直接发送至 hr@webuild.cn。"
+            },
+            {
+              "email": "sales@webuild.cn",
+              "context": "后将向你的邮箱发送确认邮件。 提交申请 也可直接发送至 hr@webuild.cn。 深圳市微筑科技有限公司 400-1188-058 · sales@webuild.cn 周一至周五（节假日除外）9:00–12:00 · 13:30–18:30 微信公众号 产品 产品总览 智能感知装备 场景算法盒 机器人行动大脑 物理智能平台 方案 方案总览 安全管理 生产管控 智能"
+            }
+          ],
+          "notes": [
+            "未识别到公司名称。"
+          ],
+          "fetchedAt": "2026-09-20T08:13:40.776Z"
+        },
+        {
+          "url": "https://www.webuild.cn/join/hardware-project-manager.html",
+          "role": "硬件项目经理",
+          "title": "硬件项目经理｜加入微筑｜微筑科技",
+          "recommendedEmail": "hr@webuild.cn",
+          "emails": [
+            {
+              "email": "hr@webuild.cn",
+              "context": "也可直接发送至 hr@webuild.cn。"
+            },
+            {
+              "email": "sales@webuild.cn",
+              "context": "后将向你的邮箱发送确认邮件。 提交申请 也可直接发送至 hr@webuild.cn。 深圳市微筑科技有限公司 400-1188-058 · sales@webuild.cn 周一至周五（节假日除外）9:00–12:00 · 13:30–18:30 微信公众号 产品 产品总览 智能感知装备 场景算法盒 机器人行动大脑 物理智能平台 方案 方案总览 安全管理 生产管控 智能"
+            }
+          ],
+          "notes": [
+            "未识别到公司名称。",
+            "未识别到单一岗位名称。"
+          ],
+          "fetchedAt": "2026-09-20T08:13:40.915Z"
+        },
+        {
+          "url": "https://www.webuild.cn/join/commercial-operations-specialist.html",
+          "role": "商务运营专员",
+          "title": "商务运营专员｜加入微筑｜微筑科技",
+          "recommendedEmail": "hr@webuild.cn",
+          "emails": [
+            {
+              "email": "hr@webuild.cn",
+              "context": "也可直接发送至 hr@webuild.cn。"
+            },
+            {
+              "email": "sales@webuild.cn",
+              "context": "后将向你的邮箱发送确认邮件。 提交申请 也可直接发送至 hr@webuild.cn。 深圳市微筑科技有限公司 400-1188-058 · sales@webuild.cn 周一至周五（节假日除外）9:00–12:00 · 13:30–18:30 微信公众号 产品 产品总览 智能感知装备 场景算法盒 机器人行动大脑 物理智能平台 方案 方案总览 安全管理 生产管控 智能"
+            }
+          ],
+          "notes": [
+            "未识别到公司名称。"
+          ],
+          "fetchedAt": "2026-09-20T08:13:41.056Z"
+        },
+        {
+          "url": "https://www.webuild.cn/join/algorithm-scientist.html",
+          "role": "算法专家",
+          "title": "算法专家｜加入微筑｜微筑科技",
+          "recommendedEmail": "hr@webuild.cn",
+          "emails": [
+            {
+              "email": "hr@webuild.cn",
+              "context": "也可直接发送至 hr@webuild.cn。"
+            },
+            {
+              "email": "sales@webuild.cn",
+              "context": "后将向你的邮箱发送确认邮件。 提交申请 也可直接发送至 hr@webuild.cn。 深圳市微筑科技有限公司 400-1188-058 · sales@webuild.cn 周一至周五（节假日除外）9:00–12:00 · 13:30–18:30 微信公众号 产品 产品总览 智能感知装备 场景算法盒 机器人行动大脑 物理智能平台 方案 方案总览 安全管理 生产管控 智能"
+            }
+          ],
+          "notes": [
+            "未识别到公司名称。",
+            "未识别到单一岗位名称。"
+          ],
+          "fetchedAt": "2026-09-20T08:13:41.224Z"
+        },
+        {
+          "url": "https://www.webuild.cn/join/llm-algorithm-engineer.html",
+          "role": "大模型算法工程师",
+          "title": "大模型算法工程师｜加入微筑｜微筑科技",
+          "recommendedEmail": "hr@webuild.cn",
+          "emails": [
+            {
+              "email": "hr@webuild.cn",
+              "context": "也可直接发送至 hr@webuild.cn。"
+            },
+            {
+              "email": "sales@webuild.cn",
+              "context": "后将向你的邮箱发送确认邮件。 提交申请 也可直接发送至 hr@webuild.cn。 深圳市微筑科技有限公司 400-1188-058 · sales@webuild.cn 周一至周五（节假日除外）9:00–12:00 · 13:30–18:30 微信公众号 产品 产品总览 智能感知装备 场景算法盒 机器人行动大脑 物理智能平台 方案 方案总览 安全管理 生产管控 智能"
+            }
+          ],
+          "notes": [
+            "未识别到公司名称。"
+          ],
+          "fetchedAt": "2026-09-20T08:13:41.375Z"
+        },
+        {
+          "url": "https://www.webuild.cn/join/device-driver-engineer.html",
+          "role": "驱动开发工程师",
+          "title": "驱动开发工程师｜加入微筑｜微筑科技",
+          "recommendedEmail": "hr@webuild.cn",
+          "emails": [
+            {
+              "email": "hr@webuild.cn",
+              "context": "也可直接发送至 hr@webuild.cn。"
+            },
+            {
+              "email": "sales@webuild.cn",
+              "context": "后将向你的邮箱发送确认邮件。 提交申请 也可直接发送至 hr@webuild.cn。 深圳市微筑科技有限公司 400-1188-058 · sales@webuild.cn 周一至周五（节假日除外）9:00–12:00 · 13:30–18:30 微信公众号 产品 产品总览 智能感知装备 场景算法盒 机器人行动大脑 物理智能平台 方案 方案总览 安全管理 生产管控 智能"
+            }
+          ],
+          "notes": [
+            "未识别到公司名称。"
+          ],
+          "fetchedAt": "2026-09-20T08:13:41.541Z"
+        },
+        {
+          "url": "https://www.webuild.cn/join/software-development-engineer.html",
+          "role": "软件开发工程师",
+          "title": "软件开发工程师｜加入微筑｜微筑科技",
+          "recommendedEmail": "hr@webuild.cn",
+          "emails": [
+            {
+              "email": "hr@webuild.cn",
+              "context": "也可直接发送至 hr@webuild.cn。"
+            },
+            {
+              "email": "sales@webuild.cn",
+              "context": "后将向你的邮箱发送确认邮件。 提交申请 也可直接发送至 hr@webuild.cn。 深圳市微筑科技有限公司 400-1188-058 · sales@webuild.cn 周一至周五（节假日除外）9:00–12:00 · 13:30–18:30 微信公众号 产品 产品总览 智能感知装备 场景算法盒 机器人行动大脑 物理智能平台 方案 方案总览 安全管理 生产管控 智能"
+            }
+          ],
+          "notes": [
+            "未识别到公司名称。"
+          ],
+          "fetchedAt": "2026-09-20T08:13:41.681Z"
+        },
+        {
+          "url": "https://www.webuild.cn/join/qa-automation-engineer.html",
+          "role": "测试开发工程师",
+          "title": "测试开发工程师｜加入微筑｜微筑科技",
+          "recommendedEmail": "hr@webuild.cn",
+          "emails": [
+            {
+              "email": "hr@webuild.cn",
+              "context": "也可直接发送至 hr@webuild.cn。"
+            },
+            {
+              "email": "sales@webuild.cn",
+              "context": "后将向你的邮箱发送确认邮件。 提交申请 也可直接发送至 hr@webuild.cn。 深圳市微筑科技有限公司 400-1188-058 · sales@webuild.cn 周一至周五（节假日除外）9:00–12:00 · 13:30–18:30 微信公众号 产品 产品总览 智能感知装备 场景算法盒 机器人行动大脑 物理智能平台 方案 方案总览 安全管理 生产管控 智能"
+            }
+          ],
+          "notes": [
+            "未识别到公司名称。"
+          ],
+          "fetchedAt": "2026-09-20T08:13:41.856Z"
+        },
+        {
+          "url": "https://www.webuild.cn/join/project-manager.html",
+          "role": "项目经理",
+          "title": "项目经理｜加入微筑｜微筑科技",
+          "recommendedEmail": "hr@webuild.cn",
+          "emails": [
+            {
+              "email": "hr@webuild.cn",
+              "context": "也可直接发送至 hr@webuild.cn。"
+            },
+            {
+              "email": "sales@webuild.cn",
+              "context": "后将向你的邮箱发送确认邮件。 提交申请 也可直接发送至 hr@webuild.cn。 深圳市微筑科技有限公司 400-1188-058 · sales@webuild.cn 周一至周五（节假日除外）9:00–12:00 · 13:30–18:30 微信公众号 产品 产品总览 智能感知装备 场景算法盒 机器人行动大脑 物理智能平台 方案 方案总览 安全管理 生产管控 智能"
+            }
+          ],
+          "notes": [
+            "未识别到公司名称。",
+            "未识别到单一岗位名称。"
+          ],
+          "fetchedAt": "2026-09-20T08:13:42.029Z"
+        },
+        {
+          "url": "https://www.webuild.cn/join/implementation-project-engineer.html",
+          "role": "实施项目工程师",
+          "title": "实施项目工程师｜加入微筑｜微筑科技",
+          "recommendedEmail": "hr@webuild.cn",
+          "emails": [
+            {
+              "email": "hr@webuild.cn",
+              "context": "也可直接发送至 hr@webuild.cn。"
+            },
+            {
+              "email": "sales@webuild.cn",
+              "context": "后将向你的邮箱发送确认邮件。 提交申请 也可直接发送至 hr@webuild.cn。 深圳市微筑科技有限公司 400-1188-058 · sales@webuild.cn 周一至周五（节假日除外）9:00–12:00 · 13:30–18:30 微信公众号 产品 产品总览 智能感知装备 场景算法盒 机器人行动大脑 物理智能平台 方案 方案总览 安全管理 生产管控 智能"
+            }
+          ],
+          "notes": [
+            "未识别到公司名称。"
+          ],
+          "fetchedAt": "2026-09-20T08:13:42.195Z"
+        }
+      ],
+      "links": [
+        {
+          "url": "https://www.webuild.cn/join/key-account-manager.html",
+          "label": "01市场与经营大客户经理Key Account Manager面向工业、能源与公共安全等行业客户，推进需求洞察、解决方案沟通与长期合作。深圳、北京全职查看岗位 →",
+          "kind": "job",
+          "sourceUrl": "https://www.webuild.cn/join/"
+        },
+        {
+          "url": "https://www.webuild.cn/join/solutions-manager.html",
+          "label": "02解决方案与交付解决方案经理Solutions Manager围绕客户现场需求组织产品、平台与交付团队，形成可实施的解决方案。深圳、北京全职查看岗位 →",
+          "kind": "job",
+          "sourceUrl": "https://www.webuild.cn/join/"
+        },
+        {
+          "url": "https://www.webuild.cn/join/hardware-engineer.html",
+          "label": "03硬件与边缘设备硬件工程师Hardware Engineer参与智能感知与边缘设备的硬件方案、工程验证和软硬件联调，让设备能力可靠进入真实现场。北京、西安全职查看岗位 →",
+          "kind": "job",
+          "sourceUrl": "https://www.webuild.cn/join/"
+        },
+        {
+          "url": "https://www.webuild.cn/join/presales-technical-specialist.html",
+          "label": "04解决方案与交付售前技术专员Pre-sales Technical Specialist支持项目需求调研、方案材料准备和客户技术交流。深圳、北京全职查看岗位 →",
+          "kind": "job",
+          "sourceUrl": "https://www.webuild.cn/join/"
+        },
+        {
+          "url": "https://www.webuild.cn/join/hardware-project-manager.html",
+          "label": "05硬件与项目管理硬件项目经理Hardware Project Manager统筹智能硬件产品从需求澄清、研发协同到验证交付的节奏、风险与关键决策。北京全职查看岗位 →",
+          "kind": "job",
+          "sourceUrl": "https://www.webuild.cn/join/"
+        },
+        {
+          "url": "https://www.webuild.cn/join/commercial-operations-specialist.html",
+          "label": "06市场与经营商务运营专员Commercial Operations Specialist参与商务流程、合同协同和项目经营支持工作。深圳、北京全职查看岗位 →",
+          "kind": "job",
+          "sourceUrl": "https://www.webuild.cn/join/"
+        },
+        {
+          "url": "https://www.webuild.cn/join/algorithm-scientist.html",
+          "label": "07算法与软件算法专家Algorithm Scientist负责面向工业现场多模态状态感知、时序分析与智能推演的算法研发。北京、西安全职查看岗位 →",
+          "kind": "job",
+          "sourceUrl": "https://www.webuild.cn/join/"
+        },
+        {
+          "url": "https://www.webuild.cn/join/llm-algorithm-engineer.html",
+          "label": "08算法与软件大模型算法工程师LLM Algorithm Engineer负责面向业务场景的智能体、工具调用与任务编排能力研发。北京、西安全职查看岗位 →",
+          "kind": "job",
+          "sourceUrl": "https://www.webuild.cn/join/"
+        },
+        {
+          "url": "https://www.webuild.cn/join/device-driver-engineer.html",
+          "label": "09算法与软件驱动开发工程师Device Driver Engineer负责传感器与边缘设备的软件驱动、适配和调试工作。北京、西安全职查看岗位 →",
+          "kind": "job",
+          "sourceUrl": "https://www.webuild.cn/join/"
+        },
+        {
+          "url": "https://www.webuild.cn/join/software-development-engineer.html",
+          "label": "10算法与软件软件开发工程师Software Development Engineer负责工业数据采集、物联网通信与设备接入相关的软件研发。北京、西安全职查看岗位 →",
+          "kind": "job",
+          "sourceUrl": "https://www.webuild.cn/join/"
+        },
+        {
+          "url": "https://www.webuild.cn/join/qa-automation-engineer.html",
+          "label": "11算法与软件测试开发工程师QA Automation Engineer负责产品测试策略、测试用例与质量验证工具建设。北京、西安全职查看岗位 →",
+          "kind": "job",
+          "sourceUrl": "https://www.webuild.cn/join/"
+        },
+        {
+          "url": "https://www.webuild.cn/join/project-manager.html",
+          "label": "12解决方案与交付项目经理Project Manager负责项目策划、需求沟通、实施协同与交付过程管理。深圳、北京全职查看岗位 →",
+          "kind": "job",
+          "sourceUrl": "https://www.webuild.cn/join/"
+        },
+        {
+          "url": "https://www.webuild.cn/join/implementation-project-engineer.html",
+          "label": "13解决方案与交付实施项目工程师Implementation Project Engineer支持客户现场的需求分析、方案演示、产品部署与项目实施。深圳、北京全职查看岗位 →",
+          "kind": "job",
+          "sourceUrl": "https://www.webuild.cn/join/"
+        }
+      ],
+      "pagesRead": 1,
+      "notes": []
+    },
+    {
+      "company": "乐言科技",
+      "url": "https://www.leyantech.com/joinUS.html",
+      "fetchedAt": "2026-09-20T08:13:42.196Z",
+      "status": "fetched",
+      "title": "人才招聘|乐言科技【官网】",
+      "emails": [
+        {
+          "email": "talents@leyantech.com",
+          "context": "，负载均衡等。 5. 有开源项目或为开源项目提交过patch者优先。 6. 良好的沟通能力和团队协作精神，较强的主动性和责任心。 投递邮箱 talents@leyantech.com 搜索工程师 工作职责 1. 运用信息检索技术，负责聊天机器人IRQA服务架构设计实现。 2. 负责基于检索问答的大规模数据的分析和处理。 3. 负责排序建模、领域知识库挖掘、用户画像、推荐算法等具体"
+        }
+      ],
+      "recommendedEmail": "talents@leyantech.com",
+      "jobs": [],
+      "links": [
+        {
+          "url": "https://www.leyantech.com/joinUS.html",
+          "label": "人才招聘",
+          "kind": "entry",
+          "sourceUrl": "https://www.leyantech.com/joinUS.html"
+        },
+        {
+          "url": "https://app.mokahr.com/apply/leyantech/2355",
+          "label": "更多职位",
+          "kind": "apply",
+          "sourceUrl": "https://www.leyantech.com/joinUS.html"
+        }
+      ],
+      "pagesRead": 1,
+      "notes": [
+        "其他域名的招聘入口已列出，未继续抓取。可打开核对后复制该地址重新查找。"
+      ]
+    },
+    {
+      "company": "BoomingTech",
+      "url": "https://boomingtech.jobs.feishu.cn/",
+      "fetchedAt": "2026-09-20T08:13:42.525Z",
+      "status": "fetched",
+      "title": "加入BoomingTech",
+      "emails": [],
+      "recommendedEmail": "",
+      "jobs": [],
+      "links": [],
+      "pagesRead": 1,
+      "notes": [
+        "未找到可识别的招聘链接。可直接输入招聘页地址；需要登录或依赖脚本加载的职位列表暂不支持。"
+      ]
+    }
+  ]
+}

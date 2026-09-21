@@ -2,7 +2,6 @@ import type { ResumeAnalysis, TestPriority } from '@/domain/resume-schema'
 import type { InterviewSession } from '@/domain/interview-schema'
 import { ClaimList } from '@/features/audit/ClaimList'
 import { ClaimDetail } from '@/features/audit/ClaimDetail'
-import { SummaryBar } from '@/features/audit/SummaryBar'
 import type { ClaimProgress } from '@/lib/risk'
 
 type Props = {
@@ -40,11 +39,7 @@ export function ClaimAuditView({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <SummaryBar
-        claims={analysis.claims}
-        progress={progressByClaim}
-        overrides={claimPriorityOverrides}
-      />
+      <div className="flex-none border-b border-line px-5 py-3 text-[12px] text-text-secondary">选择要练习的经历，梳理回答要点。共 {analysis.claims.length} 项，已准备 {preparedClaimIds.length} 项。</div>
       {error && (
         <div className="mx-4 mt-3 rounded-lg bg-danger-soft px-4 py-2 text-[13px] text-danger">
           {error}

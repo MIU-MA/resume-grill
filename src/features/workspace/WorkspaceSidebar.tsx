@@ -4,11 +4,11 @@ import {
   History,
   Lightbulb,
   ListChecks,
-  MessagesSquare,
+
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
-  ClipboardList,
+
   FileSearch,
   Mail,
   type LucideIcon,
@@ -32,9 +32,9 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { key: 'applications', label: '邮箱投递', icon: Mail },
   { key: 'diagnosis', label: '简历检查', icon: FileSearch },
-  { key: 'audit', label: '练习清单', icon: ListChecks },
-  { key: 'interview', label: '模拟面试', icon: MessagesSquare },
-  { key: 'report', label: '面试复盘', icon: ClipboardList },
+  { key: 'audit', label: '面试练习', icon: ListChecks },
+
+
   { key: 'knowledge', label: '待复习', icon: Lightbulb },
 ]
 
@@ -94,7 +94,7 @@ export function WorkspaceSidebar({
       <nav className="flex-1 overflow-y-auto px-2 py-3" aria-label="工作区页面">
         <div className={`${collapsed ? 'flex flex-col items-center gap-1' : 'space-y-0.5'}`}>
           {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
-            const active = mode === key
+            const active = mode === key || (key === 'audit' && (mode === 'interview' || mode === 'report'))
             const badge = renderBadge(key, badges)
             return (
               <button

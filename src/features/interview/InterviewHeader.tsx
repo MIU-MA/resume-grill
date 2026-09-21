@@ -36,7 +36,7 @@ export function InterviewHeader({
           onClick={onBack}
         >
           <ArrowLeft size={15} />
-          <span className="max-[720px]:hidden">返回简历要点</span>
+          <span className="max-[720px]:hidden">返回准备内容</span>
         </button>
         <div className="min-w-0 text-center">
           <span className="text-[14px] font-semibold text-text-primary">
@@ -75,7 +75,7 @@ export function InterviewHeader({
               aria-pressed={strictMode}
               title="隐藏提示，按真实面试来回答"
             >
-              模拟面试
+              隐藏提示
             </button>
             <button
               type="button"
@@ -90,7 +90,7 @@ export function InterviewHeader({
               aria-pressed={!strictMode}
               title="显示提示和参考回答"
             >
-              边看边练
+              显示提示
             </button>
           </div>
           <span className="text-[12px] text-text-tertiary max-[900px]:hidden">

@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve, sep } from 'node:path'
 import { MailQueue } from './queue'
 import { allowedOrigins, createAgentHandler } from './server'
+import { extractCareerEmails } from './public-page'
 
 const directories: string[] = []
 afterEach(() => {
@@ -17,7 +18,11 @@ describe('local mail agent HTTP boundary', () => {
   it('requires exact origin, host, and pairing token for reads and writes', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'mail-server-test-')); directories.push(dir)
     const queue = new MailQueue(dir)
-    const options = { token: 'unit-test-pairing-token', origins: allowedOrigins(), queue: () => queue, port: 0 }
+    const reads: string[] = []
+    const options = { token: 'unit-test-pairing-token', origins: allowedOrigins(), queue: () => queue, port: 0, readPage: async (url: string) => {
+      reads.push(url)
+      return extractCareerEmails('<a href="/jobs/123">开发工程师</a>', url)
+    } }
     const server = createServer(createAgentHandler(options))
     await new Promise<void>(done => server.listen(0, '127.0.0.1', done))
     const address = server.address(); if (!address || typeof address === 'string') throw new Error('No test port')
@@ -43,6 +48,15 @@ describe('local mail agent HTTP boundary', () => {
       expect(preflight.headers.get('Access-Control-Allow-Private-Network')).toBe('true')
       const malformed = await fetch(url + '/batches', { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}' })
       expect(malformed.status).toBe(400)
+      expect(queue.snapshot().jobs).toHaveLength(0)
+      const discover = (authorization: string, input: string) => fetch(url + '/discover', { method: 'POST', headers: { ...headers, Authorization: authorization, 'Content-Type': 'application/json' }, body: JSON.stringify({ url: input }) })
+      expect((await discover('Bearer wrong', 'https://example.com')).status).toBe(401)
+      expect((await discover(headers.Authorization, 'http://127.0.0.1')).status).toBe(400)
+      expect(reads).toHaveLength(0)
+      const found = await discover(headers.Authorization, 'https://example.com')
+      expect(found.status).toBe(200)
+      expect(await found.json()).toMatchObject({ pagesRead: 1, links: [{ url: 'https://example.com/jobs/123', kind: 'job' }] })
+      expect(reads).toEqual(['https://example.com/'])
       expect(queue.snapshot().jobs).toHaveLength(0)
     } finally { await new Promise<void>(done => server.close(() => done())) }
   })

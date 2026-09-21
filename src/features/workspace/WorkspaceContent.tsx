@@ -81,6 +81,7 @@ type InterviewContent = {
 }
 
 type WorkspaceContentProps = {
+  onNavigate: (mode: Mode) => void
   mode: Mode
   analysis: ResumeAnalysis
   sessions: Record<string, InterviewSession[]>
@@ -91,7 +92,21 @@ type WorkspaceContentProps = {
   interview: InterviewContent
 }
 
-export function WorkspaceContent({
+export function WorkspaceContent(props: WorkspaceContentProps) {
+  const isPractice = ['audit', 'interview', 'report'].includes(props.mode)
+  return <div className="flex h-full min-h-0 flex-col bg-white">
+    {isPractice && <header className="flex flex-none flex-wrap items-center gap-x-8 gap-y-3 border-b border-line px-5 py-3">
+      <h1 className="m-0 text-[16px] font-semibold">面试练习</h1>
+      <nav aria-label="面试练习阶段" className="flex gap-5 text-[13px]">
+        {([{ mode: 'audit', label: '准备内容' }, { mode: 'interview', label: '开始面试' }, { mode: 'report', label: '面试复盘' }] as const).map(item => <button key={item.mode} onClick={() => props.onNavigate(item.mode)} aria-current={props.mode === item.mode ? 'page' : undefined} className={props.mode === item.mode ? 'border-b-2 border-brand py-1 font-semibold text-text-primary' : 'border-b-2 border-transparent py-1 text-text-tertiary hover:text-text-primary'}>{item.label}</button>)}
+      </nav>
+    </header>}
+    <div className="min-h-0 flex-1"><WorkspaceBody {...props} /></div>
+  </div>
+}
+
+function WorkspaceBody({
+  onNavigate,
   mode,
   analysis,
   sessions,
@@ -102,7 +117,7 @@ export function WorkspaceContent({
   interview,
 }: WorkspaceContentProps) {
   const [strictMode, setStrictMode] = useState(true)
-  const [statusOpen, setStatusOpen] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width:1200px)').matches)
+  const [statusOpen, setStatusOpen] = useState(false)
 
   if (mode === 'diagnosis') {
     return <div className="resume-workbench h-full min-h-0 bg-white">
@@ -141,7 +156,7 @@ export function WorkspaceContent({
           error={error}
           onSelect={audit.onSelect}
           onTogglePrepared={audit.onTogglePrepared}
-          onStartInterview={audit.onStartInterview}
+          onStartInterview={() => onNavigate('interview')}
           onReport={audit.onReport}
           progressByClaim={audit.progressByClaim}
           claimPriorityOverrides={audit.claimPriorityOverrides}
@@ -171,9 +186,21 @@ export function WorkspaceContent({
     )
   }
 
+  if (!interview.view.currentQuestion && !interview.view.loading && !interview.view.done && interview.view.rounds.length === 0) {
+    return <section className="h-full overflow-auto p-5 sm:p-8" aria-label="面试开始前">
+      <div className="max-w-[900px]">
+        <h2 className="mb-2 mt-0 text-[20px] font-semibold">本次练习</h2>
+        <p className="mb-6 text-[13px] text-text-secondary">围绕所选经历进行问答，提交回答后继续追问，结束后查看复盘。</p>
+        <div className="border-y border-line py-5"><p className="mb-2 mt-0 text-[12px] text-text-tertiary">已选内容</p><h3 className="my-2 text-[16px] font-semibold">{interview.selected.title}</h3><p className="mb-0 text-[14px] leading-relaxed text-text-secondary">{interview.selected.content}</p></div>
+        {error && <p role="alert" className="text-[13px] text-danger">{error}</p>}
+        <div className="mt-6 flex gap-3"><button className="border border-brand bg-brand px-5 py-2 text-[13px] text-white" onClick={audit.onStartInterview}>开始问答</button><button className="border border-line px-5 py-2 text-[13px]" onClick={interview.onBackToAudit}>更换练习内容</button></div>
+      </div>
+    </section>
+  }
+
   return (
-    <div className="h-full min-h-0 p-2.5 sm:p-3 md:p-4">
-      <div className="relative flex h-full min-h-0 overflow-hidden rounded-lg bg-white shadow-card ring-1 ring-black/[0.04]">
+    <div className="h-full min-h-0">
+      <div className="relative flex h-full min-h-0 overflow-hidden bg-white">
         {statusOpen && (
           <div className="fixed inset-0 z-30 bg-black/20 min-[1200px]:hidden" onClick={() => setStatusOpen(false)} aria-hidden="true" />
         )}

@@ -77,7 +77,9 @@ export type AgentSnapshot = {
   fatalError?: string
 }
 export type EmailCandidate = { email: string; context: string }
-export type CareerPage = { url: string; title: string; emails: EmailCandidate[]; company: string; role: string; recommendedEmail: string; notes: string[] }
+export type CareerLink = { url: string; label: string; kind: 'entry' | 'job' | 'apply'; sourceUrl: string }
+export type CareerDiscovery = { links: CareerLink[]; pagesRead: number; notes: string[] }
+export type CareerPage = { url: string; title: string; emails: EmailCandidate[]; company: string; role: string; recommendedEmail: string; notes: string[]; links?: CareerLink[] }
 
 export function applicationTemplate(name: string, company: string, role: string) {
   return {

@@ -43,7 +43,7 @@ function App() {
   useEffect(() => {
     if (restoredRef.current) return
     if (!workspace.recoveredFromStorage) return
-    if (mode !== 'interview' || !selected || interview.rounds.length > 0) return
+    if (mode !== 'interview' || !selected || interview.rounds.length > 0 || interview.currentQuestion) return
     if (interview.loading) return
     const claimSessions = workspace.sessions[selected.id] ?? []
     const inProgress = claimSessions
@@ -131,15 +131,11 @@ function App() {
         }
       }
 
-      void actions.startInterview()
+      replace('workspace', 'interview')
       return
     }
 
     replace('workspace', tab)
-
-    if (tab === 'audit') {
-      interview.reset()
-    }
 
     window.scrollTo({ top: 0, left: 0 })
   }
@@ -223,7 +219,7 @@ function App() {
       }}
       onDismissToast={() => workspace.setToast('')}
     >
-      <WorkspaceContent
+      <WorkspaceContent onNavigate={handleTabChange}
         mode={mode}
         analysis={workspace.analysis}
         sessions={workspace.sessions}
@@ -268,7 +264,6 @@ function App() {
           },
           onBackToAudit: () => {
             replace('workspace', 'audit')
-            interview.reset()
           },
         }}
       />

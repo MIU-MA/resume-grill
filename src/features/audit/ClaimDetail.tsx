@@ -42,13 +42,10 @@ export function ClaimDetail({
   onTogglePrepared,
   onStartInterview,
   progress,
-  historySessions = [],
+
   onSetPriority,
 }: ClaimDetailProps) {
   const prio = PRIORITY_META[priority]
-  const doneSessions = historySessions.filter(
-    (session) => session.status === 'done',
-  )
 
   return (
     <div className="claim-detail h-full min-h-0 overflow-y-auto p-5 md:p-8 max-[760px]:h-auto max-[760px]:overflow-visible max-[520px]:p-4">
@@ -97,48 +94,12 @@ export function ClaimDetail({
         <span className="text-text-tertiary text-[12px]">练习主题</span>
       </div>
       <div className="text-[16px] font-bold text-text-primary">{claim.capability}</div>
-      {doneSessions.length > 0 && (
-        <section className="mt-5">
-          <div className="mb-2 text-[14px] font-bold">练习记录</div>
-          <div className="divide-y divide-line">
-            {doneSessions.map((session) => (
-              <div
-                key={session.id}
-                className="flex items-center justify-between gap-4 py-2 text-[12px] text-text-secondary"
-              >
-                <span>
-                  v{session.version} · 得分{' '}
-                  {session.finalResult?.masteryScore ?? '--'}/5 · 聊到{' '}
-                  {session.rounds.at(-1)?.evaluation.coveredPoints.length ?? 0}/
-                  {claim.masteryPoints.length}
-                </span>
-                <button
-                  type="button"
-                  onClick={onReport}
-                  className="flex-none text-brand"
-                >
-                  查看复盘 →
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* 双列内容 */}
       <div className="claim-detail-grid grid gap-6 pt-6">
         {/* 左列 */}
         <div>
-          <section>
-            <div className="flex items-center gap-2 text-[14px] font-bold mb-3">
-              <MessageSquareText size={17} className="text-text-tertiary" />开场问题
-            </div>
-            <div className="rounded-lg bg-surface-soft p-5">
-              <div className="text-[15px] leading-[1.65] font-[650]">{claim.initialQuestion}</div>
-            </div>
-          </section>
-
-          <section className="mt-[26px]">
+<section>
             <div className="flex items-center gap-2 text-[14px] font-bold mb-3">
               <CircleHelp size={17} className="text-text-tertiary" />容易卡住的地方
             </div>
@@ -180,7 +141,7 @@ export function ClaimDetail({
           {prepared && <Check size={15} />}{prepared ? '已准备' : '标记为已准备'}
         </Button>
         <Button variant="primary" size="large" onClick={onStartInterview}>
-          <MessageSquareText size={16} />开始模拟面试
+          <MessageSquareText size={16} />进入面试
         </Button>
       </div>
       </div>

@@ -37,7 +37,7 @@ export function InterviewStatusPanel({ selected, roundCount, covered, strictMode
             </div>
             {strictMode ? (
               <div className="rounded-lg border border-line bg-surface-soft px-3.5 py-3 text-[12px] leading-relaxed text-text-tertiary">
-                正在模拟面试，提示内容已隐藏。切换到「边看边练」可以查看回答要点、提问原因和参考回答。
+                提示已隐藏。切换到「显示提示」可查看回答要点和参考回答。
               </div>
             ) : (
               <ol className="space-y-2">

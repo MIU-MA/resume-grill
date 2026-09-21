@@ -7,7 +7,7 @@ import type { Mode } from '@/application/types'
 import { WorkbenchFrame } from '@/components/layout/WorkbenchFrame'
 import { Button } from '@/components/ui/Button'
 import { WorkspaceSidebar, type SidebarBadges } from '@/features/workspace/WorkspaceSidebar'
-import { applicationTemplate, batchSchema, mailDraftSchema, MAIL_STATUS_LABELS, MAX_ATTACHMENT_BYTES, type CareerPage, type MailBatch, type MailDraft, type MailJob } from '@/domain/mail-schema'
+import { applicationTemplate, batchSchema, mailDraftSchema, MAIL_STATUS_LABELS, MAX_ATTACHMENT_BYTES, type CareerDiscovery, type CareerPage, type MailBatch, type MailDraft, type MailJob } from '@/domain/mail-schema'
 import { useMailAgent } from './use-mail-agent'
 import { MailSettings } from './MailSettings'
 import { MailPreview } from './MailPreview'
@@ -147,7 +147,7 @@ export function MailWorkbench({ badges, onNavigate, onHome }: { badges: SidebarB
         <Button className="h-8 px-3 text-[12px]" disabled={!readyDrafts.length || busy || snapshot?.running || pending > 0 || !!snapshot?.fatalError} onClick={() => void run(preparePreview)}>预览可投递 ({readyDrafts.length})</Button>
       </div>
       {(error || agent.connectionError || snapshot?.fatalError) && <div role="alert" className="flex-none border-b border-line bg-danger-soft px-5 py-2 text-[12px] leading-relaxed text-danger">{error || agent.connectionError || snapshot?.fatalError}</div>}
-      {tab === 'drafts' && <LinkImporter onBusy={setBusy} existingUrls={drafts.map(draft => draft.sourceUrl)} slots={20 - drafts.length} connected={!!snapshot} onConnect={() => setSettingsOpen(true)} read={url => agent.request<CareerPage>('/extract', { url })} onImported={result => {
+      {tab === 'drafts' && <LinkImporter onBusy={setBusy} existingUrls={drafts.map(draft => draft.sourceUrl)} slots={20 - drafts.length} connected={!!snapshot} onConnect={() => setSettingsOpen(true)} read={url => agent.request<CareerPage>('/extract', { url })} discover={url => agent.request<CareerDiscovery>('/discover', { url })} onImported={result => {
         const id = crypto.randomUUID()
         const draft: Draft = { id, company: result.company ?? '', role: result.role ?? '', sourceUrl: result.url, recipient: result.recommendedEmail ?? '', subject: '', body: '', sourceConfirmed: false, automatic: true, extraction: result }
         setDrafts(items => items.length >= 20 || items.some(item => item.sourceUrl === result.url) ? items : [...items, draft]); setSelectedId(id); setError('')

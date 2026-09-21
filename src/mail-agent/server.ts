@@ -5,6 +5,7 @@ import { batchSchema, smtpConfigSchema, sourceUrlSchema } from '../domain/mail-s
 import type { MailQueue } from './queue.ts'
 import { readCareerPage } from './public-page.ts'
 import { createSmtpTransport } from './smtp.ts'
+import { discoverCareers } from './career-discovery.ts'
 
 export function allowedOrigins(extra?: string) {
   const origins = new Set(['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3107', 'http://127.0.0.1:3107'])
@@ -80,11 +81,12 @@ export function createAgentHandler(options: { token: string; origins: Set<string
           break
         }
         case '/disconnect': queue.disconnect(); break
+        case '/discover':
         case '/extract': {
           if (readingPage) throw new Error('正在读取招聘页，请稍后再试')
           const { url } = z.object({ url: sourceUrlSchema }).strict().parse(body)
           readingPage = true
-          try { respond(200, await (options.readPage ?? readCareerPage)(url)) }
+          try { respond(200, req.url === '/discover' ? await discoverCareers(url, options.readPage) : await (options.readPage ?? readCareerPage)(url)) }
           finally { readingPage = false }
           return
         }

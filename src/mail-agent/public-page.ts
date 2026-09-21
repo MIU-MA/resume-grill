@@ -2,6 +2,7 @@ import { lookup } from 'node:dns/promises'
 import { request } from 'node:https'
 import ipaddr from 'ipaddr.js'
 import { load } from 'cheerio'
+import { extractCareerLinks } from './career-links.ts'
 import { emailSchema, sourceUrlSchema, type CareerPage } from '../domain/mail-schema.ts'
 
 export function isPublicAddress(address: string): boolean {
@@ -86,15 +87,16 @@ export function extractCareerEmails(html: string, url: string): CareerPage {
   if (hiring.length !== 1) notes.push(hiring.length > 1 ? '发现多个可能的招聘邮箱，请选择对应岗位的地址。' : '未识别到明确的招聘邮箱，请核对官网。')
   const subjectRequirement = rawText.match(/(?:邮件主题|邮件标题)[^\n]{0,180}/)?.[0]
   if (subjectRequirement) notes.push(`官网说明：${subjectRequirement}`)
-  return { url, title, emails, company, role, recommendedEmail: hiring.length === 1 ? hiring[0].email : '', notes }
+  return { url, title, emails, company, role, recommendedEmail: hiring.length === 1 ? hiring[0].email : '', notes, links: extractCareerLinks(html, url) }
 }
 
 const MAX_PAGE_BYTES = 2 * 1024 * 1024
-export async function readCareerPage(input: string, redirects = 0, deadline = Date.now() + 20000): Promise<CareerPage> {
+export async function readCareerPage(input: string, redirects = 0, deadline = Date.now() + 20000, allowUrl?: (url: string) => boolean): Promise<CareerPage> {
   const parsed = sourceUrlSchema.safeParse(input)
   if (!parsed.success) throw new Error('请填写官网招聘页面的 HTTPS 地址（443 端口）')
   if (redirects > 4) throw new Error('招聘页面跳转次数过多，请复制最终页面地址')
   const url = new URL(parsed.data)
+  if (allowUrl && !allowUrl(url.href)) throw new Error('链接跳转到其他网站，请从原站入口打开或复制最终地址重新查找')
   const address = await resolvePublicHost(url.hostname)
   if (Date.now() >= deadline) throw new Error('读取招聘页超时，请手动填写邮箱')
   const result = await new Promise<{ redirect?: string; html?: string }>((resolve, reject) => {
@@ -141,6 +143,6 @@ export async function readCareerPage(input: string, redirects = 0, deadline = Da
     req.once('error', reject)
     req.end()
   })
-  if (result.redirect) return readCareerPage(result.redirect, redirects + 1, deadline)
+  if (result.redirect) return readCareerPage(result.redirect, redirects + 1, deadline, allowUrl)
   return extractCareerEmails(result.html ?? '', url.href)
 }

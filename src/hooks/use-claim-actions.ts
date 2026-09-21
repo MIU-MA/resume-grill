@@ -90,6 +90,7 @@ export function useClaimActions(
 
   const selectClaim = useCallback(
     (index: number) => {
+      if (index === ws.selectedIndex) return
       ws.setSelectedIndex(index)
       replace('workspace', 'audit')
       iv.reset()
