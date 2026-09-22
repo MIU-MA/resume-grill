@@ -16,7 +16,7 @@ export function ClaimListToolbar({
   return (
     <div className="flex-none border-b border-line px-3.5 pb-2 pt-3">
       <div className="mb-2 flex items-center justify-between">
-        <strong className="text-[15px]">简历要点</strong>
+        <strong className="text-[13px] font-semibold">练习内容</strong>
         <button
           type="button"
           onClick={onToggleMulti}
@@ -31,10 +31,11 @@ export function ClaimListToolbar({
             key={value}
             type="button"
             onClick={() => onFilterChange(value)}
-            className={`whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-semibold ${
+            aria-pressed={filter === value}
+            className={`whitespace-nowrap border-b px-2 py-1 text-[12px] ${
               filter === value
-                ? 'bg-brand-soft text-brand'
-                : 'text-text-tertiary hover:bg-surface-hover hover:text-text-primary'
+                ? 'border-brand text-text-primary'
+                : 'border-transparent text-text-tertiary hover:text-text-primary'
             }`}
           >
             {label}

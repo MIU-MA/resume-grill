@@ -95,10 +95,10 @@ type WorkspaceContentProps = {
 export function WorkspaceContent(props: WorkspaceContentProps) {
   const isPractice = ['audit', 'interview', 'report'].includes(props.mode)
   return <div className="flex h-full min-h-0 flex-col bg-white">
-    {isPractice && <header className="flex flex-none flex-wrap items-center gap-x-8 gap-y-3 border-b border-line px-5 py-3">
-      <h1 className="m-0 text-[16px] font-semibold">面试练习</h1>
-      <nav aria-label="面试练习阶段" className="flex gap-5 text-[13px]">
-        {([{ mode: 'audit', label: '准备内容' }, { mode: 'interview', label: '开始面试' }, { mode: 'report', label: '面试复盘' }] as const).map(item => <button key={item.mode} onClick={() => props.onNavigate(item.mode)} aria-current={props.mode === item.mode ? 'page' : undefined} className={props.mode === item.mode ? 'border-b-2 border-brand py-1 font-semibold text-text-primary' : 'border-b-2 border-transparent py-1 text-text-tertiary hover:text-text-primary'}>{item.label}</button>)}
+    {isPractice && <header className="practice-header">
+      <h1>面试练习</h1>
+      <nav aria-label="面试练习阶段" className="practice-stages">
+        {([{ mode: 'audit', label: '准备内容' }, { mode: 'interview', label: '开始面试' }, { mode: 'report', label: '面试复盘' }] as const).map((item, index) => <button key={item.mode} onClick={() => props.onNavigate(item.mode)} aria-current={props.mode === item.mode ? 'page' : undefined}><span aria-hidden="true">0{index + 1}</span>{item.label}</button>)}
       </nav>
     </header>}
     <div className="min-h-0 flex-1"><WorkspaceBody {...props} /></div>

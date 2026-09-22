@@ -31,10 +31,9 @@ export function CareerFinder({ connected, disabled, onConnect, discover, onChoos
   const links = result?.links.filter(link => `${link.label} ${link.url}`.toLowerCase().includes(filter.toLowerCase())) ?? []
   return <div className="mt-2">
     <p className="mb-2 mt-0 text-[12px] text-text-secondary">招聘官网 · 打开后选择职位</p>
-    <div className="mb-3 grid grid-cols-2 gap-px border border-line bg-line sm:grid-cols-3 xl:grid-cols-5" aria-label="招聘官网">
-      {careerSites.map(site => <a key={site.url} href={site.url} target="_blank" rel="noopener noreferrer" className="min-w-0 bg-white px-3 py-2 hover:bg-surface-soft">
-        <div className="flex items-center justify-between gap-2 text-[13px]"><span>{site.company}</span><span className="text-text-tertiary" aria-hidden="true">↗</span></div>
-        <div className="mt-1 truncate text-[11px] text-text-tertiary">{new URL(site.url).hostname}</div>
+    <div className="career-directory" aria-label="招聘官网">
+      {careerSites.map(site => <a key={site.url} href={site.url} target="_blank" rel="noopener noreferrer" title={site.url}>
+        <span className="career-monogram" aria-hidden="true">{site.company.slice(0, 1)}</span><span className="career-company">{site.company}</span><span className="career-arrow" aria-hidden="true">↗</span>
       </a>)}
     </div>
     <div className="flex flex-wrap items-end gap-2">

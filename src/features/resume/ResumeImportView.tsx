@@ -113,7 +113,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
             {loadingRecords ? <p className="px-3 py-7 text-[13px] text-text-tertiary">正在读取本地记录…</p>
               : savedRecords.length === 0 ? <div className="px-3 py-8">
                 <p className="m-0 text-[14px] font-medium">还没有保存的简历</p>
-                <p className="mb-0 mt-2 text-[13px] leading-relaxed text-text-tertiary">导入简历、生成练习清单后，就可以在这里继续。</p>
+                <p className="mb-0 mt-2 text-[13px] leading-relaxed text-text-tertiary">导入简历并进入练习后，就可以在这里继续。</p>
               </div> : <div className="max-h-[340px] divide-y divide-line overflow-y-auto">
                 {savedRecords.map((record) => {
                   const completed = Object.values(record.sessions).flat().filter((session) => session.status === 'done').length

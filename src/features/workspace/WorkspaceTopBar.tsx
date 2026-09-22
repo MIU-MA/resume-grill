@@ -24,11 +24,6 @@ export function WorkspaceTopBar({
   return (
     <>
       <div className="flex min-w-0 items-center gap-3">
-        <img
-          src="/favicon.svg"
-          alt="简历拷打机"
-          className="size-8 flex-none max-[520px]:hidden"
-        />
         <div className="flex min-w-0 flex-col">
           <strong className="truncate text-[14px] font-bold">
             {analysis.candidate} · {analysis.role}

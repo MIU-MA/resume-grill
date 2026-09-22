@@ -28,12 +28,6 @@ const STATUS_LABEL = {
   todo: '未练习',
 } as const
 
-const PRIORITY_BORDER: Record<TestPriority, string> = {
-  high: 'border-danger',
-  medium: 'border-warning',
-  low: 'border-line-strong',
-}
-
 export function ClaimList({
   analysis,
   selectedIndex,
@@ -99,7 +93,7 @@ export function ClaimList({
         }}
       />
 
-      <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto p-2">
+      <div className="min-h-0 flex-1 divide-y divide-line overflow-y-auto">
         {visible.map(({ claim, index }) => {
           const progress = progressByClaim[claim.id]
           const active = index === selectedIndex
@@ -110,10 +104,10 @@ export function ClaimList({
           return (
             <div
               key={claim.id}
-              className={`flex items-center gap-2 border-l-[3px] px-2 py-2 ${
+              className={`flex items-center gap-2 border-l-2 px-3.5 py-3 ${
                 active && !multi
                   ? 'border-brand bg-brand-soft'
-                  : `${PRIORITY_BORDER[priority]} hover:bg-surface-hover`
+                  : 'border-l-transparent hover:bg-surface-hover'
               }`}
             >
               {multi && (
@@ -132,7 +126,7 @@ export function ClaimList({
                 className="min-w-0 flex-1 text-left"
               >
                 <span className="flex items-center gap-2">
-                  <span className="truncate text-[13px] font-medium">
+                  <span className="line-clamp-2 text-[13px] leading-relaxed font-medium">
                     {claim.content}
                   </span>
                   {progress.status === 'done' ? (
@@ -145,7 +139,7 @@ export function ClaimList({
                   ) : null}
                 </span>
                 <span className="mt-1 block truncate text-[11px] text-text-tertiary">
-                  {CLAIM_CATEGORY_LABELS[claim.category]} · {claim.capability} ·{' '}
+                  {CLAIM_CATEGORY_LABELS[claim.category]}{priority === 'high' ? ' · 重点' : ''} ·{' '}
                   {progress.status === 'done'
                     ? `${progress.covered}/${progress.total} · 得分 ${progress.latestScore}/5`
                     : STATUS_LABEL[progress.status]}

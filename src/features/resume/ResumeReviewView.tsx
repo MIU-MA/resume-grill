@@ -44,7 +44,6 @@ type ResumeReviewViewProps = {
 
 export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error, envConfigured, clientConfigured, onClientChanged, onConfirm, onBack }: ResumeReviewViewProps) {
   const [text, setText] = useState(extracted.text)
-  const [structureText, setStructureText] = useState(extracted.text)
   const [sections, setSections] = useState(() => parseResumeStructure(extracted.text))
   const [candidates, setCandidates] = useState(() => createReviewCandidates(extracted.text))
   const [tab, setTab] = useState<'diagnosis' | 'structure' | 'raw'>('diagnosis')
@@ -69,15 +68,12 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
       ),
     [sections],
   )
-  const structureChanged = text !== structureText
-
-  const refreshStructure = () => {
-    const normalized = text.trim()
-    setText(normalized)
-    setSections(parseResumeStructure(normalized))
-    setCandidates(createReviewCandidates(normalized))
-    setStructureText(normalized)
-    setTab('structure')
+  const updateText = (value: string) => {
+    setText(value)
+    setSections(parseResumeStructure(value))
+    setCandidates(createReviewCandidates(value))
+    setEditingId(null)
+    setLastDeleted(null)
   }
 
   const updateCandidate = (id: string, changes: Partial<ReviewCandidate>) => {
@@ -141,7 +137,12 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
   }
 
   const submit = () => {
-    if (selectedCandidates.length === 0 || structureChanged) return
+    if (analyzing || selectedCandidates.length === 0) return
+    if (!demo && !envConfigured && !clientConfigured) {
+      setSettingsOpen(true)
+      return
+    }
+    diagnosis.cancel()
     onConfirm({
       rawText: text.trim(),
       analysisGoal,
@@ -170,7 +171,7 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
 
       <div className="flex h-12 flex-none items-stretch gap-2 border-b border-line px-4 sm:px-6" role="tablist" aria-label="简历检查视图">
         <ReviewTab active={tab === 'diagnosis'} onClick={() => setTab('diagnosis')}>简历检查</ReviewTab>
-        <ReviewTab active={tab === 'structure'} onClick={() => setTab('structure')}>选择内容</ReviewTab>
+        <ReviewTab active={tab === 'structure'} onClick={() => setTab('structure')}>调整练习内容</ReviewTab>
         <ReviewTab active={tab === 'raw'} onClick={() => setTab('raw')}>原始文本</ReviewTab>
       </div>
 
@@ -189,12 +190,12 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
           {tab === 'diagnosis' ? (
             <ResumeDiagnosisStep diagnosis={diagnosis} configured={envConfigured || clientConfigured} demo={demo} analyzing={analyzing} jobDescription={jobDescription} onJobDescriptionChange={setJobDescription} onConfigure={() => setSettingsOpen(true)} />
           ) : tab === 'raw' ? (
-            <ResumeTextEditor text={text} structureChanged={structureChanged} analyzing={analyzing} onTextChange={setText} onRefreshStructure={refreshStructure} />
+            <ResumeTextEditor text={text} analyzing={analyzing} onTextChange={updateText} />
           ) : <>
             <div className="flex min-h-16 flex-none flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-6">
               <div className="flex items-center gap-3">
                 <button type="button" className="grid size-8 place-items-center text-text-secondary hover:bg-surface-hover min-[900px]:hidden" aria-label="打开文档目录" onClick={() => setSidebarOpen(true)}><Menu size={16} /></button>
-                <strong className="text-[14px] font-semibold">选择练习内容</strong>
+                <strong className="text-[14px] font-semibold">调整练习内容</strong>
                 <span className="text-[12px] text-text-tertiary">{selectedCandidates.length} / {candidates.length} 条</span>
               </div>
               <div className="flex items-center gap-1">
@@ -225,16 +226,16 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
 
       {error && <p role="alert" className="m-0 flex-none border-t border-line px-6 py-2 text-[12px] text-danger">{error}</p>}
       <footer className="flex min-h-14 flex-none flex-wrap items-center justify-between gap-2 border-t border-line bg-surface-soft px-4 py-2.5 sm:px-6">
-        <span className="text-[12px] text-text-tertiary">
-          {tab === 'diagnosis' ? '接下来选择想练的经历和技能' : tab === 'raw' ? (structureChanged ? '文本已修改，需重新识别结构' : '修改完成后，可以重新检查') : '已选择 ' + selectedCandidates.length + ' 条练习内容'}
+        <span className="text-[12px] text-text-tertiary" role="status">
+          {selectedCandidates.length > 0 ? `已选 ${selectedCandidates.length} 条经历与技能，可直接进入练习` : '未选择练习内容，请在调整页选择或补充原文'}
         </span>
-        {tab === 'diagnosis' ? <Button variant="primary" className="h-9 whitespace-nowrap px-4 text-[13px]" disabled={analyzing} onClick={() => { diagnosis.cancel(); setTab('structure') }}>
-          {diagnosis.report ? '选择练习内容' : '先选练习内容'}<ArrowRight size={14} />
-        </Button> : tab === 'raw' ? <Button variant="secondary" className="h-9 whitespace-nowrap px-4 text-[13px]" disabled={analyzing} onClick={() => setTab('diagnosis')}>返回简历检查</Button>
-          : <Button variant="primary" className="h-9 whitespace-nowrap px-4 text-[13px]" disabled={analyzing || diagnosis.loading || structureChanged || selectedCandidates.length === 0} onClick={submit}>
+        <div className="flex items-center gap-2">
+          {tab !== 'structure' && <Button variant="ghost" className="h-9 px-3 text-[12px]" disabled={analyzing} onClick={() => setTab('structure')}>调整内容</Button>}
+          <Button variant="primary" className="h-9 whitespace-nowrap px-4 text-[13px]" disabled={analyzing || selectedCandidates.length === 0} onClick={submit}>
             {analyzing ? <Loader2 size={14} className="animate-spin" /> : null}
-            {analyzing ? '生成中' : '生成练习清单'}{!analyzing && <ArrowRight size={14} />}
-          </Button>}
+            {analyzing ? '正在准备练习' : diagnosis.loading ? '跳过检查，进入练习' : '进入面试练习'}{!analyzing && <ArrowRight size={14} />}
+          </Button>
+        </div>
       </footer>
 
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} envConfigured={envConfigured} clientConfigured={clientConfigured} onClientChanged={onClientChanged} />
