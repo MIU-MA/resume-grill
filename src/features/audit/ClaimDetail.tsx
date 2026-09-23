@@ -2,7 +2,6 @@ import { ArrowRight, Check } from 'lucide-react'
 import { type ResumeClaim, MASTERY_DIMENSION_LABELS, type TestPriority } from '@/domain/resume-schema'
 import { Button } from '@/components/ui/Button'
 import type { ClaimProgress } from '@/lib/risk'
-import type { InterviewSession } from '@/domain/interview-schema'
 
 type ClaimDetailProps = {
   claim: ResumeClaim
@@ -12,12 +11,13 @@ type ClaimDetailProps = {
   onReport: () => void
   onTogglePrepared: () => void
   onStartInterview: () => void
+  canContinueInterview: boolean
+  interviewLoading: boolean
   progress?: ClaimProgress
-  historySessions?: InterviewSession[]
   onSetPriority?: (priority: TestPriority) => void
 }
 
-export function ClaimDetail({ claim, priority, prepared, mastery, onReport, onTogglePrepared, onStartInterview, progress, onSetPriority }: ClaimDetailProps) {
+export function ClaimDetail({ claim, priority, prepared, mastery, onReport, onTogglePrepared, onStartInterview, canContinueInterview, interviewLoading, progress, onSetPriority }: ClaimDetailProps) {
   return <div className="preparation-detail">
     <div className="preparation-scroll">
       <header className="preparation-heading">
@@ -42,13 +42,13 @@ export function ClaimDetail({ claim, priority, prepared, mastery, onReport, onTo
         <aside className="preparation-notes">
           <h3>容易卡住的地方</h3>
           {claim.trapPoints.length ? <ul>{claim.trapPoints.map(trap => <li key={trap}>{trap}</li>)}</ul> : <p>暂无补充提醒。</p>}
-          {mastery !== null && <div className="preparation-last-result"><span className="workbench-eyebrow">上次练习</span><p><strong>{mastery}</strong><span> / 5</span></p>{progress && <p>已覆盖 {progress.covered} / {progress.total} 个要点</p>}<button onClick={onReport}>查看复盘 ↗</button></div>}
         </aside>
       </div>
+      {mastery !== null && <div className="preparation-last-result"><span className="workbench-eyebrow">上次练习</span><p><strong>{mastery}</strong><span> / 5</span></p>{progress && <p>已覆盖 {progress.covered} / {progress.total} 个要点</p>}<button onClick={onReport}>查看复盘 ↗</button></div>}
     </div>
     <footer className="preparation-actions">
-      <span className="preparation-state"><span className={prepared ? 'is-ready' : ''} />{prepared ? '已准备，可以开始练习' : '准备好后，进入问答练习'}</span>
-      <div><Button variant="secondary" onClick={onTogglePrepared} aria-pressed={prepared}>{prepared && <Check size={14} />}{prepared ? '已准备' : '标记已准备'}</Button><Button onClick={onStartInterview}>进入面试<ArrowRight size={14} /></Button></div>
+      <span className="preparation-state"><span className={prepared ? 'is-ready' : ''} />{canContinueInterview ? '这项内容有未完成的练习' : '开始后直接进入第一题'}</span>
+      <div><Button variant="secondary" onClick={onTogglePrepared} aria-pressed={prepared}>{prepared && <Check size={14} />}{prepared ? '已准备' : '标记已准备'}</Button><Button onClick={onStartInterview} disabled={interviewLoading} aria-busy={interviewLoading}>{interviewLoading ? '正在处理…' : canContinueInterview ? '继续练习' : '开始练习'}<ArrowRight size={14} /></Button></div>
     </footer>
   </div>
 }

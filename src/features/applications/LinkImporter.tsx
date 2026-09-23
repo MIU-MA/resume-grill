@@ -13,7 +13,7 @@ export function LinkImporter({ existingUrls, slots, connected, onConnect, read, 
   onBusy: (value: boolean) => void
 }) {
   const [input, setInput] = useState('')
-  const [mode, setMode] = useState<'find' | 'paste'>('find')
+  const [finderOpen, setFinderOpen] = useState(false)
   const [finding, setFinding] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -44,10 +44,12 @@ export function LinkImporter({ existingUrls, slots, connected, onConnect, read, 
     } finally { setBusy(false); onBusy(false) }
   }
   return <section className="flex-none border-b border-line bg-white px-4 py-3 sm:px-5" aria-label="导入招聘链接">
-    <div className="flex flex-wrap items-center gap-4 text-[13px]" aria-label="岗位来源">{(['find', 'paste'] as const).map(value => <button key={value} className={mode === value ? 'border-b-2 border-accent pb-1 font-semibold text-text-primary' : 'border-b-2 border-transparent pb-1 text-text-tertiary'} aria-pressed={mode === value} disabled={busy || finding} onClick={() => { setMode(value); setMessage(''); setFailures([]) }}>{{ find: '招聘官网', paste: '已有招聘链接' }[value]}</button>)}</div>
-
-    <div hidden={mode !== 'find'}><CareerFinder connected={connected} disabled={busy} onConnect={onConnect} discover={discover} onBusy={value => { setFinding(value); onBusy(value) }} onChoose={urls => { setInput(urls.join('\n')); void importLinks(urls) }} /></div>
-    {mode === 'paste' && <div className="mt-2 flex items-end gap-3"><textarea aria-label="招聘链接，每行一个" className="mail-input h-[72px] flex-1 resize-y font-mono text-[12px]" placeholder="https://公司官网/招聘详情（每行一个）" disabled={busy} value={input} onChange={e => setInput(e.target.value)} /><Button loading={busy} disabled={!input.trim() || slots <= 0} onClick={() => void importLinks()}>{connected ? '整理到清单' : '连接后整理'}</Button></div>}
+    <div className="flex flex-wrap items-start gap-2">
+      <textarea aria-label="招聘链接，每行一个" className="mail-input min-h-9 flex-1 basis-full resize-y text-[12px] sm:basis-0" rows={Math.min(3, input.split('\n').length)} placeholder="粘贴招聘详情链接，多个链接每行一个" disabled={busy || finding} value={input} onChange={e => setInput(e.target.value)} />
+      <Button loading={busy} disabled={finding || !input.trim() || slots <= 0} onClick={() => void importLinks()}>{connected ? '整理到清单' : '连接后整理'}</Button>
+      <Button variant="ghost" className="px-2 text-[12px]" disabled={busy || finding} aria-expanded={finderOpen} onClick={() => setFinderOpen(value => !value)}>{finderOpen ? '收起官网' : '找招聘官网'}</Button>
+    </div>
+    <div hidden={!finderOpen}><CareerFinder connected={connected} disabled={busy} onConnect={onConnect} discover={discover} onBusy={value => { setFinding(value); onBusy(value) }} onChoose={urls => { setInput(urls.join('\n')); setFinderOpen(false); void importLinks(urls) }} /></div>
     {message && <p role="status" className="mb-0 mt-2 text-[12px] text-text-secondary">{message}</p>}
     {failures.length > 0 && <details className="mt-2 text-[12px] text-danger"><summary>查看未成功的链接</summary>{failures.map(value => <p className="break-all" key={value}>{value}</p>)}</details>}
   </section>

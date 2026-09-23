@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ResumeAnalysis, ResumeClaim, TestPriority } from '@/domain/resume-schema'
 import type { InterviewSession } from '@/domain/interview-schema'
 import { computeStats } from '@/lib/risk'
-import type { ExtractedText } from '@/lib/pdf'
+import type { PendingResume } from '@/application/types'
+import { listResumeDocuments, loadResumeDocument, type ResumeDocument } from '@/lib/resume-library'
 import {
   listRecords,
   loadRecord,
@@ -25,11 +26,7 @@ export function useResumeWorkspace(phase: Phase) {
     useLlmStatus()
 
   const [analysis, setAnalysis] = useState<ResumeAnalysis | null>(null)
-  const [pendingExtracted, setPendingExtracted] = useState<{
-    extracted: ExtractedText
-    sourceFile: string
-    demo?: boolean
-  } | null>(null)
+  const [pendingExtracted, setPendingExtracted] = useState<PendingResume | null>(null)
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [sessions, setSessions] = useState<Record<string, InterviewSession[]>>({})
   const [preparedClaimIds, setPreparedClaimIds] = useState<string[]>([])
@@ -41,6 +38,7 @@ export function useResumeWorkspace(phase: Phase) {
   const [recordId, setRecordId] = useState<string | null>(null)
   const [recovering, setRecovering] = useState(false)
   const [recoveredFromStorage, setRecoveredFromStorage] = useState(false)
+  const [savedDocuments, setSavedDocuments] = useState<ResumeDocument[]>([])
   const [savedRecords, setSavedRecords] = useState<SavedRecord[]>([])
   const [loadingRecords, setLoadingRecords] = useState(true)
   const [toast, setToast] = useState('')
@@ -53,8 +51,8 @@ export function useResumeWorkspace(phase: Phase) {
 
   const refreshSavedRecords = useCallback(() => {
     setLoadingRecords(true)
-    listRecords()
-      .then(setSavedRecords)
+    Promise.all([listRecords(), listResumeDocuments()])
+      .then(([records, documents]) => { setSavedRecords(records); setSavedDocuments(documents) })
       .catch(() => setSavedRecords([]))
       .finally(() => setLoadingRecords(false))
   }, [])
@@ -100,6 +98,20 @@ export function useResumeWorkspace(phase: Phase) {
     : 0
 
   useEffect(() => {
+    if (phase !== 'review') return
+    const id = window.sessionStorage.getItem('resume-grill:review-document')
+    if (!id) return
+    setRecovering(true)
+    loadResumeDocument(id).then(document => {
+      if (!document) return
+      setPendingExtracted({ extracted: document.extracted, sourceFile: document.sourceFile, demo: document.demo, documentId: document.id, initialReview: document.review, autoDiagnose: false })
+      setRecordId(document.recordId ?? null)
+    }).catch(e => reportStorageError('恢复简历', e)).finally(() => setRecovering(false))
+    // Only hydrate a browser reload, not a newly imported document.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
     if (phase !== 'workspace' || analysis) return
     const sid = window.sessionStorage.getItem('resume-grill:active')
     if (!sid) return
@@ -129,8 +141,8 @@ export function useResumeWorkspace(phase: Phase) {
   useEffect(() => {
     if (phase !== 'upload') return
     setLoadingRecords(true)
-    listRecords()
-      .then(setSavedRecords)
+    Promise.all([listRecords(), listResumeDocuments()])
+      .then(([records, documents]) => { setSavedRecords(records); setSavedDocuments(documents) })
       .catch(() => setSavedRecords([]))
       .finally(() => setLoadingRecords(false))
   }, [phase])
@@ -207,6 +219,8 @@ export function useResumeWorkspace(phase: Phase) {
     recovering,
     recoveredFromStorage,
     setRecoveredFromStorage,
+    savedDocuments,
+    setSavedDocuments,
     savedRecords,
     setSavedRecords,
     loadingRecords,

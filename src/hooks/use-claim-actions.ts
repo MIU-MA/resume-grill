@@ -1,14 +1,22 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import type { ResumeClaim, TestPriority } from '@/domain/resume-schema'
+import type { InterviewSession } from '@/domain/interview-schema'
 import { downloadFullReport, downloadJsonExport } from '@/lib/report'
+import { getInterviewEntry } from '@/lib/interview-entry'
+import { getLlmSettings } from '@/lib/settings'
 import { updatePreparedClaims, updateClaimPriorityOverrides } from '@/lib/storage'
 import type { AppNavigation, UseResumeWorkspace } from '@/application/types'
 
 type InterviewHandle = {
   reset: () => void
   start: (claim: ResumeClaim, opts?: { version?: number; claimContent?: string }) => Promise<void>
+  restore: (claim: ResumeClaim, session: InterviewSession) => boolean
+  activeClaimSnapshot: ResumeClaim | null
+  currentQuestion: string
+  done: boolean
+  loading: boolean
 }
 
 export function useClaimActions(
@@ -17,6 +25,7 @@ export function useClaimActions(
   navigation: AppNavigation,
 ) {
   const { replace } = navigation
+  const startingRef = useRef(false)
 
   const togglePrepared = useCallback(
     (claimId: string) => {
@@ -99,24 +108,34 @@ export function useClaimActions(
   )
 
   const startInterview = useCallback(async () => {
-    if (!ws.selected) return
+    if (!ws.selected || iv.loading || startingRef.current) return
 
-    const existingSessions = ws.sessions[ws.selected.id] ?? []
+    const entry = getInterviewEntry(ws.selected.id, ws.sessions[ws.selected.id] ?? [], iv)
+    if (entry.action === 'continue') {
+      replace('workspace', 'interview')
+      return
+    }
+    if (entry.action === 'restore') {
+      if (iv.restore(ws.selected, entry.session)) {
+        ws.setError(null)
+        replace('workspace', 'interview')
+      }
+      return
+    }
+    if (!ws.envConfigured && !getLlmSettings()) {
+      ws.setError('开始练习前，请在右上角设置中配置模型。')
+      return
+    }
 
-    const newVersion =
-      existingSessions.reduce(
-        (maxVersion, session) =>
-          Math.max(maxVersion, session.version),
-        0,
-      ) + 1
-
-    iv.reset()
-    replace('workspace', 'interview')
-
-    await iv.start(ws.selected, {
-      version: newVersion,
-    })
-  }, [ws.selected, ws.sessions, replace, iv])
+    startingRef.current = true
+    try {
+      iv.reset()
+      await iv.start(ws.selected, { version: entry.version })
+      replace('workspace', 'interview')
+    } finally {
+      startingRef.current = false
+    }
+  }, [ws, replace, iv])
 
   const startRewriteInterview = useCallback(
     (claim: ResumeClaim, rewrittenContent: string) => {

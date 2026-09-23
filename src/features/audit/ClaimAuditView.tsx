@@ -1,5 +1,4 @@
 import type { ResumeAnalysis, TestPriority } from '@/domain/resume-schema'
-import type { InterviewSession } from '@/domain/interview-schema'
 import { ClaimList } from '@/features/audit/ClaimList'
 import { ClaimDetail } from '@/features/audit/ClaimDetail'
 import type { ClaimProgress } from '@/lib/risk'
@@ -8,13 +7,14 @@ type Props = {
   analysis: ResumeAnalysis
   selectedIndex: number
   preparedClaimIds: string[]
-  sessions: Record<string, InterviewSession[]>
   error: string | null
   progressByClaim: Record<string, ClaimProgress>
   claimPriorityOverrides: Record<string, TestPriority>
   onSelect: (index: number) => void
   onTogglePrepared: (id: string) => void
   onStartInterview: () => void
+  canContinueInterview: boolean
+  interviewLoading: boolean
   onReport: () => void
   onSetClaimsPriority: (ids: string[], priority: TestPriority) => void
   onBatchTogglePrepared: (ids: string[]) => void
@@ -24,13 +24,14 @@ export function ClaimAuditView({
   analysis,
   selectedIndex,
   preparedClaimIds,
-  sessions,
   error,
   progressByClaim,
   claimPriorityOverrides,
   onSelect,
   onTogglePrepared,
   onStartInterview,
+  canContinueInterview,
+  interviewLoading,
   onReport,
   onSetClaimsPriority,
   onBatchTogglePrepared,
@@ -39,9 +40,9 @@ export function ClaimAuditView({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex-none border-b border-line px-5 py-3 text-[12px] text-text-secondary">选择要练习的经历，梳理回答要点。共 {analysis.claims.length} 项，已准备 {preparedClaimIds.length} 项。</div>
+      <div className="flex-none border-b border-line px-5 py-3 text-[12px] text-text-secondary">选择一项内容即可开始练习，回答要点可按需查看。共 {analysis.claims.length} 项。</div>
       {error && (
-        <div className="mx-4 mt-3 rounded-lg bg-danger-soft px-4 py-2 text-[13px] text-danger">
+        <div role="alert" className="mx-4 mt-3 bg-danger-soft px-4 py-2 text-[13px] text-danger">
           {error}
         </div>
       )}
@@ -68,10 +69,11 @@ export function ClaimAuditView({
             prepared={preparedClaimIds.includes(selected.id)}
             mastery={progressByClaim[selected.id]?.latestScore ?? null}
             progress={progressByClaim[selected.id]}
-            historySessions={sessions[selected.id] ?? []}
             onReport={onReport}
             onTogglePrepared={() => onTogglePrepared(selected.id)}
             onStartInterview={onStartInterview}
+            canContinueInterview={canContinueInterview}
+            interviewLoading={interviewLoading}
             onSetPriority={(priority) =>
               onSetClaimsPriority([selected.id], priority)
             }

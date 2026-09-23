@@ -12,6 +12,7 @@ import { KnowledgeView } from '@/features/knowledge/KnowledgeView'
 import type { KnowledgeItem, KnowledgeItemInput, KnowledgeItemPatch } from '@/lib/knowledge'
 import type { ClaimProgress } from '@/lib/risk'
 import { ResumeDiagnosisReport } from '@/features/resume/ResumeDiagnosisReport'
+import { getInterviewEntry } from '@/lib/interview-entry'
 
 export type InterviewViewData = {
   rounds: Array<{
@@ -106,7 +107,6 @@ export function WorkspaceContent(props: WorkspaceContentProps) {
 }
 
 function WorkspaceBody({
-  onNavigate,
   mode,
   analysis,
   sessions,
@@ -146,17 +146,19 @@ function WorkspaceBody({
   }
 
   if (mode === 'audit') {
+    const entry = getInterviewEntry(interview.selected.id, sessions[interview.selected.id] ?? [], interview.view)
     return (
       <div className="h-full min-h-0 max-[760px]:overflow-y-auto">
         <ClaimAuditView
           analysis={analysis}
           selectedIndex={audit.selectedIndex}
           preparedClaimIds={audit.preparedClaimIds}
-          sessions={sessions}
           error={error}
           onSelect={audit.onSelect}
           onTogglePrepared={audit.onTogglePrepared}
-          onStartInterview={() => onNavigate('interview')}
+          onStartInterview={audit.onStartInterview}
+          canContinueInterview={entry.action !== 'start'}
+          interviewLoading={interview.view.loading}
           onReport={audit.onReport}
           progressByClaim={audit.progressByClaim}
           claimPriorityOverrides={audit.claimPriorityOverrides}
@@ -193,7 +195,7 @@ function WorkspaceBody({
         <p className="mb-6 text-[13px] text-text-secondary">围绕所选经历进行问答，提交回答后继续追问，结束后查看复盘。</p>
         <div className="border-y border-line py-5"><p className="mb-2 mt-0 text-[12px] text-text-tertiary">已选内容</p><h3 className="my-2 text-[16px] font-semibold">{interview.selected.title}</h3><p className="mb-0 text-[14px] leading-relaxed text-text-secondary">{interview.selected.content}</p></div>
         {error && <p role="alert" className="text-[13px] text-danger">{error}</p>}
-        <div className="mt-6 flex gap-3"><button className="border border-brand bg-brand px-5 py-2 text-[13px] text-white" onClick={audit.onStartInterview}>开始问答</button><button className="border border-line px-5 py-2 text-[13px]" onClick={interview.onBackToAudit}>更换练习内容</button></div>
+        <div className="mt-6 flex gap-3"><button className="border border-brand bg-brand px-5 py-2 text-[13px] text-white" onClick={audit.onStartInterview}>开始练习</button><button className="border border-line px-5 py-2 text-[13px]" onClick={interview.onBackToAudit}>更换练习内容</button></div>
       </div>
     </section>
   }

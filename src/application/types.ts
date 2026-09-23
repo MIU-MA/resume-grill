@@ -4,6 +4,7 @@ import type { InterviewSession } from '@/domain/interview-schema'
 import type { ExtractedText } from '@/lib/pdf'
 import type { KnowledgeItem } from '@/lib/knowledge'
 import type { SavedRecord } from '@/lib/storage'
+import type { ResumeDocument } from '@/lib/resume-library'
 import type { ResumeDiagnosis } from '@/domain/resume-diagnosis'
 import type {
   AnalysisGoal,
@@ -16,6 +17,7 @@ export type ResumeReviewSubmission = {
   rawText: string
   analysisGoal: AnalysisGoal
   reviewedCandidates: ReviewedCandidate[]
+  candidateDrafts?: Array<ReviewedCandidate & { id: string; enabled: boolean }>
   jobDescription: string
   diagnosis?: ResumeDiagnosis
 }
@@ -25,6 +27,8 @@ export type AppNavigation = {
   replace: (phase: 'upload' | 'review' | 'workspace', mode?: Mode) => void
 }
 
+export type PendingResume = { extracted: ExtractedText; sourceFile: string; demo?: boolean; documentId?: string; initialReview?: ResumeReviewSubmission; autoDiagnose?: boolean }
+
 export type UseResumeWorkspace = {
   envConfigured: boolean
   clientConfigured: boolean
@@ -32,9 +36,9 @@ export type UseResumeWorkspace = {
 
   analysis: ResumeAnalysis | null
   setAnalysis: Dispatch<SetStateAction<ResumeAnalysis | null>>
-  pendingExtracted: { extracted: ExtractedText; sourceFile: string; demo?: boolean } | null
+  pendingExtracted: PendingResume | null
   setPendingExtracted: Dispatch<
-    SetStateAction<{ extracted: ExtractedText; sourceFile: string; demo?: boolean } | null>
+    SetStateAction<PendingResume | null>
   >
   selectedIndex: number
   setSelectedIndex: Dispatch<SetStateAction<number>>
@@ -53,6 +57,8 @@ export type UseResumeWorkspace = {
   recovering: boolean
   recoveredFromStorage: boolean
   setRecoveredFromStorage: Dispatch<SetStateAction<boolean>>
+  savedDocuments: ResumeDocument[]
+  setSavedDocuments: Dispatch<SetStateAction<ResumeDocument[]>>
   savedRecords: SavedRecord[]
   setSavedRecords: Dispatch<SetStateAction<SavedRecord[]>>
   loadingRecords: boolean

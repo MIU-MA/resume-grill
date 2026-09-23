@@ -1,11 +1,12 @@
 'use client'
 
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
   FileText,
   Menu,
+  Mail,
   Settings,
   Loader2,
   X,
@@ -40,24 +41,38 @@ type ResumeReviewViewProps = {
   onClientChanged: () => void
   onConfirm: (submission: ResumeReviewSubmission, sourceFile: string) => void
   onBack: () => void
+  onApplications: () => void
+  initialReview?: ResumeReviewSubmission
+  autoDiagnose?: boolean
+  onSaveReview: (review: ResumeReviewSubmission) => Promise<void>
 }
 
-export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error, envConfigured, clientConfigured, onClientChanged, onConfirm, onBack }: ResumeReviewViewProps) {
-  const [text, setText] = useState(extracted.text)
-  const [sections, setSections] = useState(() => parseResumeStructure(extracted.text))
-  const [candidates, setCandidates] = useState(() => createReviewCandidates(extracted.text))
+export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error, envConfigured, clientConfigured, onClientChanged, onConfirm, onBack, onApplications, initialReview, autoDiagnose, onSaveReview }: ResumeReviewViewProps) {
+  const [text, setText] = useState(initialReview?.rawText ?? extracted.text)
+  const [sections, setSections] = useState(() => parseResumeStructure(initialReview?.rawText ?? extracted.text))
+  const [candidates, setCandidates] = useState<ReviewCandidate[]>(() => initialReview?.candidateDrafts ?? (initialReview ? initialReview.reviewedCandidates.map((candidate, index) => ({ ...candidate, id: `saved-${index}`, enabled: true })) : createReviewCandidates(extracted.text)))
   const [tab, setTab] = useState<'diagnosis' | 'structure' | 'raw'>('diagnosis')
-  const [analysisGoal, setAnalysisGoal] = useState<AnalysisGoal>('overall')
-  const [jobDescription, setJobDescription] = useState('')
+  const [analysisGoal, setAnalysisGoal] = useState<AnalysisGoal>(initialReview?.analysisGoal ?? 'overall')
+  const [jobDescription, setJobDescription] = useState(initialReview?.jobDescription ?? '')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [goalOpen, setGoalOpen] = useState(false)
   const [jdOpen, setJdOpen] = useState(false)
   const [lastDeleted, setLastDeleted] = useState<{ candidate: ReviewCandidate; index: number } | null>(null)
-  const diagnosis = useResumeDiagnosis(text, jobDescription, envConfigured || clientConfigured, demo)
+  const diagnosis = useResumeDiagnosis(text, jobDescription, envConfigured || clientConfigured, demo, { report: initialReview?.diagnosis, autoRun: autoDiagnose })
 
-  const selectedCandidates = candidates.filter((candidate) => candidate.enabled && candidate.content.trim().length >= 2)
+  const selectedCandidates = useMemo(() => candidates.filter((candidate) => candidate.enabled && candidate.content.trim().length >= 2), [candidates])
+  const review = useMemo<ResumeReviewSubmission>(() => ({ rawText: text.trim(), analysisGoal, jobDescription: jobDescription.trim(), diagnosis: diagnosis.report ?? undefined, candidateDrafts: candidates, reviewedCandidates: selectedCandidates.map(({ content, sourceSection, lineNumber }) => ({ content: content.trim(), sourceSection, lineNumber })) }), [text, analysisGoal, jobDescription, diagnosis.report, selectedCandidates, candidates])
+  const saveRef = useRef(onSaveReview)
+  saveRef.current = onSaveReview
+  const [saveState, setSaveState] = useState<'saving' | 'saved' | 'error'>('saving')
+  useEffect(() => {
+    let active = true
+    setSaveState('saving')
+    void saveRef.current(review).then(() => { if (active) setSaveState('saved') }).catch(() => { if (active) setSaveState('error') })
+    return () => { active = false }
+  }, [review])
   const groupedCandidates = useMemo(() => groupCandidates(candidates), [candidates])
   const projectSectionTitles = useMemo(
     () =>
@@ -143,17 +158,7 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
       return
     }
     diagnosis.cancel()
-    onConfirm({
-      rawText: text.trim(),
-      analysisGoal,
-      jobDescription: jobDescription.trim(),
-      diagnosis: diagnosis.report ?? undefined,
-      reviewedCandidates: selectedCandidates.map(({ content, sourceSection, lineNumber }) => ({
-        content: content.trim(),
-        sourceSection,
-        lineNumber,
-      })),
-    }, sourceFile)
+    onConfirm(review, sourceFile)
   }
 
   return (
@@ -164,8 +169,9 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
         <span className="flex min-w-0 flex-1 items-center gap-2 text-[12px] text-text-secondary"><FileText size={14} className="flex-none max-sm:hidden" /><span className="truncate">{sourceFile}</span></span>
         <span className="flex-none text-[12px] text-text-tertiary max-md:hidden">{text.length} 字 · {extracted.pageCount} 页</span>
         <div className="flex flex-none items-center gap-1">
+          <Button aria-label="邮箱投递" className="h-8 px-2.5 text-[12px]" variant="ghost" disabled={analyzing} onClick={onApplications}><Mail size={15} /><span className="max-sm:hidden">邮箱投递</span></Button>
           <Button aria-label="模型设置" className="h-8 px-2.5 text-[12px]" variant="ghost" disabled={analyzing} onClick={() => setSettingsOpen(true)}><Settings size={15} /><span className="max-sm:hidden">模型设置</span></Button>
-          <Button aria-label="更换简历" className="h-8 px-2.5 text-[12px]" variant="ghost" onClick={onBack} disabled={analyzing}><ArrowLeft size={15} /><span className="max-sm:hidden">更换简历</span></Button>
+          <Button aria-label="返回简历库" className="h-8 px-2.5 text-[12px]" variant="ghost" onClick={onBack} disabled={analyzing}><ArrowLeft size={15} /><span className="max-sm:hidden">简历库</span></Button>
         </div>
       </header>
 
@@ -226,11 +232,11 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
 
       {error && <p role="alert" className="m-0 flex-none border-t border-line px-6 py-2 text-[12px] text-danger">{error}</p>}
       <footer className="flex min-h-14 flex-none flex-wrap items-center justify-between gap-2 border-t border-line bg-surface-soft px-4 py-2.5 sm:px-6">
-        <span className="text-[12px] text-text-tertiary" role="status">
+        <span className="flex flex-col gap-1 text-[12px] text-text-tertiary" role="status">
+          <span className={saveState === 'error' ? 'text-danger' : ''}>{saveState === 'saving' ? '正在保存到本地…' : saveState === 'saved' ? '已保存到此浏览器' : '本地保存失败，请导出检查结果备份。'}</span>
           {selectedCandidates.length > 0 ? `已选 ${selectedCandidates.length} 条经历与技能，可直接进入练习` : '未选择练习内容，请在调整页选择或补充原文'}
         </span>
         <div className="flex items-center gap-2">
-          {tab !== 'structure' && <Button variant="ghost" className="h-9 px-3 text-[12px]" disabled={analyzing} onClick={() => setTab('structure')}>调整内容</Button>}
           <Button variant="primary" className="h-9 whitespace-nowrap px-4 text-[13px]" disabled={analyzing || selectedCandidates.length === 0} onClick={submit}>
             {analyzing ? <Loader2 size={14} className="animate-spin" /> : null}
             {analyzing ? '正在准备练习' : diagnosis.loading ? '跳过检查，进入练习' : '进入面试练习'}{!analyzing && <ArrowRight size={14} />}

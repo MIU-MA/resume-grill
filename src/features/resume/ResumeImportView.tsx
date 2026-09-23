@@ -2,12 +2,15 @@
 
 import { useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, FileText, Loader2, Settings, Trash2, Upload } from 'lucide-react'
+import { ArrowRight, FileText, Loader2, Settings, Upload } from 'lucide-react'
 import { SettingsDialog } from '@/features/settings/SettingsDialog'
 import { WorkbenchFrame } from '@/components/layout/WorkbenchFrame'
 import { extractTextFromFile, type ExtractedText } from '@/lib/pdf'
 import { Button } from '@/components/ui/Button'
 import type { SavedRecord } from '@/lib/storage'
+import type { ResumeDocument } from '@/lib/resume-library'
+import { ResumeLibraryList } from './ResumeLibraryList'
+import { resumeLibraryEntries } from './resume-library-entries'
 
 const SAMPLE_RESUME = `酒寄彩叶
 全栈工程师 | 4 年 Web 开发经验
@@ -40,17 +43,20 @@ type Tab = 'file' | 'paste'
 type ResumeImportViewProps = {
   analyzing: boolean
   error: string | null
-  onExtracted: (extracted: ExtractedText, sourceFile: string, demo?: boolean) => void
+  onExtracted: (extracted: ExtractedText, sourceFile: string, demo?: boolean, originalFile?: File) => Promise<void>
   envConfigured: boolean
   clientConfigured: boolean
   onClientChanged: () => void
+  savedDocuments: ResumeDocument[]
+  onOpenDocument: (document: ResumeDocument) => void
+  onDeleteDocument: (id: string) => Promise<void>
   savedRecords: SavedRecord[]
   loadingRecords: boolean
   onOpenSaved: (record: SavedRecord) => void
   onDeleteSaved: (id: string) => Promise<void>
 }
 
-export function ResumeImportView({ analyzing, error, onExtracted, envConfigured, clientConfigured, onClientChanged, savedRecords, loadingRecords, onOpenSaved, onDeleteSaved }: ResumeImportViewProps) {
+export function ResumeImportView({ analyzing, error, onExtracted, envConfigured, clientConfigured, onClientChanged, savedRecords, savedDocuments, onOpenDocument, onDeleteDocument, loadingRecords, onOpenSaved, onDeleteSaved }: ResumeImportViewProps) {
   const [tab, setTab] = useState<Tab>('file')
   const [paste, setPaste] = useState('')
   const [fileName, setFileName] = useState<string | null>(null)
@@ -68,7 +74,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
     try {
       const extracted = await extractTextFromFile(file)
       setFileName(null)
-      onExtracted(extracted, file.name)
+      await onExtracted(extracted, file.name, false, file)
     } catch (e) {
       setParseError(e instanceof Error ? e.message : '未知错误')
     } finally {
@@ -76,15 +82,14 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
     }
   }
 
-  const handlePaste = () => {
+  const handlePaste = async () => {
     const text = paste.trim()
-    if (text.length > 0) onExtracted({ text, pageCount: 1, charCount: text.length }, '粘贴文本')
+    if (!text || parsing) return
+    setParsing(true)
+    try { await onExtracted({ text, pageCount: 1, charCount: text.length }, '粘贴文本') } finally { setParsing(false) }
   }
 
-  const handleDelete = async (record: SavedRecord) => {
-    if (!window.confirm(`确定删除「${record.analysis.candidate}」的本地记录吗？`)) return
-    await onDeleteSaved(record.id)
-  }
+  const entryCount = resumeLibraryEntries(savedRecords, savedDocuments).length
 
   return (
     <WorkbenchFrame className="workbench-library flex flex-col">
@@ -101,7 +106,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
           <div className="mb-6">
             <div className="flex items-baseline gap-3">
               <h1 id="saved-resumes-title" className="m-0 text-[24px] font-semibold tracking-tight">简历库</h1>
-              <span className="text-[13px] text-text-tertiary">{savedRecords.length} 份</span>
+              <span className="text-[13px] text-text-tertiary">{entryCount} 份</span>
             </div>
             <p className="mb-0 mt-2 text-[14px] leading-relaxed text-text-secondary">检查简历里的问题，练习面试时怎么回答。</p>
           </div>
@@ -111,27 +116,11 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
               <span>简历 / 最近更新</span><span>操作</span>
             </div>
             {loadingRecords ? <p className="px-3 py-7 text-[13px] text-text-tertiary">正在读取本地记录…</p>
-              : savedRecords.length === 0 ? <div className="px-3 py-8">
+              : entryCount === 0 ? <div className="px-3 py-8">
                 <p className="m-0 text-[14px] font-medium">还没有保存的简历</p>
-                <p className="mb-0 mt-2 text-[13px] leading-relaxed text-text-tertiary">导入简历并进入练习后，就可以在这里继续。</p>
-              </div> : <div className="max-h-[340px] divide-y divide-line overflow-y-auto">
-                {savedRecords.map((record) => {
-                  const completed = Object.values(record.sessions).flat().filter((session) => session.status === 'done').length
-                  return <div key={record.id} className="flex items-center gap-3 px-3 py-4 hover:bg-surface-soft">
-                    <FileText size={19} className="flex-none text-text-tertiary max-sm:hidden" />
-                    <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onOpenSaved(record)}>
-                      <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                        <strong className="text-[14px] font-semibold">{record.analysis.candidate}</strong>
-                        <span className="text-[12px] text-text-secondary">{record.analysis.role}</span>
-                      </span>
-                      <span className="mt-2 block truncate text-[12px] text-text-tertiary">{record.analysis.sourceFile} · {formatUpdatedAt(record.updatedAt)}</span>
-                      <span className="mt-1 block text-[12px] text-text-tertiary">{record.analysis.claims.length} 个要点 · 已练习 {completed} 次</span>
-                    </button>
-                    <button type="button" className="grid size-8 flex-none place-items-center text-text-tertiary hover:bg-danger-soft hover:text-danger" onClick={() => handleDelete(record)} title="删除本地记录" aria-label={'删除 ' + record.analysis.candidate + ' 的本地记录'}><Trash2 size={14} /></button>
-                    <button type="button" className="grid size-8 flex-none place-items-center text-text-secondary hover:bg-surface-hover" onClick={() => onOpenSaved(record)} title="继续查看" aria-label={'继续查看 ' + record.analysis.candidate + ' 的简历'}><ArrowRight size={16} /></button>
-                  </div>
-                })}
-              </div>}
+                <p className="mb-0 mt-2 text-[13px] leading-relaxed text-text-tertiary">导入后自动保存在这里，可以检查、投递或练习面试。</p>
+              </div> : <ResumeLibraryList records={savedRecords} documents={savedDocuments} onOpenRecord={onOpenSaved} onOpenDocument={onOpenDocument} onDeleteRecord={onDeleteSaved} onDeleteDocument={onDeleteDocument} />}
+
           </div>
 
           <Link href="/applications" className="mt-6 flex items-center gap-4 border-y border-line bg-surface-soft px-4 py-4 hover:bg-surface-hover">
@@ -162,13 +151,13 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
             {fileName && !parsing && <span className="max-w-full truncate text-[12px] text-text-tertiary">{fileName}</span>}
           </div> : <>
             <textarea aria-label="粘贴简历文本" className="block h-[180px] w-full resize-y border border-line-strong bg-white p-4 text-[14px] leading-[1.8] focus:border-brand" placeholder="直接粘贴简历文本…" value={paste} onChange={(event) => setPaste(event.target.value)} disabled={analyzing} />
-            <Button variant="primary" className="mt-3 w-full" disabled={analyzing || paste.trim().length === 0} onClick={handlePaste}>导入文本<ArrowRight size={14} /></Button>
+            <Button variant="primary" className="mt-3 w-full" disabled={parsing || analyzing || paste.trim().length === 0} onClick={handlePaste}>导入文本<ArrowRight size={14} /></Button>
           </>}
 
           {parseError && <p role="alert" className="mt-3 text-[13px] leading-relaxed text-danger">解析失败：{parseError}<button type="button" className="ml-2 underline" onClick={() => setParseError(null)}>关闭</button></p>}
           {error && <p role="alert" className="mt-3 text-[13px] leading-relaxed text-danger">{error}</p>}
-          <Button variant="ghost" className="mt-4 w-full text-[13px]" disabled={parsing || analyzing} onClick={() => onExtracted({ text: SAMPLE_RESUME, pageCount: 1, charCount: SAMPLE_RESUME.length }, '示例简历.txt', true)}><FileText size={14} />试用示例简历</Button>
-          <p className="mb-0 mt-5 border-t border-line pt-4 text-[12px] leading-[1.8] text-text-tertiary">文件在本地读取。配置模型后，导入会自动检查简历，全文将经本站发送给所选模型服务商，可能产生调用费用。</p>
+          <Button variant="ghost" className="mt-4 w-full text-[13px]" disabled={parsing || analyzing} onClick={async () => { setParsing(true); try { await onExtracted({ text: SAMPLE_RESUME, pageCount: 1, charCount: SAMPLE_RESUME.length }, '示例简历.txt', true) } finally { setParsing(false) } }}><FileText size={14} />试用示例简历</Button>
+          <p className="mb-0 mt-5 border-t border-line pt-4 text-[12px] leading-[1.8] text-text-tertiary">原文件和提取文字保存在当前浏览器。配置模型后，首次导入会自动检查简历，全文将经本站发送给所选模型服务商，可能产生调用费用。</p>
         </section>
       </div>
       <footer className="flex flex-none flex-wrap items-center justify-between gap-2 border-t border-line px-5 py-3 text-[12px] text-text-tertiary sm:px-7">
@@ -178,13 +167,4 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} envConfigured={envConfigured} clientConfigured={clientConfigured} onClientChanged={onClientChanged} />
     </WorkbenchFrame>
   )
-}
-
-function formatUpdatedAt(timestamp: number): string {
-  return new Intl.DateTimeFormat('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(timestamp)
 }

@@ -4,16 +4,16 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { resumeDiagnosisSchema, type ResumeDiagnosis } from '@/domain/resume-diagnosis'
 import { getLlmSettings } from '@/lib/settings'
 
-export function useResumeDiagnosis(rawText: string, jobDescription: string, enabled: boolean, demo: boolean) {
+export function useResumeDiagnosis(rawText: string, jobDescription: string, enabled: boolean, demo: boolean, initial?: { report?: ResumeDiagnosis; autoRun?: boolean }) {
   const input = { rawText: rawText.trim(), jobDescription: jobDescription.trim() }
   const latestInput = useRef(input)
   latestInput.current = input
-  const [result, setResult] = useState<{ rawText: string; jobDescription: string; report: ResumeDiagnosis } | null>(null)
+  const [result, setResult] = useState<{ rawText: string; jobDescription: string; report: ResumeDiagnosis } | null>(() => initial?.report ? { ...input, report: initial.report } : null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const controller = useRef<AbortController | null>(null)
   const requestId = useRef(0)
-  const autoStarted = useRef(false)
+  const autoStarted = useRef(Boolean(initial?.report) || initial?.autoRun === false)
 
   const invalidate = useCallback(() => {
     requestId.current++

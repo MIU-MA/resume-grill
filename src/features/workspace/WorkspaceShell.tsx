@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
+import { useSidebarCollapsed } from '@/hooks/use-sidebar-collapsed'
 import { Menu } from 'lucide-react'
 import type { ResumeAnalysis } from '@/domain/resume-schema'
 import type { Mode } from '@/application/types'
@@ -40,15 +41,7 @@ export function WorkspaceShell(props: Props) {
   const [navOpen, setNavOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [navCollapsed, setNavCollapsed] = useState(readNavCollapsed)
-
-  const toggleCollapsed = () => {
-    setNavCollapsed((value) => {
-      const next = !value
-      saveNavCollapsed(next)
-      return next
-    })
-  }
+  const [navCollapsed, toggleCollapsed] = useSidebarCollapsed()
 
   const openHistory = () => {
     props.refreshSavedRecords()
@@ -130,23 +123,4 @@ export function WorkspaceShell(props: Props) {
       />
     </WorkbenchFrame>
   )
-}
-
-const NAV_COLLAPSED_KEY = 'resume-grill:nav-collapsed'
-
-function readNavCollapsed() {
-  if (typeof window === 'undefined') return false
-  try {
-    return window.localStorage.getItem(NAV_COLLAPSED_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-
-function saveNavCollapsed(collapsed: boolean) {
-  try {
-    window.localStorage.setItem(NAV_COLLAPSED_KEY, collapsed ? '1' : '0')
-  } catch {
-    // 无法使用本地存储时，当前页面内的折叠状态仍然可用。
-  }
 }

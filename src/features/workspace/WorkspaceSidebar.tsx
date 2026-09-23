@@ -1,14 +1,15 @@
 'use client'
 
+import { useId, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
+
 import {
   History,
   Lightbulb,
   ListChecks,
-
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
-
   FileSearch,
   Mail,
   type LucideIcon,
@@ -33,8 +34,6 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'applications', label: '邮箱投递', icon: Mail },
   { key: 'diagnosis', label: '简历检查', icon: FileSearch },
   { key: 'audit', label: '面试练习', icon: ListChecks },
-
-
   { key: 'knowledge', label: '待复习', icon: Lightbulb },
 ]
 
@@ -64,98 +63,50 @@ export function WorkspaceSidebar({
   onClose,
 }: WorkspaceSidebarProps) {
   const isDock = variant === 'dock'
+  const compact = useSyncExternalStore(subscribeCompact, getCompactSnapshot, () => false)
+  const iconOnly = isDock && (collapsed || compact)
 
   const handleNavigate = (tab: Mode) => {
     onNavigate(tab)
     if (!isDock) onClose?.()
   }
 
-  const content = (
-    <>
-      {/* 品牌区 */}
-      <div className={`workspace-brand flex h-14 flex-none items-center gap-2.5 border-b border-line px-4 ${collapsed ? 'justify-center px-0' : ''}`}>
-        <button
-          type="button"
-          onClick={onOpenHistory}
-          className="flex size-7 flex-none items-center justify-center overflow-hidden rounded-lg bg-white shadow-[0_1px_3px_rgba(16,24,40,0.05)]"
-          title="打开历史简历"
-        >
-          <img src="/favicon.svg" alt="简历拷打机" className="size-6" />
-        </button>
-        {!collapsed && (
-          <div className="workspace-nav-label flex min-w-0 flex-col">
-            <strong className="truncate text-[14px] font-bold tracking-[-0.01em]">Resume Grill</strong>
-            <span className="text-[11px] text-text-tertiary truncate">求职工作台</span>
-          </div>
-        )}
+  const content = <>
+    <div className={`workspace-brand flex h-14 flex-none items-center gap-2.5 border-b border-line ${iconOnly ? 'justify-center px-2' : 'px-4'}`}>
+      <button type="button" onClick={onOpenHistory} className="flex size-7 flex-none items-center justify-center" aria-label="打开简历库">
+        <img src="/favicon.svg" alt="" className="size-6" />
+      </button>
+      {!iconOnly && <div className="workspace-nav-label flex min-w-0 flex-col"><strong className="truncate text-[14px] font-bold">Resume Grill</strong><span className="truncate text-[11px] text-text-tertiary">求职工作台</span></div>}
+    </div>
+    <nav className="min-h-0 flex-1 overflow-y-auto px-2 py-3" aria-label="工作区页面">
+      <div className="space-y-0.5">
+        {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
+          const active = mode === key || (key === 'audit' && (mode === 'interview' || mode === 'report'))
+          const badge = renderBadge(key, badges)
+          return <SidebarButton key={key} label={label} iconOnly={iconOnly} active={active} onClick={() => handleNavigate(key)}>
+            {active && <span aria-hidden="true" className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 bg-brand" />}
+            <Icon size={16} className="flex-none" aria-hidden="true" />
+            {!iconOnly && <span className="workspace-nav-label min-w-0 truncate">{label}</span>}
+            {!iconOnly && badge && <span className="workspace-nav-label ml-auto">{badge}</span>}
+          </SidebarButton>
+        })}
       </div>
-
-      {/* 导航区 */}
-      <nav className="flex-1 overflow-y-auto px-2 py-3" aria-label="工作区页面">
-        <div className={`${collapsed ? 'flex flex-col items-center gap-1' : 'space-y-0.5'}`}>
-          {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
-            const active = mode === key || (key === 'audit' && (mode === 'interview' || mode === 'report'))
-            const badge = renderBadge(key, badges)
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => handleNavigate(key)}
-                className={`workspace-nav-row group relative flex w-full items-center gap-2.5 px-2.5 py-2 text-[13px] font-medium transition-colors ${
-                  collapsed ? 'justify-center px-0' : ''
-                } ${
-                  active
-                    ? 'bg-surface-hover text-text-primary'
-                    : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
-                }`}
-                title={label}
-                aria-label={label}
-                aria-current={active ? 'page' : undefined}
-              >
-                {active && <span className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-brand" />}
-                <Icon size={16} className={`flex-none ${active ? 'text-brand' : 'text-text-tertiary group-hover:text-text-secondary'}`} />
-                {!collapsed && <span className="workspace-nav-label min-w-0 truncate">{label}</span>}
-                {!collapsed && badge && <span className="workspace-nav-label ml-auto">{badge}</span>}
-              </button>
-            )
-          })}
-        </div>
-      </nav>
-
-      {/* 底部固定区 */}
-      <div className="flex-none space-y-0.5 border-t border-line px-2 py-2">
-        <button
-          type="button"
-          onClick={onOpenHistory}
-          className={`workspace-nav-row flex w-full items-center gap-2.5 px-2.5 py-2 text-[13px] font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary ${collapsed ? 'justify-center px-0' : ''}`}
-          title="历史简历"
-          aria-label="历史简历"
-        >
-          <History size={16} className="flex-none text-text-tertiary" />
-          {!collapsed && <span className="workspace-nav-label">历史简历</span>}
-        </button>
-        <button
-          type="button"
-          onClick={onOpenSettings}
-          className={`workspace-nav-row flex w-full items-center gap-2.5 px-2.5 py-2 text-[13px] font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary ${collapsed ? 'justify-center px-0' : ''}`}
-          title={mode === 'applications' ? '邮箱设置' : '模型设置'}
-          aria-label={mode === 'applications' ? '邮箱设置' : '模型设置'}
-        >
-          <Settings size={16} className="flex-none text-text-tertiary" />
-          {!collapsed && <span className="workspace-nav-label">{mode === 'applications' ? '邮箱设置' : '模型设置'}</span>}
-        </button>
-        <button
-          type="button"
-          onClick={onToggleCollapsed}
-          className={`hidden w-full items-center gap-2.5 px-2.5 py-2 text-[13px] font-medium text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text-primary min-[1200px]:flex ${collapsed ? 'justify-center px-0' : ''}`}
-          title={collapsed ? '展开导航' : '收起导航'}
-        >
-          {collapsed ? <PanelLeftOpen size={16} className="flex-none" /> : <PanelLeftClose size={16} className="flex-none" />}
-          {!collapsed && <span>收起导航</span>}
-        </button>
-      </div>
-    </>
-  )
+    </nav>
+    <div className="flex-none space-y-0.5 border-t border-line px-2 py-2">
+      <SidebarButton label="简历库" iconOnly={iconOnly} onClick={onOpenHistory}>
+        <History size={16} className="flex-none" aria-hidden="true" />
+        {!iconOnly && <span className="workspace-nav-label">简历库</span>}
+      </SidebarButton>
+      <SidebarButton label={mode === 'applications' ? '邮箱设置' : '模型设置'} iconOnly={iconOnly} onClick={onOpenSettings}>
+        <Settings size={16} className="flex-none" aria-hidden="true" />
+        {!iconOnly && <span className="workspace-nav-label">{mode === 'applications' ? '邮箱设置' : '模型设置'}</span>}
+      </SidebarButton>
+      <SidebarButton label={collapsed ? '展开导航' : '收起导航'} iconOnly={iconOnly} onClick={onToggleCollapsed} className="hidden min-[1200px]:flex">
+        {collapsed ? <PanelLeftOpen size={16} className="flex-none" aria-hidden="true" /> : <PanelLeftClose size={16} className="flex-none" aria-hidden="true" />}
+        {!iconOnly && <span>收起导航</span>}
+      </SidebarButton>
+    </div>
+  </>
 
   if (!isDock) {
     return (
@@ -172,6 +123,7 @@ export function WorkspaceSidebar({
             open ? 'translate-x-0' : '-translate-x-full'
           }`}
           aria-hidden={!open}
+          inert={!open}
         >
           {content}
         </aside>
@@ -182,7 +134,7 @@ export function WorkspaceSidebar({
   return (
     <aside
       className={`workspace-dock hidden flex-none flex-col border-r border-line bg-surface-soft transition-[width] duration-200 md:flex ${
-        collapsed ? 'w-[56px]' : 'w-[clamp(184px,8.4vw,216px)]'
+        iconOnly ? 'w-[56px]' : 'w-[clamp(184px,8.4vw,216px)]'
       }`}
     >
       {content}
@@ -210,4 +162,49 @@ function renderBadge(key: Mode, badges: SidebarBadges) {
     default:
       return null
   }
+}
+
+
+const COMPACT_QUERY = '(min-width: 768px) and (max-width: 1199px)'
+function getCompactSnapshot() { return window.matchMedia(COMPACT_QUERY).matches }
+function subscribeCompact(onChange: () => void) {
+  const media = window.matchMedia(COMPACT_QUERY)
+  media.addEventListener('change', onChange)
+  return () => media.removeEventListener('change', onChange)
+}
+
+function SidebarButton({ label, iconOnly, active = false, onClick, className = '', children }: {
+  label: string; iconOnly: boolean; active?: boolean; onClick: () => void; className?: string; children: ReactNode
+}) {
+  const tooltipId = useId()
+  const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
+  const show = (button: HTMLButtonElement) => {
+    if (!iconOnly) return
+    const rect = button.getBoundingClientRect()
+    setPosition({ left: rect.right + 12, top: Math.max(8, Math.min(rect.top + rect.height / 2 - 17, window.innerHeight - 42)) })
+  }
+  useEffect(() => { setPosition(null) }, [iconOnly])
+  useEffect(() => {
+    if (!position) return
+    const hide = () => setPosition(null)
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') hide() }
+    window.addEventListener('resize', hide)
+    window.addEventListener('scroll', hide, true)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('resize', hide)
+      window.removeEventListener('scroll', hide, true)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [position])
+  return <>
+    <button type="button" className={`workspace-nav-row relative flex min-h-9 w-full items-center py-2 text-[13px] font-medium ${iconOnly ? 'justify-center px-0' : 'gap-2.5 px-2.5'} ${className}`}
+      aria-label={label} aria-current={active ? 'page' : undefined} aria-describedby={iconOnly && position ? tooltipId : undefined}
+      onMouseEnter={event => show(event.currentTarget)} onMouseLeave={() => setPosition(null)}
+      onFocus={event => show(event.currentTarget)} onBlur={() => setPosition(null)}
+      onClick={() => { setPosition(null); onClick() }}>
+      {children}
+    </button>
+    {iconOnly && position && createPortal(<span id={tooltipId} role="tooltip" className="workspace-nav-tooltip" style={position}>{label}</span>, document.body)}
+  </>
 }

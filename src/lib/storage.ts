@@ -1,9 +1,10 @@
 'use client'
 
-import { get, set, del, keys } from 'idb-keyval'
+import { get, set, del, keys, update } from 'idb-keyval'
 import { createClaimId, type ResumeAnalysis, type ResumeClaim, type TestPriority } from '@/domain/resume-schema'
 import type { InterviewSession } from '@/domain/interview-schema'
 import { isExcludedClaimContent } from '@/lib/claim-filter'
+import type { ResumeReviewSubmission } from '@/application/types'
 import type { KnowledgeItem } from '@/lib/knowledge'
 
 export type SavedRecord = {
@@ -35,6 +36,15 @@ export function resumeContentKey(rawText: string | undefined | null): string {
 export async function saveRecord(record: SavedRecord): Promise<void> {
   if (typeof window === 'undefined') return
   await set(record.id, record)
+}
+
+/** Only attach a diagnosis to an interview record for exactly the same inputs. */
+export async function updateRecordDiagnosis(id: string, review: ResumeReviewSubmission): Promise<void> {
+  if (typeof window === 'undefined') return
+  await update<SavedRecord | undefined>(id, record => {
+    if (!record || record.analysis.rawText !== review.rawText || (record.analysis.jobDescription ?? '') !== review.jobDescription) return record
+    return { ...record, analysis: { ...record.analysis, diagnosis: review.diagnosis } }
+  })
 }
 
 export async function loadRecord(id: string): Promise<SavedRecord | undefined> {

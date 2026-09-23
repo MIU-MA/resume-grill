@@ -97,7 +97,11 @@ button { cursor: pointer; }
 
 /* Flat workbench surfaces: hierarchy comes from spacing, rules and restrained tint. */
 .workspace-dock { background: #f5f6f8; }
-.workspace-nav-row[aria-current="page"] { background: #e8edf2; color: #263e54; }
+.workspace-nav-row { color: var(--color-text-secondary); transition: background-color .12s, color .12s; }
+.workspace-nav-row:hover, .workspace-nav-row:focus-visible { background: #e7ebf0; color: #263e54; }
+.workspace-nav-row[aria-current="page"] { background: #e0e7ef; color: #263e54; }
+.workspace-nav-row[aria-current="page"]:hover { background: #d8e1eb; }
+.workspace-nav-tooltip { position: fixed; z-index: 80; pointer-events: none; border: 1px solid #cdd4dc; background: #fff; color: #263e54; padding: 7px 11px; font-size: 12px; line-height: 18px; white-space: nowrap; }
 .practice-header { display: flex; flex: none; align-items: center; gap: 36px; min-height: 66px; padding: 0 28px; border-bottom: 1px solid var(--color-line); }
 .practice-header h1 { margin: 0; font-size: 18px; font-weight: 650; letter-spacing: -.025em; }
 .practice-stages { display: flex; align-self: stretch; gap: 28px; }
@@ -157,15 +161,6 @@ button { cursor: pointer; }
 }
 @media (max-width: 480px) { .career-directory { grid-template-columns: repeat(2, minmax(0, 1fr)); } .career-directory > a { gap: 7px; padding: 8px; } }
 
-@media (min-width: 768px) and (max-width: 1199px) {
-  .workspace-dock { width: 56px; }
-  .workspace-dock .workspace-nav-label { display: none; }
-  .workspace-dock .workspace-nav-row,
-  .workspace-dock .workspace-brand {
-    justify-content: center;
-    padding-inline: 0;
-  }
-}
 
 @container claim-detail (min-width: 800px) {
   .claim-detail-grid { grid-template-columns: minmax(0, 1.15fr) minmax(260px, .85fr); }

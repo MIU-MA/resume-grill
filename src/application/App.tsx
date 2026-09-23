@@ -144,7 +144,7 @@ function App() {
 
   if (mode === 'applications') return <MailWorkbench badges={sidebarBadges} onNavigate={tab => workspace.analysis ? handleTabChange(tab) : push('upload')} onHome={() => push('upload')} />
 
-  if (phase === 'upload' || !workspace.analysis || !selected || !stats) {
+  if (phase === 'upload' || phase === 'review' || !workspace.analysis || !selected || !stats) {
     if (phase === 'review' && workspace.pendingExtracted) {
       return (
         <ResumeReviewView
@@ -158,6 +158,10 @@ function App() {
           clientConfigured={workspace.clientConfigured}
           onClientChanged={workspace.refreshClientLlm}
           onConfirm={analysis.handleConfirmText}
+          initialReview={workspace.pendingExtracted.initialReview}
+          autoDiagnose={workspace.pendingExtracted.autoDiagnose}
+          onSaveReview={analysis.saveReview}
+          onApplications={() => push('workspace', 'applications')}
           onBack={analysis.replaceResume}
         />
       )
@@ -166,13 +170,16 @@ function App() {
       <ResumeImportView
         analyzing={analysis.analyzing}
         error={workspace.error}
-        onExtracted={analysis.handleExtracted}
+        onExtracted={(...args) => { interview.reset(); return analysis.handleExtracted(...args) }}
         envConfigured={workspace.envConfigured}
         clientConfigured={workspace.clientConfigured}
         onClientChanged={workspace.refreshClientLlm}
+        savedDocuments={workspace.savedDocuments}
+        onOpenDocument={document => { interview.reset(); analysis.openResumeDocument(document) }}
+        onDeleteDocument={analysis.removeResumeDocument}
         savedRecords={workspace.savedRecords}
         loadingRecords={workspace.loadingRecords}
-        onOpenSaved={analysis.openSavedRecord}
+        onOpenSaved={record => { interview.reset(); analysis.openSavedRecord(record) }}
         onDeleteSaved={analysis.removeSavedRecord}
       />
     )
@@ -202,6 +209,7 @@ function App() {
         ) {
           return false
         }
+        interview.reset()
         analysis.openSavedRecord(record)
         return true
       }}
