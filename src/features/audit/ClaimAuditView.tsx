@@ -60,7 +60,7 @@ export function ClaimAuditView({
             onSetClaimsPriority={onSetClaimsPriority}
           />
         </aside>
-        <article className="min-h-0 overflow-hidden bg-white max-[760px]:overflow-visible">
+        <article className="min-h-0 overflow-hidden bg-surface max-[760px]:overflow-visible">
           <ClaimDetail
             claim={selected}
             priority={

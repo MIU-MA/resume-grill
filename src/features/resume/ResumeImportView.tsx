@@ -123,13 +123,13 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
 
           </div>
 
-          <Link href="/applications" className="mt-6 flex items-center gap-4 border-y border-line bg-surface-soft px-4 py-4 hover:bg-surface-hover">
+          <Link href="/applications" className="library-mail-link mt-6 flex items-center gap-4 border-y px-4 py-4">
             <div className="min-w-0 flex-1"><strong className="text-[14px] font-medium">去投递简历</strong><p className="mb-0 mt-1 text-[12px] leading-relaxed text-text-secondary">粘贴官网招聘链接，批量整理邮件并发送。</p></div>
             <ArrowRight size={17} className="shrink-0 text-text-secondary" />
           </Link>
         </section>
 
-        <section className="order-1 min-w-0 border-b border-line bg-surface-soft px-5 py-6 sm:p-7 min-[900px]:order-2 min-[900px]:border-b-0 min-[900px]:border-l" aria-label="导入简历">
+        <section className="library-import order-1 min-w-0 border-b border-line bg-surface-soft px-5 py-6 sm:p-7 min-[900px]:order-2 min-[900px]:border-b-0 min-[900px]:border-l" aria-label="导入简历">
           <h2 className="m-0 text-[18px] font-semibold">导入简历</h2>
           <p className="mb-5 mt-2 text-[13px] text-text-tertiary">选择文件，或直接粘贴文本。</p>
           <div className="mb-4 flex border-b border-line" role="tablist" aria-label="导入方式">
@@ -137,16 +137,16 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
           </div>
 
           {tab === 'file' ? <div
-            className={['flex min-h-[180px] flex-col items-center justify-center gap-4 border border-dashed bg-white px-4 py-6 text-center', dragOver ? 'border-brand bg-brand-soft' : 'border-line-strong'].join(' ')}
+            className={['library-dropzone flex min-h-[180px] flex-col items-center justify-center gap-4 border border-dashed bg-white px-4 py-6 text-center', dragOver ? 'border-brand bg-brand-soft' : 'border-line-strong'].join(' ')}
             onDragOver={(event) => { event.preventDefault(); setDragOver(true) }}
             onDragEnter={(event) => { event.preventDefault(); setDragOver(true) }}
             onDragLeave={(event) => { event.preventDefault(); setDragOver(false) }}
             onDrop={(event) => { event.preventDefault(); setDragOver(false); if (!parsing && !analyzing) { const file = event.dataTransfer.files?.[0]; if (file) void handleFile(file) } }}
           >
             <input ref={fileInput} type="file" accept=".pdf,.txt,.md,.docx" hidden disabled={parsing || analyzing} onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleFile(file) }} />
-            {parsing ? <Loader2 size={24} className="animate-spin text-brand" /> : <Upload size={24} className="text-text-tertiary" />}
+            {parsing ? <Loader2 size={24} className="animate-spin text-brand" /> : <Upload size={24} className="text-brand" />}
             <p className="m-0 text-[14px]">{parsing ? '正在解析文件…' : '拖拽文件到这里'}</p>
-            <Button variant="secondary" className="h-8 text-[12px]" disabled={parsing || analyzing} onClick={() => fileInput.current?.click()}>选择文件</Button>
+            <Button variant="primary" className="h-8 text-[12px]" disabled={parsing || analyzing} onClick={() => fileInput.current?.click()}>选择文件</Button>
             <span className="text-[11px] text-text-tertiary">PDF / DOCX / TXT / Markdown</span>
             {fileName && !parsing && <span className="max-w-full truncate text-[12px] text-text-tertiary">{fileName}</span>}
           </div> : <>

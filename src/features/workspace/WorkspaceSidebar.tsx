@@ -84,7 +84,7 @@ export function WorkspaceSidebar({
           const active = mode === key || (key === 'audit' && (mode === 'interview' || mode === 'report'))
           const badge = renderBadge(key, badges)
           return <SidebarButton key={key} label={label} iconOnly={iconOnly} active={active} onClick={() => handleNavigate(key)}>
-            {active && <span aria-hidden="true" className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 bg-brand" />}
+            {active && <span aria-hidden="true" className="workspace-nav-marker absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2" />}
             <Icon size={16} className="flex-none" aria-hidden="true" />
             {!iconOnly && <span className="workspace-nav-label min-w-0 truncate">{label}</span>}
             {!iconOnly && badge && <span className="workspace-nav-label ml-auto">{badge}</span>}
@@ -119,7 +119,7 @@ export function WorkspaceSidebar({
           aria-hidden="true"
         />
         <aside
-          className={`fixed inset-y-0 left-0 z-50 flex w-[264px] flex-col border-r border-line bg-white transition-transform duration-200 md:hidden ${
+          className={`workspace-drawer fixed inset-y-0 left-0 z-50 flex w-[264px] flex-col border-r border-line bg-white transition-transform duration-200 md:hidden ${
             open ? 'translate-x-0' : '-translate-x-full'
           }`}
           aria-hidden={!open}
@@ -145,10 +145,7 @@ export function WorkspaceSidebar({
 function renderBadge(key: Mode, badges: SidebarBadges) {
   switch (key) {
     case 'audit':
-      if (badges.highUntested > 0) {
-        return <span className="ml-auto inline-flex min-w-[18px] items-center justify-center rounded-full bg-danger-soft px-1.5 py-0.5 text-[10px] font-bold text-danger">{badges.claimTotal}</span>
-      }
-      return <span className="ml-auto inline-flex min-w-[18px] items-center justify-center rounded-full bg-surface-hover px-1.5 py-0.5 text-[10px] font-bold text-text-tertiary">{badges.claimTotal}</span>
+      return <span className="workspace-nav-count">{badges.claimTotal}</span>
     case 'interview':
       return badges.testingActive > 0
         ? <span className="ml-auto size-2 rounded-full bg-warning" title={`${badges.testingActive} 个进行中`} />
@@ -157,7 +154,7 @@ function renderBadge(key: Mode, badges: SidebarBadges) {
       return <span className="ml-auto text-[11px] font-semibold text-text-tertiary">{badges.testedDone}/{badges.claimTotal}</span>
     case 'knowledge':
       return badges.knowledgeOpen > 0
-        ? <span className="ml-auto inline-flex min-w-[18px] items-center justify-center rounded-full bg-warning-soft px-1.5 py-0.5 text-[10px] font-bold text-warning">{badges.knowledgeOpen}</span>
+        ? <span className="workspace-nav-count">{badges.knowledgeOpen}</span>
         : null
     default:
       return null

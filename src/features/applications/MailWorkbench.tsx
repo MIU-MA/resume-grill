@@ -21,6 +21,9 @@ type AttachmentSource = { id: string; updatedAt: number }
 type LibraryAttachment = Awaited<ReturnType<typeof listResumeAttachments>>[number]
 type DraftStore = { drafts: Draft[]; attachment: File | null; attachmentSource?: AttachmentSource; websiteApplications?: WebsiteApplication[] }
 const STORAGE_KEY = 'mail-workbench:drafts:v1'
+const MAIL_STATUS_TONES = {
+  queued: 'info', sending: 'info', sent: 'success', failed: 'danger', uncertain: 'danger', cancelled: 'neutral',
+} satisfies Record<MailJob['status'], 'info' | 'success' | 'danger' | 'neutral'>
 function isJob(value: Draft | MailJob | WebsiteApplication): value is MailJob { return 'status' in value }
 function isWebsite(value: Draft | MailJob | WebsiteApplication): value is WebsiteApplication { return 'channel' in value && value.channel === 'website' }
 function savedDate(value: number) { return new Date(value).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) }
@@ -163,7 +166,7 @@ export function MailWorkbench({ badges, onNavigate, onHome }: { badges: SidebarB
   return <WorkbenchFrame className="flex">
     <WorkspaceSidebar mode="applications" collapsed={collapsed} onToggleCollapsed={toggleCollapsed} onNavigate={onNavigate} badges={badges} onOpenHistory={onHome} onOpenSettings={() => setSettingsOpen('sender')} variant="dock" />
     <main className="flex min-w-0 flex-1 flex-col">
-      <header className="flex h-14 flex-none items-center gap-3 border-b border-line px-4 sm:px-5">
+      <header className="workspace-section-heading flex h-14 flex-none items-center gap-3 border-b border-line px-4 sm:px-5">
         <Button variant="ghost" className="size-8 p-0 md:hidden" aria-label="返回简历库" onClick={onHome}><ArrowLeft size={17} /></Button>
         <h1 className="m-0 whitespace-nowrap text-[16px] font-semibold">投递清单</h1>
         <span className="ml-auto min-w-0 truncate text-[12px] text-text-tertiary max-sm:hidden">{drafts.length} 个待处理 · {history.length} 条记录</span>
@@ -210,8 +213,9 @@ export function MailWorkbench({ badges, onNavigate, onHome }: { badges: SidebarB
               const website = !isJob(item) && websiteLinks(item).length > 0
               const issues = !isJob(item) && !isWebsite(item) ? draftIssues(item).filter(issue => !website || ['company', 'role', 'sourceUrl'].includes(issue.field)) : []
               const status = isJob(item) ? MAIL_STATUS_LABELS[item.status] : isWebsite(item) ? '官网已投 · 手动' : website ? '官网申请' : issues.length ? '待补充' : '可发送'
+              const tone = isJob(item) ? MAIL_STATUS_TONES[item.status] : isWebsite(item) ? 'success' : website ? 'info' : issues.length ? 'warning' : 'success'
               return <button key={item.id} className={`block w-full border-b border-line px-4 py-3 text-left ${selected?.id === item.id ? 'border-l-2 border-l-brand bg-brand-soft' : 'border-l-2 border-l-transparent hover:bg-surface-soft'}`} onClick={() => selectItem(item)}>
-                <span className="flex items-baseline gap-2"><strong className="min-w-0 flex-1 truncate text-[13px] font-semibold">{item.company || `新岗位 ${index + 1}`}</strong><span className={`whitespace-nowrap text-[11px] ${isJob(item) && ['failed', 'uncertain'].includes(item.status) ? 'text-danger' : 'text-text-tertiary'}`}>{status}</span></span>
+                <span className="flex items-baseline gap-2"><strong className="min-w-0 flex-1 truncate text-[13px] font-semibold">{item.company || `新岗位 ${index + 1}`}</strong><span className="workbench-status whitespace-nowrap text-[11px]" data-tone={tone}>{status}</span></span>
                 <span className="mt-1 block truncate text-[12px] text-text-secondary">{item.role || '待填写岗位'}</span>
                 <span className="mt-1 block truncate text-[11px] text-text-tertiary">{issues.length ? issues.map(issue => issue.label).join(' · ') : isWebsite(item) ? `${savedDate(item.appliedAt)} 标记` : website ? '打开官网完成申请' : item.recipient}</span>
               </button>
@@ -232,7 +236,7 @@ export function MailWorkbench({ badges, onNavigate, onHome }: { badges: SidebarB
             setDrafts(items => items.map(item => item.id === id && item.sourceUrl === original ? { ...item, sourceUrl: result.url, company: item.company || result.company || '', role: item.role || result.role || '', recipient: item.recipient || result.recommendedEmail || '', extraction: result, automatic: !item.body && !item.subject ? true : item.automatic, sourceConfirmed: false } : item))
           })} /> : isWebsite(selected) ? <article className="mx-auto max-w-[860px] p-5 text-[13px] sm:p-6">
             <h2 className="m-0 text-[17px] font-semibold">{selected.company} / {selected.role}</h2>
-            <p className="text-[12px] text-text-secondary">官网已投 · {savedDate(selected.appliedAt)} 手动标记</p>
+            <p className="text-[12px] text-text-secondary"><span className="workbench-status" data-tone="success">官网已投</span> · {savedDate(selected.appliedAt)} 手动标记</p>
             <p className="border-y border-line py-4 leading-relaxed text-text-secondary">这条记录表示你已在官网完成申请。工作台没有发送邮件，也没有读取官网的申请结果。</p>
             <a href={safeLink(selected.applicationUrl)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-accent underline">查看官网申请页面<ExternalLink size={13} /></a>
             <div className="mt-6"><Button variant="secondary" disabled={drafts.length >= 20} onClick={() => {
@@ -254,7 +258,7 @@ export function MailWorkbench({ badges, onNavigate, onHome }: { badges: SidebarB
 
 function JobDetails({ job, disabled, onAction }: { job: MailJob; disabled: boolean; onAction: (action: 'retry' | 'cancel' | 'confirm-sent') => void }) {
   return <article className="mx-auto max-w-[860px] p-5 text-[13px] sm:p-6">
-    <div className="flex flex-wrap items-baseline gap-3"><h2 className="m-0 text-[17px] font-semibold">{job.company} / {job.role}</h2><span className="text-[12px] text-text-secondary">{MAIL_STATUS_LABELS[job.status]}</span></div>
+    <div className="flex flex-wrap items-baseline gap-3"><h2 className="m-0 text-[17px] font-semibold">{job.company} / {job.role}</h2><span className="workbench-status text-[12px]" data-tone={MAIL_STATUS_TONES[job.status]}>{MAIL_STATUS_LABELS[job.status]}</span></div>
     <p className="mb-5 text-[12px] leading-relaxed text-text-tertiary">{job.detail ?? '按清单顺序发送。'}<br />更新于 {new Date(job.updatedAt).toLocaleString('zh-CN')}</p>
     <dl className="mail-record grid grid-cols-[60px_minmax(0,1fr)] gap-x-3 gap-y-3 border-y border-line py-4 text-[12px]">
       <dt>发件人</dt><dd>{job.sender.name} &lt;{job.sender.address}&gt;</dd><dt>收件人</dt><dd>{job.recipient}</dd>

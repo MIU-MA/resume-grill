@@ -43,7 +43,7 @@ export function LinkImporter({ existingUrls, slots, connected, onConnect, read, 
       setMessage(`已整理 ${urls.length - failed.length} 个岗位${failed.length ? `，${failed.length} 个链接未能读取，可修改后重试。` : '，请核对右侧邮件。'}`)
     } finally { setBusy(false); onBusy(false) }
   }
-  return <section className="flex-none border-b border-line bg-white px-4 py-3 sm:px-5" aria-label="导入招聘链接">
+  return <section className="flex-none border-b border-line bg-surface px-4 py-3 sm:px-5" aria-label="导入招聘链接">
     <div className="flex flex-wrap items-start gap-2">
       <textarea aria-label="招聘链接，每行一个" className="mail-input min-h-9 flex-1 basis-full resize-y text-[12px] sm:basis-0" rows={Math.min(3, input.split('\n').length)} placeholder="粘贴招聘详情链接，多个链接每行一个" disabled={busy || finding} value={input} onChange={e => setInput(e.target.value)} />
       <Button loading={busy} disabled={finding || !input.trim() || slots <= 0} onClick={() => void importLinks()}>{connected ? '整理到清单' : '连接后整理'}</Button>

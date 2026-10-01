@@ -10,7 +10,7 @@ export function MailPreview({ batch, onClose, onSend }: { batch: MailBatch; onCl
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   useEffect(() => { ref.current?.showModal() }, [])
-  return <dialog ref={ref} onCancel={e => { if (busy) e.preventDefault(); else onClose() }} className="mail-dialog resume-workbench flex-col w-[760px] max-w-[calc(100vw-24px)] border border-line-strong bg-white p-0 text-text-primary backdrop:bg-black/30">
+  return <dialog ref={ref} onCancel={e => { if (busy) e.preventDefault(); else onClose() }} className="mail-dialog resume-workbench flex-col w-[760px] max-w-[calc(100vw-24px)] border border-line-strong bg-surface p-0 text-text-primary backdrop:bg-black/30">
     <header className="border-b border-line p-5"><h2 className="m-0 text-[17px] font-semibold">确认投递 · {batch.jobs.length} 封</h2><p className="mb-0 mt-2 break-all text-[12px] text-text-secondary">发件人：{batch.sender.name} &lt;{batch.sender.address}&gt;<br />每封附件：{batch.attachment.name}</p></header>
     <div className="max-h-[48dvh] divide-y divide-line overflow-y-auto">
       {batch.jobs.map((job, i) => <article key={job.id} className="p-5 text-[13px]">

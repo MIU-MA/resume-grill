@@ -152,7 +152,7 @@ export function ResumeAnalysisOptions({
         </button>
         {jobDescriptionOpen && (
           <textarea
-            className="mt-3 min-h-[120px] w-full resize-y rounded-lg border border-line-strong bg-white p-4 text-[13px] leading-[1.75] text-text-primary placeholder:text-text-tertiary focus:border-brand focus:shadow-[0_0_0_3px_rgba(37,99,235,0.1)]"
+            className="mt-3 min-h-[120px] w-full resize-y rounded-lg border border-line-strong bg-white p-4 text-[13px] leading-[1.75] text-text-primary placeholder:text-text-tertiary focus:border-brand focus:ring-[3px] focus:ring-brand/10"
             value={jobDescription}
             onChange={(event) => onJobDescriptionChange(event.target.value)}
             disabled={analyzing}

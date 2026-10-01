@@ -67,7 +67,7 @@ export function InterviewComposer({
           <div className="flex flex-col gap-3">
             <textarea
               ref={answerRef}
-              className="min-h-[64px] max-h-[200px] w-full resize-none overflow-y-auto rounded-lg border border-line-strong bg-white px-4 py-3 text-[14px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-[#60a5fa] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.1)]"
+              className="min-h-[64px] max-h-[200px] w-full resize-none overflow-y-auto rounded-lg border border-line-strong bg-white px-4 py-3 text-[14px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-brand focus:ring-[3px] focus:ring-brand/10"
               value={answer}
               onChange={(event) => onAnswerChange(event.target.value)}
               disabled={loading}

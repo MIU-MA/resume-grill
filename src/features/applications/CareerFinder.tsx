@@ -48,7 +48,7 @@ export function CareerFinder({ connected, disabled, onConnect, discover, onChoos
         {links.map(link => <div key={link.url} className="flex items-start gap-2 px-3 py-2 text-[12px]">
           {link.kind === 'job' ? <input className="mt-1" type="checkbox" aria-label={`选择 ${link.label}`} disabled={disabled} checked={selected.includes(link.url)} onChange={e => setSelected(values => e.target.checked ? [...values, link.url] : values.filter(value => value !== link.url))} /> : <span className="mt-1 w-[13px] shrink-0" />}
           <div className="min-w-0 flex-1"><a href={link.url} target="_blank" rel="noopener noreferrer" className="font-medium text-accent hover:underline">{link.label}</a><div className="break-all text-text-tertiary">{link.url}</div><div className="text-text-tertiary">来源：<a className="underline" href={link.sourceUrl} target="_blank" rel="noopener noreferrer">{new URL(link.sourceUrl).hostname}</a></div></div>
-          <span className="shrink-0 text-text-secondary">{labels[link.kind]}</span>
+          <span className="workbench-status shrink-0" data-tone={link.kind === 'entry' ? 'neutral' : 'info'}>{labels[link.kind]}</span>
         </div>)}
         {!links.length && <p className="px-3 text-[12px] text-text-secondary">{result.links.length ? '没有匹配的链接。' : '暂无结果。'}</p>}
       </div>

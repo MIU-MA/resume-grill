@@ -1,90 +1,115 @@
-# 官网招聘采集结果
+# 前端招聘官网采集结果
 
-抓取时间：2026-09-20T08:13:43.175Z
+抓取时间：2026-09-30T14:07:55.248Z
 
-岗位是否仍开放需在原站确认。邮箱来自公开页面，尚未逐岗位核对用途。未发送邮件或提交申请。
+前端岗位名称来自人工核对的官网正文，岗位是否仍开放需在原站确认。邮箱来自公开页面，尚未逐岗位核对用途。未发送邮件或提交申请。
 
-## 凌思微电子
+## 杰诺科技
 
-来源：https://www.linkedsemi.com/company/join.html
+来源：https://www.jienor.com/join/
 
-公开邮箱：hr@linkedsemi.com、qfu@linkedsemi.com
+官网列出的前端岗位：前端工程师
 
-| 类型 | 名称 | 链接 |
-| --- | --- | --- |
+岗位核对日期：2026-09-30
 
-未找到可识别的招聘链接。可直接输入招聘页地址；需要登录或依赖脚本加载的职位列表暂不支持。
-
-## 美泰电子
-
-来源：https://www.mtmems.com/jobs.html
-
-公开邮箱：hr@mtmems.com、info@mtmems.com
+招聘邮箱（自动识别，需核对）：hr@jienor.com
 
 | 类型 | 名称 | 链接 |
 | --- | --- | --- |
-| 招聘入口 | 加入我们 | https://www.mtmems.com/jobs.html |
+| 招聘入口 | 杰诺科技招聘官网 | https://www.jienor.com/join/ |
 
-## 微筑科技
+未识别到公司名称。
 
-来源：https://www.webuild.cn/join/
+未识别到单一岗位名称。
 
-公开邮箱：hr@webuild.cn、sales@webuild.cn
+## 蜂动科技
 
-| 类型 | 名称 | 链接 |
-| --- | --- | --- |
-| 岗位详情 | 大客户经理 | https://www.webuild.cn/join/key-account-manager.html |
-| 岗位详情 | 解决方案经理 | https://www.webuild.cn/join/solutions-manager.html |
-| 岗位详情 | 硬件工程师 | https://www.webuild.cn/join/hardware-engineer.html |
-| 岗位详情 | 售前技术专员 | https://www.webuild.cn/join/presales-technical-specialist.html |
-| 岗位详情 | 硬件项目经理 | https://www.webuild.cn/join/hardware-project-manager.html |
-| 岗位详情 | 商务运营专员 | https://www.webuild.cn/join/commercial-operations-specialist.html |
-| 岗位详情 | 算法专家 | https://www.webuild.cn/join/algorithm-scientist.html |
-| 岗位详情 | 大模型算法工程师 | https://www.webuild.cn/join/llm-algorithm-engineer.html |
-| 岗位详情 | 驱动开发工程师 | https://www.webuild.cn/join/device-driver-engineer.html |
-| 岗位详情 | 软件开发工程师 | https://www.webuild.cn/join/software-development-engineer.html |
-| 岗位详情 | 测试开发工程师 | https://www.webuild.cn/join/qa-automation-engineer.html |
-| 岗位详情 | 项目经理 | https://www.webuild.cn/join/project-manager.html |
-| 岗位详情 | 实施项目工程师 | https://www.webuild.cn/join/implementation-project-engineer.html |
+来源：https://www.fontdo.com/joinus
 
-### 已读取的岗位详情
+官网列出的前端岗位：Web 前端开发工程师
 
-| 岗位 | 页面识别的招聘邮箱 |
-| --- | --- |
-| 大客户经理 | hr@webuild.cn |
-| 解决方案经理 | hr@webuild.cn |
-| 硬件工程师 | hr@webuild.cn |
-| 售前技术专员 | hr@webuild.cn |
-| 硬件项目经理 | hr@webuild.cn |
-| 商务运营专员 | hr@webuild.cn |
-| 算法专家 | hr@webuild.cn |
-| 大模型算法工程师 | hr@webuild.cn |
-| 驱动开发工程师 | hr@webuild.cn |
-| 软件开发工程师 | hr@webuild.cn |
-| 测试开发工程师 | hr@webuild.cn |
-| 项目经理 | hr@webuild.cn |
-| 实施项目工程师 | hr@webuild.cn |
+岗位核对日期：2026-09-30
 
-## 乐言科技
-
-来源：https://www.leyantech.com/joinUS.html
-
-公开邮箱：talents@leyantech.com
+招聘邮箱（自动识别，需核对）：hr@fontdo.com
 
 | 类型 | 名称 | 链接 |
 | --- | --- | --- |
-| 招聘入口 | 人才招聘 | https://www.leyantech.com/joinUS.html |
-| 在线申请 | 更多职位 | https://app.mokahr.com/apply/leyantech/2355 |
+| 招聘入口 | 蜂动科技招聘官网 | https://www.fontdo.com/joinus |
 
-其他域名的招聘入口已列出，未继续抓取。可打开核对后复制该地址重新查找。
+未识别到单一岗位名称。
 
-## BoomingTech
+## 蓝曜炬辉
 
-来源：https://boomingtech.jobs.feishu.cn/
+来源：https://www.lanyaoai.com/careers
 
-公开邮箱：未识别
+官网列出的前端岗位：高级前端工程师 · React / Next.js
+
+岗位核对日期：2026-09-30
+
+招聘邮箱（自动识别，需核对）：jobs@lanyaoai.com
 
 | 类型 | 名称 | 链接 |
 | --- | --- | --- |
+| 招聘入口 | 蓝曜炬辉招聘官网 | https://www.lanyaoai.com/careers |
 
-未找到可识别的招聘链接。可直接输入招聘页地址；需要登录或依赖脚本加载的职位列表暂不支持。
+未识别到公司名称。
+
+未识别到单一岗位名称。
+
+## 华智客
+
+来源：https://huazhike.com/job
+
+官网列出的前端岗位：Web前端开发工程师
+
+岗位核对日期：2026-09-30
+
+招聘邮箱（自动识别，需核对）：hr@huazhike.com
+
+| 类型 | 名称 | 链接 |
+| --- | --- | --- |
+| 招聘入口 | 华智客招聘官网 | https://huazhike.com/job |
+
+未识别到公司名称。
+
+未识别到单一岗位名称。
+
+## OSforce
+
+来源：https://www.osforce.com.cn/jobs
+
+官网列出的前端岗位：前端开发工程师
+
+岗位核对日期：2026-09-30
+
+招聘邮箱（自动识别，需核对）：请在官网确认对应岗位的地址
+
+| 类型 | 名称 | 链接 |
+| --- | --- | --- |
+| 招聘入口 | OSforce招聘官网 | https://www.osforce.com.cn/jobs |
+
+未识别到公司名称。
+
+未识别到单一岗位名称。
+
+未识别到明确的招聘邮箱，请核对官网。
+
+## 环信
+
+来源：https://www.easemob.com/join/
+
+官网列出的前端岗位：web前端工程师、前端工程师（实习）、高级前端工程师
+
+岗位核对日期：2026-09-30
+
+招聘邮箱（自动识别，需核对）：请在官网确认对应岗位的地址
+
+| 类型 | 名称 | 链接 |
+| --- | --- | --- |
+| 招聘入口 | 环信招聘官网 | https://www.easemob.com/join/ |
+
+未识别到公司名称。
+
+未识别到单一岗位名称。
+
+发现多个可能的招聘邮箱，请选择对应岗位的地址。

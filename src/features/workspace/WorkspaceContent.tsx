@@ -95,7 +95,7 @@ type WorkspaceContentProps = {
 
 export function WorkspaceContent(props: WorkspaceContentProps) {
   const isPractice = ['audit', 'interview', 'report'].includes(props.mode)
-  return <div className="flex h-full min-h-0 flex-col bg-white">
+  return <div className="flex h-full min-h-0 flex-col bg-surface">
     {isPractice && <header className="practice-header">
       <h1>面试练习</h1>
       <nav aria-label="面试练习阶段" className="practice-stages">
@@ -120,7 +120,7 @@ function WorkspaceBody({
   const [statusOpen, setStatusOpen] = useState(false)
 
   if (mode === 'diagnosis') {
-    return <div className="resume-workbench h-full min-h-0 bg-white">
+    return <div className="resume-workbench h-full min-h-0 bg-surface">
       {analysis.diagnosis ? <ResumeDiagnosisReport diagnosis={analysis.diagnosis} /> : <p className="m-0 p-5 text-[13px] leading-relaxed text-text-secondary">这份记录还没有简历检查结果。重新导入同一份简历即可检查；相同内容的练习记录会保留。</p>}
     </div>
   }
@@ -202,7 +202,7 @@ function WorkspaceBody({
 
   return (
     <div className="h-full min-h-0">
-      <div className="relative flex h-full min-h-0 overflow-hidden bg-white">
+      <div className="relative flex h-full min-h-0 overflow-hidden bg-surface">
         {statusOpen && (
           <div className="fixed inset-0 z-30 bg-black/20 min-[1200px]:hidden" onClick={() => setStatusOpen(false)} aria-hidden="true" />
         )}

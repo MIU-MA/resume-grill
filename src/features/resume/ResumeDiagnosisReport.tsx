@@ -18,7 +18,7 @@ export function ResumeDiagnosisReport({ diagnosis, showToolbar = true }: Props) 
   const selectedIndex = selection?.report === diagnosis ? selection.index : issues.length ? 0 : null
 
   return (
-    <div className="resume-workbench diagnosis-layout flex h-full min-h-0 flex-col bg-white" aria-label="简历检查结果">
+    <div className="resume-workbench diagnosis-layout flex h-full min-h-0 flex-col bg-surface" aria-label="简历检查结果">
       {showToolbar && <DiagnosisToolbar diagnosis={diagnosis} actions={<DiagnosisExportButton diagnosis={diagnosis} />} />}
       <div className="diagnosis-report-grid min-h-0 flex-1">
         <div className="diagnosis-findings min-w-0">
@@ -40,7 +40,7 @@ export function ResumeDiagnosisReport({ diagnosis, showToolbar = true }: Props) 
                   <span className="mt-1.5 block text-[12px] text-text-tertiary">{DIAGNOSIS_DIMENSIONS[issue.dimension]}</span>
                   {!expanded && <span className="mt-2 line-clamp-2 text-[13px] leading-relaxed text-text-secondary">{issue.problem}</span>}
                 </span>
-                <span className={['mt-1 flex-none text-[12px]', issue.priority === 'high' ? 'text-danger' : 'text-text-tertiary'].join(' ')}>{DIAGNOSIS_PRIORITIES[issue.priority]}</span>
+                <span className="workbench-status mt-1 flex-none text-[12px]" data-tone={issue.priority === 'high' ? 'warning' : issue.priority === 'medium' ? 'info' : 'neutral'}>{DIAGNOSIS_PRIORITIES[issue.priority]}</span>
                 <ChevronDown size={15} className={['mt-1 flex-none text-text-tertiary transition-transform', expanded ? 'rotate-180' : ''].join(' ')} />
               </button>
               {expanded && <div id={'diagnosis-issue-' + index} className="px-5 pb-6 pt-4 sm:px-7" aria-label={issue.title + '详情'}>
@@ -85,7 +85,7 @@ function DiagnosisSummary({ diagnosis }: { diagnosis: ResumeDiagnosis }) {
         {diagnosis.nextSteps.map((step, index) => <li key={index} className="flex gap-3 text-[13px] leading-[1.75] text-text-secondary"><span className="pt-0.5 font-mono text-[11px] text-text-tertiary">{String(index + 1).padStart(2, '0')}</span><span>{step}</span></li>)}
       </ol>
     </section>
-    {diagnosis.strengths.length > 0 && <section className="pt-5">
+    {diagnosis.strengths.length > 0 && <section className="diagnosis-strengths pt-5">
       <h2 className="mb-4 mt-0 text-[14px] font-semibold">可以保留</h2>
       <div className="space-y-5">
         {diagnosis.strengths.map((item, index) => <div key={index}>

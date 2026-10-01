@@ -80,7 +80,7 @@ export function WorkspaceShell(props: Props) {
         onClose={() => setNavOpen(false)}
       />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-[56px] flex-none items-center gap-3 border-b border-line bg-white/95 px-4 backdrop-blur-lg md:px-6">
+        <header className="flex h-[56px] flex-none items-center gap-3 border-b border-line bg-surface/95 px-4 backdrop-blur-lg md:px-6">
           <button
             type="button"
             className="grid size-8 flex-none place-items-center rounded-md text-text-secondary hover:bg-surface-hover md:hidden"

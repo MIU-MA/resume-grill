@@ -69,7 +69,7 @@ export function InterviewView({
   }, [currentQuestion, turns.length])
 
   return (
-    <main className="flex h-full min-h-0 w-full min-w-0 overflow-hidden bg-white min-[1200px]:border-r min-[1200px]:border-line">
+    <main className="flex h-full min-h-0 w-full min-w-0 overflow-hidden bg-surface min-[1200px]:border-r min-[1200px]:border-line">
       {/* 主面试区 */}
       <div className="flex-1 flex flex-col min-w-0">
         <InterviewHeader

@@ -94,7 +94,7 @@ export function ResumeCandidateList({
                         2,
                         Math.ceil(candidate.content.length / 48),
                       )}
-                      className="min-h-[58px] min-w-0 flex-1 resize-y rounded-lg border border-brand bg-white px-3 py-2 text-[13px] leading-relaxed text-text-primary focus:border-brand focus:shadow-[0_0_0_3px_rgba(37,99,235,0.1)]"
+                      className="min-h-[58px] min-w-0 flex-1 resize-y rounded-lg border border-brand bg-white px-3 py-2 text-[13px] leading-relaxed text-text-primary focus:border-brand focus:ring-[3px] focus:ring-brand/10"
                       aria-label={`${section}要点内容`}
                     />
                   ) : (

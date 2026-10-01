@@ -21,11 +21,11 @@ export function ResumeLibraryList({ records, documents, onOpenRecord, onOpenDocu
       const completed = Object.values(record?.sessions ?? {}).flat().filter(session => session.status === 'done').length
       const open = () => record ? onOpenRecord(record) : onOpenDocument(document!)
       return <div key={id} className="flex items-center gap-3 px-3 py-4 hover:bg-surface-soft">
-        <FileText size={19} className="flex-none text-text-tertiary max-sm:hidden" />
+        <FileText size={19} className="flex-none text-brand max-sm:hidden" />
         <button type="button" className="min-w-0 flex-1 text-left" onClick={open}>
           <strong className="block truncate text-[14px] font-semibold">{title}</strong>
           <span className="mt-1 block truncate text-[12px] text-text-tertiary">{document?.sourceFile ?? record?.analysis.sourceFile} · {new Date(updatedAt).toLocaleDateString('zh-CN')}</span>
-          <span className="mt-1 block text-[12px] text-text-secondary">{document?.review?.diagnosis || record?.analysis.diagnosis ? '已检查' : '已导入'}{record ? ` · 已练习 ${completed} 次` : ' · 尚未开始练习'}</span>
+          <span className="mt-1 block text-[12px] text-text-secondary"><span className="workbench-status" data-tone={document?.review?.diagnosis || record?.analysis.diagnosis ? 'success' : 'info'}>{document?.review?.diagnosis || record?.analysis.diagnosis ? '已检查' : '已导入'}</span>{record ? ` · 已练习 ${completed} 次` : ' · 尚未开始练习'}</span>
         </button>
         <div className="flex flex-none items-center gap-2 text-[12px]">
           {document && <button type="button" className="px-1 py-2 text-text-secondary hover:text-text-primary" onClick={() => onOpenDocument(document)}>查看简历</button>}

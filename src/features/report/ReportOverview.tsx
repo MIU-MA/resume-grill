@@ -74,7 +74,7 @@ export function ReportOverview({
         <div
           className="relative grid size-[132px] place-items-center rounded-full"
           style={{
-            background: `conic-gradient(#2563eb 0 ${averagePercent}%, #e5e7eb ${averagePercent}% 100%)`,
+            background: `conic-gradient(var(--color-brand) 0 ${averagePercent}%, var(--color-line) ${averagePercent}% 100%)`,
           }}
         >
           <div className="absolute size-[102px] rounded-full bg-white" />

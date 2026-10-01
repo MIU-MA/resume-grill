@@ -21,7 +21,7 @@ export function MailSettings({ agent, purpose = 'sender', onClose }: { agent: Ma
     try { await work() } catch (e) { setError(e instanceof Error ? e.message : '连接失败') }
     finally { setBusy(false) }
   }
-  return <dialog ref={dialog} onCancel={event => { if (busy) event.preventDefault(); else onClose() }} className="mail-dialog resume-workbench w-[620px] max-w-[calc(100vw-24px)] border border-line-strong bg-white p-0 text-text-primary backdrop:bg-black/30">
+  return <dialog ref={dialog} onCancel={event => { if (busy) event.preventDefault(); else onClose() }} className="mail-dialog resume-workbench w-[620px] max-w-[calc(100vw-24px)] border border-line-strong bg-surface p-0 text-text-primary backdrop:bg-black/30">
     <header className="flex items-center justify-between border-b border-line px-5 py-4"><h2 className="m-0 text-[16px] font-semibold">{purpose === 'agent' ? '连接本机执行器' : '发件邮箱'}</h2><Button variant="ghost" disabled={busy} onClick={onClose} aria-label="关闭设置" className="size-8 p-0"><X size={17} /></Button></header>
     <div className="space-y-5 p-5 text-[13px]">
       <details open={!agent.snapshot || purpose === 'agent'}>
