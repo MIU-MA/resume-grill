@@ -79,7 +79,7 @@ export type AgentSnapshot = {
 export type EmailCandidate = { email: string; context: string }
 export type CareerLink = { url: string; label: string; kind: 'entry' | 'job' | 'apply'; sourceUrl: string }
 export type CareerDiscovery = { links: CareerLink[]; pagesRead: number; notes: string[] }
-export type CareerPage = { url: string; title: string; emails: EmailCandidate[]; company: string; role: string; recommendedEmail: string; notes: string[]; links?: CareerLink[] }
+export type CareerPage = { url: string; title: string; emails: EmailCandidate[]; company: string; role: string; recommendedEmail: string; notes: string[]; links?: CareerLink[]; jobDescription?: string }
 
 export function applicationTemplate(name: string, company: string, role: string) {
   return {

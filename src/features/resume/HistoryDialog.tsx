@@ -70,10 +70,10 @@ export function HistoryDialog({
                     <button type="button" className="min-w-0 flex-1 bg-transparent text-left" onClick={() => onOpenRecord(record)}>
                       <span className="flex items-center gap-2">
                         <strong className="truncate text-[13px] text-text-primary">{record.analysis.candidate}</strong>
-                        <span className="truncate text-[12px] text-text-tertiary">{record.analysis.role}</span>
+                        <span className="truncate text-[12px] text-text-tertiary">{record.analysis.jobContext ? `${record.analysis.jobContext.company} / ${record.analysis.jobContext.role}` : record.analysis.role}</span>
                       </span>
                       <span className="mt-0.5 block truncate text-[11px] text-text-tertiary">
-                        {record.analysis.sourceFile} · {record.analysis.claims.length} 个要点 · 已练习 {completed} 次
+                        {record.analysis.sourceFile}{record.analysis.jobContext ? ` · 版本 ${record.analysis.jobContext.resumeVersion.slice(0, 8)}` : ''} · {record.analysis.claims.length} 个要点 · 已练习 {completed} 次
                       </span>
                     </button>
                     <button

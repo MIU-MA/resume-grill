@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     if (config) {
       const compact = await llmStructured(
         ANALYZE_SYSTEM_PROMPT,
-        buildAnalyzeUserPrompt(body.rawText, promptCandidates, body.analysisGoal),
+        buildAnalyzeUserPrompt(body.rawText, promptCandidates, body.analysisGoal, body.jobDescription),
         compactAnalysisSchema,
         config,
         { signal: withTimeout(ANALYZE_TIMEOUT), maxTokens: 24000, repair: (value) => repairCompactAnalysis(value, goalClaimCount(body.analysisGoal)) },

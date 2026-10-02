@@ -28,6 +28,34 @@ describe('careers page reader', () => {
     expect(result.emails.map(item => item.email)).toEqual(['hr@example.com', 'support@example.com'])
     expect(result.emails[0].context).toContain('前端岗位')
   })
+  it('prefers the single structured description and strips executable and navigation content', () => {
+    const description = '<nav>网站导航</nav><h2>岗位职责</h2><p>维护 React 组件库。</p><h2>任职要求</h2><ul><li>熟悉 TypeScript。</li></ul><script>隐藏脚本</script><footer>网站备案</footer>'
+    const metadata = JSON.stringify({ '@type': ['JobPosting'], title: '前端开发工程师', description }).replace(/</g, '\\u003c')
+    const page = extractCareerEmails(`<script type="application/ld+json">${metadata}</script><h1>前端开发工程师</h1><h2>任职要求</h2><p>过时的页面内容。</p>`, 'https://example.com/jobs/1')
+    expect(page.jobDescription).toBe('岗位职责\n维护 React 组件库。\n任职要求\n熟悉 TypeScript。')
+  })
+  it('reads only the responsibility and requirement sections of an HTML job detail', () => {
+    const page = extractCareerEmails('<nav>岗位要求：错误导航。</nav><main><h1>前端开发工程师</h1><p>欢迎加入。</p><h2>岗位职责</h2><ul><li>维护公司官网。</li><li>开发 React 组件。</li></ul><h2>任职要求</h2><p>熟悉 TypeScript。</p><p hidden>不可见岗位要求。</p><h2>公司福利</h2><p>公司旅行。</p></main><footer>职位要求：页脚内容。</footer>', 'https://example.com/jobs/2')
+    expect(page.jobDescription).toBe('岗位职责\n维护公司官网。\n开发 React 组件。\n任职要求\n熟悉 TypeScript。')
+  })
+  it('supports inline requirement labels and stops before application contacts', () => {
+    const page = extractCareerEmails('<h1>Web Developer</h1><p>Responsibilities: Build reusable components.</p><p>Requirements: TypeScript and React experience.</p><p>How to apply:</p><p>Send your CV to hr@example.com.</p>', 'https://example.com/jobs/3')
+    expect(page.jobDescription).toBe('Responsibilities: Build reusable components.\nRequirements: TypeScript and React experience.')
+  })
+  it.each([
+    '<script type="application/ld+json">[{"@type":"JobPosting","title":"前端开发工程师","description":"前端要求"},{"@type":"JobPosting","title":"后端开发工程师","description":"后端要求"}]</script><h1>前端开发工程师</h1><h2>任职要求</h2><p>不要挑出第一个岗位。</p>',
+    '<h1>前端开发工程师</h1><h2>岗位职责</h2><p>开发 React 页面。</p><h2>后端开发工程师</h2><h3>任职要求</h3><p>Java 经验。</p>',
+    '<p>岗位名称：前端开发工程师</p><p>岗位职责：开发官网。</p><p>岗位名称：后端开发工程师</p><p>岗位职责：维护服务。</p>',
+    '<h1>职位列表</h1><p>岗位名称：前端开发工程师</p><h2>任职要求</h2><p>熟悉 React。</p>',
+    '<h1>示例科技</h1><h2>我们的业务</h2><p>为客户提供前端开发与咨询服务。</p>',
+    '<h1>前端开发工程师</h1><p>欢迎加入我们的团队！</p>',
+  ])('does not invent a description from listings, marketing pages or missing sections', html => {
+    expect(extractCareerEmails(html, 'https://example.com/careers').jobDescription).toBeUndefined()
+  })
+  it('bounds structured descriptions to 12,000 characters', () => {
+    const page = extractCareerEmails(`<script type="application/ld+json">${JSON.stringify({ '@type': 'JobPosting', title: '前端开发工程师', description: `任职要求：${'熟悉 React。'.repeat(2000)}` })}</script>`, 'https://example.com/jobs/4')
+    expect(page.jobDescription).toHaveLength(12000)
+  })
   it.each(['127.0.0.1', '10.0.0.1', '192.168.1.1', '172.16.0.1', '169.254.169.254', '100.64.0.1', '0.0.0.0', '224.0.0.1', '::1', '::ffff:127.0.0.1', '::ffff:7f00:1', 'fe80::1', 'fc00::1', '2001:db8::1'])('blocks local / reserved address %s', address => {
     expect(isPublicAddress(address)).toBe(false)
   })

@@ -1,8 +1,40 @@
 import { mailDraftSchema, MAX_ATTACHMENT_BYTES, sourceUrlSchema, type CareerPage, type MailDraft } from '@/domain/mail-schema'
 
-export type Draft = Omit<MailDraft, 'sourceConfirmed'> & { sourceConfirmed: boolean; automatic?: boolean; extraction?: CareerPage }
+export type Draft = Omit<MailDraft, 'sourceConfirmed'> & { sourceConfirmed: boolean; automatic?: boolean; extraction?: CareerPage; jobDescription?: string; jobDescriptionEdited?: boolean }
 export type DraftField = 'company' | 'role' | 'sourceUrl' | 'recipient' | 'subject' | 'body'
 export type WebsiteApplication = Draft & { channel: 'website'; applicationUrl: string; appliedAt: number }
+export type SavedJobPreparation = {
+  jobDescription: string
+  attachment?: File
+  attachmentSource?: { id: string; updatedAt: number }
+  attachmentUse?: 'preparation' | 'preview' | 'mail'
+}
+
+export function preparationAttachment(saved: SavedJobPreparation | undefined, current: File | null, currentSource?: { id: string; updatedAt: number }) {
+  if (validResumeAttachment(saved?.attachment)) return { file: saved.attachment, source: saved.attachmentSource, use: saved.attachmentUse ?? 'preparation' as const, saved: true }
+  return { file: validResumeAttachment(current) ? current : null, source: currentSource, use: 'preparation' as const, saved: false }
+}
+
+export function updateDraft(draft: Draft, change: Partial<Draft>): Draft {
+  const sourceChanged = change.sourceUrl !== undefined && change.sourceUrl !== draft.sourceUrl
+  return {
+    ...draft, ...change,
+    ...(('body' in change || 'subject' in change) ? { automatic: false } : {}),
+    ...(('recipient' in change || 'sourceUrl' in change) ? { sourceConfirmed: false } : {}),
+    ...('jobDescription' in change ? { jobDescriptionEdited: true } : {}),
+    ...(sourceChanged ? { extraction: undefined, jobDescription: '', jobDescriptionEdited: false } : {}),
+  }
+}
+
+export function applyCareerPage(draft: Draft, page: CareerPage): Draft {
+  const edited = draft.jobDescriptionEdited || (!!draft.jobDescription && draft.jobDescription !== draft.extraction?.jobDescription)
+  return {
+    ...draft, sourceUrl: page.url, company: draft.company || page.company || '', role: draft.role || page.role || '',
+    recipient: draft.recipient || page.recommendedEmail || '', extraction: page,
+    jobDescription: edited ? draft.jobDescription : page.jobDescription ?? '',
+    automatic: !draft.body && !draft.subject ? true : draft.automatic, sourceConfirmed: false,
+  }
+}
 
 export function draftPayload({ id, company, role, sourceUrl, recipient, subject, body }: Draft) {
   return { id, company, role, sourceUrl, recipient, subject, body, sourceConfirmed: true as const }

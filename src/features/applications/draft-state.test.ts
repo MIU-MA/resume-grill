@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MAX_ATTACHMENT_BYTES } from '@/domain/mail-schema'
-import { draftIssues, draftPayload, markWebsiteApplication, validResumeAttachment, websiteLinks, type Draft } from './draft-state'
+import { applyCareerPage, draftIssues, draftPayload, markWebsiteApplication, preparationAttachment, updateDraft, validResumeAttachment, websiteLinks, type Draft } from './draft-state'
 
 const sourceUrl = 'https://example.com/careers/frontend'
 const applyUrl = 'https://example.com/apply/frontend'
@@ -52,12 +52,41 @@ describe('投递清单状态', () => {
   })
 
   it('发送负载不携带网页提取信息或官网手动记录字段', () => {
-    const record = markWebsiteApplication(websiteDraft(), applyUrl, 1234)
+    const record = markWebsiteApplication(websiteDraft({ jobDescription: '熟悉 React 和 TypeScript', jobDescriptionEdited: true }), applyUrl, 1234)
     expect(Object.keys(draftPayload(record)).sort()).toEqual(['id', 'company', 'role', 'sourceUrl', 'recipient', 'subject', 'body', 'sourceConfirmed'].sort())
+  })
+
+  it('重新读取更新自动获取的岗位要求，并保留用户修改或主动清空的内容', () => {
+    const page = { ...websiteDraft().extraction!, jobDescription: '熟悉 TypeScript' }
+    const imported = applyCareerPage(draft(), page)
+    expect(imported.jobDescription).toBe('熟悉 TypeScript')
+    expect(applyCareerPage(imported, { ...page, jobDescription: '熟悉 React' }).jobDescription).toBe('熟悉 React')
+    const edited = updateDraft(imported, { jobDescription: '熟悉 React，独立负责项目' })
+    expect(applyCareerPage(edited, page).jobDescription).toBe('熟悉 React，独立负责项目')
+    expect(applyCareerPage(updateDraft(imported, { jobDescription: '' }), page).jobDescription).toBe('')
+  })
+
+  it('切换来源链接会清除旧岗位要求，不把上一个岗位的要求带入新链接', () => {
+    const imported = applyCareerPage(draft(), { ...websiteDraft().extraction!, jobDescription: '旧岗位要求' })
+    expect(updateDraft(imported, { company: '修改公司' }).jobDescription).toBe('旧岗位要求')
+    const changed = updateDraft(imported, { sourceUrl: 'https://example.com/another' })
+    expect(changed.jobDescription).toBe('')
+    expect(changed.extraction).toBeUndefined()
+    expect(changed.jobDescriptionEdited).toBe(false)
   })
 })
 
 describe('简历附件复用', () => {
+  it('历史岗位优先复用保存的文件版本，缺失时明确退回当前附件', () => {
+    const original = new File(['发送时版本'], 'resume.txt')
+    const current = new File(['修改后版本'], 'resume.txt')
+    const source = { id: 'document-old', updatedAt: 123 }
+    expect(preparationAttachment({ jobDescription: 'React', attachment: original, attachmentSource: source, attachmentUse: 'mail' }, current, { id: 'document-new', updatedAt: 456 })).toEqual({ file: original, source, use: 'mail', saved: true })
+    expect(preparationAttachment({ jobDescription: 'React' }, current)).toMatchObject({ file: current, saved: false })
+    expect(preparationAttachment({ jobDescription: 'React', attachment: new File([], 'missing.txt') }, current)).toMatchObject({ file: current, saved: false })
+    expect(preparationAttachment(undefined, null)).toMatchObject({ file: null, saved: false })
+  })
+
   it('仅接受规则允许的真实、非空文件', () => {
     expect(validResumeAttachment(new File(['原文件'], 'resume.PDF'))).toBe(true)
     expect(validResumeAttachment(new File(['原文件'], 'resume.docx'))).toBe(true)

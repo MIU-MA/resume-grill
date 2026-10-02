@@ -54,6 +54,24 @@ beforeEach(() => {
 })
 
 describe('resume library', () => {
+  it('shows one reusable attachment per version and retains an older job copy after the library file changes', async () => {
+    const file = new File(['original'], '简历.txt')
+    const original = await importResumeDocument(extracted(), file.name, false, file)
+    const frozen = {
+      ...original, id: 'resume-document:job:a',
+      jobContext: { applicationId: 'a', company: '甲', role: '前端', sourceUrl: 'https://example.com/job', resumeVersion: 'old-file-hash', resumeDocumentId: original.id, resumeUpdatedAt: original.originalFileUpdatedAt! },
+    }
+    database.values.set(frozen.id, frozen)
+    database.values.set('resume-document:job:b', { ...frozen, id: 'resume-document:job:b' })
+    await setCurrentResumeDocument(frozen.id)
+    expect(await listResumeAttachments()).toMatchObject([{ id: original.id, current: true }])
+
+    database.values.set(original.id, { ...original, originalFile: new File(['replacement'], file.name), originalFileUpdatedAt: original.originalFileUpdatedAt! + 1000 })
+    const versions = await listResumeAttachments()
+    expect(versions).toHaveLength(2)
+    expect(await Promise.all(versions.map(item => item.file.text()))).toEqual(expect.arrayContaining(['original', 'replacement']))
+  })
+
   it('saves an imported document before diagnosis or interview analysis exists', async () => {
     const imported = await importResumeDocument(extracted(), '粘贴文本', false)
 

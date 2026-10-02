@@ -147,6 +147,9 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
 }
 
 function appendJobMatch(lines: string[], analysis: ResumeAnalysis) {
+  if (analysis.jobContext) {
+    lines.push(`目标岗位：${analysis.jobContext.company} / ${analysis.jobContext.role}`, `简历版本：${analysis.jobContext.resumeVersion.slice(0, 8)}`, `官网来源：${analysis.jobContext.sourceUrl}`, '')
+  }
   if (!analysis.jobMatch) return
   lines.push('## 对照岗位要求', '')
   analysis.jobMatch.requirements.forEach((item) => {

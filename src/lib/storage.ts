@@ -6,6 +6,7 @@ import type { InterviewSession } from '@/domain/interview-schema'
 import { isExcludedClaimContent } from '@/lib/claim-filter'
 import type { ResumeReviewSubmission } from '@/application/types'
 import type { KnowledgeItem } from '@/lib/knowledge'
+import { reviewedCandidatesKey } from '@/domain/analysis-config'
 
 export type SavedRecord = {
   id: string
@@ -19,8 +20,17 @@ export type SavedRecord = {
 
 const PREFIX = 'resume-grill:'
 
-export function newRecordId(analysis: ResumeAnalysis): string {
-  return `${PREFIX}resume:${resumeContentKey(analysis.rawText)}`
+type RecordInputs = Pick<ResumeAnalysis, 'rawText' | 'jobDescription' | 'jobContext' | 'analysisGoal' | 'reviewedCandidates'>
+
+export function newRecordId(analysis: RecordInputs): string {
+  const base = `${PREFIX}resume:${resumeContentKey(analysis.rawText)}`
+  const job = analysis.jobContext
+  if (job) {
+    const inputs = [job.applicationId, job.company, job.role, job.sourceUrl, job.resumeVersion,
+      analysis.rawText, analysis.jobDescription ?? '', analysis.analysisGoal ?? 'overall', reviewedCandidatesKey(analysis.reviewedCandidates ?? [])]
+    return `${base}:job:${resumeContentKey(JSON.stringify(inputs))}`
+  }
+  return analysis.jobDescription?.trim() ? `${base}:jd:${resumeContentKey(analysis.jobDescription)}` : base
 }
 
 export function resumeContentKey(rawText: string | undefined | null): string {
@@ -63,7 +73,7 @@ export async function listRecords(): Promise<SavedRecord[]> {
     .sort((a, b) => b.updatedAt - a.updatedAt)
   const unique = new Map<string, SavedRecord>()
   sorted.forEach((record) => {
-    const key = resumeContentKey(record.analysis.rawText)
+    const key = newRecordId(record.analysis)
     if (!unique.has(key)) unique.set(key, record)
   })
   return [...unique.values()]

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { analysisGoalSchema, reviewedCandidateSchema } from '@/domain/analysis-config'
 import { resumeDiagnosisSchema } from '@/domain/resume-diagnosis'
+import { jobContextSchema } from '@/domain/job-context'
 
 export const claimCategorySchema = z.enum([
   'skill',
@@ -186,6 +187,7 @@ export const resumeAnalysisSchema = z.object({
   analysisGoal: analysisGoalSchema.optional(),
   reviewedCandidates: z.array(reviewedCandidateSchema).optional(),
   jobDescription: z.string().optional(),
+  jobContext: jobContextSchema.optional(),
   jobMatch: jobMatchSchema.optional(),
   diagnosis: resumeDiagnosisSchema.optional(),
   claims: z.array(resumeClaimSchema).min(1),

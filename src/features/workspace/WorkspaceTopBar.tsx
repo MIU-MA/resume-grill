@@ -26,10 +26,10 @@ export function WorkspaceTopBar({
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex min-w-0 flex-col">
           <strong className="truncate text-[14px] font-bold">
-            {analysis.candidate} · {analysis.role}
+            {analysis.jobContext ? `${analysis.jobContext.company} / ${analysis.jobContext.role}` : `${analysis.candidate} · ${analysis.role}`}
           </strong>
           <span className="mt-0.5 truncate text-[11px] text-text-tertiary max-[520px]:hidden">
-            {analysis.sourceFile}
+            {analysis.sourceFile}{analysis.jobContext ? ` · 版本 ${analysis.jobContext.resumeVersion.slice(0, 8)}` : ''}
           </span>
         </div>
       </div>

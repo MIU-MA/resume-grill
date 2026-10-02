@@ -9,12 +9,12 @@ import type { ExtractedText } from '@/lib/pdf'
 import { extractResumeClaimCandidates } from '@/lib/resume-structure'
 import type { LlmSettings } from '@/lib/settings'
 import { getLlmSettings } from '@/lib/settings'
+import { prepareJobResume, type JobPreparationRequest, type JobPreparationIntent } from '@/lib/job-preparation'
 import {
   deleteRecord,
   listRecords,
   loadRecord,
   newRecordId,
-  resumeContentKey,
   saveRecord,
   updateRecordDiagnosis,
   type SavedRecord,
@@ -33,8 +33,8 @@ export function useResumeAnalysis(
   const [analyzing, setAnalyzing] = useState(false)
 
   const openSavedRecord = useCallback(
-    (record: SavedRecord) => {
-      const document = ws.savedDocuments.find(item => item.recordId === record.id)
+    (record: SavedRecord, linkedDocument?: ResumeDocument) => {
+      const document = linkedDocument ?? ws.savedDocuments.find(item => item.recordId === record.id)
       const review = document?.review
       const savedAnalysis = review && review.rawText === record.analysis.rawText && review.jobDescription === (record.analysis.jobDescription ?? '')
         ? { ...record.analysis, diagnosis: review.diagnosis }
@@ -49,18 +49,21 @@ export function useResumeAnalysis(
       ws.setPendingExtracted(null)
       ws.setError(null)
       window.sessionStorage.setItem('resume-grill:active', record.id)
-      void setCurrentResumeDocument(document?.id ?? (ws.pendingExtracted?.initialReview?.rawText === record.analysis.rawText ? ws.pendingExtracted.documentId ?? null : null)).catch(() => undefined)
+      const pending = ws.pendingExtracted
+      const pendingMatches = pending?.initialReview && newRecordId({ ...pending.initialReview, jobContext: pending.jobContext }) === newRecordId(record.analysis)
+      void setCurrentResumeDocument(document?.id ?? (pendingMatches ? pending.documentId : undefined) ?? record.analysis.jobContext?.resumeDocumentId ?? null).catch(() => undefined)
       push('workspace', 'audit')
     },
     [ws, push],
   )
 
-  const openResumeDocument = useCallback((document: ResumeDocument, autoDiagnose = false) => {
+  const openResumeDocument = useCallback((document: ResumeDocument, autoDiagnose = false, preparationIntent: JobPreparationIntent = 'diagnosis') => {
     ws.setAnalysis(null)
     ws.setRecordId(document.recordId ?? null)
-    ws.setPendingExtracted({ extracted: document.extracted, sourceFile: document.sourceFile, demo: document.demo, documentId: document.id, initialReview: document.review, autoDiagnose })
+    ws.setPendingExtracted({ extracted: document.extracted, sourceFile: document.sourceFile, demo: document.demo, documentId: document.id, initialReview: document.review, autoDiagnose, jobContext: document.jobContext, preparationIntent })
     ws.setError(null)
     window.sessionStorage.setItem('resume-grill:review-document', document.id)
+    window.sessionStorage.setItem('resume-grill:review-intent', preparationIntent)
     void setCurrentResumeDocument(document.id).catch(() => undefined)
     push('review')
   }, [ws, push])
@@ -82,7 +85,7 @@ export function useResumeAnalysis(
       let linkFailed = false
       try {
         if (!document.recordId && !demo) {
-          const existing = (await listRecords()).find(record => record.analysis.rawText === extracted.text.trim())
+          const existing = (await listRecords()).find(record => !record.analysis.jobContext && record.analysis.rawText === extracted.text.trim())
           if (existing) {
             const review = document.review ?? { rawText: existing.analysis.rawText, analysisGoal: existing.analysis.analysisGoal ?? 'overall', reviewedCandidates: existing.analysis.reviewedCandidates ?? extractResumeClaimCandidates(existing.analysis.rawText), jobDescription: existing.analysis.jobDescription ?? '', diagnosis: existing.analysis.diagnosis }
             await updateResumeDocument(document.id, { recordId: existing.id, review })
@@ -111,7 +114,8 @@ export function useResumeAnalysis(
   }, [ws])
 
   const handleConfirmText = useCallback(
-    async (submission: ResumeReviewSubmission, sourceFile: string) => {
+    async (submission: ResumeReviewSubmission, sourceFile: string, document?: ResumeDocument) => {
+      const pending = document ? { documentId: document.id, demo: document.demo, jobContext: document.jobContext } : ws.pendingExtracted
       const { rawText, analysisGoal, reviewedCandidates, jobDescription } =
         submission
       if (!rawText.trim()) {
@@ -121,14 +125,12 @@ export function useResumeAnalysis(
       setAnalyzing(true)
       ws.setError(null)
       try {
-        const records = ws.recordId ? [] : await listRecords()
-        const existing = ws.recordId
-          ? await loadRecord(ws.recordId)
-          : records.find(
-              (r) =>
-                resumeContentKey(r.analysis.rawText) ===
-                resumeContentKey(rawText),
-            )
+        const identity = newRecordId({ ...submission, jobContext: pending?.jobContext })
+        const linkedId = document?.recordId ?? (document ? null : ws.recordId)
+        const linked = linkedId ? await loadRecord(linkedId) : undefined
+        const existing = linked && newRecordId(linked.analysis) === identity
+          ? linked
+          : (await listRecords()).find(record => newRecordId(record.analysis) === identity)
         const existingCandidates =
           existing?.analysis.reviewedCandidates ??
           (existing
@@ -142,7 +144,7 @@ export function useResumeAnalysis(
             reviewedCandidatesKey(reviewedCandidates)
 
         if (
-          !ws.pendingExtracted?.demo &&
+          !pending?.demo &&
           existing &&
           existing.analysis.rawText === rawText &&
           sameReview
@@ -150,8 +152,8 @@ export function useResumeAnalysis(
           const restored = submission.diagnosis
             ? { ...existing, analysis: { ...existing.analysis, diagnosis: submission.diagnosis }, updatedAt: Date.now() }
             : existing
-          if (ws.pendingExtracted?.documentId) await updateResumeDocument(ws.pendingExtracted.documentId, { recordId: restored.id, review: submission })
-          openSavedRecord(restored)
+          if (pending?.documentId) await updateResumeDocument(pending.documentId, { recordId: restored.id, review: submission })
+          openSavedRecord(restored, document)
           if (submission.diagnosis) saveRecord(restored).catch(() => ws.showToast('检查结果未能保存，请先导出备份。'))
           ws.showToast(
             `已打开「${existing.analysis.candidate}」的练习记录。`,
@@ -174,7 +176,7 @@ export function useResumeAnalysis(
           analysisGoal,
           reviewedCandidates,
           jobDescription,
-          demo: ws.pendingExtracted?.demo ?? false,
+          demo: pending?.demo ?? false,
         }
         if (llm && !body.demo) body.llm = llm
 
@@ -187,7 +189,7 @@ export function useResumeAnalysis(
         if (!res.ok || 'error' in responseData) {
           throw new Error('error' in responseData ? responseData.error : '分析失败')
         }
-        const data: ResumeAnalysis = { ...responseData, diagnosis: submission.diagnosis }
+        const data: ResumeAnalysis = { ...responseData, jobContext: pending?.jobContext, diagnosis: submission.diagnosis }
 
         const retainedSessions = existing
           ? Object.fromEntries(
@@ -209,8 +211,9 @@ export function useResumeAnalysis(
           Object.entries(existing?.claimPriorityOverrides ?? {}).filter(([id]) => data.claims.some((claim) => claim.id === id)),
         )
 
-        if (ws.pendingExtracted?.documentId) {
-          await updateResumeDocument(ws.pendingExtracted.documentId, { recordId: ws.recordId ?? existing?.id ?? newRecordId(data), review: submission })
+        const id = existing?.id ?? newRecordId(data)
+        if (pending?.documentId) {
+          await updateResumeDocument(pending.documentId, { recordId: id, review: submission })
         }
         ws.setAnalysis(data)
         ws.setSelectedIndex(0)
@@ -220,7 +223,6 @@ export function useResumeAnalysis(
         ws.setClaimPriorityOverrides(retainedPriorityOverrides)
         push('workspace', 'audit')
 
-        const id = ws.recordId ?? existing?.id ?? newRecordId(data)
         ws.setRecordId(id)
         window.sessionStorage.setItem('resume-grill:active', id)
         saveRecord({
@@ -244,6 +246,21 @@ export function useResumeAnalysis(
     [ws, push, openSavedRecord],
   )
 
+  const openJobPreparation = useCallback(async (request: JobPreparationRequest, intent: JobPreparationIntent, onOpen?: () => void) => {
+    const document = await prepareJobResume(request)
+    const previous = intent === 'interview' && document.recordId ? await loadRecord(document.recordId) : undefined
+    onOpen?.()
+    if (previous && document.review && newRecordId(previous.analysis) === newRecordId({ ...document.review, jobContext: document.jobContext })) {
+      openSavedRecord(previous, document)
+      return
+    }
+    openResumeDocument(document, intent === 'diagnosis' && !document.review?.diagnosis, intent)
+    // This click explicitly requests a plan; opening/reloading a review never does.
+    if (intent === 'interview' && document.review && (ws.envConfigured || ws.clientConfigured)) {
+      await handleConfirmText(document.review, document.sourceFile, document)
+    }
+  }, [openResumeDocument, openSavedRecord, handleConfirmText, ws.envConfigured, ws.clientConfigured])
+
   const replaceResume = useCallback(() => {
     ws.setAnalysis(null)
     ws.setPendingExtracted(null)
@@ -257,6 +274,7 @@ export function useResumeAnalysis(
     window.sessionStorage.removeItem('resume-grill:active')
     window.sessionStorage.removeItem('resume-grill:active-claim')
     window.sessionStorage.removeItem('resume-grill:review-document')
+    window.sessionStorage.removeItem('resume-grill:review-intent')
     push('upload')
   }, [ws, push])
 
@@ -276,6 +294,7 @@ export function useResumeAnalysis(
 
   return {
     analyzing,
+    openJobPreparation,
     handleExtracted,
     openResumeDocument,
     removeResumeDocument,

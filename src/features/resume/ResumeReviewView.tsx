@@ -15,6 +15,8 @@ import type { ExtractedText } from '@/lib/pdf'
 import { Button } from '@/components/ui/Button'
 import { WorkbenchFrame } from '@/components/layout/WorkbenchFrame'
 import type { AnalysisGoal } from '@/domain/analysis-config'
+import type { JobContext } from '@/domain/job-context'
+import type { JobPreparationIntent } from '@/lib/job-preparation'
 import { parseResumeStructure } from '@/lib/resume-structure'
 import type { ResumeReviewSubmission } from '@/application/types'
 import type { ReviewCandidate } from '@/features/resume/resume-review-types'
@@ -44,17 +46,19 @@ type ResumeReviewViewProps = {
   onApplications: () => void
   initialReview?: ResumeReviewSubmission
   autoDiagnose?: boolean
+  jobContext?: JobContext
+  preparationIntent?: JobPreparationIntent
   onSaveReview: (review: ResumeReviewSubmission) => Promise<void>
 }
 
-export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error, envConfigured, clientConfigured, onClientChanged, onConfirm, onBack, onApplications, initialReview, autoDiagnose, onSaveReview }: ResumeReviewViewProps) {
+export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error, envConfigured, clientConfigured, onClientChanged, onConfirm, onBack, onApplications, initialReview, autoDiagnose, onSaveReview, jobContext, preparationIntent }: ResumeReviewViewProps) {
   const [text, setText] = useState(initialReview?.rawText ?? extracted.text)
   const [sections, setSections] = useState(() => parseResumeStructure(initialReview?.rawText ?? extracted.text))
   const [candidates, setCandidates] = useState<ReviewCandidate[]>(() => initialReview?.candidateDrafts ?? (initialReview ? initialReview.reviewedCandidates.map((candidate, index) => ({ ...candidate, id: `saved-${index}`, enabled: true })) : createReviewCandidates(extracted.text)))
-  const [tab, setTab] = useState<'diagnosis' | 'structure' | 'raw'>('diagnosis')
+  const [tab, setTab] = useState<'diagnosis' | 'structure' | 'raw'>(preparationIntent === 'interview' ? 'structure' : 'diagnosis')
   const [analysisGoal, setAnalysisGoal] = useState<AnalysisGoal>(initialReview?.analysisGoal ?? 'overall')
   const [jobDescription, setJobDescription] = useState(initialReview?.jobDescription ?? '')
-  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(preparationIntent === 'interview' && !envConfigured && !clientConfigured)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [goalOpen, setGoalOpen] = useState(false)
@@ -174,6 +178,12 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
           <Button aria-label="返回简历库" className="h-8 px-2.5 text-[12px]" variant="ghost" onClick={onBack} disabled={analyzing}><ArrowLeft size={15} /><span className="max-sm:hidden">简历库</span></Button>
         </div>
       </header>
+
+      {jobContext && <div className="flex flex-none flex-wrap items-center gap-x-4 gap-y-1 border-b border-line bg-brand-soft px-4 py-2 text-[12px] sm:px-6">
+        <strong className="font-medium">{jobContext.company} / {jobContext.role}</strong>
+        <span className="text-text-secondary">{sourceFile} · 版本 {jobContext.resumeVersion.slice(0, 8)}</span>
+        <button type="button" className="ml-auto text-text-secondary underline underline-offset-4" disabled={analyzing} onClick={onApplications}>返回投递清单</button>
+      </div>}
 
       <div className="flex h-12 flex-none items-stretch gap-2 border-b border-line px-4 sm:px-6" role="tablist" aria-label="简历检查视图">
         <ReviewTab active={tab === 'diagnosis'} onClick={() => setTab('diagnosis')}>简历检查</ReviewTab>

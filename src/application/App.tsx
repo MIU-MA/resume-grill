@@ -142,13 +142,19 @@ function App() {
 
   if (workspace.recovering) return <div className="min-h-screen bg-bg" />
 
-  if (mode === 'applications') return <MailWorkbench badges={sidebarBadges} onNavigate={tab => workspace.analysis ? handleTabChange(tab) : push('upload')} onHome={() => push('upload')} />
+  if (mode === 'applications') return <MailWorkbench badges={sidebarBadges} onNavigate={tab => workspace.analysis ? handleTabChange(tab) : push('upload')} onHome={() => push('upload')} onPrepare={async (request, intent) => {
+    if (interview.loading || interview.regeneratingId) throw new Error('当前回答还在处理中，完成后可切换岗位。')
+    await analysis.openJobPreparation(request, intent, () => {
+      interview.reset()
+      restoredRef.current = false
+    })
+  }} />
 
   if (phase === 'upload' || phase === 'review' || !workspace.analysis || !selected || !stats) {
     if (phase === 'review' && workspace.pendingExtracted) {
       return (
         <ResumeReviewView
-          key={workspace.pendingExtracted.sourceFile + workspace.pendingExtracted.extracted.text}
+          key={workspace.pendingExtracted.documentId ?? workspace.pendingExtracted.sourceFile + workspace.pendingExtracted.extracted.text}
           demo={workspace.pendingExtracted.demo ?? false}
           sourceFile={workspace.pendingExtracted.sourceFile}
           extracted={workspace.pendingExtracted.extracted}
@@ -160,6 +166,8 @@ function App() {
           onConfirm={analysis.handleConfirmText}
           initialReview={workspace.pendingExtracted.initialReview}
           autoDiagnose={workspace.pendingExtracted.autoDiagnose}
+          jobContext={workspace.pendingExtracted.jobContext}
+          preparationIntent={workspace.pendingExtracted.preparationIntent}
           onSaveReview={analysis.saveReview}
           onApplications={() => push('workspace', 'applications')}
           onBack={analysis.replaceResume}

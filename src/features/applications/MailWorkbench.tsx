@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { get, set } from 'idb-keyval'
 import { ArrowLeft, ExternalLink, Mail, Paperclip, Pause, Play, Plus, Settings, Trash2 } from 'lucide-react'
 import type { Mode } from '@/application/types'
@@ -9,18 +9,21 @@ import { Button } from '@/components/ui/Button'
 import { WorkspaceSidebar, type SidebarBadges } from '@/features/workspace/WorkspaceSidebar'
 import { applicationTemplate, batchSchema, mailDraftSchema, MAIL_STATUS_LABELS, type CareerDiscovery, type CareerPage, type MailBatch, type MailJob } from '@/domain/mail-schema'
 import { listResumeAttachments } from '@/lib/resume-library'
+import type { JobPreparationIntent, JobPreparationRequest } from '@/lib/job-preparation'
 import { useSidebarCollapsed } from '@/hooks/use-sidebar-collapsed'
 import { useMailAgent } from './use-mail-agent'
 import { MailSettings } from './MailSettings'
 import { MailPreview } from './MailPreview'
 import { LinkImporter } from './LinkImporter'
 import { DraftEditor } from './DraftEditor'
-import { draftIssues, draftPayload, markWebsiteApplication, validResumeAttachment, websiteLinks, type Draft, type DraftField, type WebsiteApplication } from './draft-state'
+import { JobPreparationPanel } from './JobPreparationPanel'
+import { applyCareerPage, draftIssues, draftPayload, markWebsiteApplication, preparationAttachment, updateDraft, validResumeAttachment, websiteLinks, type Draft, type DraftField, type SavedJobPreparation, type WebsiteApplication } from './draft-state'
 
 type AttachmentSource = { id: string; updatedAt: number }
 type LibraryAttachment = Awaited<ReturnType<typeof listResumeAttachments>>[number]
-type DraftStore = { drafts: Draft[]; attachment: File | null; attachmentSource?: AttachmentSource; websiteApplications?: WebsiteApplication[] }
+type DraftStore = { drafts: Draft[]; attachment: File | null; attachmentSource?: AttachmentSource; websiteApplications?: WebsiteApplication[]; preparationByJob?: Record<string, SavedJobPreparation> }
 const STORAGE_KEY = 'mail-workbench:drafts:v1'
+const VIEW_KEY = 'mail-workbench:view'
 const MAIL_STATUS_TONES = {
   queued: 'info', sending: 'info', sent: 'success', failed: 'danger', uncertain: 'danger', cancelled: 'neutral',
 } satisfies Record<MailJob['status'], 'info' | 'success' | 'danger' | 'neutral'>
@@ -40,7 +43,7 @@ function safeLink(value: string) {
   try { return new URL(value).protocol === 'https:' ? value : undefined } catch { return undefined }
 }
 
-export function MailWorkbench({ badges, onNavigate, onHome }: { badges: SidebarBadges; onNavigate: (mode: Mode) => void; onHome: () => void }) {
+export function MailWorkbench({ badges, onNavigate, onHome, onPrepare }: { badges: SidebarBadges; onNavigate: (mode: Mode) => void; onHome: () => void; onPrepare: (request: JobPreparationRequest, intent: JobPreparationIntent) => Promise<void> }) {
   const agent = useMailAgent()
   const [drafts, setDrafts] = useState<Draft[]>([])
   const [attachment, setAttachment] = useState<File | null>(null)
@@ -48,6 +51,8 @@ export function MailWorkbench({ badges, onNavigate, onHome }: { badges: SidebarB
   const [libraryAttachments, setLibraryAttachments] = useState<LibraryAttachment[]>([])
   const [libraryError, setLibraryError] = useState(false)
   const [websiteApplications, setWebsiteApplications] = useState<WebsiteApplication[]>([])
+  const [preparationByJob, setPreparationByJob] = useState<Record<string, SavedJobPreparation>>({})
+  const [previewPreparation, setPreviewPreparation] = useState<Record<string, SavedJobPreparation>>({})
   const [attachmentOpen, setAttachmentOpen] = useState(false)
   const [focusRequest, setFocusRequest] = useState<{ field: DraftField; time: number } | null>(null)
   const [hydrated, setHydrated] = useState(false)
@@ -59,6 +64,13 @@ export function MailWorkbench({ badges, onNavigate, onHome }: { badges: SidebarB
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const fileInput = useRef<HTMLInputElement>(null)
+  const pendingPreparation = useRef<{ id: string; intent: JobPreparationIntent } | null>(null)
+  useEffect(() => {
+    const input = fileInput.current
+    const cancel = () => { pendingPreparation.current = null }
+    input?.addEventListener('cancel', cancel)
+    return () => input?.removeEventListener('cancel', cancel)
+  }, [])
   const snapshot = agent.snapshot
   const jobs = snapshot?.jobs ?? []
   const history = [...jobs, ...websiteApplications].sort((a, b) => (isWebsite(b) ? b.appliedAt : b.updatedAt) - (isWebsite(a) ? a.appliedAt : a.updatedAt))
@@ -66,6 +78,19 @@ export function MailWorkbench({ badges, onNavigate, onHome }: { badges: SidebarB
   const pending = jobs.filter(job => job.status === 'queued').length
   const readyDrafts = drafts.filter(draft => mailDraftSchema.safeParse(draftPayload(draft)).success)
   const websiteDrafts = drafts.filter(draft => websiteLinks(draft).length > 0)
+  const selectedPreparation = selected && tab === 'history' ? preparationByJob[selected.id] : undefined
+  const selectedAttachment = preparationAttachment(selectedPreparation, attachment, attachmentSource)
+  const selectedDescription = selected ? (tab === 'history' ? selectedPreparation?.jobDescription : undefined) ?? (!isJob(selected) ? selected.jobDescription : '') ?? '' : ''
+  const attachmentLabel = selectedAttachment.file
+    ? `${selectedAttachment.saved ? selectedAttachment.use === 'mail' ? '发送附件' : selectedAttachment.use === 'preview' ? '邮件预览时附件' : '准备时附件' : tab === 'history' ? '使用当前附件' : '使用附件'}：${selectedAttachment.file.name}${selectedAttachment.source ? ` · ${savedDate(selectedAttachment.source.updatedAt)} 版本` : ''}`
+    : '尚未选择简历，点击检查或准备时可直接选择原文件。'
+
+  useEffect(() => {
+    const input = fileInput.current
+    const cancel = () => { pendingPreparation.current = null }
+    input?.addEventListener('cancel', cancel)
+    return () => input?.removeEventListener('cancel', cancel)
+  }, [])
 
   useEffect(() => {
     const name = snapshot?.sender?.name
@@ -89,10 +114,15 @@ export function MailWorkbench({ badges, onNavigate, onHome }: { badges: SidebarB
       if (!active) return
       if (savedResult.status === 'rejected') { setError('无法读取浏览器中的投递草稿，请检查浏览器存储权限后刷新。'); return }
       const saved = savedResult.value
+      try {
+        const view = JSON.parse(window.sessionStorage.getItem(VIEW_KEY) ?? 'null')
+        if (view?.tab === 'drafts' || view?.tab === 'history') setTab(view.tab)
+        if (typeof view?.selectedId === 'string') setSelectedId(view.selectedId)
+      } catch { /* Selection is optional; drafts remain in IndexedDB. */ }
       const library = libraryResult.status === 'fulfilled' ? libraryResult.value.filter(item => validResumeAttachment(item.file)) : []
       setLibraryError(libraryResult.status === 'rejected')
       setLibraryAttachments(library)
-      if (saved) { setDrafts(saved.drafts); setWebsiteApplications(saved.websiteApplications ?? []) }
+      if (saved) { setDrafts(saved.drafts); setWebsiteApplications(saved.websiteApplications ?? []); setPreparationByJob(saved.preparationByJob ?? {}) }
       if (saved?.attachment) {
         if (validResumeAttachment(saved.attachment)) { setAttachment(saved.attachment); setAttachmentSource(saved.attachmentSource) }
         else setError('原先选择的附件无法读取，请重新选择简历原文件。')
@@ -105,8 +135,12 @@ export function MailWorkbench({ badges, onNavigate, onHome }: { badges: SidebarB
     return () => { active = false }
   }, [])
   useEffect(() => {
-    if (hydrated) void set(STORAGE_KEY, { drafts, attachment, attachmentSource, websiteApplications }).catch(() => setError('草稿未能保存到浏览器，刷新前请备份填写内容。'))
-  }, [drafts, attachment, attachmentSource, websiteApplications, hydrated])
+    if (hydrated) void set(STORAGE_KEY, { drafts, attachment, attachmentSource, websiteApplications, preparationByJob }).catch(() => setError('草稿未能保存到浏览器，刷新前请备份填写内容。'))
+  }, [drafts, attachment, attachmentSource, websiteApplications, preparationByJob, hydrated])
+  useEffect(() => {
+    if (!hydrated) return
+    try { window.sessionStorage.setItem(VIEW_KEY, JSON.stringify({ tab, selectedId })) } catch { /* Optional view state. */ }
+  }, [hydrated, tab, selectedId])
   useEffect(() => {
     if (!snapshot) return
     const submitted = new Set(snapshot.jobs.map(job => job.id))
@@ -120,16 +154,40 @@ export function MailWorkbench({ badges, onNavigate, onHome }: { badges: SidebarB
   }
   const update = (change: Partial<Draft>) => {
     if (!selected || tab !== 'drafts') return
-    setDrafts(items => items.map(item => item.id === selected.id ? {
-      ...item, ...change,
-      ...(('body' in change || 'subject' in change) ? { automatic: false } : {}),
-      ...(('recipient' in change || 'sourceUrl' in change) ? { sourceConfirmed: false } : {}),
-    } : item))
+    setDrafts(items => items.map(item => item.id === selected.id ? updateDraft(item, change) : item))
+    if (change.sourceUrl !== undefined && change.sourceUrl !== selected.sourceUrl) {
+      setPreparationByJob(items => { const next = { ...items }; delete next[selected.id]; return next })
+    } else if (change.jobDescription !== undefined) {
+      setPreparationByJob(items => items[selected.id] ? { ...items, [selected.id]: { ...items[selected.id], jobDescription: change.jobDescription! } } : items)
+    }
+  }
+  const updateHistoryDescription = (jobDescription: string) => {
+    if (!selected) return
+    setPreparationByJob(items => ({ ...items, [selected.id]: { ...items[selected.id], jobDescription } }))
+    if (isWebsite(selected)) setWebsiteApplications(items => items.map(item => item.id === selected.id ? { ...item, jobDescription, jobDescriptionEdited: true } : item))
+  }
+  const prepareJob = async (intent: JobPreparationIntent, pickedFile?: File) => {
+    if (!selected || !selectedDescription.trim()) return
+    const file = pickedFile ?? selectedAttachment.file
+    if (!file) { pendingPreparation.current = { id: selected.id, intent }; fileInput.current?.click(); return }
+    pendingPreparation.current = null
+    const request: JobPreparationRequest = {
+      job: { id: selected.id, company: selected.company, role: selected.role, sourceUrl: selected.sourceUrl, jobDescription: selectedDescription.trim() },
+      attachment: file, attachmentSource: pickedFile ? undefined : selectedAttachment.source,
+    }
+    const nextPreparation = { ...preparationByJob, [selected.id]: { jobDescription: request.job.jobDescription, attachment: request.attachment, attachmentSource: request.attachmentSource, attachmentUse: selectedAttachment.use } }
+    await set(STORAGE_KEY, { drafts, attachment: pickedFile ?? attachment, attachmentSource: pickedFile ? undefined : attachmentSource, websiteApplications, preparationByJob: nextPreparation })
+    setPreparationByJob(nextPreparation)
+    await onPrepare(request, intent)
   }
   const addDraft = () => {
     if (drafts.length >= 20) { setError('每批最多 20 封，请先发送或移除当前草稿'); return }
     const draft: Draft = { id: crypto.randomUUID(), company: '', role: '', sourceUrl: '', recipient: '', subject: '', body: '', sourceConfirmed: false, automatic: true }
     setDrafts(items => [...items, draft]); setSelectedId(draft.id); setTab('drafts'); setFocusRequest({ field: 'company', time: Date.now() }); setError('')
+  }
+  const removeDraft = (id: string) => {
+    setDrafts(items => items.filter(item => item.id !== id))
+    setPreparationByJob(items => { const next = { ...items }; delete next[id]; return next })
   }
   const preparePreview = async () => {
     if (!snapshot?.sender) { setSettingsOpen('sender'); return }
@@ -143,7 +201,10 @@ export function MailWorkbench({ badges, onNavigate, onHome }: { badges: SidebarB
       const missing = target ? [['公司', target.company], ['岗位', target.role], ['招聘邮箱', target.recipient], ['主题', target.subject], ['正文', target.body]].filter(([, value]) => !value.trim()).map(([label]) => label).join('、') : ''
       throw new Error(`请检查${typeof index === 'number' ? `第 ${index + 1} 个岗位` : '投递内容'}${missing ? `，还缺：${missing}` : '的邮箱、官网链接或附件格式'}。`)
     }
-    setPreview(parsed.data)
+    const captured = Object.fromEntries(readyDrafts.map(draft => [draft.id, { jobDescription: draft.jobDescription ?? '', attachment, attachmentSource, attachmentUse: 'preview' as const }]))
+    const nextPreparation = { ...preparationByJob, ...captured }
+    await set(STORAGE_KEY, { drafts, attachment, attachmentSource, websiteApplications, preparationByJob: nextPreparation })
+    setPreparationByJob(nextPreparation); setPreviewPreparation(captured); setPreview(parsed.data)
   }
   const jobAction = async (job: MailJob, action: 'retry' | 'cancel' | 'confirm-sent') => {
     if (job.status === 'uncertain' && !window.confirm(action === 'confirm-sent' ? '已核对邮箱发信记录，确认这封邮件已经发出？' : '取消本条不会撤回邮件；如需再次投递，请先核实上次发送结果。继续取消？')) return
@@ -159,6 +220,7 @@ export function MailWorkbench({ badges, onNavigate, onHome }: { badges: SidebarB
   }
   const markApplied = (draft: Draft, url: string) => {
     const record = markWebsiteApplication(draft, url, Date.now())
+    setPreparationByJob(items => ({ ...items, [draft.id]: { ...items[draft.id], jobDescription: draft.jobDescription ?? '' } }))
     setWebsiteApplications(items => [...items, record]); setDrafts(items => items.filter(item => item.id !== draft.id))
     setTab('history'); setSelectedId(record.id)
   }
@@ -176,7 +238,12 @@ export function MailWorkbench({ badges, onNavigate, onHome }: { badges: SidebarB
           const file = event.target.files?.[0]
           if (file) {
             if (!validResumeAttachment(file)) setError('请选择 5 MB 以内的 PDF、DOCX 或 TXT 简历')
-            else { setAttachment(file); setAttachmentSource(undefined); setError(''); setAttachmentOpen(false) }
+            else {
+              setAttachment(file); setAttachmentSource(undefined); setError(''); setAttachmentOpen(false)
+              const pending = pendingPreparation.current
+              pendingPreparation.current = null
+              if (pending && pending.id === selected?.id) void run(() => prepareJob(pending.intent, file))
+            }
           }
           event.target.value = ''
         }} />
@@ -195,7 +262,7 @@ export function MailWorkbench({ badges, onNavigate, onHome }: { badges: SidebarB
       {(error || agent.connectionError || snapshot?.fatalError) && <div role="alert" className="flex-none border-b border-line bg-danger-soft px-5 py-2 text-[12px] leading-relaxed text-danger">{error || agent.connectionError || snapshot?.fatalError}</div>}
       <div className="flex-none">{hydrated && <LinkImporter onBusy={setBusy} existingUrls={drafts.map(draft => draft.sourceUrl)} slots={20 - drafts.length} connected={!!snapshot} onConnect={() => setSettingsOpen('agent')} read={url => agent.request<CareerPage>('/extract', { url })} discover={url => agent.request<CareerDiscovery>('/discover', { url })} onImported={result => {
         const id = crypto.randomUUID()
-        const draft: Draft = { id, company: result.company ?? '', role: result.role ?? '', sourceUrl: result.url, recipient: result.recommendedEmail ?? '', subject: '', body: '', sourceConfirmed: false, automatic: true, extraction: result }
+        const draft: Draft = { id, company: result.company ?? '', role: result.role ?? '', sourceUrl: result.url, recipient: result.recommendedEmail ?? '', subject: '', body: '', sourceConfirmed: false, automatic: true, extraction: result, jobDescription: result.jobDescription ?? '' }
         setDrafts(items => items.length >= 20 || items.some(item => item.sourceUrl === result.url) ? items : [...items, draft]); setSelectedId(id); setTab('drafts'); setFocusRequest(null); setError('')
       }} />}</div>
       <div className="mail-work-area min-h-0 flex-1">
@@ -230,25 +297,30 @@ export function MailWorkbench({ badges, onNavigate, onHome }: { badges: SidebarB
             <h2 className="mb-2 text-[17px] font-semibold">{tab === 'history' ? '还没有投递记录' : '从一个岗位开始'}</h2>
             <p className="text-[13px] leading-[1.9] text-text-secondary">{tab === 'history' ? '发送邮件或标记已完成的官网申请后，可以在这里查看。' : '添加招聘详情链接，自动整理公司、岗位和投递方式。缺少的信息会在清单中提示。'}</p>
             {tab === 'drafts' && <Button variant="secondary" className="mt-3" disabled={!hydrated || busy} onClick={addDraft}><Plus size={14} />手动添加岗位</Button>}
-          </div> : tab === 'drafts' ? <DraftEditor key={selected.id} draft={selected as Draft} sender={snapshot?.sender} connected={!!snapshot} busy={busy} focusRequest={focusRequest} onUpdate={update} onConnect={() => setSettingsOpen('agent')} onRemove={() => setDrafts(items => items.filter(item => item.id !== selected.id))} onApplied={url => markApplied(selected as Draft, url)} onExtract={() => void run(async () => {
+          </div> : tab === 'drafts' ? <DraftEditor key={selected.id} draft={selected as Draft} sender={snapshot?.sender} connected={!!snapshot} busy={busy} focusRequest={focusRequest} attachmentLabel={attachmentLabel} onPrepare={intent => void run(() => prepareJob(intent))} onUpdate={update} onConnect={() => setSettingsOpen('agent')} onRemove={() => removeDraft(selected.id)} onApplied={url => markApplied(selected as Draft, url)} onExtract={() => void run(async () => {
             const id = selected.id; const original = selected.sourceUrl
             const result = await agent.request<CareerPage>('/extract', { url: original })
-            setDrafts(items => items.map(item => item.id === id && item.sourceUrl === original ? { ...item, sourceUrl: result.url, company: item.company || result.company || '', role: item.role || result.role || '', recipient: item.recipient || result.recommendedEmail || '', extraction: result, automatic: !item.body && !item.subject ? true : item.automatic, sourceConfirmed: false } : item))
+            setDrafts(items => items.map(item => item.id === id && item.sourceUrl === original ? applyCareerPage(item, result) : item))
           })} /> : isWebsite(selected) ? <article className="mx-auto max-w-[860px] p-5 text-[13px] sm:p-6">
             <h2 className="m-0 text-[17px] font-semibold">{selected.company} / {selected.role}</h2>
             <p className="text-[12px] text-text-secondary"><span className="workbench-status" data-tone="success">官网已投</span> · {savedDate(selected.appliedAt)} 手动标记</p>
+            <JobPreparationPanel key={selected.id} jobDescription={selectedDescription} attachmentLabel={attachmentLabel} busy={busy} onChange={updateHistoryDescription} onPrepare={intent => void run(() => prepareJob(intent))} />
             <p className="border-y border-line py-4 leading-relaxed text-text-secondary">这条记录表示你已在官网完成申请。工作台没有发送邮件，也没有读取官网的申请结果。</p>
             <a href={safeLink(selected.applicationUrl)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-accent underline">查看官网申请页面<ExternalLink size={13} /></a>
             <div className="mt-6"><Button variant="secondary" disabled={drafts.length >= 20} onClick={() => {
               const { channel: _channel, applicationUrl: _url, appliedAt: _at, ...draft } = selected
               setWebsiteApplications(items => items.filter(item => item.id !== selected.id)); setDrafts(items => [...items, draft]); setTab('drafts'); setSelectedId(draft.id); setFocusRequest(null)
             }}>撤销标记，移回待投递</Button></div>
-          </article> : <JobDetails job={selected as MailJob} disabled={busy || !!snapshot?.running} onAction={action => void run(() => jobAction(selected as MailJob, action))} />}
+          </article> : <JobDetails job={selected as MailJob} disabled={busy || !!snapshot?.running} onAction={action => void run(() => jobAction(selected as MailJob, action))} preparation={<JobPreparationPanel key={selected.id} jobDescription={selectedDescription} attachmentLabel={attachmentLabel} busy={busy} onChange={updateHistoryDescription} onPrepare={intent => void run(() => prepareJob(intent))} />} />}
         </section>
       </div>
     </main>
     {settingsOpen && <MailSettings agent={agent} purpose={settingsOpen} onClose={() => setSettingsOpen(null)} />}
     {preview && <MailPreview batch={preview} onClose={() => setPreview(null)} onSend={async batch => {
+      const sentPreparation = Object.fromEntries(batch.jobs.map(job => [job.id, { ...previewPreparation[job.id], attachmentUse: 'mail' as const }]))
+      const nextPreparation = { ...preparationByJob, ...sentPreparation }
+      await set(STORAGE_KEY, { drafts, attachment, attachmentSource, websiteApplications, preparationByJob: nextPreparation })
+      setPreparationByJob(nextPreparation)
       await agent.command('/batches', batch)
       setDrafts(items => items.filter(item => !batch.jobs.some(job => job.id === item.id)))
       setPreview(null); setTab('history'); setSelectedId(batch.jobs[0].id); setError('')
@@ -256,10 +328,11 @@ export function MailWorkbench({ badges, onNavigate, onHome }: { badges: SidebarB
   </WorkbenchFrame>
 }
 
-function JobDetails({ job, disabled, onAction }: { job: MailJob; disabled: boolean; onAction: (action: 'retry' | 'cancel' | 'confirm-sent') => void }) {
+function JobDetails({ job, disabled, onAction, preparation }: { job: MailJob; disabled: boolean; onAction: (action: 'retry' | 'cancel' | 'confirm-sent') => void; preparation: ReactNode }) {
   return <article className="mx-auto max-w-[860px] p-5 text-[13px] sm:p-6">
     <div className="flex flex-wrap items-baseline gap-3"><h2 className="m-0 text-[17px] font-semibold">{job.company} / {job.role}</h2><span className="workbench-status text-[12px]" data-tone={MAIL_STATUS_TONES[job.status]}>{MAIL_STATUS_LABELS[job.status]}</span></div>
     <p className="mb-5 text-[12px] leading-relaxed text-text-tertiary">{job.detail ?? '按清单顺序发送。'}<br />更新于 {new Date(job.updatedAt).toLocaleString('zh-CN')}</p>
+    {preparation}
     <dl className="mail-record grid grid-cols-[60px_minmax(0,1fr)] gap-x-3 gap-y-3 border-y border-line py-4 text-[12px]">
       <dt>发件人</dt><dd>{job.sender.name} &lt;{job.sender.address}&gt;</dd><dt>收件人</dt><dd>{job.recipient}</dd>
       <dt>官网来源</dt><dd><a href={safeLink(job.sourceUrl)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 underline">{job.sourceUrl}<ExternalLink size={12} className="shrink-0" /></a></dd>

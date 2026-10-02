@@ -31,6 +31,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
   const cacheKey = (claim: ResumeClaim) => `${claim.id}:${hashClaimContent(claim.content)}`
 
   const reset = useCallback(() => {
+    cache.current.clear()
     setRounds([]); setCurrentQuestion(''); setCurrentIntent(''); setAnswer(''); setAnnotation('')
     setDone(false); setActiveClaimSnapshot(null); setVersion(1)
   }, [])

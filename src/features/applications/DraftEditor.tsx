@@ -5,12 +5,15 @@ import { ExternalLink, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { applicationTemplate, type CareerPage, type MailSender } from '@/domain/mail-schema'
 import { draftIssues, websiteLinks, type Draft, type DraftField } from './draft-state'
+import type { JobPreparationIntent } from '@/lib/job-preparation'
+import { JobPreparationPanel } from './JobPreparationPanel'
 
-export function DraftEditor({ draft, sender, connected, busy, focusRequest, onUpdate, onRemove, onExtract, onConnect, onApplied }: {
+export function DraftEditor({ draft, sender, connected, busy, focusRequest, attachmentLabel, onPrepare, onUpdate, onRemove, onExtract, onConnect, onApplied }: {
   draft: Draft; sender?: MailSender | null; connected: boolean; busy: boolean
   focusRequest: { field: DraftField; time: number } | null
   onUpdate: (change: Partial<Draft>) => void; onRemove: () => void
   onExtract: () => void; onConnect: () => void; onApplied: (url: string) => void
+  attachmentLabel: string; onPrepare: (intent: JobPreparationIntent) => void
 }) {
   const root = useRef<HTMLDivElement>(null)
   const [sourceOpen, setSourceOpen] = useState(!draft.sourceUrl)
@@ -50,6 +53,7 @@ export function DraftEditor({ draft, sender, connected, busy, focusRequest, onUp
         <label className="mail-label mt-3">官网招聘页<div className="flex gap-2"><input name="sourceUrl" className="mail-input min-w-0 flex-1" type="url" placeholder="https://公司官网/招聘详情" value={draft.sourceUrl} onChange={event => onUpdate({ sourceUrl: event.target.value })} /><Button variant="secondary" className="h-9 shrink-0 px-3 text-[12px]" loading={busy} disabled={!draft.sourceUrl} onClick={connected ? onExtract : onConnect}>{connected ? '重新识别' : '连接后识别'}</Button></div></label>
       </details>
     </div>
+    <JobPreparationPanel jobDescription={draft.jobDescription ?? ''} attachmentLabel={attachmentLabel} busy={busy} onChange={jobDescription => onUpdate({ jobDescription })} onPrepare={onPrepare} />
     {!websiteMode && <div className="pt-1">
       <div className="mb-3 flex items-center justify-between gap-2"><span className="text-[13px] font-medium">邮件内容</span><button className="text-[12px] text-text-secondary underline disabled:opacity-40" disabled={!draft.company || !draft.role || !sender?.name} onClick={() => {
         if ((draft.body || draft.subject) && !window.confirm('用基本正文替换当前主题和正文？')) return

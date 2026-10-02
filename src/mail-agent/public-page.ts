@@ -5,6 +5,63 @@ import { load } from 'cheerio'
 import { extractCareerLinks } from './career-links.ts'
 import { emailSchema, sourceUrlSchema, type CareerPage } from '../domain/mail-schema.ts'
 
+const ROLE_PATTERN = /工程师|开发|设计师|产品经理|运营|专员|分析师|研究员|实习生|助理|总监|顾问|销售|会计|engineer|developer|designer|analyst|manager|intern|scientist/i
+const DESCRIPTION_SECTION = /^(?:(?:[一二三四五六七八九十\d]+)[、.．）)]\s*)?(?:岗位职责|工作职责|职位职责|职责描述|主要职责|工作内容|任职要求|职位要求|岗位要求|任职资格|应聘要求|技能要求|职责要求|job responsibilities|responsibilities|qualifications|requirements)(?:\s*[:：]|\s*$)/i
+const DESCRIPTION_END = /^(?:公司简介|公司介绍|关于我们|薪资待遇|福利待遇|工作地点|投递方式|应聘方式|联系方式|招聘邮箱|申请职位|立即申请|相关职位|推荐职位|about us|benefits|how to apply|apply now|related jobs)(?:\s*[:：]|\s*$)/i
+const NON_JOB_HEADING = /职位列表|岗位列表|招聘岗位|招聘职位|加入我们|加入团队|关于我们|热招岗位|careers|vacancies|join our|open positions/i
+const MAX_DESCRIPTION_LENGTH = 12000
+
+function descriptionDocument(html: string) {
+  const $ = load(html)
+  $('script,style,noscript,svg,template,nav,footer,header,aside,form,button,[hidden],[aria-hidden="true"]').remove()
+  $('[style]').each((_, element) => {
+    if (/(?:display\s*:\s*none|visibility\s*:\s*hidden)/i.test($(element).attr('style') ?? '')) $(element).remove()
+  })
+  return $
+}
+
+function descriptionLines($: ReturnType<typeof load>) {
+  $('br').replaceWith('\n')
+  $('p,div,section,article,li,td,h1,h2,h3,h4,h5,h6').append('\n')
+  return $('body').text().split(/\n+/).map(line => line.replace(/\s+/g, ' ').trim()).filter(Boolean)
+}
+
+function extractJobDescription(html: string, postings: Array<Record<string, unknown>>, role: string): string | undefined {
+  // A list cannot supply a single job's requirements, even if one card is visible.
+  if (postings.length > 1) return undefined
+  const structured = postings[0]?.description
+  if (typeof structured === 'string') {
+    const text = descriptionLines(descriptionDocument(structured)).join('\n').trim()
+    if (text) return text.slice(0, MAX_DESCRIPTION_LENGTH)
+  }
+  if (!role || NON_JOB_HEADING.test(role)) return undefined
+  const $ = descriptionDocument(html)
+  if ($('h1').toArray().some(element => NON_JOB_HEADING.test($(element).text()))) return undefined
+  const headings = new Set($('h1,h2,h3,h4,h5,h6').toArray().map(element => $(element).text().replace(/\s+/g, ' ').trim()))
+  const jobHeadings = [...headings].filter(heading => heading.length < 80 && ROLE_PATTERN.test(heading) && !DESCRIPTION_SECTION.test(heading) && !NON_JOB_HEADING.test(heading))
+  if (new Set(jobHeadings).size > 1) return undefined
+  const lines = descriptionLines($)
+  if (lines.filter(line => /^(?:岗位名称|职位名称)\s*[:：]/.test(line)).length > 1) return undefined
+  const result: string[] = []
+  let section: string[] | null = null
+  const finish = () => {
+    if (section && section.join('\n').replace(DESCRIPTION_SECTION, '').trim()) result.push(...section)
+    section = null
+  }
+  for (const line of lines) {
+    if (DESCRIPTION_SECTION.test(line)) {
+      finish()
+      section = [line]
+    } else if (headings.has(line) || DESCRIPTION_END.test(line)) {
+      finish()
+    } else if (section) {
+      section.push(line)
+    }
+  }
+  finish()
+  return result.length ? result.join('\n').slice(0, MAX_DESCRIPTION_LENGTH) : undefined
+}
+
 export function isPublicAddress(address: string): boolean {
   if (!ipaddr.isValid(address)) return false
   let parsed = ipaddr.parse(address)
@@ -68,10 +125,9 @@ export function extractCareerEmails(html: string, url: string): CareerPage {
   const single = postings.length === 1 ? postings[0] : undefined
   const organization = single?.hiringOrganization as { name?: unknown } | undefined
   const heading = $('h1').length === 1 ? short($('h1').text()) : ''
-  const rolePattern = /工程师|开发|设计师|产品经理|运营|专员|分析师|研究员|实习生|助理|总监|顾问|销售|会计|engineer|developer|designer|analyst|manager|intern|scientist/i
   const labelledRole = rawText.match(/(?:岗位名称|职位名称)[：:]\s*([^\n。；;]{2,80})/)?.[1]
   const labelledCompany = rawText.match(/(?:公司名称|招聘单位|用人单位)[：:]\s*([^\n。；;]{2,80})/)?.[1]
-  const role = postings.length > 1 ? '' : short(single?.title) || short(labelledRole) || (heading.length < 80 && rolePattern.test(heading) ? heading : '')
+  const role = postings.length > 1 ? '' : short(single?.title) || short(labelledRole) || (heading.length < 80 && ROLE_PATTERN.test(heading) ? heading : '')
   const siteName = short($('meta[property="og:site_name"]').attr('content'))
   const company = short(organization?.name) || short($('[itemprop="hiringOrganization"] [itemprop="name"]').first().text()) || short(labelledCompany) || (/^(官网|招聘|人才招聘|职位列表|careers?|jobs?)$/i.test(siteName) ? '' : siteName)
   const emails = [...candidates].map(([email, context]) => ({ email, context }))
@@ -87,7 +143,8 @@ export function extractCareerEmails(html: string, url: string): CareerPage {
   if (hiring.length !== 1) notes.push(hiring.length > 1 ? '发现多个可能的招聘邮箱，请选择对应岗位的地址。' : '未识别到明确的招聘邮箱，请核对官网。')
   const subjectRequirement = rawText.match(/(?:邮件主题|邮件标题)[^\n]{0,180}/)?.[0]
   if (subjectRequirement) notes.push(`官网说明：${subjectRequirement}`)
-  return { url, title, emails, company, role, recommendedEmail: hiring.length === 1 ? hiring[0].email : '', notes, links: extractCareerLinks(html, url) }
+  const jobDescription = extractJobDescription(html, postings, role)
+  return { url, title, emails, company, role, recommendedEmail: hiring.length === 1 ? hiring[0].email : '', notes, links: extractCareerLinks(html, url), ...(jobDescription ? { jobDescription } : {}) }
 }
 
 const MAX_PAGE_BYTES = 2 * 1024 * 1024
