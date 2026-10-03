@@ -10,8 +10,10 @@ const persistence = vi.hoisted(() => ({
 const library = vi.hoisted(() => ({
   updateResumeDocument: vi.fn(), setCurrentResumeDocument: vi.fn(), importResumeDocument: vi.fn(),
   deleteResumeDocument: vi.fn(), listResumeDocuments: vi.fn(),
+  loadResumeDocument: vi.fn(), saveResumeRevisionDraft: vi.fn(), resumeDocumentForRecord: vi.fn(),
 }))
 const preparation = vi.hoisted(() => ({ prepareJobResume: vi.fn() }))
+const revision = vi.hoisted(() => ({ createResumeRevision: vi.fn(), downloadResumeFile: vi.fn() }))
 
 // Exercise the hook's asynchronous orchestration with explicit input snapshots.
 // Rendering is not needed to verify which saved record receives the results.
@@ -20,6 +22,7 @@ vi.mock('@/lib/storage', async (importOriginal) => ({ ...await importOriginal<ty
 vi.mock('@/lib/resume-library', () => library)
 vi.mock('@/lib/settings', () => ({ getLlmSettings: () => null }))
 vi.mock('@/lib/job-preparation', () => preparation)
+vi.mock('@/lib/resume-revision', () => revision)
 
 import { newRecordId } from '@/lib/storage'
 import { useResumeAnalysis } from './use-resume-analysis'
@@ -69,6 +72,53 @@ beforeEach(() => {
   vi.stubGlobal('window', { sessionStorage: { setItem: vi.fn(), getItem: vi.fn(), removeItem: vi.fn() } })
 })
 afterEach(() => { vi.unstubAllGlobals() })
+
+describe('useResumeAnalysis resume revisions', () => {
+  it('opens the saved new document and downloads its file without requesting analysis', async () => {
+    const file = new File(['new docx'], '简历-修改稿.docx')
+    const next = document({ id: 'resume-document:revision:new', revisionId: 'resume-document:revision:new', originalFile: file })
+    revision.createResumeRevision.mockResolvedValueOnce(next)
+    const ws = workspace()
+    const nav = navigation()
+
+    await useResumeAnalysis(ws, nav).saveRevision('修改后的正文')
+
+    expect(revision.createResumeRevision).toHaveBeenCalledWith(document().id, '修改后的正文', submission.rawText)
+    expect(ws.setPendingExtracted).toHaveBeenCalledWith(expect.objectContaining({ documentId: next.id, revisionId: next.id, autoDiagnose: false, hasAttachment: true }))
+    expect(ws.setRecordId).toHaveBeenCalledWith(null)
+    expect(revision.downloadResumeFile).toHaveBeenCalledWith(file)
+    expect(nav.push).toHaveBeenCalledWith('review')
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(persistence.saveRecord).not.toHaveBeenCalled()
+  })
+
+  it('leaves the current review open if a revision cannot be saved', async () => {
+    revision.createResumeRevision.mockRejectedValueOnce(new Error('原简历已更新'))
+    const ws = workspace()
+    const nav = navigation()
+
+    await expect(useResumeAnalysis(ws, nav).saveRevision('修改后的正文')).rejects.toThrow('原简历已更新')
+
+    expect(ws.setPendingExtracted).not.toHaveBeenCalled()
+    expect(revision.downloadResumeFile).not.toHaveBeenCalled()
+    expect(nav.push).not.toHaveBeenCalled()
+  })
+
+  it('never copies original interview sessions into a revision with the same text', async () => {
+    const next = document({ revisionId: 'resume-document:revision:new' })
+    const ws = workspace({ pendingExtracted: { ...next, documentId: next.id, initialReview: submission } })
+
+    await useResumeAnalysis(ws, navigation()).handleConfirmText(submission, next.sourceFile)
+
+    const saved = persistence.saveRecord.mock.calls[0][0] as SavedRecord
+    expect(saved.analysis.revisionId).toBe(next.revisionId)
+    expect(saved.id).not.toBe(oldRecord.id)
+    expect(saved.sessions).toEqual({})
+    expect(ws.setPreparedClaimIds).toHaveBeenCalledWith([])
+    expect(ws.setMasteredBlindSpotIds).toHaveBeenCalledWith([])
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).not.toHaveProperty('revisionId')
+  })
+})
 
 describe('useResumeAnalysis job handoff', () => {
   it('starts a different job without overwriting the prior record or copying its interview progress', async () => {

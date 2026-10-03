@@ -4,7 +4,7 @@ import type { InterviewSession } from '@/domain/interview-schema'
 import type { ExtractedText } from '@/lib/pdf'
 import type { KnowledgeItem } from '@/lib/knowledge'
 import type { SavedRecord } from '@/lib/storage'
-import type { ResumeDocument } from '@/lib/resume-library'
+import type { ResumeDocument, ResumeRevisionDraft } from '@/lib/resume-library'
 import type { ResumeDiagnosis } from '@/domain/resume-diagnosis'
 import type { JobContext } from '@/domain/job-context'
 import type { JobPreparationIntent } from '@/lib/job-preparation'
@@ -29,7 +29,7 @@ export type AppNavigation = {
   replace: (phase: 'upload' | 'review' | 'workspace', mode?: Mode) => void
 }
 
-export type PendingResume = { extracted: ExtractedText; sourceFile: string; demo?: boolean; documentId?: string; initialReview?: ResumeReviewSubmission; autoDiagnose?: boolean; jobContext?: JobContext; preparationIntent?: JobPreparationIntent }
+export type PendingResume = { extracted: ExtractedText; sourceFile: string; demo?: boolean; documentId?: string; initialReview?: ResumeReviewSubmission; autoDiagnose?: boolean; jobContext?: JobContext; preparationIntent?: JobPreparationIntent; revisionId?: string; revisionDraft?: ResumeRevisionDraft; hasAttachment?: boolean }
 
 export type UseResumeWorkspace = {
   envConfigured: boolean

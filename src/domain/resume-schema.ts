@@ -188,6 +188,7 @@ export const resumeAnalysisSchema = z.object({
   reviewedCandidates: z.array(reviewedCandidateSchema).optional(),
   jobDescription: z.string().optional(),
   jobContext: jobContextSchema.optional(),
+  revisionId: z.string().optional(),
   jobMatch: jobMatchSchema.optional(),
   diagnosis: resumeDiagnosisSchema.optional(),
   claims: z.array(resumeClaimSchema).min(1),

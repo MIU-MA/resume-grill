@@ -1,7 +1,8 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { deleteResumeDocument, importResumeDocument, listResumeDocuments, setCurrentResumeDocument, updateResumeDocument, type ResumeDocument } from '@/lib/resume-library'
+import { deleteResumeDocument, importResumeDocument, listResumeDocuments, loadResumeDocument, resumeDocumentForRecord, saveResumeRevisionDraft, setCurrentResumeDocument, updateResumeDocument, type ResumeDocument, type ResumeRevisionDraft } from '@/lib/resume-library'
+import { createResumeRevision, downloadResumeFile } from '@/lib/resume-revision'
 import type { ResumeAnalysis } from '@/domain/resume-schema'
 import type { AnalysisGoal, ReviewedCandidate } from '@/domain/analysis-config'
 import { reviewedCandidatesKey } from '@/domain/analysis-config'
@@ -50,7 +51,7 @@ export function useResumeAnalysis(
       ws.setError(null)
       window.sessionStorage.setItem('resume-grill:active', record.id)
       const pending = ws.pendingExtracted
-      const pendingMatches = pending?.initialReview && newRecordId({ ...pending.initialReview, jobContext: pending.jobContext }) === newRecordId(record.analysis)
+      const pendingMatches = pending?.initialReview && newRecordId({ ...pending.initialReview, jobContext: pending.jobContext, revisionId: pending.revisionId }) === newRecordId(record.analysis)
       void setCurrentResumeDocument(document?.id ?? (pendingMatches ? pending.documentId : undefined) ?? record.analysis.jobContext?.resumeDocumentId ?? null).catch(() => undefined)
       push('workspace', 'audit')
     },
@@ -60,7 +61,7 @@ export function useResumeAnalysis(
   const openResumeDocument = useCallback((document: ResumeDocument, autoDiagnose = false, preparationIntent: JobPreparationIntent = 'diagnosis') => {
     ws.setAnalysis(null)
     ws.setRecordId(document.recordId ?? null)
-    ws.setPendingExtracted({ extracted: document.extracted, sourceFile: document.sourceFile, demo: document.demo, documentId: document.id, initialReview: document.review, autoDiagnose, jobContext: document.jobContext, preparationIntent })
+    ws.setPendingExtracted({ extracted: document.extracted, sourceFile: document.sourceFile, demo: document.demo, documentId: document.id, initialReview: document.review, autoDiagnose, jobContext: document.jobContext, preparationIntent, revisionId: document.revisionId, revisionDraft: document.revisionDraft, hasAttachment: Boolean(document.originalFile) })
     ws.setError(null)
     window.sessionStorage.setItem('resume-grill:review-document', document.id)
     window.sessionStorage.setItem('resume-grill:review-intent', preparationIntent)
@@ -85,7 +86,7 @@ export function useResumeAnalysis(
       let linkFailed = false
       try {
         if (!document.recordId && !demo) {
-          const existing = (await listRecords()).find(record => !record.analysis.jobContext && record.analysis.rawText === extracted.text.trim())
+          const existing = (await listRecords()).find(record => !record.analysis.jobContext && !record.analysis.revisionId && record.analysis.rawText === extracted.text.trim())
           if (existing) {
             const review = document.review ?? { rawText: existing.analysis.rawText, analysisGoal: existing.analysis.analysisGoal ?? 'overall', reviewedCandidates: existing.analysis.reviewedCandidates ?? extractResumeClaimCandidates(existing.analysis.rawText), jobDescription: existing.analysis.jobDescription ?? '', diagnosis: existing.analysis.diagnosis }
             await updateResumeDocument(document.id, { recordId: existing.id, review })
@@ -107,6 +108,38 @@ export function useResumeAnalysis(
     ws.setPendingExtracted(current => current?.documentId === id ? { ...current, initialReview: review, autoDiagnose: false } : current)
   }, [ws])
 
+  const saveRevisionDraft = useCallback(async (draft: ResumeRevisionDraft | null) => {
+    const id = ws.pendingExtracted?.documentId
+    if (!id) throw new Error('原简历未保存，请先重新导入。')
+    await saveResumeRevisionDraft(id, draft)
+    ws.setPendingExtracted(current => current?.documentId === id ? { ...current, revisionDraft: draft ?? undefined } : current)
+  }, [ws])
+
+  const saveRevision = useCallback(async (text: string) => {
+    const pending = ws.pendingExtracted
+    if (!pending?.documentId) throw new Error('原简历未保存，请先重新导入。')
+    const document = await createResumeRevision(pending.documentId, text, pending.initialReview?.rawText ?? pending.extracted.text)
+    openResumeDocument(document, false)
+    try { downloadResumeFile(document.originalFile!) } catch { ws.setError('新稿已保存，可点击“下载简历”重试下载。') }
+  }, [ws, openResumeDocument])
+
+  const downloadResume = useCallback(async () => {
+    const id = ws.pendingExtracted?.documentId
+    const document = id ? await loadResumeDocument(id) : undefined
+    if (!document?.originalFile) throw new Error('这份简历没有可下载的附件，请修改后保存为新稿。')
+    downloadResumeFile(document.originalFile)
+  }, [ws.pendingExtracted?.documentId])
+
+  const editActiveResume = useCallback(async () => {
+    if (!ws.recordId) return
+    try {
+      const record = await loadRecord(ws.recordId)
+      if (!record) throw new Error('当前练习记录已不存在，请从简历库重新打开。')
+      const document = await resumeDocumentForRecord(record)
+      openResumeDocument(document, false)
+    } catch (error) { ws.setError(error instanceof Error ? error.message : '无法打开简历。') }
+  }, [ws, openResumeDocument])
+
   const removeResumeDocument = useCallback(async (id: string) => {
     await deleteResumeDocument(id)
     ws.setSavedDocuments(documents => documents.filter(document => document.id !== id))
@@ -115,7 +148,7 @@ export function useResumeAnalysis(
 
   const handleConfirmText = useCallback(
     async (submission: ResumeReviewSubmission, sourceFile: string, document?: ResumeDocument) => {
-      const pending = document ? { documentId: document.id, demo: document.demo, jobContext: document.jobContext } : ws.pendingExtracted
+      const pending = document ? { documentId: document.id, demo: document.demo, jobContext: document.jobContext, revisionId: document.revisionId } : ws.pendingExtracted
       const { rawText, analysisGoal, reviewedCandidates, jobDescription } =
         submission
       if (!rawText.trim()) {
@@ -125,7 +158,7 @@ export function useResumeAnalysis(
       setAnalyzing(true)
       ws.setError(null)
       try {
-        const identity = newRecordId({ ...submission, jobContext: pending?.jobContext })
+        const identity = newRecordId({ ...submission, jobContext: pending?.jobContext, revisionId: pending?.revisionId })
         const linkedId = document?.recordId ?? (document ? null : ws.recordId)
         const linked = linkedId ? await loadRecord(linkedId) : undefined
         const existing = linked && newRecordId(linked.analysis) === identity
@@ -189,7 +222,7 @@ export function useResumeAnalysis(
         if (!res.ok || 'error' in responseData) {
           throw new Error('error' in responseData ? responseData.error : '分析失败')
         }
-        const data: ResumeAnalysis = { ...responseData, jobContext: pending?.jobContext, diagnosis: submission.diagnosis }
+        const data: ResumeAnalysis = { ...responseData, jobContext: pending?.jobContext, revisionId: pending?.revisionId, diagnosis: submission.diagnosis }
 
         const retainedSessions = existing
           ? Object.fromEntries(
@@ -250,7 +283,7 @@ export function useResumeAnalysis(
     const document = await prepareJobResume(request)
     const previous = intent === 'interview' && document.recordId ? await loadRecord(document.recordId) : undefined
     onOpen?.()
-    if (previous && document.review && newRecordId(previous.analysis) === newRecordId({ ...document.review, jobContext: document.jobContext })) {
+    if (previous && document.review && newRecordId(previous.analysis) === newRecordId({ ...document.review, jobContext: document.jobContext, revisionId: document.revisionId })) {
       openSavedRecord(previous, document)
       return
     }
@@ -299,6 +332,10 @@ export function useResumeAnalysis(
     openResumeDocument,
     removeResumeDocument,
     saveReview,
+    saveRevisionDraft,
+    saveRevision,
+    downloadResume,
+    editActiveResume,
     handleConfirmText,
     replaceResume,
     openSavedRecord,

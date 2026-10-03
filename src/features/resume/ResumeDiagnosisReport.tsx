@@ -10,9 +10,10 @@ import { downloadText } from '@/lib/report'
 type Props = {
   diagnosis: ResumeDiagnosis
   showToolbar?: boolean
+  renderIssueEditor?: (evidence: string) => ReactNode
 }
 
-export function ResumeDiagnosisReport({ diagnosis, showToolbar = true }: Props) {
+export function ResumeDiagnosisReport({ diagnosis, showToolbar = true, renderIssueEditor }: Props) {
   const issues = sortDiagnosisIssues(diagnosis.issues)
   const [selection, setSelection] = useState<{ report: ResumeDiagnosis; index: number | null } | null>(null)
   const selectedIndex = selection?.report === diagnosis ? selection.index : issues.length ? 0 : null
@@ -59,6 +60,7 @@ export function ResumeDiagnosisReport({ diagnosis, showToolbar = true }: Props) 
                     <p className="m-0 whitespace-pre-wrap break-words text-[14px] leading-[1.8]">{issue.suggestion}</p>
                   </section>
                 </div>
+                {renderIssueEditor?.(issue.evidence)}
               </div>}
             </section>
           })}

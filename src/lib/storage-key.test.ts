@@ -48,6 +48,14 @@ describe('newRecordId', () => {
     expect(new Set(keys).size).toBe(keys.length)
   })
 
+  it('keeps a saved revision separate even when it only changes line breaks', () => {
+    const original = { rawText: input.rawText }
+    const first = { rawText: input.rawText.replaceAll('\n', '\n\n'), revisionId: 'resume-document:revision:first' }
+    const second = { ...first, revisionId: 'resume-document:revision:second' }
+    expect(new Set([original, first, second].map(newRecordId)).size).toBe(3)
+    expect(newRecordId({ ...first })).toBe(newRecordId(first))
+  })
+
   it.each([
     ['application', { applicationId: 'job-b' }],
     ['company', { company: '乙公司' }],

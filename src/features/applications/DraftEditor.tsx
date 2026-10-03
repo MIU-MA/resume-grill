@@ -7,16 +7,19 @@ import { applicationTemplate, type CareerPage, type MailSender } from '@/domain/
 import { draftIssues, websiteLinks, type Draft, type DraftField } from './draft-state'
 import type { JobPreparationIntent } from '@/lib/job-preparation'
 import { JobPreparationPanel } from './JobPreparationPanel'
+import { PastedCareerForm } from './PastedCareerForm'
 
-export function DraftEditor({ draft, sender, connected, busy, focusRequest, attachmentLabel, onPrepare, onUpdate, onRemove, onExtract, onConnect, onApplied }: {
+export function DraftEditor({ draft, sender, connected, busy, focusRequest, attachmentLabel, onPrepare, onUpdate, onRemove, onExtract, onSupplement, onConnect, onApplied }: {
   draft: Draft; sender?: MailSender | null; connected: boolean; busy: boolean
   focusRequest: { field: DraftField; time: number } | null
   onUpdate: (change: Partial<Draft>) => void; onRemove: () => void
-  onExtract: () => void; onConnect: () => void; onApplied: (url: string) => void
+  onExtract: () => Promise<void>; onSupplement: (page: CareerPage) => void; onConnect: () => void; onApplied: (url: string) => void
   attachmentLabel: string; onPrepare: (intent: JobPreparationIntent) => void
 }) {
   const root = useRef<HTMLDivElement>(null)
   const [sourceOpen, setSourceOpen] = useState(!draft.sourceUrl)
+  const [sourceFailure, setSourceFailure] = useState<{ url: string; message: string } | null>(null)
+  const [pasteSource, setPasteSource] = useState(false)
   const [emailMode, setEmailMode] = useState(false)
   const links = websiteLinks(draft)
   const [applicationUrl, setApplicationUrl] = useState(links[0]?.url ?? '')
@@ -50,7 +53,14 @@ export function DraftEditor({ draft, sender, connected, busy, focusRequest, atta
         </>}
       <details open={sourceOpen} onToggle={event => setSourceOpen(event.currentTarget.open)}>
         <summary className="cursor-pointer text-[12px] text-text-tertiary">官网来源{draft.sourceUrl ? ' · 查看或修改链接' : ' · 待补充'}</summary>
-        <label className="mail-label mt-3">官网招聘页<div className="flex gap-2"><input name="sourceUrl" className="mail-input min-w-0 flex-1" type="url" placeholder="https://公司官网/招聘详情" value={draft.sourceUrl} onChange={event => onUpdate({ sourceUrl: event.target.value })} /><Button variant="secondary" className="h-9 shrink-0 px-3 text-[12px]" loading={busy} disabled={!draft.sourceUrl} onClick={connected ? onExtract : onConnect}>{connected ? '重新识别' : '连接后识别'}</Button></div></label>
+        <label className="mail-label mt-3">官网招聘页<div className="flex gap-2"><input name="sourceUrl" className="mail-input min-w-0 flex-1" type="url" placeholder="https://公司官网/招聘详情" value={draft.sourceUrl} onChange={event => { onUpdate({ sourceUrl: event.target.value }); setPasteSource(false) }} /><Button variant="secondary" className="h-9 shrink-0 px-3 text-[12px]" loading={busy} disabled={!draft.sourceUrl} onClick={() => {
+          if (!connected) { onConnect(); return }
+          const url = draft.sourceUrl
+          void onExtract().then(() => { setSourceFailure(null); setPasteSource(false) }).catch(cause => { setSourceFailure({ url, message: cause instanceof Error ? cause.message : '读取失败' }); setSourceOpen(true) })
+        }}>{connected ? '重新识别' : '连接后识别'}</Button></div></label>
+        {sourceFailure?.url === draft.sourceUrl && <p role="alert" className="mb-1 mt-2 text-[12px] text-danger">{sourceFailure.message}</p>}
+        {!pasteSource && <button className="mt-2 text-[12px] text-accent underline disabled:opacity-40" disabled={busy || !draft.sourceUrl} onClick={() => setPasteSource(true)}>粘贴正文补充</button>}
+        {pasteSource && <PastedCareerForm key={draft.sourceUrl} url={draft.sourceUrl} disabled={busy} onCancel={() => setPasteSource(false)} onImported={page => { onSupplement(page); setPasteSource(false); setSourceFailure(null) }} />}
       </details>
     </div>
     <JobPreparationPanel jobDescription={draft.jobDescription ?? ''} attachmentLabel={attachmentLabel} busy={busy} onChange={jobDescription => onUpdate({ jobDescription })} onPrepare={onPrepare} />

@@ -11,7 +11,8 @@ import { InterviewReportView } from '@/features/report/InterviewReportView'
 import { KnowledgeView } from '@/features/knowledge/KnowledgeView'
 import type { KnowledgeItem, KnowledgeItemInput, KnowledgeItemPatch } from '@/lib/knowledge'
 import type { ClaimProgress } from '@/lib/risk'
-import { ResumeDiagnosisReport } from '@/features/resume/ResumeDiagnosisReport'
+import { DiagnosisExportButton, DiagnosisToolbar, ResumeDiagnosisReport } from '@/features/resume/ResumeDiagnosisReport'
+import { Button } from '@/components/ui/Button'
 import { getInterviewEntry } from '@/lib/interview-entry'
 
 export type InterviewViewData = {
@@ -83,6 +84,7 @@ type InterviewContent = {
 
 type WorkspaceContentProps = {
   onNavigate: (mode: Mode) => void
+  onEditResume: () => void
   mode: Mode
   analysis: ResumeAnalysis
   sessions: Record<string, InterviewSession[]>
@@ -115,13 +117,16 @@ function WorkspaceBody({
   knowledge,
   report,
   interview,
+  onEditResume,
 }: WorkspaceContentProps) {
   const [strictMode, setStrictMode] = useState(true)
   const [statusOpen, setStatusOpen] = useState(false)
 
   if (mode === 'diagnosis') {
-    return <div className="resume-workbench h-full min-h-0 bg-surface">
-      {analysis.diagnosis ? <ResumeDiagnosisReport diagnosis={analysis.diagnosis} /> : <p className="m-0 p-5 text-[13px] leading-relaxed text-text-secondary">这份记录还没有简历检查结果。重新导入同一份简历即可检查；相同内容的练习记录会保留。</p>}
+    return <div className="resume-workbench flex h-full min-h-0 flex-col bg-surface">
+      <DiagnosisToolbar diagnosis={analysis.diagnosis} actions={<><Button className="h-8 px-2.5 text-[12px]" variant="secondary" onClick={onEditResume}>修改简历</Button>{analysis.diagnosis && <DiagnosisExportButton diagnosis={analysis.diagnosis} />}</>} />
+      {error && <p role="alert" className="m-0 px-5 py-2 text-[12px] text-danger">{error}</p>}
+      {analysis.diagnosis ? <div className="min-h-0 flex-1"><ResumeDiagnosisReport diagnosis={analysis.diagnosis} showToolbar={false} /></div> : <p className="m-0 p-5 text-[13px] leading-relaxed text-text-secondary">这份记录还没有检查结果。点击“修改简历”即可打开原文并开始检查。</p>}
     </div>
   }
 

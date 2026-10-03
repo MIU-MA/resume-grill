@@ -20,10 +20,10 @@ export type SavedRecord = {
 
 const PREFIX = 'resume-grill:'
 
-type RecordInputs = Pick<ResumeAnalysis, 'rawText' | 'jobDescription' | 'jobContext' | 'analysisGoal' | 'reviewedCandidates'>
+type RecordInputs = Pick<ResumeAnalysis, 'rawText' | 'jobDescription' | 'jobContext' | 'analysisGoal' | 'reviewedCandidates' | 'revisionId'>
 
 export function newRecordId(analysis: RecordInputs): string {
-  const base = `${PREFIX}resume:${resumeContentKey(analysis.rawText)}`
+  const base = `${PREFIX}resume:${resumeContentKey(analysis.rawText)}${analysis.revisionId ? `:revision:${resumeContentKey(analysis.revisionId)}` : ''}`
   const job = analysis.jobContext
   if (job) {
     const inputs = [job.applicationId, job.company, job.role, job.sourceUrl, job.resumeVersion,

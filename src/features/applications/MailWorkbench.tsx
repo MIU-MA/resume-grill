@@ -17,6 +17,7 @@ import { MailPreview } from './MailPreview'
 import { LinkImporter } from './LinkImporter'
 import { DraftEditor } from './DraftEditor'
 import { JobPreparationPanel } from './JobPreparationPanel'
+import { careerUrlKey, supplementCareerDraft } from './pasted-career'
 import { applyCareerPage, draftIssues, draftPayload, markWebsiteApplication, preparationAttachment, updateDraft, validResumeAttachment, websiteLinks, type Draft, type DraftField, type SavedJobPreparation, type WebsiteApplication } from './draft-state'
 
 type AttachmentSource = { id: string; updatedAt: number }
@@ -263,7 +264,7 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare }: { badge
       <div className="flex-none">{hydrated && <LinkImporter onBusy={setBusy} existingUrls={drafts.map(draft => draft.sourceUrl)} slots={20 - drafts.length} connected={!!snapshot} onConnect={() => setSettingsOpen('agent')} read={url => agent.request<CareerPage>('/extract', { url })} discover={url => agent.request<CareerDiscovery>('/discover', { url })} onImported={result => {
         const id = crypto.randomUUID()
         const draft: Draft = { id, company: result.company ?? '', role: result.role ?? '', sourceUrl: result.url, recipient: result.recommendedEmail ?? '', subject: '', body: '', sourceConfirmed: false, automatic: true, extraction: result, jobDescription: result.jobDescription ?? '' }
-        setDrafts(items => items.length >= 20 || items.some(item => item.sourceUrl === result.url) ? items : [...items, draft]); setSelectedId(id); setTab('drafts'); setFocusRequest(null); setError('')
+        setDrafts(items => items.length >= 20 || items.some(item => { try { return careerUrlKey(item.sourceUrl) === careerUrlKey(result.url) } catch { return false } }) ? items : [...items, draft]); setSelectedId(id); setTab('drafts'); setFocusRequest(null); setError('')
       }} />}</div>
       <div className="mail-work-area min-h-0 flex-1">
         <section className="mail-list flex min-h-0 min-w-0 flex-col border-r border-line" aria-label="投递清单">
@@ -297,11 +298,17 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare }: { badge
             <h2 className="mb-2 text-[17px] font-semibold">{tab === 'history' ? '还没有投递记录' : '从一个岗位开始'}</h2>
             <p className="text-[13px] leading-[1.9] text-text-secondary">{tab === 'history' ? '发送邮件或标记已完成的官网申请后，可以在这里查看。' : '添加招聘详情链接，自动整理公司、岗位和投递方式。缺少的信息会在清单中提示。'}</p>
             {tab === 'drafts' && <Button variant="secondary" className="mt-3" disabled={!hydrated || busy} onClick={addDraft}><Plus size={14} />手动添加岗位</Button>}
-          </div> : tab === 'drafts' ? <DraftEditor key={selected.id} draft={selected as Draft} sender={snapshot?.sender} connected={!!snapshot} busy={busy} focusRequest={focusRequest} attachmentLabel={attachmentLabel} onPrepare={intent => void run(() => prepareJob(intent))} onUpdate={update} onConnect={() => setSettingsOpen('agent')} onRemove={() => removeDraft(selected.id)} onApplied={url => markApplied(selected as Draft, url)} onExtract={() => void run(async () => {
+          </div> : tab === 'drafts' ? <DraftEditor key={selected.id} draft={selected as Draft} sender={snapshot?.sender} connected={!!snapshot} busy={busy} focusRequest={focusRequest} attachmentLabel={attachmentLabel} onPrepare={intent => void run(() => prepareJob(intent))} onUpdate={update} onConnect={() => setSettingsOpen('agent')} onRemove={() => removeDraft(selected.id)} onApplied={url => markApplied(selected as Draft, url)} onSupplement={page => {
+            const id = selected.id
+            setDrafts(items => items.map(item => item.id === id ? supplementCareerDraft(item, page) : item))
+          }} onExtract={async () => {
             const id = selected.id; const original = selected.sourceUrl
-            const result = await agent.request<CareerPage>('/extract', { url: original })
-            setDrafts(items => items.map(item => item.id === id && item.sourceUrl === original ? applyCareerPage(item, result) : item))
-          })} /> : isWebsite(selected) ? <article className="mx-auto max-w-[860px] p-5 text-[13px] sm:p-6">
+            setBusy(true); setError('')
+            try {
+              const result = await agent.request<CareerPage>('/extract', { url: original })
+              setDrafts(items => items.map(item => item.id === id && item.sourceUrl === original ? applyCareerPage(item, result) : item))
+            } finally { setBusy(false) }
+          }} /> : isWebsite(selected) ? <article className="mx-auto max-w-[860px] p-5 text-[13px] sm:p-6">
             <h2 className="m-0 text-[17px] font-semibold">{selected.company} / {selected.role}</h2>
             <p className="text-[12px] text-text-secondary"><span className="workbench-status" data-tone="success">官网已投</span> · {savedDate(selected.appliedAt)} 手动标记</p>
             <JobPreparationPanel key={selected.id} jobDescription={selectedDescription} attachmentLabel={attachmentLabel} busy={busy} onChange={updateHistoryDescription} onPrepare={intent => void run(() => prepareJob(intent))} />

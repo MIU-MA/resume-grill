@@ -3,7 +3,8 @@
 import { del, get, keys, set, update } from 'idb-keyval'
 import type { ExtractedText } from './pdf'
 import type { ResumeReviewSubmission } from '@/application/types'
-import { resumeContentKey } from './storage'
+import { resumeContentKey, type SavedRecord } from './storage'
+import { extractResumeClaimCandidates } from './resume-structure'
 import type { JobContext } from '@/domain/job-context'
 
 // Keep source documents separate from generated interview records, including legacy ones.
@@ -18,9 +19,24 @@ export type ResumeDocument = {
   originalFileUpdatedAt?: number
   demo: boolean
   jobContext?: JobContext
+  revisionOf?: string
+  revisionId?: string
+  revisionDraft?: ResumeRevisionDraft
   review?: ResumeReviewSubmission
   recordId?: string
   updatedAt: number
+}
+
+export type ResumeRevisionDraft = { baseText: string; text: string }
+
+export function saveResumeRevisionDraft(id: string, draft: ResumeRevisionDraft | null): Promise<void> {
+  return update<ResumeDocument>(id, existing => {
+    if (!existing) throw new Error('这份简历已被删除，请重新导入。')
+    if (draft && draft.baseText.trim() !== (existing.review?.rawText ?? existing.extracted.text).trim()) {
+      throw new Error('原文已在其他页面更新，请重新打开简历后再修改。')
+    }
+    return { ...existing, revisionDraft: draft ?? undefined, updatedAt: Date.now() }
+  })
 }
 
 export async function listResumeDocuments(): Promise<ResumeDocument[]> {
@@ -31,6 +47,25 @@ export async function listResumeDocuments(): Promise<ResumeDocument[]> {
 
 export function loadResumeDocument(id: string): Promise<ResumeDocument | undefined> {
   return get<ResumeDocument>(id)
+}
+
+export async function resumeDocumentForRecord(record: SavedRecord): Promise<ResumeDocument> {
+  const linked = (await listResumeDocuments()).find(document => document.recordId === record.id && document.review?.rawText === record.analysis.rawText && document.review.jobDescription === (record.analysis.jobDescription ?? ''))
+  if (linked) return linked
+  // Older practice records may predate the document library. Recover their text,
+  // without inventing an original attachment or changing another resume document.
+  const analysis = record.analysis
+  const id = `resume-document:record:${resumeContentKey(record.id)}`
+  const document: ResumeDocument = {
+    id, sourceFile: analysis.sourceFile, demo: analysis.diagnosis?.source === 'demo',
+    extracted: { text: analysis.rawText, charCount: analysis.rawText.length, pageCount: 1 },
+    jobContext: analysis.jobContext, recordId: record.id, revisionId: analysis.revisionId,
+    review: { rawText: analysis.rawText, analysisGoal: analysis.analysisGoal ?? 'overall', jobDescription: analysis.jobDescription ?? '', reviewedCandidates: analysis.reviewedCandidates ?? extractResumeClaimCandidates(analysis.rawText), diagnosis: analysis.diagnosis },
+    updatedAt: Date.now(),
+  }
+  let saved = document
+  await update<ResumeDocument>(id, existing => { saved = existing ?? document; return saved })
+  return saved
 }
 
 export async function importResumeDocument(extracted: ExtractedText, sourceFile: string, demo: boolean, originalFile?: File): Promise<ResumeDocument> {

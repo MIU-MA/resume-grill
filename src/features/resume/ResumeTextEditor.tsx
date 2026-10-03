@@ -22,7 +22,7 @@ export function ResumeTextEditor({ text, analyzing, onTextChange }: ResumeTextEd
           disabled={analyzing}
           placeholder="简历文本…"
         />
-        <p className="mx-auto mb-0 mt-3 w-full max-w-[1040px] text-[12px] leading-relaxed text-text-tertiary">修改原文后会自动重新提取练习内容，覆盖之前的内容调整。简历检查需手动重新运行。</p>
+        <p className="mx-auto mb-0 mt-3 w-full max-w-[1040px] text-[12px] leading-relaxed text-text-tertiary">修改会暂存在此浏览器，原简历保留。点击「保存新稿并下载」后，会按新稿重新提取练习内容；简历检查需手动重新运行。</p>
       </div>
     </section>
   )

@@ -105,7 +105,7 @@ export function useResumeWorkspace(phase: Phase) {
     loadResumeDocument(id).then(document => {
       if (!document) return
       const preparationIntent = window.sessionStorage.getItem('resume-grill:review-intent') === 'interview' ? 'interview' : 'diagnosis'
-      setPendingExtracted({ extracted: document.extracted, sourceFile: document.sourceFile, demo: document.demo, documentId: document.id, initialReview: document.review, autoDiagnose: false, jobContext: document.jobContext, preparationIntent })
+      setPendingExtracted({ extracted: document.extracted, sourceFile: document.sourceFile, demo: document.demo, documentId: document.id, initialReview: document.review, autoDiagnose: false, jobContext: document.jobContext, preparationIntent, revisionId: document.revisionId, revisionDraft: document.revisionDraft, hasAttachment: Boolean(document.originalFile) })
       setRecordId(document.recordId ?? null)
     }).catch(e => reportStorageError('恢复简历', e)).finally(() => setRecovering(false))
     // Only hydrate a browser reload, not a newly imported document.
