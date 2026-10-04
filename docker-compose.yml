@@ -8,8 +8,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # 运行时环境变量（推荐在这里配置模型）
-      # 三者都填则服务端直接用此 Key；任一缺失则回落到前端设置页填写的配置
+      # 运行时服务端默认模型配置
+      # 完整的网页配置优先；未提供时回退到此处完整的三个变量
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-}
