@@ -19,7 +19,7 @@ export function updateDraft(draft: Draft, change: Partial<Draft>): Draft {
   const sourceChanged = change.sourceUrl !== undefined && change.sourceUrl !== draft.sourceUrl
   return {
     ...draft, ...change,
-    ...(('body' in change || 'subject' in change) ? { automatic: false } : {}),
+    ...(('body' in change || 'subject' in change) ? { automatic: change.automatic === true } : {}),
     ...(('recipient' in change || 'sourceUrl' in change) ? { sourceConfirmed: false } : {}),
     ...('jobDescription' in change ? { jobDescriptionEdited: true } : {}),
     ...(sourceChanged ? { extraction: undefined, jobDescription: '', jobDescriptionEdited: false } : {}),
@@ -46,6 +46,11 @@ export function draftIssues(draft: Draft): Array<{ field: DraftField; label: str
   if (parsed.success) return []
   const fields = new Set(parsed.error.issues.map(issue => issue.path[0]))
   return (Object.keys(labels) as DraftField[]).filter(field => fields.has(field)).map(field => ({ field, label: `${draft[field].trim() ? '检查' : '缺'}${labels[field]}` }))
+}
+
+export function selectedMailDrafts(drafts: Draft[], selectedIds: string[]) {
+  const selected = new Set(selectedIds)
+  return drafts.filter(draft => selected.has(draft.id) && mailDraftSchema.safeParse(draftPayload(draft)).success)
 }
 
 export function websiteLinks(draft: Draft) {

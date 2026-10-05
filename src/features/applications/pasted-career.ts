@@ -46,6 +46,10 @@ export function settleCareerFailure(failures: CareerFailure[], url: string, mess
 // request a URL, or turn instructions in the text into actions.
 export function parsePastedCareer(sourceUrl: string, input: string): CareerPage {
   const url = careerSourceUrl(sourceUrl).href
+  return { url, ...parseCareerText(input) }
+}
+
+export function parseCareerText(input: string): Omit<CareerPage, 'url'> {
   if (!input.trim()) throw new Error('请粘贴这个岗位的招聘正文。')
   if (input.length > MAX_TEXT) throw new Error('正文过长，请只保留一个岗位的内容（不超过 24000 字）。')
   if (/<\/?(?:html|script|body|div|p|iframe|style)\b[^>]*>/i.test(input)) throw new Error('请粘贴网页中可见的招聘文字，不要粘贴网页源代码。')
@@ -90,7 +94,7 @@ export function parsePastedCareer(sourceUrl: string, input: string): CareerPage 
   const hasBody = description.some(line => line.replace(SECTION, '').trim())
   const jobDescription = hasBody ? description.join('\n').slice(0, 12000) : ''
   if (!jobDescription) notes.push('未找到明确的职责或任职要求，可在岗位要求中补充。')
-  return { url, title: [company, role].filter(Boolean).join(' / '), company, role, emails: candidates, recommendedEmail: hiring.length === 1 ? hiring[0].email : '', notes, ...(jobDescription ? { jobDescription } : {}) }
+  return { title: [company, role].filter(Boolean).join(' / '), company, role, emails: candidates, recommendedEmail: hiring.length === 1 ? hiring[0].email : '', notes, ...(jobDescription ? { jobDescription } : {}) }
 }
 
 export function supplementCareerDraft(draft: Draft, page: CareerPage): Draft {

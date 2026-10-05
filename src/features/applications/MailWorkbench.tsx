@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { get, set } from 'idb-keyval'
-import { ArrowLeft, ExternalLink, Mail, Paperclip, Pause, Play, Plus, Settings, Trash2 } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Mail, Paperclip, Pause, Play, Plus, Settings, Trash2, X } from 'lucide-react'
 import type { Mode } from '@/application/types'
 import { WorkbenchFrame } from '@/components/layout/WorkbenchFrame'
 import { Button } from '@/components/ui/Button'
 import { WorkspaceSidebar, type SidebarBadges } from '@/features/workspace/WorkspaceSidebar'
-import { applicationTemplate, batchSchema, mailDraftSchema, MAIL_STATUS_LABELS, type CareerDiscovery, type CareerPage, type MailBatch, type MailJob } from '@/domain/mail-schema'
+import { batchSchema, sourceUrlSchema, MAIL_STATUS_LABELS, type CareerDiscovery, type CareerPage, type MailBatch, type MailJob } from '@/domain/mail-schema'
 import { listResumeAttachments } from '@/lib/resume-library'
 import type { JobPreparationIntent, JobPreparationRequest } from '@/lib/job-preparation'
 import { useSidebarCollapsed } from '@/hooks/use-sidebar-collapsed'
@@ -15,14 +15,19 @@ import { useMailAgent } from './use-mail-agent'
 import { MailSettings } from './MailSettings'
 import { MailPreview } from './MailPreview'
 import { LinkImporter } from './LinkImporter'
+import { ContactImporter } from './ContactImporter'
+import { DraftTable } from './DraftTable'
+import { MailDefaultsDialog } from './MailDefaultsDialog'
+import { applyMailDefaults, initialMailDefaults, restoreMailDefaults, renderMailTemplate, senderDefaults, type MailDefaults } from './mail-defaults'
+import { parseContactList, planContactImports } from './contact-import'
 import { DraftEditor } from './DraftEditor'
 import { JobPreparationPanel } from './JobPreparationPanel'
 import { careerUrlKey, supplementCareerDraft } from './pasted-career'
-import { applyCareerPage, draftIssues, draftPayload, markWebsiteApplication, preparationAttachment, updateDraft, validResumeAttachment, websiteLinks, type Draft, type DraftField, type SavedJobPreparation, type WebsiteApplication } from './draft-state'
+import { applyCareerPage, draftIssues, draftPayload, markWebsiteApplication, preparationAttachment, selectedMailDrafts, updateDraft, validResumeAttachment, websiteLinks, type Draft, type DraftField, type SavedJobPreparation, type WebsiteApplication } from './draft-state'
 
 type AttachmentSource = { id: string; updatedAt: number }
 type LibraryAttachment = Awaited<ReturnType<typeof listResumeAttachments>>[number]
-type DraftStore = { drafts: Draft[]; attachment: File | null; attachmentSource?: AttachmentSource; websiteApplications?: WebsiteApplication[]; preparationByJob?: Record<string, SavedJobPreparation> }
+type DraftStore = { drafts: Draft[]; attachment: File | null; attachmentSource?: AttachmentSource; websiteApplications?: WebsiteApplication[]; preparationByJob?: Record<string, SavedJobPreparation>; defaults?: MailDefaults; selectedIds?: string[] }
 const STORAGE_KEY = 'mail-workbench:drafts:v1'
 const VIEW_KEY = 'mail-workbench:view'
 const MAIL_STATUS_TONES = {
@@ -41,12 +46,17 @@ async function encodeAttachment(file: File) {
   })
 }
 function safeLink(value: string) {
-  try { return new URL(value).protocol === 'https:' ? value : undefined } catch { return undefined }
+  return sourceUrlSchema.safeParse(value).success ? value : undefined
 }
 
 export function MailWorkbench({ badges, onNavigate, onHome, onPrepare }: { badges: SidebarBadges; onNavigate: (mode: Mode) => void; onHome: () => void; onPrepare: (request: JobPreparationRequest, intent: JobPreparationIntent) => Promise<void> }) {
   const agent = useMailAgent()
   const [drafts, setDrafts] = useState<Draft[]>([])
+  const [defaults, setDefaults] = useState<MailDefaults>(initialMailDefaults)
+  const [defaultsOpen, setDefaultsOpen] = useState(false)
+  const [selectedDraftIds, setSelectedDraftIds] = useState<string[]>([])
+  const [inputMode, setInputMode] = useState<'contacts' | 'links'>('contacts')
+  const [editOpen, setEditOpen] = useState(false)
   const [attachment, setAttachment] = useState<File | null>(null)
   const [attachmentSource, setAttachmentSource] = useState<AttachmentSource>()
   const [libraryAttachments, setLibraryAttachments] = useState<LibraryAttachment[]>([])
@@ -66,19 +76,18 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare }: { badge
   const [error, setError] = useState('')
   const fileInput = useRef<HTMLInputElement>(null)
   const pendingPreparation = useRef<{ id: string; intent: JobPreparationIntent } | null>(null)
-  useEffect(() => {
-    const input = fileInput.current
-    const cancel = () => { pendingPreparation.current = null }
-    input?.addEventListener('cancel', cancel)
-    return () => input?.removeEventListener('cancel', cancel)
+  const writes = useRef<Promise<void>>(Promise.resolve())
+  const persist = useCallback((store: DraftStore) => {
+    const write = writes.current.catch(() => undefined).then(() => set(STORAGE_KEY, store))
+    writes.current = write
+    return write
   }, [])
   const snapshot = agent.snapshot
   const jobs = snapshot?.jobs ?? []
   const history = [...jobs, ...websiteApplications].sort((a, b) => (isWebsite(b) ? b.appliedAt : b.updatedAt) - (isWebsite(a) ? a.appliedAt : a.updatedAt))
   const selected = tab === 'drafts' ? drafts.find(item => item.id === selectedId) ?? drafts[0] : history.find(item => item.id === selectedId) ?? history[0]
   const pending = jobs.filter(job => job.status === 'queued').length
-  const readyDrafts = drafts.filter(draft => mailDraftSchema.safeParse(draftPayload(draft)).success)
-  const websiteDrafts = drafts.filter(draft => websiteLinks(draft).length > 0)
+  const selectedReadyDrafts = selectedMailDrafts(drafts, selectedDraftIds)
   const selectedPreparation = selected && tab === 'history' ? preparationByJob[selected.id] : undefined
   const selectedAttachment = preparationAttachment(selectedPreparation, attachment, attachmentSource)
   const selectedDescription = selected ? (tab === 'history' ? selectedPreparation?.jobDescription : undefined) ?? (!isJob(selected) ? selected.jobDescription : '') ?? '' : ''
@@ -94,20 +103,12 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare }: { badge
   }, [])
 
   useEffect(() => {
-    const name = snapshot?.sender?.name
-    if (!name) return
-    setDrafts(current => {
-      let changed = false
-      const next = current.map(draft => {
-        if (!draft.automatic || !draft.company || !draft.role) return draft
-        const text = applicationTemplate(name, draft.company, draft.role)
-        if (text.subject === draft.subject && text.body === draft.body) return draft
-        changed = true
-        return { ...draft, ...text }
-      })
-      return changed ? next : current
-    })
-  }, [snapshot?.sender?.name, drafts])
+    if (hydrated) setDrafts(current => applyMailDefaults(current, defaults, snapshot?.sender))
+  }, [snapshot?.sender, drafts, defaults, hydrated])
+
+  useEffect(() => {
+    setSelectedDraftIds(current => current.some(id => !drafts.some(draft => draft.id === id)) ? current.filter(id => drafts.some(draft => draft.id === id)) : current)
+  }, [drafts])
 
   useEffect(() => {
     let active = true
@@ -123,7 +124,11 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare }: { badge
       const library = libraryResult.status === 'fulfilled' ? libraryResult.value.filter(item => validResumeAttachment(item.file)) : []
       setLibraryError(libraryResult.status === 'rejected')
       setLibraryAttachments(library)
-      if (saved) { setDrafts(saved.drafts); setWebsiteApplications(saved.websiteApplications ?? []); setPreparationByJob(saved.preparationByJob ?? {}) }
+      if (saved) {
+        setDrafts(saved.drafts); setWebsiteApplications(saved.websiteApplications ?? []); setPreparationByJob(saved.preparationByJob ?? {})
+        setDefaults(restoreMailDefaults(saved.defaults))
+        setSelectedDraftIds(saved.selectedIds ?? saved.drafts.map(draft => draft.id))
+      }
       if (saved?.attachment) {
         if (validResumeAttachment(saved.attachment)) { setAttachment(saved.attachment); setAttachmentSource(saved.attachmentSource) }
         else setError('原先选择的附件无法读取，请重新选择简历原文件。')
@@ -136,8 +141,8 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare }: { badge
     return () => { active = false }
   }, [])
   useEffect(() => {
-    if (hydrated) void set(STORAGE_KEY, { drafts, attachment, attachmentSource, websiteApplications, preparationByJob }).catch(() => setError('草稿未能保存到浏览器，刷新前请备份填写内容。'))
-  }, [drafts, attachment, attachmentSource, websiteApplications, preparationByJob, hydrated])
+    if (hydrated) void persist({ drafts, attachment, attachmentSource, websiteApplications, preparationByJob, defaults, selectedIds: selectedDraftIds }).catch(() => setError('草稿未能保存到浏览器，刷新前请备份填写内容。'))
+  }, [drafts, attachment, attachmentSource, websiteApplications, preparationByJob, defaults, selectedDraftIds, hydrated, persist])
   useEffect(() => {
     if (!hydrated) return
     try { window.sessionStorage.setItem(VIEW_KEY, JSON.stringify({ tab, selectedId })) } catch { /* Optional view state. */ }
@@ -153,15 +158,17 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare }: { badge
     try { await work() } catch (e) { setError(e instanceof Error ? e.message : '操作失败') }
     finally { setBusy(false) }
   }
-  const update = (change: Partial<Draft>) => {
-    if (!selected || tab !== 'drafts') return
-    setDrafts(items => items.map(item => item.id === selected.id ? updateDraft(item, change) : item))
-    if (change.sourceUrl !== undefined && change.sourceUrl !== selected.sourceUrl) {
-      setPreparationByJob(items => { const next = { ...items }; delete next[selected.id]; return next })
+  const updateById = (id: string, change: Partial<Draft>) => {
+    const target = drafts.find(draft => draft.id === id)
+    if (!target || tab !== 'drafts') return
+    setDrafts(items => items.map(item => item.id === id ? updateDraft(item, change) : item))
+    if (change.sourceUrl !== undefined && change.sourceUrl !== target.sourceUrl) {
+      setPreparationByJob(items => { const next = { ...items }; delete next[id]; return next })
     } else if (change.jobDescription !== undefined) {
-      setPreparationByJob(items => items[selected.id] ? { ...items, [selected.id]: { ...items[selected.id], jobDescription: change.jobDescription! } } : items)
+      setPreparationByJob(items => items[id] ? { ...items, [id]: { ...items[id], jobDescription: change.jobDescription! } } : items)
     }
   }
+  const update = (change: Partial<Draft>) => { if (selected) updateById(selected.id, change) }
   const updateHistoryDescription = (jobDescription: string) => {
     if (!selected) return
     setPreparationByJob(items => ({ ...items, [selected.id]: { ...items[selected.id], jobDescription } }))
@@ -177,34 +184,43 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare }: { badge
       attachment: file, attachmentSource: pickedFile ? undefined : selectedAttachment.source,
     }
     const nextPreparation = { ...preparationByJob, [selected.id]: { jobDescription: request.job.jobDescription, attachment: request.attachment, attachmentSource: request.attachmentSource, attachmentUse: selectedAttachment.use } }
-    await set(STORAGE_KEY, { drafts, attachment: pickedFile ?? attachment, attachmentSource: pickedFile ? undefined : attachmentSource, websiteApplications, preparationByJob: nextPreparation })
+    await persist({ drafts, attachment: pickedFile ?? attachment, attachmentSource: pickedFile ? undefined : attachmentSource, websiteApplications, preparationByJob: nextPreparation, defaults, selectedIds: selectedDraftIds })
     setPreparationByJob(nextPreparation)
     await onPrepare(request, intent)
   }
   const addDraft = () => {
     if (drafts.length >= 20) { setError('每批最多 20 封，请先发送或移除当前草稿'); return }
-    const draft: Draft = { id: crypto.randomUUID(), company: '', role: '', sourceUrl: '', recipient: '', subject: '', body: '', sourceConfirmed: false, automatic: true }
-    setDrafts(items => [...items, draft]); setSelectedId(draft.id); setTab('drafts'); setFocusRequest({ field: 'company', time: Date.now() }); setError('')
+    const draft: Draft = { id: crypto.randomUUID(), company: '', role: defaults.role, sourceUrl: '', recipient: '', subject: '', body: '', sourceConfirmed: false, automatic: true }
+    setDrafts(items => [...items, draft]); setSelectedDraftIds(items => [...items, draft.id]); setSelectedId(draft.id); setTab('drafts'); setFocusRequest({ field: 'company', time: Date.now() }); setEditOpen(true); setError('')
+  }
+  const importContacts = (text: string) => {
+    const result = planContactImports(parseContactList(text, defaults.role), drafts, 20 - drafts.length)
+    const added: Draft[] = result.items.map(item => ({ ...item, id: crypto.randomUUID(), subject: '', body: '', sourceConfirmed: false, automatic: true }))
+    setDrafts(items => [...items, ...applyMailDefaults(added, defaults, snapshot?.sender)])
+    setSelectedDraftIds(items => [...items, ...added.map(item => item.id)])
+    setTab('drafts'); setEditOpen(false); setError('')
+    return `已添加 ${added.length} 个岗位${result.duplicates ? `，跳过 ${result.duplicates} 个重复条目` : ''}。缺项可直接在表格补充。`
   }
   const removeDraft = (id: string) => {
     setDrafts(items => items.filter(item => item.id !== id))
+    if (selected?.id === id) setEditOpen(false)
     setPreparationByJob(items => { const next = { ...items }; delete next[id]; return next })
   }
   const preparePreview = async () => {
     if (!snapshot?.sender) { setSettingsOpen('sender'); return }
     if (!attachment) { fileInput.current?.click(); throw new Error('请选择这批投递要附上的简历原文件') }
-    const prepared = readyDrafts.map(draftPayload)
+    const prepared = selectedReadyDrafts.map(draftPayload)
     const parsed = batchSchema.safeParse({ id: crypto.randomUUID(), sender: snapshot.sender, jobs: prepared, attachment: { name: attachment.name, base64: await encodeAttachment(attachment) } })
     if (!parsed.success) {
       const index = parsed.error.issues.find(issue => issue.path[0] === 'jobs')?.path[1]
-      if (typeof index === 'number') setSelectedId(readyDrafts[index]?.id ?? null)
-      const target = typeof index === 'number' ? readyDrafts[index] : undefined
+      if (typeof index === 'number') setSelectedId(selectedReadyDrafts[index]?.id ?? null)
+      const target = typeof index === 'number' ? selectedReadyDrafts[index] : undefined
       const missing = target ? [['公司', target.company], ['岗位', target.role], ['招聘邮箱', target.recipient], ['主题', target.subject], ['正文', target.body]].filter(([, value]) => !value.trim()).map(([label]) => label).join('、') : ''
       throw new Error(`请检查${typeof index === 'number' ? `第 ${index + 1} 个岗位` : '投递内容'}${missing ? `，还缺：${missing}` : '的邮箱、官网链接或附件格式'}。`)
     }
-    const captured = Object.fromEntries(readyDrafts.map(draft => [draft.id, { jobDescription: draft.jobDescription ?? '', attachment, attachmentSource, attachmentUse: 'preview' as const }]))
+    const captured = Object.fromEntries(selectedReadyDrafts.map(draft => [draft.id, { jobDescription: draft.jobDescription ?? '', attachment, attachmentSource, attachmentUse: 'preview' as const }]))
     const nextPreparation = { ...preparationByJob, ...captured }
-    await set(STORAGE_KEY, { drafts, attachment, attachmentSource, websiteApplications, preparationByJob: nextPreparation })
+    await persist({ drafts, attachment, attachmentSource, websiteApplications, preparationByJob: nextPreparation, defaults, selectedIds: selectedDraftIds })
     setPreparationByJob(nextPreparation); setPreviewPreparation(captured); setPreview(parsed.data)
   }
   const jobAction = async (job: MailJob, action: 'retry' | 'cancel' | 'confirm-sent') => {
@@ -219,12 +235,29 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare }: { badge
       setFocusRequest(issue ? { field: issue.field, time: Date.now() } : null)
     }
   }
+  const openDraft = (id: string) => {
+    const draft = drafts.find(item => item.id === id)
+    if (!draft) return
+    selectItem(draft); setEditOpen(true)
+  }
   const markApplied = (draft: Draft, url: string) => {
     const record = markWebsiteApplication(draft, url, Date.now())
     setPreparationByJob(items => ({ ...items, [draft.id]: { ...items[draft.id], jobDescription: draft.jobDescription ?? '' } }))
     setWebsiteApplications(items => [...items, record]); setDrafts(items => items.filter(item => item.id !== draft.id))
     setTab('history'); setSelectedId(record.id)
   }
+
+  const draftEditor = selected && tab === 'drafts' ? <DraftEditor key={selected.id} draft={selected as Draft} sender={snapshot?.sender ?? (defaults.sender.name ? defaults.sender : null)} template={renderMailTemplate(defaults, selected as Draft, snapshot?.sender)} connected={!!snapshot} busy={busy} focusRequest={focusRequest} attachmentLabel={attachmentLabel} onPrepare={intent => void run(() => prepareJob(intent))} onUpdate={update} onConnect={() => setSettingsOpen('agent')} onRemove={() => removeDraft(selected.id)} onApplied={url => markApplied(selected as Draft, url)} onSupplement={page => {
+            const id = selected.id
+            setDrafts(items => items.map(item => item.id === id ? supplementCareerDraft(item, page) : item))
+          }} onExtract={async () => {
+            const id = selected.id; const original = selected.sourceUrl
+            setBusy(true); setError('')
+            try {
+              const result = await agent.request<CareerPage>('/extract', { url: original })
+              setDrafts(items => items.map(item => item.id === id && item.sourceUrl === original ? applyCareerPage(item, result) : item))
+            } finally { setBusy(false) }
+          }} /> : null
 
   return <WorkbenchFrame className="flex">
     <WorkspaceSidebar mode="applications" collapsed={collapsed} onToggleCollapsed={toggleCollapsed} onNavigate={onNavigate} badges={badges} onOpenHistory={onHome} onOpenSettings={() => setSettingsOpen('sender')} variant="dock" />
@@ -252,7 +285,8 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare }: { badge
         <button className="text-[11px] text-text-tertiary hover:text-text-primary" disabled={!hydrated || !!preview} aria-expanded={attachmentOpen} onClick={() => setAttachmentOpen(value => !value)}>{attachmentOpen ? '收起简历库' : '从简历库选择'}</button>
         <button className="flex items-center gap-1.5 text-[12px] text-text-secondary hover:text-text-primary" onClick={() => setSettingsOpen('sender')}><Mail size={14} />{snapshot?.sender?.address ?? '设置发件邮箱'}</button>
         <button className="flex items-center gap-1 text-[11px] text-text-tertiary hover:text-text-primary" onClick={() => setSettingsOpen('agent')}><Settings size={12} />{snapshot ? '执行器已连接' : '连接执行器'}</button>
-        <Button className="ml-auto h-8 px-3 text-[12px]" disabled={!readyDrafts.length || busy || snapshot?.running || pending > 0 || !!snapshot?.fatalError} onClick={() => void run(preparePreview)}>预览并发送 {readyDrafts.length ? `(${readyDrafts.length})` : ''}</Button>
+        <button type="button" className="flex items-center gap-1 text-[12px] text-text-secondary" disabled={!hydrated || !!preview} onClick={() => setDefaultsOpen(true)}><Settings size={13} />投递设置</button>
+        <Button className="ml-auto h-8 px-3 text-[12px]" disabled={tab !== 'drafts' || !selectedReadyDrafts.length || busy || snapshot?.running || pending > 0 || !!snapshot?.fatalError} onClick={() => void run(preparePreview)}>预览并发送 {selectedReadyDrafts.length ? `(${selectedReadyDrafts.length})` : ''}</Button>
       </div>
       {attachmentOpen && <section className="flex-none border-b border-line px-5 py-4 text-[12px]" aria-label="选择投递简历">
         <div className="mb-3 flex items-center gap-3"><strong className="text-[13px] font-medium">简历库中的原文件</strong>{attachment && <Button variant="ghost" className="ml-auto h-7 px-2 text-[12px]" disabled={!!preview} onClick={() => { setAttachment(null); setAttachmentSource(undefined) }}><Trash2 size={12} />移除附件</Button>}</div>
@@ -261,54 +295,42 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare }: { badge
         <p className="mb-0 mt-3 text-[11px] leading-relaxed text-text-tertiary">支持 5 MB 以内的 PDF、DOCX、TXT。修改提取的文字不会更改附件；发送前请核对原文件版本。</p>
       </section>}
       {(error || agent.connectionError || snapshot?.fatalError) && <div role="alert" className="flex-none border-b border-line bg-danger-soft px-5 py-2 text-[12px] leading-relaxed text-danger">{error || agent.connectionError || snapshot?.fatalError}</div>}
-      <div className="flex-none">{hydrated && <LinkImporter onBusy={setBusy} existingUrls={drafts.map(draft => draft.sourceUrl)} slots={20 - drafts.length} connected={!!snapshot} onConnect={() => setSettingsOpen('agent')} read={url => agent.request<CareerPage>('/extract', { url })} discover={url => agent.request<CareerDiscovery>('/discover', { url })} onImported={result => {
-        const id = crypto.randomUUID()
-        const draft: Draft = { id, company: result.company ?? '', role: result.role ?? '', sourceUrl: result.url, recipient: result.recommendedEmail ?? '', subject: '', body: '', sourceConfirmed: false, automatic: true, extraction: result, jobDescription: result.jobDescription ?? '' }
-        setDrafts(items => items.length >= 20 || items.some(item => { try { return careerUrlKey(item.sourceUrl) === careerUrlKey(result.url) } catch { return false } }) ? items : [...items, draft]); setSelectedId(id); setTab('drafts'); setFocusRequest(null); setError('')
-      }} />}</div>
-      <div className="mail-work-area min-h-0 flex-1">
-        <section className="mail-list flex min-h-0 min-w-0 flex-col border-r border-line" aria-label="投递清单">
-          <div className="flex h-11 flex-none items-center border-b border-line px-3">
-            {(['drafts', 'history'] as const).map(value => <button key={value} className={`h-full border-b-2 px-2 text-[12px] ${tab === value ? 'border-brand font-semibold' : 'border-transparent text-text-tertiary'}`} onClick={() => { setTab(value); setSelectedId(null); setFocusRequest(null); setError('') }}>{value === 'drafts' ? `待投递 ${drafts.length}` : `投递记录 ${history.length}`}</button>)}
-            <button className="ml-auto flex items-center gap-1 px-1 py-2 text-[11px] text-text-tertiary hover:bg-surface-hover" disabled={!hydrated || busy} onClick={addDraft} aria-label="手动补录岗位" title="手动补录岗位"><Plus size={13} />补录</button>
-          </div>
-          {tab === 'history' && (pending > 0 || snapshot?.running) && <div className="flex flex-wrap items-center gap-2 border-b border-line bg-surface-soft px-3 py-2 text-[12px]">
+      <div className="flex h-11 flex-none items-center border-b border-line px-4">
+        {(['drafts', 'history'] as const).map(value => <button key={value} className={`h-full border-b-2 px-2 text-[12px] ${tab === value ? 'border-brand font-semibold' : 'border-transparent text-text-tertiary'}`} onClick={() => { setTab(value); setSelectedId(null); setFocusRequest(null); setEditOpen(false); setError('') }}>{value === 'drafts' ? `待投递 ${drafts.length}` : `投递记录 ${history.length}`}</button>)}
+        {tab === 'drafts' && <button className="ml-auto flex items-center gap-1 px-2 py-2 text-[12px] text-text-secondary hover:bg-surface-hover" disabled={!hydrated || busy || !!preview} onClick={addDraft}><Plus size={13} />补录</button>}
+      </div>
+      {tab === 'drafts' && hydrated && <div className="flex-none">
+        <div className="flex items-center gap-4 px-5 pt-3 text-[12px]">
+          <button type="button" aria-pressed={inputMode === 'contacts'} disabled={busy} className={inputMode === 'contacts' ? 'font-semibold text-text-primary' : 'text-text-tertiary'} onClick={() => setInputMode('contacts')}>名单 / 招聘正文</button>
+          <button type="button" aria-pressed={inputMode === 'links'} disabled={busy} className={inputMode === 'links' ? 'font-semibold text-text-primary' : 'text-text-tertiary'} onClick={() => setInputMode('links')}>官网链接</button>
+          {!defaults.sender.name && !snapshot?.sender?.name && <button type="button" className="ml-auto text-accent underline" onClick={() => setDefaultsOpen(true)}>设置发件人，自动填好邮件</button>}
+        </div>
+        <div hidden={inputMode !== 'contacts'}><ContactImporter disabled={busy || !!preview} slots={20 - drafts.length} onImport={importContacts} /></div>
+        <div hidden={inputMode !== 'links'}><LinkImporter onBusy={setBusy} existingUrls={drafts.map(draft => draft.sourceUrl)} slots={20 - drafts.length} connected={!!snapshot} onConnect={() => setSettingsOpen('agent')} read={url => agent.request<CareerPage>('/extract', { url })} discover={url => agent.request<CareerDiscovery>('/discover', { url })} onImported={result => {
+          const id = crypto.randomUUID()
+          const draft: Draft = { id, company: result.company ?? '', role: result.role || defaults.role, sourceUrl: result.url, recipient: result.recommendedEmail ?? '', subject: '', body: '', sourceConfirmed: false, automatic: true, extraction: result, jobDescription: result.jobDescription ?? '' }
+          setDrafts(items => items.length >= 20 || items.some(item => { try { return careerUrlKey(item.sourceUrl) === careerUrlKey(result.url) } catch { return false } }) ? items : [...items, draft])
+          setSelectedDraftIds(items => [...items, id]); setTab('drafts'); setFocusRequest(null); setError('')
+        }} /></div>
+      </div>}
+      {tab === 'drafts' ? <DraftTable drafts={drafts} selectedIds={selectedDraftIds} disabled={!hydrated || busy || !!preview} onSelection={setSelectedDraftIds} onUpdate={updateById} onOpen={openDraft} onRemove={removeDraft} onAdd={addDraft} /> : <div className="mail-work-area min-h-0 flex-1">
+        <section className="mail-list flex min-h-0 min-w-0 flex-col border-r border-line" aria-label="投递记录">
+          {(pending > 0 || snapshot?.running) && <div className="flex flex-wrap items-center gap-2 border-b border-line bg-surface-soft px-3 py-2 text-[12px]">
             <span className="mr-auto">{snapshot?.running ? (snapshot.paused ? '完成当前邮件后暂停' : '正在发送') : `待继续 ${pending} 封`}</span>
             <Button variant="secondary" className="h-7 px-2 text-[12px]" disabled={busy || !snapshot?.sender || !!snapshot?.fatalError} onClick={() => void run(() => agent.command(snapshot?.running ? '/pause' : '/resume'))}>{snapshot?.running ? <Pause size={12} /> : <Play size={12} />}{snapshot?.running ? '暂停' : '继续发送'}</Button>
           </div>}
           <div className="min-h-0 flex-1 overflow-y-auto">
-            {(tab === 'drafts' ? drafts : history).map((item, index) => {
-              const website = !isJob(item) && websiteLinks(item).length > 0
-              const issues = !isJob(item) && !isWebsite(item) ? draftIssues(item).filter(issue => !website || ['company', 'role', 'sourceUrl'].includes(issue.field)) : []
-              const status = isJob(item) ? MAIL_STATUS_LABELS[item.status] : isWebsite(item) ? '官网已投 · 手动' : website ? '官网申请' : issues.length ? '待补充' : '可发送'
-              const tone = isJob(item) ? MAIL_STATUS_TONES[item.status] : isWebsite(item) ? 'success' : website ? 'info' : issues.length ? 'warning' : 'success'
-              return <button key={item.id} className={`block w-full border-b border-line px-4 py-3 text-left ${selected?.id === item.id ? 'border-l-2 border-l-brand bg-brand-soft' : 'border-l-2 border-l-transparent hover:bg-surface-soft'}`} onClick={() => selectItem(item)}>
-                <span className="flex items-baseline gap-2"><strong className="min-w-0 flex-1 truncate text-[13px] font-semibold">{item.company || `新岗位 ${index + 1}`}</strong><span className="workbench-status whitespace-nowrap text-[11px]" data-tone={tone}>{status}</span></span>
-                <span className="mt-1 block truncate text-[12px] text-text-secondary">{item.role || '待填写岗位'}</span>
-                <span className="mt-1 block truncate text-[11px] text-text-tertiary">{issues.length ? issues.map(issue => issue.label).join(' · ') : isWebsite(item) ? `${savedDate(item.appliedAt)} 标记` : website ? '打开官网完成申请' : item.recipient}</span>
-              </button>
-            })}
-            {(tab === 'drafts' ? !drafts.length : !history.length) && <div className="px-4 py-6 text-[12px] leading-[1.8] text-text-tertiary">{tab === 'drafts' ? '添加招聘链接，或手动补录一个岗位。' : snapshot ? '邮件和官网申请的记录会显示在这里。' : '官网申请记录保存在浏览器，邮件记录需连接执行器后读取。'}</div>}
+            {history.map(item => <button key={item.id} className={`block w-full border-b border-line px-4 py-3 text-left ${selected?.id === item.id ? 'border-l-2 border-l-brand bg-brand-soft' : 'border-l-2 border-l-transparent hover:bg-surface-soft'}`} onClick={() => selectItem(item)}>
+              <span className="flex items-baseline gap-2"><strong className="min-w-0 flex-1 truncate text-[13px] font-semibold">{item.company}</strong><span className="workbench-status whitespace-nowrap text-[11px]" data-tone={isWebsite(item) ? 'success' : MAIL_STATUS_TONES[item.status]}>{isWebsite(item) ? '官网已投 · 手动' : MAIL_STATUS_LABELS[item.status]}</span></span>
+              <span className="mt-1 block truncate text-[12px] text-text-secondary">{item.role}</span>
+              <span className="mt-1 block truncate text-[11px] text-text-tertiary">{isWebsite(item) ? `${savedDate(item.appliedAt)} 标记` : item.recipient}</span>
+            </button>)}
+            {!history.length && <p className="px-4 py-6 text-[12px] leading-[1.8] text-text-tertiary">{snapshot ? '邮件和官网申请的记录会显示在这里。' : '官网申请记录保存在浏览器，邮件记录需连接执行器后读取。'}</p>}
           </div>
-          <div className="flex-none border-t border-line px-4 py-2 text-[11px] leading-relaxed text-text-tertiary">{tab === 'drafts' ? `${readyDrafts.length} 个可发送 · ${websiteDrafts.length} 个官网申请 · ${drafts.length - readyDrafts.length - websiteDrafts.length} 个待补充` : '邮件记录在执行器 · 官网记录在浏览器'}</div>
+          <div className="border-t border-line px-4 py-2 text-[11px] text-text-tertiary">邮件记录在执行器 · 官网记录在浏览器</div>
         </section>
-        <section className="min-h-0 min-w-0 overflow-y-auto" aria-label={tab === 'drafts' ? '编辑投递邮件' : '投递详情'}>
-          {!selected ? <div className="mx-auto max-w-[600px] px-6 py-9 sm:px-8">
-            <Mail size={22} className="mb-4 text-text-tertiary" />
-            <h2 className="mb-2 text-[17px] font-semibold">{tab === 'history' ? '还没有投递记录' : '从一个岗位开始'}</h2>
-            <p className="text-[13px] leading-[1.9] text-text-secondary">{tab === 'history' ? '发送邮件或标记已完成的官网申请后，可以在这里查看。' : '添加招聘详情链接，自动整理公司、岗位和投递方式。缺少的信息会在清单中提示。'}</p>
-            {tab === 'drafts' && <Button variant="secondary" className="mt-3" disabled={!hydrated || busy} onClick={addDraft}><Plus size={14} />手动添加岗位</Button>}
-          </div> : tab === 'drafts' ? <DraftEditor key={selected.id} draft={selected as Draft} sender={snapshot?.sender} connected={!!snapshot} busy={busy} focusRequest={focusRequest} attachmentLabel={attachmentLabel} onPrepare={intent => void run(() => prepareJob(intent))} onUpdate={update} onConnect={() => setSettingsOpen('agent')} onRemove={() => removeDraft(selected.id)} onApplied={url => markApplied(selected as Draft, url)} onSupplement={page => {
-            const id = selected.id
-            setDrafts(items => items.map(item => item.id === id ? supplementCareerDraft(item, page) : item))
-          }} onExtract={async () => {
-            const id = selected.id; const original = selected.sourceUrl
-            setBusy(true); setError('')
-            try {
-              const result = await agent.request<CareerPage>('/extract', { url: original })
-              setDrafts(items => items.map(item => item.id === id && item.sourceUrl === original ? applyCareerPage(item, result) : item))
-            } finally { setBusy(false) }
-          }} /> : isWebsite(selected) ? <article className="mx-auto max-w-[860px] p-5 text-[13px] sm:p-6">
+        <section className="min-h-0 min-w-0 overflow-y-auto" aria-label="投递详情">
+          {!selected ? <div className="px-6 py-9 text-[13px] text-text-secondary">发送邮件或登记官网申请后，可以在这里查看记录。</div> : isWebsite(selected) ? <article className="mx-auto max-w-[860px] p-5 text-[13px] sm:p-6">
             <h2 className="m-0 text-[17px] font-semibold">{selected.company} / {selected.role}</h2>
             <p className="text-[12px] text-text-secondary"><span className="workbench-status" data-tone="success">官网已投</span> · {savedDate(selected.appliedAt)} 手动标记</p>
             <JobPreparationPanel key={selected.id} jobDescription={selectedDescription} attachmentLabel={attachmentLabel} busy={busy} onChange={updateHistoryDescription} onPrepare={intent => void run(() => prepareJob(intent))} />
@@ -316,17 +338,26 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare }: { badge
             <a href={safeLink(selected.applicationUrl)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-accent underline">查看官网申请页面<ExternalLink size={13} /></a>
             <div className="mt-6"><Button variant="secondary" disabled={drafts.length >= 20} onClick={() => {
               const { channel: _channel, applicationUrl: _url, appliedAt: _at, ...draft } = selected
-              setWebsiteApplications(items => items.filter(item => item.id !== selected.id)); setDrafts(items => [...items, draft]); setTab('drafts'); setSelectedId(draft.id); setFocusRequest(null)
+              setWebsiteApplications(items => items.filter(item => item.id !== selected.id)); setDrafts(items => [...items, draft]); setSelectedDraftIds(items => [...items, draft.id]); setTab('drafts'); setSelectedId(draft.id); setFocusRequest(null)
             }}>撤销标记，移回待投递</Button></div>
           </article> : <JobDetails job={selected as MailJob} disabled={busy || !!snapshot?.running} onAction={action => void run(() => jobAction(selected as MailJob, action))} preparation={<JobPreparationPanel key={selected.id} jobDescription={selectedDescription} attachmentLabel={attachmentLabel} busy={busy} onChange={updateHistoryDescription} onPrepare={intent => void run(() => prepareJob(intent))} />} />}
         </section>
-      </div>
+      </div>}
     </main>
-    {settingsOpen && <MailSettings agent={agent} purpose={settingsOpen} onClose={() => setSettingsOpen(null)} />}
-    {preview && <MailPreview batch={preview} onClose={() => setPreview(null)} onSend={async batch => {
+    {editOpen && tab === 'drafts' && selected && <DraftDialog disabled={busy} onClose={() => setEditOpen(false)}>{draftEditor}</DraftDialog>}
+    {settingsOpen && <MailSettings agent={agent} purpose={settingsOpen} rememberedSender={defaults.sender} onVerified={sender => setDefaults(current => senderDefaults(current, sender))} onClose={() => setSettingsOpen(null)} />}
+    {defaultsOpen && <MailDefaultsDialog defaults={defaults} attachmentName={attachment?.name} attachmentId={attachmentSource?.id} attachments={libraryAttachments} onChooseFile={() => fileInput.current?.click()} onChooseAttachment={id => {
+      const chosen = libraryAttachments.find(item => item.id === id)
+      if (chosen) { setAttachment(chosen.file); setAttachmentSource({ id: chosen.id, updatedAt: chosen.updatedAt }) }
+    }} onClose={() => setDefaultsOpen(false)} onSave={async value => {
+      const updated = applyMailDefaults(drafts, value, snapshot?.sender)
+      await persist({ drafts: updated, attachment, attachmentSource, websiteApplications, preparationByJob, defaults: value, selectedIds: selectedDraftIds })
+      setDefaults(value); setDrafts(updated)
+    }} />}
+    {preview && <MailPreview batch={preview} skippedCount={drafts.length - preview.jobs.length} onClose={() => setPreview(null)} onSend={async batch => {
       const sentPreparation = Object.fromEntries(batch.jobs.map(job => [job.id, { ...previewPreparation[job.id], attachmentUse: 'mail' as const }]))
       const nextPreparation = { ...preparationByJob, ...sentPreparation }
-      await set(STORAGE_KEY, { drafts, attachment, attachmentSource, websiteApplications, preparationByJob: nextPreparation })
+      await persist({ drafts, attachment, attachmentSource, websiteApplications, preparationByJob: nextPreparation, defaults, selectedIds: selectedDraftIds })
       setPreparationByJob(nextPreparation)
       await agent.command('/batches', batch)
       setDrafts(items => items.filter(item => !batch.jobs.some(job => job.id === item.id)))
@@ -342,7 +373,7 @@ function JobDetails({ job, disabled, onAction, preparation }: { job: MailJob; di
     {preparation}
     <dl className="mail-record grid grid-cols-[60px_minmax(0,1fr)] gap-x-3 gap-y-3 border-y border-line py-4 text-[12px]">
       <dt>发件人</dt><dd>{job.sender.name} &lt;{job.sender.address}&gt;</dd><dt>收件人</dt><dd>{job.recipient}</dd>
-      <dt>官网来源</dt><dd><a href={safeLink(job.sourceUrl)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 underline">{job.sourceUrl}<ExternalLink size={12} className="shrink-0" /></a></dd>
+      <dt>来源链接</dt><dd>{job.sourceUrl ? <a href={safeLink(job.sourceUrl)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 underline">{job.sourceUrl}<ExternalLink size={12} className="shrink-0" /></a> : '名单导入，未提供链接'}</dd>
       <dt>附件</dt><dd>{job.attachment.name} · {Math.max(1, Math.ceil(job.attachment.size / 1024))} KB</dd>
       <dt>邮件编号</dt><dd className="font-mono text-[11px]">{job.messageId}</dd>
     </dl>
@@ -353,4 +384,14 @@ function JobDetails({ job, disabled, onAction, preparation }: { job: MailJob; di
       <Button disabled={disabled} variant="ghost" onClick={() => onAction('cancel')}>取消本条</Button>
     </div>}
   </article>
+}
+
+
+function DraftDialog({ children, disabled, onClose }: { children: ReactNode; disabled: boolean; onClose: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null)
+  useEffect(() => { ref.current?.showModal() }, [])
+  return <dialog ref={ref} aria-label="查看与编辑投递邮件" onCancel={event => { if (disabled) event.preventDefault(); else onClose() }} className="mail-dialog resume-workbench w-[940px] max-w-[calc(100vw-24px)] border border-line-strong bg-surface p-0 text-text-primary backdrop:bg-black/30">
+    <header className="flex items-center justify-between border-b border-line px-5 py-3"><span className="text-[13px] font-medium">邮件与岗位详情 · 修改自动保存</span><Button variant="ghost" className="size-8 p-0" disabled={disabled} aria-label="关闭邮件详情" onClick={onClose}><X size={16} /></Button></header>
+    {children}
+  </dialog>
 }

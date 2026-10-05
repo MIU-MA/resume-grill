@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_ATTACHMENT_BYTES } from '@/domain/mail-schema'
-import { applyCareerPage, draftIssues, draftPayload, markWebsiteApplication, preparationAttachment, updateDraft, validResumeAttachment, websiteLinks, type Draft } from './draft-state'
+import { mailDraftSchema, MAX_ATTACHMENT_BYTES } from '@/domain/mail-schema'
+import { applyCareerPage, draftIssues, draftPayload, markWebsiteApplication, preparationAttachment, selectedMailDrafts, updateDraft, validResumeAttachment, websiteLinks, type Draft } from './draft-state'
 
 const sourceUrl = 'https://example.com/careers/frontend'
 const applyUrl = 'https://example.com/apply/frontend'
@@ -12,6 +12,23 @@ function websiteDraft(changes: Partial<Draft> = {}): Draft {
 }
 
 describe('投递清单状态', () => {
+  it('名单可不提供官网链接，填写了链接仍须合法且发送必须确认', () => {
+    expect(draftIssues(draft({ sourceUrl: '' }))).toEqual([])
+    for (const sourceUrl of ['http://example.com', 'https://name:password@example.com', 'https://example.com:8080']) expect(draftIssues(draft({ sourceUrl }))).toContainEqual({ field: 'sourceUrl', label: '检查官网链接' })
+    expect(mailDraftSchema.safeParse({ ...draftPayload(draft()), sourceConfirmed: false }).success).toBe(false)
+  })
+
+  it('预览只包含勾选且完整的邮件，缺项、官网申请和已取消选择的条目保留', () => {
+    const ready = draft({ sourceUrl: '' })
+    const incomplete = draft({ id: '35a5ca17-1ef7-4c97-9dd3-8ee541664f66', recipient: '' })
+    const unselected = draft({ id: 'b8e05074-34e8-49e9-830a-bd3e3c6a7f55' })
+    const website = websiteDraft({ id: '452a9742-e40d-46d1-92e8-9b77fb8556f0' })
+    const input = [ready, incomplete, unselected, website]
+    expect(selectedMailDrafts(input, [ready.id, incomplete.id, website.id])).toEqual([ready])
+    expect(selectedMailDrafts(input, [])).toEqual([])
+    expect(input).toHaveLength(4)
+  })
+
   it('对缺失字段和有内容但格式错误的字段给出可定位提示', () => {
     expect(draftIssues(draft({ company: '', recipient: 'not-email', body: '' }))).toEqual([
       { field: 'company', label: '缺公司' }, { field: 'recipient', label: '检查招聘邮箱' }, { field: 'body', label: '缺邮件正文' },

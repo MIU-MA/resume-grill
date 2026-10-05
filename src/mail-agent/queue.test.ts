@@ -24,6 +24,16 @@ function batch(count = 1): MailBatch {
 }
 
 describe('durable email queue', () => {
+  it('accepts confirmed list imports without inventing a source URL and restores their record', async () => {
+    const dir = temp(); const send = vi.fn().mockResolvedValue(undefined)
+    const input = batch(); input.jobs[0].sourceUrl = ''
+    expect(batchSchema.safeParse(input).success).toBe(true)
+    const queue = new MailQueue(dir, { send, interval: 0 }); queue.configure(config)
+    queue.enqueue(input); await queue.settled()
+    expect(send).toHaveBeenCalledTimes(1)
+    expect(new MailQueue(dir, { send }).snapshot().jobs[0]).toMatchObject({ sourceUrl: '', status: 'sent' })
+  })
+
   it('sends once, keeps the original attachment, hides credentials, and deduplicates across restart', async () => {
     const dir = temp(); const send = vi.fn().mockResolvedValue(undefined)
     const queue = new MailQueue(dir, { send, interval: 0 }); queue.configure(config)

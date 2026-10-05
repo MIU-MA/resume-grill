@@ -4,14 +4,14 @@ import { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import type { MailAgent } from './use-mail-agent'
-import { SMTP_PRESETS, type SmtpConfig } from '@/domain/mail-schema'
+import { SMTP_PRESETS, type MailSender, type SmtpConfig } from '@/domain/mail-schema'
 
-export function MailSettings({ agent, purpose = 'sender', onClose }: { agent: MailAgent; purpose?: 'agent' | 'sender'; onClose: () => void }) {
+export function MailSettings({ agent, purpose = 'sender', rememberedSender, onVerified, onClose }: { agent: MailAgent; purpose?: 'agent' | 'sender'; rememberedSender?: Pick<SmtpConfig, 'provider' | 'address' | 'name'>; onVerified?: (sender: MailSender) => void; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const [connection, setConnection] = useState(agent.token)
-  const [provider, setProvider] = useState<SmtpConfig['provider']>(agent.snapshot?.sender?.address.endsWith('@163.com') ? '163' : 'qq')
-  const [address, setAddress] = useState(agent.snapshot?.sender?.address ?? '')
-  const [name, setName] = useState(agent.snapshot?.sender?.name ?? '')
+  const [provider, setProvider] = useState<SmtpConfig['provider']>(agent.snapshot?.sender ? agent.snapshot.sender.address.endsWith('@163.com') ? '163' : 'qq' : rememberedSender?.provider ?? 'qq')
+  const [address, setAddress] = useState(agent.snapshot?.sender?.address ?? rememberedSender?.address ?? '')
+  const [name, setName] = useState(agent.snapshot?.sender?.name ?? rememberedSender?.name ?? '')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -43,7 +43,9 @@ export function MailSettings({ agent, purpose = 'sender', onClose }: { agent: Ma
         <p className="my-3 text-[12px] leading-relaxed text-text-tertiary">先在邮箱设置中开启 SMTP 服务并生成授权码。授权码只留在本机执行器内存，重启后需重新填写。</p>
         <div className="flex flex-wrap items-center gap-3">
           <Button loading={busy} disabled={!agent.snapshot || !!agent.snapshot.running || !address || !name || !password} onClick={() => void run(async () => {
-            await agent.command('/configure', { provider, address, name, authorizationCode: password }); setPassword(''); onClose()
+            const result = await agent.command('/configure', { provider, address, name, authorizationCode: password })
+            if (result.sender) onVerified?.(result.sender)
+            setPassword(''); onClose()
           })}>验证并连接邮箱</Button>
           <a href={provider === 'qq' ? 'https://help.mail.qq.com/detail/106/985' : 'https://help.mail.163.com/'} target="_blank" rel="noreferrer" className="text-[12px] text-text-secondary underline">授权码帮助</a>
           {agent.snapshot?.sender && <Button variant="ghost" disabled={busy || agent.snapshot.running} onClick={() => void run(() => agent.command('/disconnect'))}>断开邮箱</Button>}

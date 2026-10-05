@@ -9,15 +9,16 @@ import type { JobPreparationIntent } from '@/lib/job-preparation'
 import { JobPreparationPanel } from './JobPreparationPanel'
 import { PastedCareerForm } from './PastedCareerForm'
 
-export function DraftEditor({ draft, sender, connected, busy, focusRequest, attachmentLabel, onPrepare, onUpdate, onRemove, onExtract, onSupplement, onConnect, onApplied }: {
+export function DraftEditor({ draft, sender, template, connected, busy, focusRequest, attachmentLabel, onPrepare, onUpdate, onRemove, onExtract, onSupplement, onConnect, onApplied }: {
   draft: Draft; sender?: MailSender | null; connected: boolean; busy: boolean
+  template?: { subject: string; body: string } | null
   focusRequest: { field: DraftField; time: number } | null
   onUpdate: (change: Partial<Draft>) => void; onRemove: () => void
   onExtract: () => Promise<void>; onSupplement: (page: CareerPage) => void; onConnect: () => void; onApplied: (url: string) => void
   attachmentLabel: string; onPrepare: (intent: JobPreparationIntent) => void
 }) {
   const root = useRef<HTMLDivElement>(null)
-  const [sourceOpen, setSourceOpen] = useState(!draft.sourceUrl)
+  const [sourceOpen, setSourceOpen] = useState(false)
   const [sourceFailure, setSourceFailure] = useState<{ url: string; message: string } | null>(null)
   const [pasteSource, setPasteSource] = useState(false)
   const [emailMode, setEmailMode] = useState(false)
@@ -52,8 +53,8 @@ export function DraftEditor({ draft, sender, connected, busy, focusRequest, atta
           {sourcePage && !sourcePage.emails.length && !links.length && <p className="m-0 text-[12px] leading-relaxed text-text-tertiary">未读到招聘邮箱或在线申请入口。请打开招聘页核对投递方式。</p>}
         </>}
       <details open={sourceOpen} onToggle={event => setSourceOpen(event.currentTarget.open)}>
-        <summary className="cursor-pointer text-[12px] text-text-tertiary">官网来源{draft.sourceUrl ? ' · 查看或修改链接' : ' · 待补充'}</summary>
-        <label className="mail-label mt-3">官网招聘页<div className="flex gap-2"><input name="sourceUrl" className="mail-input min-w-0 flex-1" type="url" placeholder="https://公司官网/招聘详情" value={draft.sourceUrl} onChange={event => { onUpdate({ sourceUrl: event.target.value }); setPasteSource(false) }} /><Button variant="secondary" className="h-9 shrink-0 px-3 text-[12px]" loading={busy} disabled={!draft.sourceUrl} onClick={() => {
+        <summary className="cursor-pointer text-[12px] text-text-tertiary">来源链接{draft.sourceUrl ? ' · 查看或修改' : ' · 选填'}</summary>
+        <label className="mail-label mt-3">官网招聘页（选填）<div className="flex gap-2"><input name="sourceUrl" className="mail-input min-w-0 flex-1" type="url" placeholder="https://公司官网/招聘详情" value={draft.sourceUrl} onChange={event => { onUpdate({ sourceUrl: event.target.value }); setPasteSource(false) }} /><Button variant="secondary" className="h-9 shrink-0 px-3 text-[12px]" loading={busy} disabled={!draft.sourceUrl} onClick={() => {
           if (!connected) { onConnect(); return }
           const url = draft.sourceUrl
           void onExtract().then(() => { setSourceFailure(null); setPasteSource(false) }).catch(cause => { setSourceFailure({ url, message: cause instanceof Error ? cause.message : '读取失败' }); setSourceOpen(true) })
@@ -65,11 +66,12 @@ export function DraftEditor({ draft, sender, connected, busy, focusRequest, atta
     </div>
     <JobPreparationPanel jobDescription={draft.jobDescription ?? ''} attachmentLabel={attachmentLabel} busy={busy} onChange={jobDescription => onUpdate({ jobDescription })} onPrepare={onPrepare} />
     {!websiteMode && <div className="pt-1">
-      <div className="mb-3 flex items-center justify-between gap-2"><span className="text-[13px] font-medium">邮件内容</span><button className="text-[12px] text-text-secondary underline disabled:opacity-40" disabled={!draft.company || !draft.role || !sender?.name} onClick={() => {
-        if ((draft.body || draft.subject) && !window.confirm('用基本正文替换当前主题和正文？')) return
-        onUpdate(applicationTemplate(sender!.name, draft.company, draft.role))
-      }}>填入基本正文</button></div>
-      {!sender && draft.automatic && <p className="text-[12px] text-text-tertiary">设置发件人后会自动填写基本正文，也可以先自行编辑。</p>}
+      <div className="mb-3 flex items-center justify-between gap-2"><span className="text-[13px] font-medium">邮件内容</span><button className="text-[12px] text-text-secondary underline disabled:opacity-40" disabled={!template && !sender?.name} onClick={() => {
+        if (!draft.automatic && (draft.body || draft.subject) && !window.confirm('用默认模板替换当前主题和正文？')) return
+        const content = template ?? applicationTemplate(sender!.name, draft.company, draft.role)
+        onUpdate({ ...content, automatic: true })
+      }}>重新套用模板</button></div>
+      {!sender && draft.automatic && <p className="text-[12px] text-text-tertiary">设置默认发件人后会自动填好邮件，也可以先自行编辑。</p>}
       <label className="mail-label">主题<input name="subject" className="mail-input" maxLength={200} placeholder="应聘岗位-姓名" value={draft.subject} onChange={event => onUpdate({ subject: event.target.value })} /></label>
       <label className="mail-label mt-3">正文<textarea name="body" className="mail-input min-h-[180px] resize-y leading-[1.8]" maxLength={12000} placeholder="说明应聘岗位，可补充一两句相关经历。" value={draft.body} onChange={event => onUpdate({ body: event.target.value })} /></label>
     </div>}

@@ -32,7 +32,7 @@ export const mailDraftSchema = z.object({
   id: z.uuid(),
   company: line(120),
   role: line(120),
-  sourceUrl: sourceUrlSchema,
+  sourceUrl: z.union([sourceUrlSchema, z.literal('')]),
   recipient: emailSchema,
   subject: line(200),
   body: z.string().trim().min(1).max(12000).refine(value => !value.includes('\0')),
