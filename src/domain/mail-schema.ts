@@ -84,6 +84,7 @@ export type AgentSnapshot = {
   sender: MailSender | null
   jobs: MailJob[]
   fatalError?: string
+  credentials?: { supported: boolean; saved: boolean; restoring: boolean; error?: string }
 }
 export type EmailCandidate = { email: string; context: string }
 export type CareerLink = { url: string; label: string; kind: 'entry' | 'job' | 'apply'; sourceUrl: string }

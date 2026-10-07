@@ -13,8 +13,22 @@ export function MailSettings({ agent, purpose = 'sender', rememberedSender, onVe
   const [address, setAddress] = useState(agent.snapshot?.sender?.address ?? rememberedSender?.address ?? '')
   const [name, setName] = useState(agent.snapshot?.sender?.name ?? rememberedSender?.name ?? '')
   const [password, setPassword] = useState('')
+  const [remember, setRemember] = useState(agent.snapshot?.credentials?.supported === true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const credentials = agent.snapshot?.credentials
+  const connectedAddress = agent.snapshot?.sender?.address
+  const connectedName = agent.snapshot?.sender?.name
+  useEffect(() => {
+    if (!connectedAddress || !connectedName) return
+    setAddress(connectedAddress)
+    setName(connectedName)
+    const detected = inferSmtpProvider(connectedAddress)
+    if (detected) setProvider(detected)
+  }, [connectedAddress, connectedName])
+  useEffect(() => {
+    if (credentials?.supported !== undefined) setRemember(credentials.supported)
+  }, [credentials?.supported])
   useEffect(() => { dialog.current?.showModal() }, [])
   const run = async (work: () => Promise<unknown>) => {
     setBusy(true); setError('')
@@ -43,19 +57,25 @@ export function MailSettings({ agent, purpose = 'sender', rememberedSender, onVe
             if (detected) setProvider(detected)
           }} /></label>
           <label className="mail-label">发件人姓名<input className="mail-input" maxLength={80} value={name} onChange={e => setName(e.target.value)} /></label>
-          <label className="mail-label">邮箱授权码<input type="password" autoComplete="off" className="mail-input" value={password} onChange={e => setPassword(e.target.value)} /></label>
+          <label className="mail-label">邮箱授权码<input type="password" autoComplete="off" className="mail-input" placeholder={credentials?.saved ? '更新授权码时填写' : '邮箱的客户端授权码'} value={password} onChange={e => setPassword(e.target.value)} /></label>
         </div>
-        <p className="my-3 text-[12px] leading-relaxed text-text-tertiary">输入邮箱后自动识别类型。{provider === '163' ? '网易 163：在邮箱设置的 POP3/SMTP/IMAP 中开启 SMTP，填写客户端授权码。' : 'QQ 邮箱：先在邮箱设置中开启 SMTP，并生成授权码。'}授权码只留在本机执行器内存，重启后需重新填写。</p>
+        <p className="my-3 text-[12px] leading-relaxed text-text-tertiary">输入邮箱后自动识别类型。{provider === '163' ? '网易 163：在邮箱设置的 POP3/SMTP/IMAP 中开启 SMTP，填写客户端授权码。' : 'QQ 邮箱：先在邮箱设置中开启 SMTP，并生成授权码。'}</p>
+        {credentials?.supported ? <label className="mb-3 flex items-start gap-2 text-[12px] leading-relaxed"><input type="checkbox" className="mt-0.5" checked={remember} disabled={busy || credentials.restoring} onChange={event => setRemember(event.target.checked)} /><span>记住本机 · 使用当前 Windows 账户加密，重启后自动恢复。取消后验证连接，仅在此次运行使用。</span></label> : <p className="my-3 text-[12px] text-text-tertiary">{!agent.snapshot ? '连接执行器后可查看本机保存选项。' : '此执行器暂不支持加密记住授权码，当前连接只在此次运行有效。'}</p>}
+        {credentials?.restoring && <p role="status" className="text-[12px] text-text-secondary">正在恢复已保存的邮箱…</p>}
+        {credentials?.error && <p role="alert" className="text-[12px] text-danger">{credentials.error}</p>}
+        {agent.snapshot?.sender && <p role="status" className="text-[12px] text-success">已连接 {agent.snapshot.sender.address}{credentials?.saved ? ' · 已记住本机' : ''}</p>}
         <div className="flex flex-wrap items-center gap-3">
-          <Button loading={busy} disabled={!agent.snapshot || !!agent.snapshot.running || !address || !name || !password} onClick={() => void run(async () => {
+          <Button loading={busy} disabled={!agent.snapshot || !!agent.snapshot.running || credentials?.restoring || !address || !name || !password} onClick={() => void run(async () => {
             const config = smtpConfigSchema.safeParse({ provider, address: address.trim(), name, authorizationCode: password })
             if (!config.success) throw new Error(config.error.issues[0].message)
-            const result = await agent.command('/configure', config.data)
+            const result = await agent.command('/configure', { ...config.data, ...(credentials?.supported ? { remember } : {}) })
             if (result.sender) onVerified?.(result.sender)
             setPassword(''); onClose()
           })}>验证并连接邮箱</Button>
           <a href={provider === 'qq' ? 'https://help.mail.qq.com/detail/106/985' : 'https://help.mail.163.com/'} target="_blank" rel="noreferrer" className="text-[12px] text-text-secondary underline">授权码帮助</a>
           {agent.snapshot?.sender && <Button variant="ghost" disabled={busy || agent.snapshot.running} onClick={() => void run(() => agent.command('/disconnect'))}>断开邮箱</Button>}
+          {credentials?.saved && !agent.snapshot?.sender && <Button variant="secondary" disabled={busy || credentials.restoring} onClick={() => void run(() => agent.command('/credentials/reconnect'))}>恢复已保存邮箱</Button>}
+          {credentials?.saved && <Button variant="ghost" disabled={busy || credentials.restoring || !!agent.snapshot?.running} onClick={() => void run(async () => { await agent.command('/credentials/forget'); setPassword('') })}>忘记授权并断开</Button>}
         </div>
       </section>}
       {error && <p role="alert" className="mb-0 border-l-2 border-danger bg-danger-soft p-3 text-danger">{error}</p>}

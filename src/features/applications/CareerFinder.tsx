@@ -29,14 +29,16 @@ export function CareerFinder({ connected, disabled, onConnect, discover, onChoos
     finally { if (active.current) { setBusy(false); onBusy(false) } }
   }
   const links = result?.links.filter(link => `${link.label} ${link.url}`.toLowerCase().includes(filter.toLowerCase())) ?? []
-  return <div className="mt-2">
+  return <div>
     <p className="mb-2 mt-0 text-[12px] text-text-secondary">招聘官网 · 打开后选择职位</p>
     <div className="career-directory" aria-label="招聘官网">
       {careerSites.map(site => <a key={site.url} href={site.url} target="_blank" rel="noopener noreferrer" title={site.url}>
         <span className="career-monogram" aria-hidden="true">{site.company.slice(0, 1)}</span><span className="career-company">{site.company}</span><span className="career-arrow" aria-hidden="true">↗</span>
       </a>)}
     </div>
-    <div className="flex flex-wrap items-end gap-2">
+    <details className="mt-3 text-[12px]">
+      <summary className="w-fit cursor-pointer text-text-secondary">查找其他官网或岗位链接</summary>
+    <div className="mt-3 flex flex-wrap items-end gap-2">
       <label className="min-w-0 flex-1 text-[12px] text-text-secondary">公司官网或招聘页<input className="mail-input mt-1 w-full" type="url" placeholder="https://公司官网" value={url} disabled={busy || disabled} onChange={e => setUrl(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && url.trim() && !busy && !disabled) void search() }} /></label>
       <Button loading={busy} disabled={disabled || !url.trim()} onClick={() => void search()}>{connected ? '查找链接' : '连接后查找'}</Button>
     </div>
@@ -55,5 +57,6 @@ export function CareerFinder({ connected, disabled, onConnect, discover, onChoos
       <p className="my-2 text-[12px] text-text-secondary">岗位详情可整理为邮件草稿；在线申请请打开原站填写。无招聘邮箱的岗位需要补充地址才能发送。</p>
       {result.notes.map(note => <p key={note} className="my-1 break-all text-[12px] text-text-tertiary">{note}</p>)}
     </>}
+    </details>
   </div>
 }

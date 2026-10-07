@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createServer, get as httpGet } from 'node:http'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -6,6 +6,9 @@ import { join, resolve, sep } from 'node:path'
 import { MailQueue } from './queue'
 import { allowedOrigins, createAgentHandler } from './server'
 import { extractCareerEmails } from './public-page'
+import { MailAccount } from './account'
+import type { CredentialStore } from './credentials'
+import type { SmtpConfig } from '../domain/mail-schema'
 
 const directories: string[] = []
 afterEach(() => {
@@ -15,6 +18,41 @@ afterEach(() => {
   }
 })
 describe('local mail agent HTTP boundary', () => {
+  it('remembers verified authorization without returning secrets and protects restore/forget with pairing', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'mail-server-test-')); directories.push(dir)
+    let saved: SmtpConfig | null = null
+    const store: CredentialStore = { supported: true, load: async () => saved, save: async config => { saved = config }, clear: async () => { saved = null } }
+    const queue = new MailQueue(dir), verify = vi.fn().mockResolvedValue(undefined), account = new MailAccount(queue, store, verify)
+    await account.restore()
+    const options = { token: 'test-token', origins: allowedOrigins(), queue: () => queue, account: () => account, port: 0 }
+    const server = createServer(createAgentHandler(options))
+    await new Promise<void>(done => server.listen(0, '127.0.0.1', done))
+    const address = server.address(); if (!address || typeof address === 'string') throw new Error('No test port')
+    options.port = address.port
+    const headers = { Origin: 'http://127.0.0.1:3107', Authorization: 'Bearer test-token', 'Content-Type': 'application/json' }
+    const request = (path: string, body = {}, token = headers.Authorization) => fetch(`http://127.0.0.1:${address.port}${path}`, { method: 'POST', headers: { ...headers, Authorization: token }, body: JSON.stringify(body) })
+    const config = { provider: '163', address: 'candidate@163.com', name: '测试人', authorizationCode: 'TEST-HTTP-SECRET' }
+    try {
+      const invalid = await request('/configure', { ...config, provider: 'qq', remember: true })
+      expect(invalid.status).toBe(400); expect(verify).not.toHaveBeenCalled()
+      const result = await request('/configure', { ...config, remember: true })
+      expect(result.status).toBe(200)
+      const data = await result.json()
+      expect(data).toMatchObject({ sender: { address: config.address }, credentials: { supported: true, saved: true } })
+      expect(JSON.stringify(data)).not.toContain(config.authorizationCode)
+      expect(saved).toEqual(config)
+      expect((await request('/credentials/forget', {}, 'Bearer wrong')).status).toBe(401)
+      expect(saved).toEqual(config)
+      expect((await request('/disconnect')).status).toBe(200)
+      expect(queue.snapshot().sender).toBeNull()
+      const restored = await request('/credentials/reconnect')
+      expect(await restored.json()).toMatchObject({ sender: { address: config.address }, paused: true })
+      expect((await request('/credentials/forget')).status).toBe(200)
+      expect(saved).toBeNull(); expect(queue.snapshot().sender).toBeNull()
+      expect((await request('/credentials/reconnect')).status).toBe(400)
+    } finally { await new Promise<void>(done => server.close(() => done())) }
+  })
+
   it('requires exact origin, host, and pairing token for reads and writes', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'mail-server-test-')); directories.push(dir)
     const queue = new MailQueue(dir)

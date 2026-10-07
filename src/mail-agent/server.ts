@@ -4,7 +4,7 @@ import { z, ZodError } from 'zod'
 import { batchSchema, smtpConfigSchema, sourceUrlSchema } from '../domain/mail-schema.ts'
 import type { MailQueue } from './queue.ts'
 import { readCareerPage } from './public-page.ts'
-import { createSmtpTransport } from './smtp.ts'
+import { verifySmtpConfig, type MailAccount } from './account.ts'
 import { discoverCareers } from './career-discovery.ts'
 
 export function allowedOrigins(extra?: string) {
@@ -32,7 +32,7 @@ async function readJson(req: IncomingMessage) {
   catch { throw new Error('无法读取请求内容') }
 }
 
-export function createAgentHandler(options: { token: string; origins: Set<string>; queue: () => MailQueue; port?: number; readPage?: typeof readCareerPage }) {
+export function createAgentHandler(options: { token: string; origins: Set<string>; queue: () => MailQueue; account?: () => MailAccount; port?: number; readPage?: typeof readCareerPage }) {
   let configuring = false
   let readingPage = false
   return async (req: IncomingMessage, res: ServerResponse) => {
@@ -64,23 +64,32 @@ export function createAgentHandler(options: { token: string; origins: Set<string
     }
     try {
       const queue = options.queue()
-      if (req.method === 'GET' && req.url === '/status') { respond(200, queue.snapshot()); return }
+      const account = options.account?.()
+      const snapshot = () => account?.snapshot() ?? queue.snapshot()
+      if (req.method === 'GET' && req.url === '/status') { respond(200, snapshot()); return }
       if (req.method !== 'POST') { respond(404, { error: '未找到接口' }); return }
       const body = await readJson(req)
       switch (req.url) {
         case '/configure': {
           if (configuring || queue.snapshot().running) throw new Error('正在连接邮箱或发送邮件，请稍后再试')
-          const config = smtpConfigSchema.parse(body)
+          const { remember, ...input } = smtpConfigSchema.safeExtend({ remember: z.boolean().optional().default(false) }).parse(body)
+          const config = smtpConfigSchema.parse(input)
+          if (account) { await account.configure(config, remember); break }
+          if (remember) throw new Error('执行器暂不支持保存授权码，请更新执行器')
           configuring = true
-          const transport = createSmtpTransport(config)
           try {
-            await transport.verify()
+            await verifySmtpConfig(config)
             queue.configure(config)
-          } catch { throw new Error('邮箱连接失败。请确认已开启 SMTP 服务，填写的是授权码，并检查网络连接。') }
-          finally { transport.close(); configuring = false }
+          } finally { configuring = false }
           break
         }
-        case '/disconnect': queue.disconnect(); break
+        case '/disconnect': if (account) account.disconnect(); else queue.disconnect(); break
+        case '/credentials/reconnect':
+          if (!account) throw new Error('请更新执行器后重试')
+          await account.reconnect(); break
+        case '/credentials/forget':
+          if (!account) throw new Error('请更新执行器后重试')
+          await account.forget(); break
         case '/discover':
         case '/extract': {
           if (readingPage) throw new Error('正在读取招聘页，请稍后再试')
@@ -91,11 +100,11 @@ export function createAgentHandler(options: { token: string; origins: Set<string
           return
         }
         case '/batches':
-          if (configuring) throw new Error('请等待邮箱连接完成后重新预览')
+          if (configuring || account?.configuring) throw new Error('请等待邮箱连接完成后重新预览')
           queue.enqueue(batchSchema.parse(body)); break
         case '/pause': queue.pause(); break
         case '/resume':
-          if (configuring) throw new Error('请等待邮箱连接完成')
+          if (configuring || account?.configuring) throw new Error('请等待邮箱连接完成')
           queue.start(); break
         case '/job': {
           const command = z.object({ id: z.uuid(), action: z.enum(['retry', 'cancel', 'confirm-sent']) }).strict().parse(body)
@@ -104,7 +113,7 @@ export function createAgentHandler(options: { token: string; origins: Set<string
         }
         default: respond(404, { error: '未找到接口' }); return
       }
-      respond(200, queue.snapshot())
+      respond(200, snapshot())
     } catch (error) {
       respond(400, { error: error instanceof ZodError ? '请检查必填内容、邮箱地址、官网链接和附件格式' : error instanceof Error ? error.message : '操作失败，请稍后再试' })
     }
