@@ -6,9 +6,9 @@ import {
   type ResumeAnalysis,
   type ResumeClaim,
 } from '@/domain/resume-schema'
-import { buildStructuredResumeInput, extractLooseClaimCandidates, extractResumeClaimCandidates } from '@/lib/resume-structure'
+import { buildStructuredResumeInput, extractLooseClaimCandidates, extractResumeClaimCandidates } from '@/domain/resume-structure'
 import { goalClaimCount, type AnalysisGoal, type ReviewedCandidate } from '@/domain/analysis-config'
-import { buildHeuristicJobMatch } from '@/lib/job-match'
+import { buildHeuristicJobMatch } from '@/domain/job-match'
 
 const ROLE_RULES: { role: string; keywords: string[] }[] = [
   { role: '前端开发工程师', keywords: ['前端', 'React', 'Vue', 'CSS', 'TypeScript', '页面', 'Vite', 'Next'] },

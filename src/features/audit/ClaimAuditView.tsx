@@ -1,7 +1,7 @@
 import type { ResumeAnalysis, TestPriority } from '@/domain/resume-schema'
 import { ClaimList } from '@/features/audit/ClaimList'
 import { ClaimDetail } from '@/features/audit/ClaimDetail'
-import type { ClaimProgress } from '@/lib/risk'
+import type { ClaimProgress } from '@/domain/risk'
 
 type Props = {
   analysis: ResumeAnalysis

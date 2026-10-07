@@ -4,8 +4,8 @@ import { useState, type ReactNode } from 'react'
 import { ChevronDown, Download } from 'lucide-react'
 import { DIAGNOSIS_DIMENSIONS, DIAGNOSIS_PRIORITIES, sortDiagnosisIssues, type ResumeDiagnosis } from '@/domain/resume-diagnosis'
 import { Button } from '@/components/ui/Button'
-import { buildDiagnosisReport } from '@/lib/resume-diagnosis'
-import { downloadText } from '@/lib/report'
+import { buildDiagnosisReport } from '@/features/resume/lib/resume-diagnosis'
+import { downloadText } from '@/features/report/lib/report'
 
 type Props = {
   diagnosis: ResumeDiagnosis

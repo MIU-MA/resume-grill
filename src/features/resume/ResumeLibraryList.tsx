@@ -1,6 +1,6 @@
 import { FileText, Trash2 } from 'lucide-react'
 import type { SavedRecord } from '@/lib/storage'
-import type { ResumeDocument } from '@/lib/resume-library'
+import type { ResumeDocument } from '@/features/resume/lib/resume-library'
 
 import { resumeLibraryEntries } from './resume-library-entries'
 

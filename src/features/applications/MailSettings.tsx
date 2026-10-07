@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import type { MailAgent } from './use-mail-agent'
+import type { MailAgent } from './hooks/use-mail-agent'
 import { inferSmtpProvider, smtpConfigSchema, SMTP_PRESETS, type MailSender, type SmtpConfig } from '@/domain/mail-schema'
 
 export function MailSettings({ agent, purpose = 'sender', rememberedSender, onVerified, onClose }: { agent: MailAgent; purpose?: 'agent' | 'sender'; rememberedSender?: Pick<SmtpConfig, 'provider' | 'address' | 'name'>; onVerified?: (sender: MailSender) => void; onClose: () => void }) {

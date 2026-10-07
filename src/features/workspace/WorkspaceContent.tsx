@@ -9,11 +9,11 @@ import { InterviewView } from '@/features/interview/InterviewView'
 import { InterviewStatusPanel } from '@/features/interview/InterviewStatusPanel'
 import { InterviewReportView } from '@/features/report/InterviewReportView'
 import { KnowledgeView } from '@/features/knowledge/KnowledgeView'
-import type { KnowledgeItem, KnowledgeItemInput, KnowledgeItemPatch } from '@/lib/knowledge'
-import type { ClaimProgress } from '@/lib/risk'
+import type { KnowledgeItem, KnowledgeItemInput, KnowledgeItemPatch } from '@/domain/knowledge'
+import type { ClaimProgress } from '@/domain/risk'
 import { DiagnosisExportButton, DiagnosisToolbar, ResumeDiagnosisReport } from '@/features/resume/ResumeDiagnosisReport'
 import { Button } from '@/components/ui/Button'
-import { getInterviewEntry } from '@/lib/interview-entry'
+import { getInterviewEntry } from '@/domain/interview-entry'
 
 export type InterviewViewData = {
   rounds: Array<{

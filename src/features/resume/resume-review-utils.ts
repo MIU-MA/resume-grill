@@ -1,4 +1,4 @@
-import { extractResumeClaimCandidates } from '@/lib/resume-structure'
+import { extractResumeClaimCandidates } from '@/domain/resume-structure'
 import type { ReviewCandidate } from '@/features/resume/resume-review-types'
 
 export function createReviewCandidates(text: string): ReviewCandidate[] {

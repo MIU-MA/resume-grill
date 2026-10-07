@@ -3,7 +3,7 @@ import { BookOpen, Check, RefreshCw } from 'lucide-react'
 import type { ResumeAnalysis, ResumeClaim } from '@/domain/resume-schema'
 import type { InterviewSession } from '@/domain/interview-schema'
 import { Button } from '@/components/ui/Button'
-import { deriveBlindSpots } from '@/lib/blind-spots'
+import { deriveBlindSpots } from '@/domain/blind-spots'
 
 type ReportBlindSpotsProps = {
   analysis: ResumeAnalysis

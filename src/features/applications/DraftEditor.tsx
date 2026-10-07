@@ -5,7 +5,7 @@ import { ExternalLink, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { applicationTemplate, type CareerPage, type MailSender } from '@/domain/mail-schema'
 import { draftIssues, websiteLinks, type Draft, type DraftField } from './draft-state'
-import type { JobPreparationIntent } from '@/lib/job-preparation'
+import type { JobPreparationIntent } from '@/domain/job-preparation'
 import { JobPreparationPanel } from './JobPreparationPanel'
 import { PastedCareerForm } from './PastedCareerForm'
 

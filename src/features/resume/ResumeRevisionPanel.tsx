@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { Check, Download, Eye, Loader2, Pencil, RotateCcw, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
-import { resumeDocumentParagraphs } from '@/lib/resume-docx'
+import { resumeDocumentParagraphs } from '@/features/resume/lib/resume-docx'
 import { findRevisionTargets, mapRevisionTarget, replaceRevisionTarget, type RevisionTarget } from './resume-revision'
 
 export function ResumeIssueEditor({ baseText, text, evidence, disabled, onChange, onFullText }: {

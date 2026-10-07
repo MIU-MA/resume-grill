@@ -1,5 +1,5 @@
 import { Check, Lightbulb } from 'lucide-react'
-import type { KnowledgeItem } from '@/lib/knowledge'
+import type { KnowledgeItem } from '@/domain/knowledge'
 import { KNOWLEDGE_SOURCE_META } from '@/features/knowledge/knowledge-meta'
 
 type KnowledgeListProps = {

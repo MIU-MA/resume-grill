@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { attachClaimIds, compactAnalysisSchema, computeTestPriority, repairCompactAnalysis, resumeAnalysisSchema } from '@/domain/resume-schema'
-import { ANALYZE_SYSTEM_PROMPT, buildAnalyzeUserPrompt } from '@/lib/prompts'
+import { ANALYZE_SYSTEM_PROMPT, buildAnalyzeUserPrompt } from '@/features/resume/lib/prompts'
 import { ANALYZE_TIMEOUT, MAX_RAWTEXT, getClientIp, rateLimit, withTimeout } from '@/lib/server-limits'
 import { llmStructured, resolveLlmConfig } from '@/providers/openai-compatible'
 import { mockAnalyze } from '@/providers/mock'
-import { isExcludedClaimContent } from '@/lib/claim-filter'
-import { extractResumeClaimCandidates, isClaimGroundedInRawText, matchClaimCandidate } from '@/lib/resume-structure'
+import { isExcludedClaimContent } from '@/domain/claim-filter'
+import { extractResumeClaimCandidates, isClaimGroundedInRawText, matchClaimCandidate } from '@/domain/resume-structure'
 import { analysisGoalSchema, goalClaimCount, reviewedCandidateSchema } from '@/domain/analysis-config'
-import { buildHeuristicJobMatch } from '@/lib/job-match'
+import { buildHeuristicJobMatch } from '@/domain/job-match'
 
 const requestSchema = z.object({
   rawText: z.string().min(1, '简历文本不能为空').max(MAX_RAWTEXT, `简历文本过长，请控制在 ${MAX_RAWTEXT} 字以内`),

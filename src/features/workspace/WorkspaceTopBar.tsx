@@ -2,7 +2,7 @@ import { Download, FileJson, FileText, Settings } from 'lucide-react'
 import type { ResumeAnalysis } from '@/domain/resume-schema'
 import { Button } from '@/components/ui/Button'
 import { useDropdown } from '@/hooks/use-dropdown'
-import type { LlmMode } from '@/hooks/use-llm-status'
+import type { LlmMode } from '@/features/settings/hooks/use-llm-status'
 
 type Props = {
   analysis: ResumeAnalysis

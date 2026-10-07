@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
-import { useSidebarCollapsed } from '@/hooks/use-sidebar-collapsed'
+import { useSidebarCollapsed } from '@/features/workspace/hooks/use-sidebar-collapsed'
 import { Menu } from 'lucide-react'
 import type { ResumeAnalysis } from '@/domain/resume-schema'
 import type { Mode } from '@/application/types'
-import type { LlmMode } from '@/hooks/use-llm-status'
+import type { LlmMode } from '@/features/settings/hooks/use-llm-status'
 import type { SavedRecord } from '@/lib/storage'
 import type { SidebarBadges } from './WorkspaceSidebar'
 import { WorkspaceSidebar } from './WorkspaceSidebar'

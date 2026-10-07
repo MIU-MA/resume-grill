@@ -1,4 +1,4 @@
-import type { KnowledgeItem } from '@/lib/knowledge'
+import type { KnowledgeItem } from '@/domain/knowledge'
 
 export type KnowledgeStatusFilter = 'all' | 'open' | 'mastered'
 export type KnowledgeSourceFilter = KnowledgeItem['source'] | 'all'

@@ -3,9 +3,9 @@
 import { get, set, del, keys, update } from 'idb-keyval'
 import { createClaimId, type ResumeAnalysis, type ResumeClaim, type TestPriority } from '@/domain/resume-schema'
 import type { InterviewSession } from '@/domain/interview-schema'
-import { isExcludedClaimContent } from '@/lib/claim-filter'
-import type { ResumeReviewSubmission } from '@/application/types'
-import type { KnowledgeItem } from '@/lib/knowledge'
+import { isExcludedClaimContent } from '@/domain/claim-filter'
+import type { ResumeReviewSubmission } from '@/domain/resume-review'
+import type { KnowledgeItem } from '@/domain/knowledge'
 import { reviewedCandidatesKey } from '@/domain/analysis-config'
 
 export type SavedRecord = {

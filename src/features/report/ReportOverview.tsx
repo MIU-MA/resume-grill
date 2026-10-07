@@ -1,4 +1,4 @@
-import type { ReportTopAction } from '@/lib/report-actions'
+import type { ReportTopAction } from '@/features/report/lib/report-actions'
 
 type ReportOverviewProps = {
   topActions: ReportTopAction[]

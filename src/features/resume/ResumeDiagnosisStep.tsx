@@ -4,7 +4,7 @@ import { useState, type ReactNode } from 'react'
 import { Loader2, RefreshCw, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { DiagnosisExportButton, DiagnosisToolbar, ResumeDiagnosisReport } from './ResumeDiagnosisReport'
-import type { useResumeDiagnosis } from '@/hooks/use-resume-diagnosis'
+import type { useResumeDiagnosis } from '@/features/resume/hooks/use-resume-diagnosis'
 
 type Props = {
   diagnosis: ReturnType<typeof useResumeDiagnosis>

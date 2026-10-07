@@ -2,7 +2,7 @@ import { ArrowRight, ChevronDown, Clipboard, RefreshCw } from 'lucide-react'
 import type { ResumeClaim } from '@/domain/resume-schema'
 import type { InterviewSession } from '@/domain/interview-schema'
 import { Button } from '@/components/ui/Button'
-import { diffRewrite, type DiffSentence } from '@/lib/rewrite-diff'
+import { diffRewrite, type DiffSentence } from '@/features/report/lib/rewrite-diff'
 
 type ClaimReportDetailProps = {
   claim: ResumeClaim

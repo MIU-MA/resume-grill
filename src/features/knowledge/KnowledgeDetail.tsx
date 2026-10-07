@@ -3,7 +3,7 @@
 import { Check, MoreHorizontal, Pencil, RefreshCw, Trash2, X } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { ResumeClaim } from '@/domain/resume-schema'
-import type { KnowledgeItem } from '@/lib/knowledge'
+import type { KnowledgeItem } from '@/domain/knowledge'
 import { Button } from '@/components/ui/Button'
 import { useDropdown } from '@/hooks/use-dropdown'
 import { KNOWLEDGE_SOURCE_META } from '@/features/knowledge/knowledge-meta'

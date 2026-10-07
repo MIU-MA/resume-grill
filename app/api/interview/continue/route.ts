@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { resumeClaimSchema } from '@/domain/resume-schema'
 import { interviewActionSchema, interviewRoundSchema, interviewContinueSchema } from '@/domain/interview-schema'
-import { INTERVIEW_CONTINUE_SYSTEM, buildInterviewContinueUser } from '@/lib/interview-prompts'
-import { sanitizeCoverage } from '@/lib/coverage'
+import { INTERVIEW_CONTINUE_SYSTEM, buildInterviewContinueUser } from '@/features/interview/lib/interview-prompts'
+import { sanitizeCoverage } from '@/domain/coverage'
 import { INTERVIEW_TIMEOUT, MAX_ANSWER, MAX_TURNS, getClientIp, rateLimit, withTimeout } from '@/lib/server-limits'
 import { llmStructured, resolveLlmConfig } from '@/providers/openai-compatible'
-import { MAX_INTERVIEW_ROUNDS, mergeCoveredPoints, shouldFinishInterview } from '@/lib/interview-state'
+import { MAX_INTERVIEW_ROUNDS, mergeCoveredPoints, shouldFinishInterview } from '@/domain/interview-state'
 
 const requestSchema = z.object({
   claim: resumeClaimSchema,

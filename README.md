@@ -201,23 +201,32 @@ npm run mail-agent
 
 ```text
 app/                  页面路由、模型 API 与全局样式
-src/application/      应用入口和公共类型
-src/features/         简历、投递、面试、复盘等界面
-src/hooks/            交互状态与跨模块流程
-src/domain/           数据结构和校验规则
-src/lib/              解析、存储、导出及通用逻辑
+src/application/      应用入口、导航与跨模块流程编排
+  hooks/              工作台状态、简历与练习流程
+src/features/         简历、投递、面试、复盘等业务模块
+  <模块>/hooks/       模块专用的状态和交互
+  <模块>/lib/         模块专用的解析、存储、提示词与导出
+src/components/ui/    通用视觉控件
+src/hooks/            与业务无关的通用交互
+src/domain/           共享业务契约、校验与纯规则
+src/lib/              跨模块存储、模型设置与服务端基础设施
 src/providers/        模型接口与示例实现
 src/mail-agent/       招聘页面读取、SMTP 和发送队列
 src/data/             内置招聘官网入口
 scripts/              本机执行器与采集脚本入口
 data/career-leads/    官网岗位采集快照
 examples/             示例简历和岗位描述
+docs/                 功能说明与项目截图
 ```
+
+目录、命名、依赖边界和后续开发规则见 [AGENTS.md](AGENTS.md)，业务模块说明见 [src/features/README.md](src/features/README.md)。新增逻辑先归属业务模块；通用层不得反向依赖业务层，模块间不添加汇总导出文件。目录检查已接入 CI，会检查导入路径、分层边界与运行时循环依赖。
 
 提交前检查：
 
 ```bash
+npm run check:architecture
 npm run lint
+npx tsc --noEmit
 npm test
 npm run build
 ```

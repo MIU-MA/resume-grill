@@ -1,5 +1,5 @@
 import { Combine, Target, Trash2 } from 'lucide-react'
-import type { ParsedResumeSection } from '@/lib/resume-structure'
+import type { ParsedResumeSection } from '@/domain/resume-structure'
 import type { ReviewCandidate } from '@/features/resume/resume-review-types'
 
 type ResumeCandidateListProps = {

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { groundedDiagnosisSchema, sortDiagnosisIssues } from '@/domain/resume-diagnosis'
-import { DIAGNOSIS_SYSTEM_PROMPT, buildDiagnosisUserPrompt, buildDemoDiagnosis } from '@/lib/resume-diagnosis'
+import { DIAGNOSIS_SYSTEM_PROMPT, buildDiagnosisUserPrompt, buildDemoDiagnosis } from '@/features/resume/lib/resume-diagnosis'
 import { MAX_RAWTEXT, getClientIp, rateLimit, withTimeout } from '@/lib/server-limits'
 import { llmStructured, resolveLlmConfig } from '@/providers/openai-compatible'
 

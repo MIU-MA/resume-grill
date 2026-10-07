@@ -4,7 +4,7 @@ import {
   priorityCount,
   WEAK_SCORE_THRESHOLD,
   type ClaimProgress,
-} from '@/lib/risk'
+} from '@/domain/risk'
 
 type Props = {
   claims: ResumeClaim[]

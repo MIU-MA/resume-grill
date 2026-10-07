@@ -1,5 +1,5 @@
 import type { SavedRecord } from '@/lib/storage'
-import type { ResumeDocument } from '@/lib/resume-library'
+import type { ResumeDocument } from '@/features/resume/lib/resume-library'
 
 export function resumeLibraryEntries(records: SavedRecord[], documents: ResumeDocument[]) {
   const linked = new Set(documents.map(document => document.recordId).filter(Boolean))

@@ -1,28 +1,15 @@
 import type { Dispatch, SetStateAction } from 'react'
 import type { ResumeAnalysis, TestPriority } from '@/domain/resume-schema'
 import type { InterviewSession } from '@/domain/interview-schema'
-import type { ExtractedText } from '@/lib/pdf'
-import type { KnowledgeItem } from '@/lib/knowledge'
+import type { ExtractedText } from '@/features/resume/lib/pdf'
+import type { KnowledgeItem } from '@/domain/knowledge'
 import type { SavedRecord } from '@/lib/storage'
-import type { ResumeDocument, ResumeRevisionDraft } from '@/lib/resume-library'
-import type { ResumeDiagnosis } from '@/domain/resume-diagnosis'
+import type { ResumeDocument, ResumeRevisionDraft } from '@/features/resume/lib/resume-library'
 import type { JobContext } from '@/domain/job-context'
-import type { JobPreparationIntent } from '@/lib/job-preparation'
-import type {
-  AnalysisGoal,
-  ReviewedCandidate,
-} from '@/domain/analysis-config'
+import type { JobPreparationIntent } from '@/domain/job-preparation'
+import type { ResumeReviewSubmission } from '@/domain/resume-review'
 
 export type Mode = 'diagnosis' | 'audit' | 'interview' | 'report' | 'knowledge' | 'applications'
-
-export type ResumeReviewSubmission = {
-  rawText: string
-  analysisGoal: AnalysisGoal
-  reviewedCandidates: ReviewedCandidate[]
-  candidateDrafts?: Array<ReviewedCandidate & { id: string; enabled: boolean }>
-  jobDescription: string
-  diagnosis?: ResumeDiagnosis
-}
 
 export type AppNavigation = {
   push: (phase: 'upload' | 'review' | 'workspace', mode?: Mode) => void

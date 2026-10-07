@@ -1,4 +1,4 @@
-import type { ParsedResumeSection } from '@/lib/resume-structure'
+import type { ParsedResumeSection } from '@/domain/resume-structure'
 
 type ResumeReviewSidebarProps = {
   sections: ParsedResumeSection[]

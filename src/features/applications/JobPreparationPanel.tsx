@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
-import type { JobPreparationIntent } from '@/lib/job-preparation'
+import type { JobPreparationIntent } from '@/domain/job-preparation'
 
 export function JobPreparationPanel({ jobDescription, attachmentLabel, busy, onChange, onPrepare }: {
   jobDescription: string

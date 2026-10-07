@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Check, CircleHelp, Lightbulb, Plus, X } from 'lucide-react'
 import type { ResumeAnalysis, ResumeClaim } from '@/domain/resume-schema'
 import { Button } from '@/components/ui/Button'
-import type { KnowledgeItem, KnowledgeItemInput, KnowledgeItemPatch } from '@/lib/knowledge'
+import type { KnowledgeItem, KnowledgeItemInput, KnowledgeItemPatch } from '@/domain/knowledge'
 
 import {
   type KnowledgeSort,

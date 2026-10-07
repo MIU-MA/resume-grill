@@ -12,7 +12,7 @@ import {
 } from '@/domain/resume-schema'
 import type { InterviewSession } from '@/domain/interview-schema'
 import { Button } from '@/components/ui/Button'
-import { deriveTopActions } from '@/lib/report-actions'
+import { deriveTopActions } from '@/features/report/lib/report-actions'
 import { ClaimReportDetail } from '@/features/report/ClaimReportDetail'
 import { ReportOverview } from '@/features/report/ReportOverview'
 import { ReportJobMatch } from '@/features/report/ReportJobMatch'

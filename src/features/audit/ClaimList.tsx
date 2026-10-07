@@ -8,7 +8,7 @@ import {
 import { ClaimBatchActions } from '@/features/audit/ClaimBatchActions'
 import { ClaimListToolbar } from '@/features/audit/ClaimListToolbar'
 import type { ClaimFilter } from '@/features/audit/claim-list-types'
-import { WEAK_SCORE_THRESHOLD, type ClaimProgress } from '@/lib/risk'
+import { WEAK_SCORE_THRESHOLD, type ClaimProgress } from '@/domain/risk'
 
 type Props = {
   analysis: ResumeAnalysis

@@ -11,6 +11,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "oxlint",
+    "check:architecture": "node scripts/check-architecture.mjs",
     "test": "vitest run"
   },
   "dependencies": {

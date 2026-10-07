@@ -12,14 +12,14 @@ import {
   Download,
   X,
 } from 'lucide-react'
-import type { ExtractedText } from '@/lib/pdf'
+import type { ExtractedText } from '@/features/resume/lib/pdf'
 import { Button } from '@/components/ui/Button'
 import { WorkbenchFrame } from '@/components/layout/WorkbenchFrame'
 import type { AnalysisGoal } from '@/domain/analysis-config'
 import type { JobContext } from '@/domain/job-context'
-import type { JobPreparationIntent } from '@/lib/job-preparation'
-import { parseResumeStructure } from '@/lib/resume-structure'
-import type { ResumeReviewSubmission } from '@/application/types'
+import type { JobPreparationIntent } from '@/domain/job-preparation'
+import { parseResumeStructure } from '@/domain/resume-structure'
+import type { ResumeReviewSubmission } from '@/domain/resume-review'
 import type { ReviewCandidate } from '@/features/resume/resume-review-types'
 import {
   createReviewCandidates,
@@ -31,7 +31,7 @@ import { ResumeCandidateList } from '@/features/resume/ResumeCandidateList'
 import { ResumeAnalysisOptions } from '@/features/resume/ResumeAnalysisOptions'
 import { ResumeDiagnosisStep } from '@/features/resume/ResumeDiagnosisStep'
 import { SettingsDialog } from '@/features/settings/SettingsDialog'
-import { useResumeDiagnosis } from '@/hooks/use-resume-diagnosis'
+import { useResumeDiagnosis } from '@/features/resume/hooks/use-resume-diagnosis'
 import { ResumeIssueEditor, ResumeRevisionPreview, ResumeRevisionToolbar } from './ResumeRevisionPanel'
 import type { ResumeRevisionDraft } from './resume-revision'
 

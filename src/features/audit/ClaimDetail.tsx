@@ -1,7 +1,7 @@
 import { ArrowRight, Check } from 'lucide-react'
 import { type ResumeClaim, MASTERY_DIMENSION_LABELS, type TestPriority } from '@/domain/resume-schema'
 import { Button } from '@/components/ui/Button'
-import type { ClaimProgress } from '@/lib/risk'
+import type { ClaimProgress } from '@/domain/risk'
 
 type ClaimDetailProps = {
   claim: ResumeClaim
