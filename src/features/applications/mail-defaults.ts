@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { emailSchema, type MailSender } from '@/domain/mail-schema'
+import { emailSchema, inferSmtpProvider, type MailSender } from '@/domain/mail-schema'
 import type { Draft } from './draft-state'
 
 export const DEFAULT_SUBJECT_TEMPLATE = '应聘{{岗位}}-{{姓名}}'
@@ -59,5 +59,5 @@ export function applyMailDefaults(drafts: Draft[], defaults: MailDefaults, sende
 }
 
 export function senderDefaults(defaults: MailDefaults, sender: MailSender): MailDefaults {
-  return { ...defaults, sender: { name: sender.name, address: sender.address, provider: sender.address.endsWith('@163.com') ? '163' : 'qq' } }
+  return { ...defaults, sender: { name: sender.name, address: sender.address, provider: inferSmtpProvider(sender.address) ?? defaults.sender.provider } }
 }

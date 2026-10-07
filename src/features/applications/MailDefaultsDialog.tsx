@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { inferSmtpProvider } from '@/domain/mail-schema'
 import { DEFAULT_BODY_TEMPLATE, DEFAULT_SUBJECT_TEMPLATE, mailDefaultsSchema, type MailDefaults } from './mail-defaults'
 
 export function MailDefaultsDialog({ defaults, attachmentName, attachmentId, attachments, onChooseFile, onChooseAttachment, onSave, onClose }: {
@@ -21,7 +22,7 @@ export function MailDefaultsDialog({ defaults, attachmentName, attachmentId, att
     <div className="space-y-5 p-5 text-[12px]">
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="mail-label">发件人姓名<input className="mail-input" maxLength={80} value={value.sender.name} onChange={event => setValue(current => ({ ...current, sender: { ...current.sender, name: event.target.value } }))} /></label>
-        <label className="mail-label">发件邮箱<input className="mail-input" type="email" value={value.sender.address} placeholder="QQ / 163 邮箱" onChange={event => { const address = event.target.value; setValue(current => ({ ...current, sender: { ...current.sender, address, provider: address.trim().toLowerCase().endsWith('@163.com') ? '163' : 'qq' } })) }} /></label>
+        <label className="mail-label">发件邮箱<input className="mail-input" type="email" value={value.sender.address} placeholder="QQ / 网易 163 邮箱" onChange={event => { const address = event.target.value; setValue(current => ({ ...current, sender: { ...current.sender, address, provider: inferSmtpProvider(address) ?? current.sender.provider } })) }} /></label>
       </div>
       <p className="!mt-2 text-[11px] leading-relaxed text-text-tertiary">姓名和邮箱保存在当前浏览器，用于生成草稿和下次连接时填入。实际发送使用已连接的邮箱；授权码不保存在这里。</p>
       <section className="border-y border-line py-4">

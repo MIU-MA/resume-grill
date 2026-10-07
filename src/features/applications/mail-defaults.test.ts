@@ -22,6 +22,7 @@ describe('默认投递设置', () => {
     expect(mailDefaultsSchema.safeParse({ ...defaults, authorizationCode: 'secret' }).success).toBe(false)
     expect(mailDefaultsSchema.safeParse({ ...defaults, sender: { ...defaults.sender, authorizationCode: 'secret' } }).success).toBe(false)
     expect(senderDefaults(defaults, { name: '李四', address: 'other@163.com' }).sender).toEqual({ provider: '163', name: '李四', address: 'other@163.com' })
+    expect(senderDefaults(defaults, { name: '李四', address: 'Other@163.COM' }).sender.provider).toBe('163')
   })
 
   it('拒绝未知变量、不完整括号、主题换行和非法邮箱', () => {

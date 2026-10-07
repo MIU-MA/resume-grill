@@ -4,11 +4,20 @@ export const MAIL_AGENT_URL = 'http://127.0.0.1:4318'
 export const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024
 export const SMTP_PRESETS = {
   qq: { label: 'QQ 邮箱', host: 'smtp.qq.com', domains: ['qq.com', 'foxmail.com'] },
-  '163': { label: '163 邮箱', host: 'smtp.163.com', domains: ['163.com'] },
+  '163': { label: '网易 163 邮箱', host: 'smtp.163.com', domains: ['163.com'] },
 } as const
 
 const line = (max: number) => z.string().trim().min(1).max(max).refine(value => [...value].every(char => char.charCodeAt(0) >= 32 && char.charCodeAt(0) !== 127), '不能包含换行或控制字符')
 export const emailSchema = z.email().max(254).transform(value => value.toLowerCase())
+export function inferSmtpProvider(address: string): keyof typeof SMTP_PRESETS | null {
+  const parsed = emailSchema.safeParse(address.trim())
+  if (!parsed.success) return null
+  const domain = parsed.data.split('@')[1]
+  return (Object.keys(SMTP_PRESETS) as Array<keyof typeof SMTP_PRESETS>).find(provider => {
+    const domains: readonly string[] = SMTP_PRESETS[provider].domains
+    return domains.includes(domain)
+  }) ?? null
+}
 export const sourceUrlSchema = z.url().max(2048).refine(value => {
   try {
     const url = new URL(value)

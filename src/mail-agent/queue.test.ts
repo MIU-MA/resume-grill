@@ -24,6 +24,18 @@ function batch(count = 1): MailBatch {
 }
 
 describe('durable email queue', () => {
+  it('uses the configured NetEase sender and restores records without persisting the authorization code', async () => {
+    const dir = temp(); const send = vi.fn().mockResolvedValue(undefined)
+    const netease: SmtpConfig = { ...config, provider: '163', address: 'candidate@163.com' }
+    const input = batch(); input.sender = { name: netease.name, address: netease.address }
+    const queue = new MailQueue(dir, { send, interval: 0 }); queue.configure(netease)
+    queue.enqueue(input); await queue.settled()
+    expect(send.mock.calls[0][0]).toMatchObject({ provider: '163', address: 'candidate@163.com' })
+    expect(queue.snapshot().jobs[0]).toMatchObject({ sender: input.sender, status: 'sent' })
+    expect(readFileSync(join(dir, 'state.json'), 'utf8')).not.toContain(netease.authorizationCode)
+    expect(new MailQueue(dir, { send }).snapshot().jobs[0].sender).toEqual(input.sender)
+  })
+
   it('accepts confirmed list imports without inventing a source URL and restores their record', async () => {
     const dir = temp(); const send = vi.fn().mockResolvedValue(undefined)
     const input = batch(); input.jobs[0].sourceUrl = ''

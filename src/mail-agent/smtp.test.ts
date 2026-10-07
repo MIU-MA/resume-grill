@@ -2,10 +2,19 @@ import { describe, expect, it } from 'vitest'
 import { createServer } from 'node:net'
 import nodemailer from 'nodemailer'
 import { randomUUID } from 'node:crypto'
-import { buildMailMessage, classifySmtpError } from './smtp'
+import { buildMailMessage, classifySmtpError, createSmtpTransport } from './smtp'
 import type { MailJob } from '../domain/mail-schema'
 
 describe('SMTP message delivery', () => {
+  it.each([
+    ['163', 'candidate@163.com', 'smtp.163.com'], ['qq', 'candidate@qq.com', 'smtp.qq.com'],
+  ] as const)('configures %s with the correct secure SMTP transport', (provider, address, host) => {
+    const transport = createSmtpTransport({ provider, address, name: '测试人', authorizationCode: 'TEST-ONLY' })
+    try {
+      expect(transport.options).toMatchObject({ host, port: 465, secure: true, auth: { user: address, pass: 'TEST-ONLY' }, tls: { rejectUnauthorized: true, minVersion: 'TLSv1.2' }, disableFileAccess: true, disableUrlAccess: true })
+    } finally { transport.close() }
+  })
+
   it('submits a real MIME message and attachment to a loopback-only fake SMTP server', async () => {
     const commands: string[] = []
     let rawMessage = ''
