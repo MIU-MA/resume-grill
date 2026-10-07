@@ -101,6 +101,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
         <Button variant="ghost" className="h-8 px-2 text-[12px]" onClick={() => setSettingsOpen(true)}><Settings size={15} />模型设置</Button>
       </header>
 
+      <main className="library-content">
       <div className="library-body grid min-h-0 w-full">
         <section className="order-2 min-w-0 px-5 py-6 sm:p-7 min-[900px]:order-1" aria-labelledby="saved-resumes-title">
           <div className="mb-6">
@@ -160,6 +161,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
           <p className="mb-0 mt-5 border-t border-line pt-4 text-[12px] leading-[1.8] text-text-tertiary">原文件和提取文字保存在当前浏览器。配置模型后，首次导入会自动检查简历，全文将经本站发送给所选模型服务商，可能产生调用费用。</p>
         </section>
       </div>
+      </main>
       <footer className="flex flex-none flex-wrap items-center justify-between gap-2 border-t border-line px-5 py-3 text-[12px] text-text-tertiary sm:px-7">
         <span>简历和练习记录保存在当前浏览器</span>
         <button type="button" onClick={() => setSettingsOpen(true)} className="text-text-secondary hover:text-brand">{clientConfigured || envConfigured ? '模型已配置' : '配置模型'}<span aria-hidden="true"> ↗</span></button>
