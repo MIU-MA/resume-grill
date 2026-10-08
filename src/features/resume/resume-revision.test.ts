@@ -1,5 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { findRevisionTargets, mapRevisionTarget, replaceRevisionTarget } from './resume-revision'
+import { changedRevisionRanges, editableRevisionRange, findRevisionTargets, mapRevisionTarget, replaceRevisionTarget } from './resume-revision'
+
+describe('可视化段落修改', () => {
+  it('替换段落时保留下一段的换行分隔符', () => {
+    const text = '项目经历\r\n负责 React 页面。\r\n技术技能'
+    const target = findRevisionTargets(text, '负责 React 页面')[0]
+    const range = editableRevisionRange(text, target)
+    expect(replaceRevisionTarget(text, range, '负责 Vue 页面。')).toBe('项目经历\r\n负责 Vue 页面。\r\n技术技能')
+  })
+  it('仅高亮改动与新增部分，前后未改动的段落保持原样', () => {
+    const base = '张三\n项目经历\n负责页面开发\n技术技能\nReact'
+    const text = '张三\n项目经历\n负责性能优化\n新增项目\n技术技能\nReact'
+    expect(changedRevisionRanges(base, text).map(range => text.slice(range.start, range.end))).toEqual(['负责性能优化\n新增项目\n'])
+    expect(changedRevisionRanges(text, text)).toEqual([])
+  })
+})
 
 describe('resume revision anchoring', () => {
   it('starts from the complete original paragraph, allowing extraction whitespace', () => {

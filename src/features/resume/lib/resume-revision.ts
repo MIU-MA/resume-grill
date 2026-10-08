@@ -1,12 +1,13 @@
 'use client'
 
 import { set, update } from 'idb-keyval'
-import { createResumeDocx, normalizeResumeDocumentText } from './resume-docx'
+import { normalizeResumeDocumentText } from './resume-docx'
+import { createResumePdf, type ResumePdfArtifact } from './resume-pdf'
 import { loadResumeDocument, type ResumeDocument } from './resume-library'
 import { extractResumeClaimCandidates } from '../../../domain/resume-structure'
 
 /** A confirmed revision gets its own file, review and practice identity. */
-export async function createResumeRevision(sourceId: string, text: string, baseText: string): Promise<ResumeDocument> {
+export async function createResumeRevision(sourceId: string, text: string, baseText: string, preview?: ResumePdfArtifact): Promise<ResumeDocument> {
   const rawText = normalizeResumeDocumentText(text).trim()
   if (!rawText) throw new Error('新稿正文不能为空。')
   if (rawText.length > 20000) throw new Error('新稿请控制在 20000 字以内。')
@@ -15,13 +16,15 @@ export async function createResumeRevision(sourceId: string, text: string, baseT
   if ((source.review?.rawText ?? source.extracted.text).trim() !== baseText.trim()) throw new Error('原文已在其他页面更新，请重新打开后再保存新稿。')
   if (rawText === normalizeResumeDocumentText(baseText).trim()) throw new Error('还没有修改正文。')
 
-  const file = await createResumeDocx(rawText, source.sourceFile)
+  const pdf = preview?.inputText === text && preview.text === rawText && preview.sourceFile === source.sourceFile
+    ? preview : await createResumePdf(text, source.sourceFile)
+  const file = pdf.file
   const revisionId = `resume-document:revision:${crypto.randomUUID()}`
   const resumeVersion = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', await file.arrayBuffer())), byte => byte.toString(16).padStart(2, '0')).join('')
   const now = Date.now()
   const document: ResumeDocument = {
     id: revisionId, revisionId, revisionOf: sourceId, sourceFile: file.name,
-    extracted: { text: rawText, charCount: rawText.length, pageCount: 1 },
+    extracted: { text: rawText, charCount: rawText.length, pageCount: pdf.pageCount },
     originalFile: file, originalFileUpdatedAt: now, demo: source.demo,
     jobContext: source.jobContext ? { ...source.jobContext, resumeVersion, resumeDocumentId: revisionId, resumeUpdatedAt: now } : undefined,
     review: {

@@ -11,9 +11,10 @@ type Props = {
   diagnosis: ResumeDiagnosis
   showToolbar?: boolean
   renderIssueEditor?: (evidence: string) => ReactNode
+  onIssueSelect?: (evidence: string) => void
 }
 
-export function ResumeDiagnosisReport({ diagnosis, showToolbar = true, renderIssueEditor }: Props) {
+export function ResumeDiagnosisReport({ diagnosis, showToolbar = true, renderIssueEditor, onIssueSelect }: Props) {
   const issues = sortDiagnosisIssues(diagnosis.issues)
   const [selection, setSelection] = useState<{ report: ResumeDiagnosis; index: number | null } | null>(null)
   const selectedIndex = selection?.report === diagnosis ? selection.index : issues.length ? 0 : null
@@ -34,7 +35,7 @@ export function ResumeDiagnosisReport({ diagnosis, showToolbar = true, renderIss
           {issues.map((issue, index) => {
             const expanded = selectedIndex === index
             return <section key={index} className="border-b border-line">
-              <button type="button" aria-expanded={expanded} aria-controls={'diagnosis-issue-' + index} onClick={() => setSelection({ report: diagnosis, index: expanded ? null : index })} className={['flex w-full items-start gap-3 border-l-2 px-4 py-4 text-left sm:gap-4 sm:px-6 sm:py-5', expanded ? 'border-brand bg-surface-soft' : 'border-transparent hover:bg-surface-soft'].join(' ')}>
+              <button type="button" aria-expanded={expanded} aria-controls={'diagnosis-issue-' + index} onClick={() => { setSelection({ report: diagnosis, index: expanded ? null : index }); if (!expanded && issue.evidence) onIssueSelect?.(issue.evidence) }} className={['flex w-full items-start gap-3 border-l-2 px-4 py-4 text-left sm:gap-4 sm:px-6 sm:py-5', expanded ? 'border-brand bg-surface-soft' : 'border-transparent hover:bg-surface-soft'].join(' ')}>
                 <span className="mt-1 flex-none font-mono text-[12px] text-text-tertiary">{String(index + 1).padStart(2, '0')}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-[15px] font-semibold leading-relaxed">{issue.title}</span>

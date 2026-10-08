@@ -6,6 +6,9 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
+    "postinstall": "node scripts/copy-pdf-worker.mjs",
+    "predev": "node scripts/copy-pdf-worker.mjs",
+    "prebuild": "node scripts/copy-pdf-worker.mjs",
     "dev": "next dev",
     "mail-agent": "tsx scripts/mail-agent.ts",
     "build": "next build",
@@ -15,8 +18,10 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@pdf-lib/fontkit": "^1.1.1",
     "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
+    "fonteditor-core": "^2.6.3",
     "idb-keyval": "^6.3.0",
     "ipaddr.js": "^2.5.0",
     "jszip": "^3.10.1",
@@ -24,6 +29,7 @@
     "mammoth": "^1.12.0",
     "next": "^16.2.12",
     "nodemailer": "^10.0.10",
+    "pdf-lib": "^1.17.1",
     "pdfjs-dist": "6.2.108",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
@@ -32,6 +38,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@napi-rs/canvas": "^1.0.3",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^24.13.2",
     "@types/nodemailer": "^8.0.2",

@@ -27,12 +27,15 @@ import {
 } from '@/features/resume/resume-review-utils'
 import { ResumeReviewSidebar } from '@/features/resume/ResumeReviewSidebar'
 import { ResumeTextEditor } from '@/features/resume/ResumeTextEditor'
+import { ResumeDocumentEditor } from './ResumeDocumentEditor'
+import { useResumePdf } from './hooks/use-resume-pdf'
+import type { ResumePdfArtifact } from './lib/resume-pdf'
 import { ResumeCandidateList } from '@/features/resume/ResumeCandidateList'
 import { ResumeAnalysisOptions } from '@/features/resume/ResumeAnalysisOptions'
 import { ResumeDiagnosisStep } from '@/features/resume/ResumeDiagnosisStep'
 import { SettingsDialog } from '@/features/settings/SettingsDialog'
 import { useResumeDiagnosis } from '@/features/resume/hooks/use-resume-diagnosis'
-import { ResumeIssueEditor, ResumeRevisionPreview, ResumeRevisionToolbar } from './ResumeRevisionPanel'
+import { ResumeRevisionPreview, ResumeRevisionToolbar } from './ResumeRevisionPanel'
 import type { ResumeRevisionDraft } from './resume-revision'
 
 type ResumeReviewViewProps = {
@@ -54,11 +57,12 @@ type ResumeReviewViewProps = {
   onSaveReview: (review: ResumeReviewSubmission) => Promise<void>
   initialRevisionDraft?: ResumeRevisionDraft
   onSaveRevisionDraft: (draft: ResumeRevisionDraft | null) => Promise<void>
-  onSaveRevision: (text: string) => Promise<void>
+  onSaveRevision: (text: string, preview?: ResumePdfArtifact) => Promise<void>
+  onLoadOriginal?: () => Promise<File | undefined>
   onDownloadResume?: () => Promise<void>
 }
 
-export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error, envConfigured, clientConfigured, onClientChanged, onConfirm, onBack, onApplications, initialReview, autoDiagnose, onSaveReview, jobContext, preparationIntent, initialRevisionDraft, onSaveRevisionDraft, onSaveRevision, onDownloadResume }: ResumeReviewViewProps) {
+export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error, envConfigured, clientConfigured, onClientChanged, onConfirm, onBack, onApplications, initialReview, autoDiagnose, onSaveReview, jobContext, preparationIntent, initialRevisionDraft, onSaveRevisionDraft, onSaveRevision, onDownloadResume, onLoadOriginal }: ResumeReviewViewProps) {
   const [text] = useState(() => (initialReview?.rawText ?? extracted.text).trim())
   const sections = useMemo(() => parseResumeStructure(text), [text])
   const [candidates, setCandidates] = useState<ReviewCandidate[]>(() => initialReview?.candidateDrafts ?? (initialReview ? initialReview.reviewedCandidates.map((candidate, index) => ({ ...candidate, id: `saved-${index}`, enabled: true })) : createReviewCandidates(extracted.text)))
@@ -76,11 +80,15 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
   const [revisionBusy, setRevisionBusy] = useState(false)
   const [revisionError, setRevisionError] = useState<string | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [mobileDocument, setMobileDocument] = useState(false)
+  const [editRequest, setEditRequest] = useState<{ evidence: string; time: number } | null>(null)
   const [leaving, setLeaving] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const revisionQueue = useRef<Promise<void>>(Promise.resolve())
   const revisionSequence = useRef(0)
   const revisionAction = useRef(false)
+  const editingText = revisionDraft?.text ?? text
+  const pdf = useResumePdf(editingText, sourceFile, tab !== 'structure' || revisionDraft !== null)
   const revisionPending = revisionDraft !== null
   const revisionConflict = revisionDraft !== null && revisionDraft.baseText !== text
   const workflowBlocked = analyzing || revisionPending || revisionBusy || leaving || draftSaveState !== 'saved'
@@ -133,13 +141,14 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
 
   const saveRevision = async () => {
     if (!revisionDraft || revisionConflict || revisionAction.current || analyzing) return
+    if (!pdf.artifact) { setRevisionError(pdf.error ?? 'PDF 还在更新，请稍后保存。'); return }
     revisionAction.current = true
     setRevisionBusy(true)
     setRevisionError(null)
     diagnosis.cancel()
     try {
       await revisionQueue.current.catch(() => {})
-      await onSaveRevision(revisionDraft.text)
+      await onSaveRevision(revisionDraft.text, pdf.artifact)
     } catch (cause) {
       setRevisionError(cause instanceof Error ? cause.message : '新稿保存失败，请重试。')
     } finally {
@@ -286,10 +295,10 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
       <div className="flex h-12 flex-none items-stretch gap-2 border-b border-line px-4 sm:px-6" role="tablist" aria-label="简历检查视图">
         <ReviewTab active={tab === 'diagnosis'} onClick={() => setTab('diagnosis')}>简历检查</ReviewTab>
         <ReviewTab active={tab === 'structure'} onClick={() => setTab('structure')}>调整练习内容</ReviewTab>
-        <ReviewTab active={tab === 'raw'} onClick={() => setTab('raw')}>{revisionPending ? '修改全文' : '原始文本'}</ReviewTab>
+        <ReviewTab active={tab === 'raw'} onClick={() => setTab('raw')}>修改全文</ReviewTab>
       </div>
 
-      {revisionDraft && <ResumeRevisionToolbar text={revisionDraft.text} conflict={revisionConflict} saving={revisionBusy || leaving || analyzing} draftStatus={draftSaveState} error={revisionError} onPreview={() => setPreviewOpen(true)} onSave={() => { void saveRevision() }} onDiscard={() => { void discardRevision() }} />}
+      {revisionDraft && <ResumeRevisionToolbar text={revisionDraft.text} conflict={revisionConflict} saving={revisionBusy || leaving || analyzing} draftStatus={draftSaveState} pdfReady={!!pdf.artifact} error={revisionError} onPreview={() => setPreviewOpen(true)} onSave={() => { void saveRevision() }} onDiscard={() => { void discardRevision() }} />}
 
       <div className="relative flex min-h-0 flex-1">
         {tab === 'structure' && <>
@@ -303,11 +312,21 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
         </>}
 
         <main className="flex min-h-0 min-w-0 flex-1 flex-col">
-          {tab === 'diagnosis' ? (
-            <ResumeDiagnosisStep diagnosis={diagnosis} configured={envConfigured || clientConfigured} demo={demo} analyzing={analyzing || revisionBusy || leaving} jobDescription={jobDescription} onJobDescriptionChange={setJobDescription} onConfigure={() => setSettingsOpen(true)} revisionPending={revisionPending || draftSaveState !== 'saved'} renderIssueEditor={(evidence) => <ResumeIssueEditor key={evidence} baseText={text} text={revisionDraft?.text ?? text} evidence={evidence} disabled={analyzing || revisionBusy || leaving || revisionConflict || diagnosis.loading} onChange={updateText} onFullText={() => setTab('raw')} />} />
-          ) : tab === 'raw' ? (
-            <ResumeTextEditor text={revisionConflict ? text : revisionDraft?.text ?? text} analyzing={analyzing || revisionBusy || leaving || revisionConflict || diagnosis.loading} onTextChange={updateText} />
-          ) : <>
+          {tab !== 'structure' ? <>
+            <div className="flex flex-none items-center gap-4 border-b border-line px-4 py-2 text-[12px] min-[1100px]:hidden">
+              <button type="button" aria-pressed={!mobileDocument} className={!mobileDocument ? 'font-semibold' : 'text-text-tertiary'} onClick={() => setMobileDocument(false)}>{tab === 'raw' ? '全文编辑' : '修改建议'}</button>
+              <button type="button" aria-pressed={mobileDocument} className={mobileDocument ? 'font-semibold' : 'text-text-tertiary'} onClick={() => setMobileDocument(true)}>简历预览</button>
+            </div>
+            <div className="grid min-h-0 flex-1 grid-cols-1 min-[1100px]:grid-cols-[minmax(360px,0.9fr)_minmax(0,1.1fr)]">
+              <div className={`min-h-0 min-w-0 flex-col ${mobileDocument ? 'hidden min-[1100px]:flex' : 'flex'}`}>
+                {tab === 'diagnosis' ? <ResumeDiagnosisStep diagnosis={diagnosis} configured={envConfigured || clientConfigured} demo={demo} analyzing={analyzing || revisionBusy || leaving} jobDescription={jobDescription} onJobDescriptionChange={setJobDescription} onConfigure={() => setSettingsOpen(true)} revisionPending={revisionPending || draftSaveState !== 'saved'} onIssueSelect={evidence => setEditRequest({ evidence, time: Date.now() })} renderIssueEditor={evidence => <div className="mt-4"><Button variant="secondary" className="h-8 px-3 text-[12px]" disabled={analyzing || revisionBusy || leaving || revisionConflict || diagnosis.loading} onClick={() => { setEditRequest({ evidence, time: Date.now() }); setMobileDocument(true) }}>定位并修改</Button></div>} />
+                  : <ResumeTextEditor text={revisionConflict ? text : editingText} analyzing={analyzing || revisionBusy || leaving || revisionConflict || diagnosis.loading} onTextChange={updateText} />}
+              </div>
+              <div className={`min-h-0 min-w-0 flex-col ${mobileDocument ? 'flex' : 'hidden min-[1100px]:flex'}`}>
+                <ResumeDocumentEditor baseText={text} text={editingText} artifact={pdf.artifact} previous={pdf.previous} loading={pdf.loading} error={pdf.error} disabled={analyzing || revisionBusy || leaving || revisionConflict || diagnosis.loading} request={editRequest} onChange={updateText} onRetry={pdf.retry} onLoadOriginal={onLoadOriginal} />
+              </div>
+            </div>
+          </> : <>
             <div className="flex min-h-16 flex-none flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-6">
               <div className="flex items-center gap-3">
                 <button type="button" className="grid size-8 place-items-center text-text-secondary hover:bg-surface-hover min-[900px]:hidden" aria-label="打开文档目录" onClick={() => setSidebarOpen(true)}><Menu size={16} /></button>
@@ -357,7 +376,7 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
       </footer>
 
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} envConfigured={envConfigured} clientConfigured={clientConfigured} onClientChanged={onClientChanged} />
-      {revisionDraft && <ResumeRevisionPreview open={previewOpen} baseText={revisionDraft.baseText} text={revisionDraft.text} onClose={() => setPreviewOpen(false)} />}
+      {revisionDraft && <ResumeRevisionPreview open={previewOpen} baseText={revisionDraft.baseText} text={revisionDraft.text} artifact={pdf.artifact} error={pdf.error} onClose={() => setPreviewOpen(false)} />}
       {lastDeleted && <div className="fixed bottom-16 left-1/2 z-50 flex max-w-[calc(100%-32px)] -translate-x-1/2 items-center gap-3 border border-line-strong bg-white px-4 py-2.5">
         <span className="truncate text-[12px] text-text-secondary">已删除：{lastDeleted.candidate.content.slice(0, 24)}</span>
         <button type="button" disabled={workflowBlocked} onClick={undoDelete} className="text-[12px] text-brand disabled:opacity-40">撤销</button>

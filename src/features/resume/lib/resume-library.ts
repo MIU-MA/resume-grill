@@ -104,7 +104,7 @@ export async function deleteResumeDocument(id: string): Promise<void> {
   await update<string | null>(CURRENT_KEY, current => current === id ? null : current ?? null)
 }
 
-export async function listResumeAttachments(): Promise<Array<{ id: string; name: string; file: File; updatedAt: number; current: boolean }>> {
+export async function listResumeAttachments(): Promise<Array<{ id: string; name: string; file: File; updatedAt: number; current: boolean; revisionOf?: string }>> {
   const [documents, currentId] = await Promise.all([listResumeDocuments(), get<string>(CURRENT_KEY)])
   const currentDocument = documents.find(document => document.id === currentId)
   const seenVersions = new Set<string>()
@@ -121,5 +121,6 @@ export async function listResumeAttachments(): Promise<Array<{ id: string; name:
     id: document.id, name: document.originalFile.name, file: document.originalFile,
     updatedAt: document.originalFileUpdatedAt ?? document.updatedAt,
     current: document.id === currentId || (document.id === currentDocument?.jobContext?.resumeDocumentId && document.originalFileUpdatedAt === currentDocument.jobContext.resumeUpdatedAt),
+    ...(document.revisionOf ? { revisionOf: document.revisionOf } : {}),
   }] : [])
 }

@@ -16,9 +16,10 @@ type Props = {
   onConfigure: () => void
   revisionPending?: boolean
   renderIssueEditor?: (evidence: string) => ReactNode
+  onIssueSelect?: (evidence: string) => void
 }
 
-export function ResumeDiagnosisStep({ diagnosis, configured, demo, analyzing, jobDescription, onJobDescriptionChange, onConfigure, revisionPending = false, renderIssueEditor }: Props) {
+export function ResumeDiagnosisStep({ diagnosis, configured, demo, analyzing, jobDescription, onJobDescriptionChange, onConfigure, revisionPending = false, renderIssueEditor, onIssueSelect }: Props) {
   const [jobOpen, setJobOpen] = useState(false)
   const actions = <>
     <Button className="h-8 px-2.5 text-[12px]" variant="ghost" disabled={analyzing || revisionPending} aria-expanded={jobOpen} onClick={() => setJobOpen(!jobOpen)}>岗位描述{jobDescription.trim() ? ' · 已填写' : ''}</Button>
@@ -45,7 +46,7 @@ export function ResumeDiagnosisStep({ diagnosis, configured, demo, analyzing, jo
     <section className="flex h-full min-h-0 flex-col" aria-label="简历检查">
       <DiagnosisToolbar diagnosis={diagnosis.report ?? undefined} actions={actions} />
       {notice}
-      {diagnosis.report ? <div className="min-h-0 flex-1"><ResumeDiagnosisReport diagnosis={diagnosis.report} showToolbar={false} renderIssueEditor={renderIssueEditor} /></div>
+      {diagnosis.report ? <div className="min-h-0 flex-1"><ResumeDiagnosisReport diagnosis={diagnosis.report} showToolbar={false} renderIssueEditor={renderIssueEditor} onIssueSelect={onIssueSelect} /></div>
         : !diagnosis.loading && <div className="min-h-0 flex-1 overflow-y-auto px-6 py-10 text-[14px] leading-relaxed text-text-tertiary">
           {diagnosis.stale ? '旧结果已收起。' : configured || demo ? '暂无检查结果。点击「开始检查」。' : '简历已导入，练习内容已自动提取。配置模型后即可检查简历和练习面试。'}
         </div>}

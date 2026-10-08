@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react'
 import { deleteResumeDocument, importResumeDocument, listResumeDocuments, loadResumeDocument, resumeDocumentForRecord, saveResumeRevisionDraft, setCurrentResumeDocument, updateResumeDocument, type ResumeDocument, type ResumeRevisionDraft } from '@/features/resume/lib/resume-library'
 import { createResumeRevision, downloadResumeFile } from '@/features/resume/lib/resume-revision'
+import type { ResumePdfArtifact } from '@/features/resume/lib/resume-pdf'
 import type { ResumeAnalysis } from '@/domain/resume-schema'
 import type { AnalysisGoal, ReviewedCandidate } from '@/domain/analysis-config'
 import { reviewedCandidatesKey } from '@/domain/analysis-config'
@@ -114,10 +115,10 @@ export function useResumeAnalysis(
     ws.setPendingExtracted(current => current?.documentId === id ? { ...current, revisionDraft: draft ?? undefined } : current)
   }, [ws])
 
-  const saveRevision = useCallback(async (text: string) => {
+  const saveRevision = useCallback(async (text: string, preview?: ResumePdfArtifact) => {
     const pending = ws.pendingExtracted
     if (!pending?.documentId) throw new Error('原简历未保存，请先重新导入。')
-    const document = await createResumeRevision(pending.documentId, text, pending.initialReview?.rawText ?? pending.extracted.text)
+    const document = await createResumeRevision(pending.documentId, text, pending.initialReview?.rawText ?? pending.extracted.text, preview)
     openResumeDocument(document, false)
     try { downloadResumeFile(document.originalFile!) } catch { ws.setError('新稿已保存，可点击“下载简历”重试下载。') }
   }, [ws, openResumeDocument])
@@ -127,6 +128,11 @@ export function useResumeAnalysis(
     const document = id ? await loadResumeDocument(id) : undefined
     if (!document?.originalFile) throw new Error('这份简历没有可下载的附件，请修改后保存为新稿。')
     downloadResumeFile(document.originalFile)
+  }, [ws.pendingExtracted?.documentId])
+
+  const loadResumeFile = useCallback(async () => {
+    const id = ws.pendingExtracted?.documentId
+    return id ? (await loadResumeDocument(id))?.originalFile : undefined
   }, [ws.pendingExtracted?.documentId])
 
   const editActiveResume = useCallback(async () => {
@@ -334,6 +340,7 @@ export function useResumeAnalysis(
     saveRevisionDraft,
     saveRevision,
     downloadResume,
+    loadResumeFile,
     editActiveResume,
     handleConfirmText,
     replaceResume,

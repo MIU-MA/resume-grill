@@ -76,7 +76,7 @@ afterEach(() => { vi.unstubAllGlobals() })
 
 describe('useResumeAnalysis resume revisions', () => {
   it('opens the saved new document and downloads its file without requesting analysis', async () => {
-    const file = new File(['new docx'], '简历-修改稿.docx')
+    const file = new File(['new pdf'], '简历-修改稿.pdf', { type: 'application/pdf' })
     const next = document({ id: 'resume-document:revision:new', revisionId: 'resume-document:revision:new', originalFile: file })
     revision.createResumeRevision.mockResolvedValueOnce(next)
     const ws = workspace()
@@ -84,7 +84,7 @@ describe('useResumeAnalysis resume revisions', () => {
 
     await useResumeAnalysis(ws, nav).saveRevision('修改后的正文')
 
-    expect(revision.createResumeRevision).toHaveBeenCalledWith(document().id, '修改后的正文', submission.rawText)
+    expect(revision.createResumeRevision).toHaveBeenCalledWith(document().id, '修改后的正文', submission.rawText, undefined)
     expect(ws.setPendingExtracted).toHaveBeenCalledWith(expect.objectContaining({ documentId: next.id, revisionId: next.id, autoDiagnose: false, hasAttachment: true }))
     expect(ws.setRecordId).toHaveBeenCalledWith(null)
     expect(revision.downloadResumeFile).toHaveBeenCalledWith(file)

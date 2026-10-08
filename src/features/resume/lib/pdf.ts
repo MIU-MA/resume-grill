@@ -1,7 +1,6 @@
 'use client'
 
-const WORKER_SRC = (version: string) =>
-  `https://cdn.jsdelivr.net/npm/pdfjs-dist@${version}/build/pdf.worker.min.mjs`
+import { getPdfJs } from './pdfjs'
 
 export type ExtractedText = {
   text: string
@@ -30,8 +29,7 @@ export async function extractTextFromFile(file: File): Promise<ExtractedText> {
 }
 
 async function extractPdf(file: File): Promise<ExtractedText> {
-  const pdfjsLib = await import('pdfjs-dist')
-  pdfjsLib.GlobalWorkerOptions.workerSrc = WORKER_SRC(pdfjsLib.version)
+  const pdfjsLib = await getPdfJs()
   const buffer = await file.arrayBuffer()
   const doc = await pdfjsLib.getDocument({ data: buffer }).promise
   const parts: string[] = []

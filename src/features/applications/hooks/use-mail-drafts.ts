@@ -6,6 +6,7 @@ import { listResumeAttachments } from '@/features/resume/lib/resume-library'
 import { applyMailDefaults, initialMailDefaults, restoreMailDefaults, type MailDefaults } from '../mail-defaults'
 import { validResumeAttachment, type Draft, type SavedJobPreparation, type WebsiteApplication } from '../draft-state'
 import { createDraftWriter, loadMailDrafts, type AttachmentSource, type LibraryAttachment } from '../mail-draft-storage'
+import { draftResumeAttachment } from '../mail-attachment'
 
 const VIEW_KEY = 'mail-workbench:view'
 
@@ -51,13 +52,9 @@ export function useMailDrafts(setError: Dispatch<SetStateAction<string>>, sender
         setDefaults(restoreMailDefaults(saved.defaults))
         setSelectedDraftIds(saved.selectedIds ?? saved.drafts.map(draft => draft.id))
       }
-      if (saved?.attachment) {
-        if (validResumeAttachment(saved.attachment)) { setAttachment(saved.attachment); setAttachmentSource(saved.attachmentSource) }
-        else setError('原先选择的附件无法读取，请重新选择简历原文件。')
-      } else {
-        const current = library.find(item => item.current)
-        if (current) { setAttachment(current.file); setAttachmentSource({ id: current.id, updatedAt: current.updatedAt }) }
-      }
+      const selectedAttachment = draftResumeAttachment(saved, library)
+      if (selectedAttachment) { setAttachment(selectedAttachment.file); setAttachmentSource(selectedAttachment.source) }
+      else if (saved?.attachment) setError('原先选择的附件无法读取，请重新选择简历原文件。')
       setHydrated(true)
     })
     return () => { active = false }

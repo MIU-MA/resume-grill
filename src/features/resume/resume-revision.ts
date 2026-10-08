@@ -32,6 +32,21 @@ type Span = { start: number; end: number; nextStart: number; nextEnd: number; eq
 export function mapRevisionTarget(base: string, text: string, target: Pick<RevisionTarget, 'start' | 'end'>): { start: number; end: number } | null {
   if (target.start < 0 || target.end > base.length || target.end <= target.start) return null
   if (base === text) return { start: target.start, end: target.end }
+  const spans = alignRevisionLines(base, text)
+  const boundary = (offset: number, side: 'start' | 'end') => {
+    const span = spans.find((item) => side === 'start' ? item.start <= offset && offset < item.end : item.start < offset && offset <= item.end)
+    if (!span) return null
+    if (span.equal) return span.nextStart + offset - span.start
+    if (offset === span.start) return span.nextStart
+    if (offset === span.end) return span.nextEnd
+    return null
+  }
+  const start = boundary(target.start, 'start')
+  const end = boundary(target.end, 'end')
+  return start === null || end === null || start > end ? null : { start, end }
+}
+
+function alignRevisionLines(base: string, text: string): Span[] {
   const oldLines = base.match(/[^\n]*\n|[^\n]+$/g) ?? []
   const newLines = text.match(/[^\n]*\n|[^\n]+$/g) ?? []
   let prefix = 0
@@ -70,17 +85,19 @@ export function mapRevisionTarget(base: string, text: string, target: Pick<Revis
     }
   }
   append(oldLines.slice(oldLines.length - suffix).join(''), newLines.slice(newLines.length - suffix).join(''), true)
-  const boundary = (offset: number, side: 'start' | 'end') => {
-    const span = spans.find((item) => side === 'start' ? item.start <= offset && offset < item.end : item.start < offset && offset <= item.end)
-    if (!span) return null
-    if (span.equal) return span.nextStart + offset - span.start
-    if (offset === span.start) return span.nextStart
-    if (offset === span.end) return span.nextEnd
-    return null
-  }
-  const start = boundary(target.start, 'start')
-  const end = boundary(target.end, 'end')
-  return start === null || end === null || start > end ? null : { start, end }
+  return spans
+}
+
+export function changedRevisionRanges(base: string, text: string): Array<{ start: number; end: number }> {
+  if (base === text) return []
+  return alignRevisionLines(base, text).filter(span => !span.equal && span.nextEnd > span.nextStart)
+    .map(span => ({ start: span.nextStart, end: span.nextEnd }))
+}
+
+/** A paragraph edit must not accidentally remove the separator before its next paragraph. */
+export function editableRevisionRange(text: string, range: { start: number; end: number }) {
+  const ending = /\r?\n$/.exec(text.slice(range.start, range.end))
+  return { start: range.start, end: range.end - (ending?.[0].length ?? 0) }
 }
 
 export function replaceRevisionTarget(text: string, range: { start: number; end: number }, replacement: string) {

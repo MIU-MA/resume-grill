@@ -30,3 +30,4 @@ next-env.d.ts
 *.sw?
 .claude/
 .mail-agent/
+public/generated/

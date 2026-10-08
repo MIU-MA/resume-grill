@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import mammoth from 'mammoth'
+import { readFileSync } from 'node:fs'
+import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
+import { createResumePdf } from './resume-pdf'
+
+const fontBytes = new Uint8Array(readFileSync(new URL('../../../../public/fonts/NotoSansSC-Regular.ttf', import.meta.url)))
 import type { ResumeReviewSubmission } from '@/domain/resume-review'
 import type { JobContext } from '@/domain/job-context'
 import type { SavedRecord } from '../../../lib/storage'
@@ -75,15 +79,22 @@ async function sourceDocument(): Promise<ResumeDocument> {
 }
 
 async function fileText(file: File): Promise<string> {
-  const result = await mammoth.extractRawText({ buffer: Buffer.from(await file.arrayBuffer()) })
-  expect(result.messages).toEqual([])
-  return result.value.slice(0, -2).split('\n\n').join('\n')
+  const task = getDocument({ data: new Uint8Array(await file.arrayBuffer()) })
+  const document = await task.promise
+  const parts: string[] = []
+  for (let number = 1; number <= document.numPages; number++) {
+    const content = await (await document.getPage(number)).getTextContent()
+    parts.push(...content.items.flatMap(item => 'str' in item ? [item.str] : []))
+  }
+  await task.destroy()
+  return parts.join('').replace(/\s/g, '')
 }
 
 beforeEach(() => {
   database.values.clear()
   vi.clearAllMocks()
   vi.restoreAllMocks()
+  vi.stubGlobal('fetch', vi.fn(async () => new Response(Uint8Array.from(fontBytes).buffer)))
 })
 
 describe('resume revision drafts', () => {
@@ -119,7 +130,7 @@ describe('resume revision drafts', () => {
 })
 
 describe('createResumeRevision', () => {
-  it('saves a real new DOCX with matching text and fresh candidates while retaining the old review and practice', async () => {
+  it('saves a real new PDF with matching text and fresh candidates while retaining the old review and practice', async () => {
     const source = await sourceDocument()
     const oldRecord = structuredClone(database.values.get(source.recordId!))
     await saveResumeRevisionDraft(source.id, { baseText: originalText, text: revisedText })
@@ -135,8 +146,8 @@ describe('createResumeRevision', () => {
     expect(revision.review).toMatchObject({ rawText: revisedText, jobDescription: review.jobDescription, analysisGoal: 'skills' })
     expect(revision.review?.reviewedCandidates).toEqual([{ content: revisedText.split('\n')[2], sourceSection: '项目经历', lineNumber: 3 }])
     expect(revision.originalFile).toBeInstanceOf(File)
-    expect(revision.originalFile?.name).toBe('张三-修改稿.docx')
-    expect(await fileText(revision.originalFile!)).toBe(revision.extracted.text)
+    expect(revision.originalFile?.name).toBe('张三-修改稿.pdf')
+    expect(await fileText(revision.originalFile!)).toBe(revision.extracted.text.replace(/\s/g, ''))
     expect(revision.extracted.text).toBe(revision.review?.rawText)
     expect(revision.extracted.charCount).toBe(revisedText.length)
     expect(await loadResumeDocument(revision.id)).toEqual(revision)
@@ -149,6 +160,23 @@ describe('createResumeRevision', () => {
     expect(database.values.get('current-resume-document')).toBe(source.id)
   })
 
+  it('保存当前预览的同一个 PDF 文件，避免重新生成不同附件', async () => {
+    const source = await sourceDocument()
+    const preview = await createResumePdf(revisedText, source.sourceFile, fontBytes)
+    const revision = await createResumeRevision(source.id, revisedText, originalText, preview)
+    expect(revision.originalFile).toBe(preview.file)
+    expect(revision.extracted.pageCount).toBe(preview.pageCount)
+  })
+
+  it('旧预览不能覆盖更新的正文，保存时重新生成对应的新 PDF', async () => {
+    const source = await sourceDocument()
+    const preview = await createResumePdf(revisedText, source.sourceFile, fontBytes)
+    const newerText = `${revisedText}\n技术技能\nTypeScript、React`
+    const revision = await createResumeRevision(source.id, newerText, originalText, preview)
+    expect(revision.originalFile).not.toBe(preview.file)
+    expect(await fileText(revision.originalFile!)).toBe(newerText.replace(/\s/g, ''))
+  })
+
   it('normalizes the persisted text and the exported attachment identically', async () => {
     const source = await sourceDocument()
     const input = '\n张三\r\n项目经历\r负责开发订单页面\u2028\u0000  使用 React & TypeScript <组件>\n'
@@ -156,7 +184,7 @@ describe('createResumeRevision', () => {
     const expected = '张三\n项目经历\n负责开发订单页面\n  使用 React & TypeScript <组件>'
     expect(revision.extracted.text).toBe(expected)
     expect(revision.review?.rawText).toBe(expected)
-    expect(await fileText(revision.originalFile!)).toBe(expected)
+    expect(await fileText(revision.originalFile!)).toBe(expected.replace(/\s/g, ''))
   })
 
   it('assigns each saved revision its own practice identity even when the new text is identical', async () => {

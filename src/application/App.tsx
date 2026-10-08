@@ -171,13 +171,14 @@ function App() {
           onSaveReview={analysis.saveReview}
           initialRevisionDraft={workspace.pendingExtracted.revisionDraft}
           onSaveRevisionDraft={analysis.saveRevisionDraft}
-          onSaveRevision={async text => {
+          onSaveRevision={async (text, preview) => {
             if (interview.loading || interview.regeneratingId) throw new Error('当前回答还在处理中，完成后可保存新稿。')
-            await analysis.saveRevision(text)
+            await analysis.saveRevision(text, preview)
             interview.reset()
             restoredRef.current = false
           }}
           onDownloadResume={workspace.pendingExtracted.hasAttachment ? analysis.downloadResume : undefined}
+          onLoadOriginal={workspace.pendingExtracted.hasAttachment ? analysis.loadResumeFile : undefined}
           onApplications={() => push('workspace', 'applications')}
           onBack={analysis.replaceResume}
         />
