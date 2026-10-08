@@ -1,12 +1,13 @@
 # ── 依赖安装阶段 ────────────────────────────────────────────────
-FROM node:20-alpine AS deps
+FROM node:24-alpine AS deps
 WORKDIR /app
 # 先只复制依赖清单，利用 Docker 层缓存
 COPY package.json package-lock.json ./
+COPY scripts/copy-pdf-worker.mjs ./scripts/copy-pdf-worker.mjs
 RUN npm ci
 
 # ── 构建阶段 ────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -15,7 +16,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # ── 运行阶段 ────────────────────────────────────────────────────
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production

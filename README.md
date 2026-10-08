@@ -57,7 +57,7 @@
 
 ## 快速开始
 
-使用 **Node.js 22.13 或更新版本，建议 Node.js 24**。在项目目录运行：
+使用 **Node.js 22.13 或更新版本，建议 Node.js 24**。`.nvmrc`、CI 与容器统一使用 Node.js 24；使用 nvm 时可先运行 `nvm install 24` 和 `nvm use 24`。Node.js 20 不支持当前 PDF 阅读器的渲染 API。在项目目录运行：
 
 ```bash
 npm ci
@@ -184,7 +184,7 @@ npm run build
 npm start
 ```
 
-仓库也包含 [Dockerfile](Dockerfile) 和 [Compose 配置](docker-compose.yml)。当前 Dockerfile 的基础镜像仍为 Node.js 20，与上述运行版本要求不一致；使用容器前需先更新基础镜像并验证构建。容器只运行网页，不包含用户本机的邮箱执行器。
+仓库也包含 [Dockerfile](Dockerfile) 和 [Compose 配置](docker-compose.yml)，基础镜像使用 Node.js 24。容器只运行网页，不包含用户本机的邮箱执行器。
 
 若准备上线供用户自行填写模型 Key，建议不在服务器预置可供所有请求回退使用的 Key。当前没有用户账户和独立额度管理，只有简单的进程内 IP 限流；公开服务仍需完善访问控制和密钥处理。
 

@@ -30,7 +30,7 @@ body:
     id: environment
     attributes:
       label: 环境
-      placeholder: "Windows 11 / Node 20 / Chrome 版本"
+      placeholder: "Windows 11 / Node 24 / Chrome 版本"
   - type: dropdown
     id: model-mode
     attributes:

@@ -5,6 +5,9 @@
   "description": "提前模拟对简历逐句追问，找出表述不清的经历细节。",
   "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "scripts": {
     "postinstall": "node scripts/copy-pdf-worker.mjs",
     "predev": "node scripts/copy-pdf-worker.mjs",

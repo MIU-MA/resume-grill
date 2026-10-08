@@ -25,9 +25,20 @@ async function inspect(file: File) {
 
 describe('可投递 PDF', () => {
   it('实际渲染时每个中文、英文字母和数字都有可见字形', async () => {
+    expect(
+      typeof ArrayBuffer.prototype.transferToFixedLength,
+      'PDF 渲染测试需要 Node.js 22.13 以上，请使用 .nvmrc 指定的 Node.js 24',
+    ).toBe('function')
     const text = '林沐\nABCdef0123\n订单优化'
     const pdf = await createResumePdf(text, '简历.pdf', font)
-    const task = getDocument({ data: new Uint8Array(await pdf.file.arrayBuffer()), disableFontFace: true })
+    // Draw embedded glyph paths without system-font fallback, and request
+    // strict parsing so malformed files cannot pass as a blank preview.
+    const task = getDocument({
+      data: new Uint8Array(await pdf.file.arrayBuffer()),
+      disableFontFace: true,
+      useSystemFonts: false,
+      stopAtErrors: true,
+    })
     try {
       const document = await task.promise
       const page = await document.getPage(1)
@@ -45,7 +56,7 @@ describe('可投递 PDF', () => {
           const pixels = context.getImageData(Math.floor(x * scale), Math.floor(block.top * scale), Math.ceil(width * scale), Math.ceil(block.height * scale)).data
           let darkPixels = 0
           for (let index = 0; index < pixels.length; index += 4) {
-            if (pixels[index] < 180 && pixels[index + 1] < 180 && pixels[index + 2] < 180) darkPixels++
+            if (pixels[index + 3] > 0 && pixels[index] < 180 && pixels[index + 1] < 180 && pixels[index + 2] < 180) darkPixels++
           }
           expect(darkPixels, `字形 ${character} 不应为空白`).toBeGreaterThan(3)
           x += width
