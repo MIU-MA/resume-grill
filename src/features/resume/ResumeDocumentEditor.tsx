@@ -50,7 +50,7 @@ export function ResumeDocumentEditor({ baseText, text, artifact, previous, loadi
     })
     setView('draft')
     setMatches(targets.length > 1 ? targets : [])
-    setNotice(targets.length ? '' : '这处引用没有匹配到完整段落，请直接点击 PDF 中需要修改的位置。')
+    setNotice(targets.length ? '' : '没找到对应段落，可以直接点击预览中的文字修改。')
     setSelection(targets.length === 1 ? { start: targets[0].start, end: targets[0].end, snapshot: current, original: targets[0].text } : null)
   }, [request, baseText])
   useEffect(() => { if (selectedStart !== undefined) editor.current?.focus({ preventScroll: true }) }, [selectedStart])
@@ -89,11 +89,11 @@ export function ResumeDocumentEditor({ baseText, text, artifact, previous, loadi
       {view === 'draft' && <span role="status" className="flex items-center gap-1 text-[11px] text-text-tertiary">{loading ? <><Loader2 size={12} className="animate-spin" />更新中</> : artifact ? `${artifact.pageCount} 页` : ''}</span>}
     </header>
     {view === 'draft' && <>
-      <p className="m-0 flex-none border-b border-line px-4 py-2 text-[11px] leading-relaxed text-text-secondary">点击段落修改；PDF 会随修改更新。新稿采用单列排版，原文件保留。</p>
+      <p className="m-0 flex-none border-b border-line px-4 py-2 text-[11px] leading-relaxed text-text-secondary">点击段落就能改。新稿按单列排版，原文件仍保留。</p>
       {notice && <p role="status" className="m-0 px-4 py-2 text-[12px] text-text-secondary">{notice}</p>}
       {matches.length > 0 && <div className="max-h-40 flex-none overflow-y-auto border-b border-line p-3 text-[12px]"><p className="mt-0">有多处相同原文，请选择：</p>{matches.map(target => <button key={target.start} type="button" disabled={disabled} className="mb-2 block w-full border border-line bg-surface p-2 text-left" onClick={() => select(target)}>第 {target.line} 行 · {target.text}</button>)}</div>}
       {active && <div className="flex-none border-b border-line bg-surface p-3">
-        <div className="mb-2 flex items-center justify-between"><span className="text-[12px] font-medium">修改选中段落</span><Button variant="ghost" className="h-7 px-2 text-[12px]" onClick={() => setSelection(null)}><Check size={12} />完成</Button></div>
+        <div className="mb-2 flex items-center justify-between"><span className="text-[12px] font-medium">修改这段</span><Button variant="ghost" className="h-7 px-2 text-[12px]" onClick={() => setSelection(null)}><Check size={12} />完成</Button></div>
         <textarea ref={editor} aria-label="修改选中段落" disabled={disabled} value={text.slice(active.start, active.end)} onChange={event => change(event.target.value)} className="block max-h-52 min-h-24 w-full resize-y border border-line-strong bg-white p-3 text-[13px] leading-relaxed focus:border-brand focus:outline-brand" />
         <button type="button" disabled={disabled || text.slice(active.start, active.end) === active.original} className="mt-2 flex items-center gap-1 text-[11px] text-text-secondary disabled:opacity-40" onClick={() => change(active.original)}><RotateCcw size={12} />撤销本次修改</button>
       </div>}

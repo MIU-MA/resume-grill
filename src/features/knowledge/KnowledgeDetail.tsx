@@ -42,7 +42,7 @@ export function KnowledgeDetail({
   if (editing) {
     return (
       <div className="space-y-3 p-5">
-        <div className="text-[13px] font-bold">编辑知识点</div>
+        <div className="text-[13px] font-bold">编辑笔记</div>
         <input
           autoFocus
           value={draft.title}
@@ -106,7 +106,7 @@ export function KnowledgeDetail({
             {item.detail || item.note}
           </p>
         ) : (
-          <p className="text-[12px] text-text-tertiary">暂无正文内容。</p>
+          <p className="text-[12px] text-text-tertiary">还没有写笔记。</p>
         )}
       </div>
 

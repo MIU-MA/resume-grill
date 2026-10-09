@@ -31,7 +31,7 @@ export function ClaimDetail({ claim, priority, prepared, mastery, onReport, onTo
       </section>
       <div className="preparation-columns">
         <section className="preparation-points">
-          <header className="detail-section-heading"><h3>回答时需要讲清</h3><span>{claim.masteryPoints.length} 个要点</span></header>
+          <header className="detail-section-heading"><h3>回答要点</h3><span>{claim.masteryPoints.length} 个要点</span></header>
           <ol className="preparation-point-list">
             {claim.masteryPoints.map((point, index) => <li key={point.point}>
               <span className="point-number">{String(index + 1).padStart(2, '0')}</span>
@@ -41,7 +41,7 @@ export function ClaimDetail({ claim, priority, prepared, mastery, onReport, onTo
         </section>
         <aside className="preparation-notes">
           <h3>容易卡住的地方</h3>
-          {claim.trapPoints.length ? <ul>{claim.trapPoints.map(trap => <li key={trap}>{trap}</li>)}</ul> : <p>暂无补充提醒。</p>}
+          {claim.trapPoints.length ? <ul>{claim.trapPoints.map(trap => <li key={trap}>{trap}</li>)}</ul> : <p>暂无提醒。</p>}
         </aside>
       </div>
       {mastery !== null && <div className="preparation-last-result"><span className="workbench-eyebrow">上次练习</span><p><strong>{mastery}</strong><span> / 5</span></p>{progress && <p>已覆盖 {progress.covered} / {progress.total} 个要点</p>}<button onClick={onReport}>查看复盘 ↗</button></div>}

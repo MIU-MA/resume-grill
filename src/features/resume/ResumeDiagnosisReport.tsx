@@ -30,7 +30,7 @@ export function ResumeDiagnosisReport({ diagnosis, showToolbar = true, renderIss
           </details>
           <div className="flex items-baseline justify-between gap-3 border-b border-line px-5 py-5 sm:px-7">
             <h2 className="m-0 text-[18px] font-semibold">修改建议</h2>
-            <span className="text-[12px] text-text-tertiary">先看影响阅读的问题</span>
+            <span className="text-[12px] text-text-tertiary">按修改优先级排序</span>
           </div>
           {issues.map((issue, index) => {
             const expanded = selectedIndex === index
@@ -49,7 +49,7 @@ export function ResumeDiagnosisReport({ diagnosis, showToolbar = true, renderIss
                 <div className="mb-5">
                   <h3 className="mb-2 mt-0 text-[12px] font-medium text-text-tertiary">简历原文</h3>
                   {issue.evidence ? <blockquote className="m-0 whitespace-pre-wrap break-words border-l-2 border-line-strong bg-surface-soft px-4 py-3 text-[14px] leading-[1.8] text-text-secondary">{issue.evidence}</blockquote>
-                    : <p className="m-0 text-[13px] text-text-tertiary">这条建议针对章节或缺少的信息。</p>}
+                    : <p className="m-0 text-[13px] text-text-tertiary">这处需要补充内容，没有对应的原文。</p>}
                 </div>
                 <div className="diagnosis-issue-columns">
                   <section>
@@ -65,8 +65,8 @@ export function ResumeDiagnosisReport({ diagnosis, showToolbar = true, renderIss
               </div>}
             </section>
           })}
-          {issues.length === 0 && <p className="px-7 py-8 text-[14px] text-text-secondary">这次没有发现明显需要修改的地方。可以继续选择练习内容。</p>}
-          <p className="m-0 px-5 py-4 text-[12px] leading-relaxed text-text-tertiary sm:px-7">这里只检查导入的文字，原文件的排版请另外核对。</p>
+          {issues.length === 0 && <p className="px-7 py-8 text-[14px] text-text-secondary">这次没有发现明显问题。</p>}
+          <p className="m-0 px-5 py-4 text-[12px] leading-relaxed text-text-tertiary sm:px-7">检查针对文字内容，排版可在简历预览中查看。</p>
         </div>
         <aside className="diagnosis-summary border-l border-line bg-surface-soft p-6" aria-label="检查小结">
           <DiagnosisSummary diagnosis={diagnosis} />

@@ -71,7 +71,7 @@ export function InterviewComposer({
               value={answer}
               onChange={(event) => onAnswerChange(event.target.value)}
               disabled={loading}
-              placeholder="像真实面试一样回答：先直接回答，再讲项目里的做法和取舍…"
+              placeholder="写下你的回答，也可以用语音输入…"
               rows={2}
               onKeyDown={(event) => {
                 if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return
@@ -97,7 +97,7 @@ export function InterviewComposer({
                 onClick={() => setAnnotationOpen((open) => !open)}
                 aria-expanded={annotationOpen}
               >
-                <CircleHelp size={14} />记录不理解的术语或问题
+                <CircleHelp size={14} />这题哪里没懂？
               </button>
               {(annotationOpen || annotation) && (
                 <textarea
@@ -106,12 +106,12 @@ export function InterviewComposer({
                   onChange={(event) => onAnnotationChange(event.target.value)}
                   disabled={loading}
                   maxLength={500}
-                  placeholder="写下没理解的词或问题片段，例如：不清楚“幂等性”在这里指什么"
+                  placeholder="例如：这里的“幂等性”是什么意思？"
                 />
               )}
             </div>
             <div className="flex items-center justify-between gap-3 max-[640px]:items-end">
-              <span className="text-[12px] text-text-tertiary max-[640px]:hidden">Shift + Enter 换行 · 建议 80–300 字</span>
+              <span className="text-[12px] text-text-tertiary max-[640px]:hidden">Enter 发送 · Shift + Enter 换行</span>
               <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
                 {speech.supported && (
                   <Button

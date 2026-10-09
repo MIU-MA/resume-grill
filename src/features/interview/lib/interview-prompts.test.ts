@@ -47,7 +47,7 @@ describe('interview prompts', () => {
     expect(prompt).toContain('操作: 已掌握，跳过（未验证）')
   })
 
-  it('includes compressed conversation history so follow-ups build on it', () => {
+  it('includes conversation history so follow-ups build on it', () => {
     const rounds = [{
       action: 'answer' as const,
       question: '如何保证接口幂等？', questionIntent: 'test intent',
@@ -73,12 +73,13 @@ describe('interview prompts', () => {
     expect(prompt).toContain('仍缺失: (无)')
   })
 
-  it('truncates very long answers in history to bound token usage', () => {
-    const longAnswer = 'x'.repeat(1000)
+  it('preserves complete long answers and annotations for follow-up questions', () => {
+    const longAnswer = 'x'.repeat(1000) + '\n最终通过版本号处理并发更新。'
+    const annotation = '问题描述'.repeat(160) + '\n还不理解冲突后如何重试。'
     const rounds = [{
       action: 'answer' as const,
       question: 'Q1', questionIntent: '',
-      answer: longAnswer, annotation: '',
+      answer: longAnswer, annotation,
       evaluation: { score: 60, coveredPoints: [], missingPoints: [], answerSuggestion: '', evidenceQuotes: [] },
       nextReason: '追问',
     }]
@@ -90,8 +91,8 @@ describe('interview prompts', () => {
       [],
       [],
     )
-    expect(prompt).toContain('…（截断）')
-    // 400 字符上限 + 截断标识
-    expect(prompt).not.toContain('x'.repeat(500))
+    expect(prompt).toContain(`答: ${longAnswer}`)
+    expect(prompt).toContain(`不懂: ${annotation}`)
+    expect(prompt).not.toContain('…（截断）')
   })
 })

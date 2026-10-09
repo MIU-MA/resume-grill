@@ -71,24 +71,13 @@ function buildConversationHistory(rounds: InterviewRound[]): string[] {
   const lines: string[] = ['', '历史追问：', '']
   rounds.forEach((round, index) => {
     const q = round.question || '(无问题)'
-    const a = truncateAnswer(round.answer)
-    const ann = round.annotation ? `不懂: ${truncateAnswer(round.annotation)}` : ''
+    const a = round.answer.trim()
+    const ann = round.annotation ? `不懂: ${round.annotation.trim()}` : ''
     const covered = (round.evaluation?.coveredPoints ?? []).join('、') || '(无)'
     const missing = (round.evaluation?.missingPoints ?? []).join('、') || '(无)'
     lines.push(`第 ${index + 1} 轮`, `问: ${q}`, a ? `答: ${a}` : '', ann, `已验证: ${covered}`, `仍缺失: ${missing}`, '')
   })
   return lines
-}
-
-const MAX_HISTORY_TEXT = 400
-
-/** 截断超长回答，避免历史占用过多 token */
-function truncateAnswer(value: string): string {
-  if (!value) return ''
-  const normalized = value.replace(/\s+/g, ' ').trim()
-  return normalized.length > MAX_HISTORY_TEXT
-    ? `${normalized.slice(0, MAX_HISTORY_TEXT)}…（截断）`
-    : normalized
 }
 
 function actionLabel(action: InterviewAction): string {

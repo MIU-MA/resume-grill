@@ -63,10 +63,10 @@ export function InterviewStatusPanel({ selected, roundCount, covered, strictMode
               {roundCount === 0
                 ? '还没有开始回答。'
                 : covered.length === 0
-                ? '目前还没有讲清的要点。'
+                ? '这次回答还没涉及这些要点。'
                 : covered.length >= total
                 ? '列出的要点都已讲到，可以结束后查看复盘。'
-                : `已经聊到 ${covered.length}/${total} 个要点，其余内容还没讲清或尚未问到。`}
+                : `已聊到 ${covered.length}/${total} 个要点。`}
             </p>
           </div>
         </div>

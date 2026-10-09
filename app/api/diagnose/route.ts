@@ -67,7 +67,7 @@ export async function POST(request: Request) {
       buildDiagnosisUserPrompt(body.rawText, body.jobDescription),
       groundedDiagnosisSchema(body.rawText, body.jobDescription),
       config,
-      { signal, maxTokens: 8000 },
+      { signal },
     )
     return json({ ...result, issues: sortDiagnosisIssues(result.issues), source: 'model' })
   } catch {

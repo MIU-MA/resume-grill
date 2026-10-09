@@ -36,15 +36,15 @@ export function MailSettings({ agent, purpose = 'sender', rememberedSender, onVe
     finally { setBusy(false) }
   }
   return <dialog ref={dialog} onCancel={event => { if (busy) event.preventDefault(); else onClose() }} className="mail-dialog resume-workbench w-[620px] max-w-[calc(100vw-24px)] border border-line-strong bg-surface p-0 text-text-primary backdrop:bg-black/30">
-    <header className="flex items-center justify-between border-b border-line px-5 py-4"><h2 className="m-0 text-[16px] font-semibold">{purpose === 'agent' ? '连接本机执行器' : '发件邮箱'}</h2><Button variant="ghost" disabled={busy} onClick={onClose} aria-label="关闭设置" className="size-8 p-0"><X size={17} /></Button></header>
+    <header className="flex items-center justify-between border-b border-line px-5 py-4"><h2 className="m-0 text-[16px] font-semibold">{purpose === 'agent' ? '连接本机' : '发件邮箱'}</h2><Button variant="ghost" disabled={busy} onClick={onClose} aria-label="关闭设置" className="size-8 p-0"><X size={17} /></Button></header>
     <div className="space-y-5 p-5 text-[13px]">
       <details open={!agent.snapshot || purpose === 'agent'}>
-        <summary className="cursor-pointer text-[13px] font-semibold">{agent.snapshot ? '执行器已连接 · 管理连接' : '连接执行器'}</summary>
+        <summary className="cursor-pointer text-[13px] font-semibold">{agent.snapshot ? '本机已连接 · 查看设置' : '连接本机服务'}</summary>
         <p className="mb-3 text-text-secondary">在项目目录打开终端，运行下面的命令。{purpose === 'agent' ? '读取网页时保持终端开启，无需填写邮箱。' : '发送期间保持终端开启。'}</p>
         <code className="block border border-line bg-surface-soft px-3 py-2.5 select-all">npm run mail-agent</code>
-        <div className="mt-3 flex items-end gap-2"><label className="mail-label min-w-0 flex-1">终端中的连接码<input className="mail-input font-mono" type="password" autoComplete="off" value={connection} onChange={e => setConnection(e.target.value)} /></label><Button variant="secondary" loading={busy} disabled={!connection.trim()} onClick={() => void run(async () => { await agent.connect(connection); if (purpose === 'agent') onClose() })}>{agent.snapshot ? '重新连接' : '连接执行器'}</Button></div>
-        {agent.snapshot && <p className="mb-0 mt-2 text-success" role="status">已连接本机执行器</p>}
-        {agent.token && <button className="mt-2 text-[12px] text-text-tertiary underline" disabled={busy} onClick={() => { agent.forgetConnection(); setConnection('') }}>忘记此页面的连接码</button>}
+        <div className="mt-3 flex items-end gap-2"><label className="mail-label min-w-0 flex-1">终端中的连接码<input className="mail-input font-mono" type="password" autoComplete="off" value={connection} onChange={e => setConnection(e.target.value)} /></label><Button variant="secondary" loading={busy} disabled={!connection.trim()} onClick={() => void run(async () => { await agent.connect(connection); if (purpose === 'agent') onClose() })}>{agent.snapshot ? '重新连接' : '连接本机'}</Button></div>
+        {agent.snapshot && <p className="mb-0 mt-2 text-success" role="status">本机服务已连接</p>}
+        {agent.token && <button className="mt-2 text-[12px] text-text-tertiary underline" disabled={busy} onClick={() => { agent.forgetConnection(); setConnection('') }}>忘记连接码</button>}
       </details>
       {purpose === 'sender' && <section className="border-t border-line pt-4">
         <h3 className="mb-3 mt-0 text-[13px] font-semibold">设置发件邮箱</h3>
@@ -60,7 +60,7 @@ export function MailSettings({ agent, purpose = 'sender', rememberedSender, onVe
           <label className="mail-label">邮箱授权码<input type="password" autoComplete="off" className="mail-input" placeholder={credentials?.saved ? '更新授权码时填写' : '邮箱的客户端授权码'} value={password} onChange={e => setPassword(e.target.value)} /></label>
         </div>
         <p className="my-3 text-[12px] leading-relaxed text-text-tertiary">输入邮箱后自动识别类型。{provider === '163' ? '网易 163：在邮箱设置的 POP3/SMTP/IMAP 中开启 SMTP，填写客户端授权码。' : 'QQ 邮箱：先在邮箱设置中开启 SMTP，并生成授权码。'}</p>
-        {credentials?.supported ? <label className="mb-3 flex items-start gap-2 text-[12px] leading-relaxed"><input type="checkbox" className="mt-0.5" checked={remember} disabled={busy || credentials.restoring} onChange={event => setRemember(event.target.checked)} /><span>记住本机 · 使用当前 Windows 账户加密，重启后自动恢复。取消后验证连接，仅在此次运行使用。</span></label> : <p className="my-3 text-[12px] text-text-tertiary">{!agent.snapshot ? '连接执行器后可查看本机保存选项。' : '此执行器暂不支持加密记住授权码，当前连接只在此次运行有效。'}</p>}
+        {credentials?.supported ? <label className="mb-3 flex items-start gap-2 text-[12px] leading-relaxed"><input type="checkbox" className="mt-0.5" checked={remember} disabled={busy || credentials.restoring} onChange={event => setRemember(event.target.checked)} /><span>记住授权码，下次自动连接。授权码使用当前 Windows 账户加密；不勾选则只用于本次运行。</span></label> : <p className="my-3 text-[12px] text-text-tertiary">{!agent.snapshot ? '连接本机后可查看授权码保存选项。' : '当前设备无法加密保存授权码，重启后需要重新填写。'}</p>}
         {credentials?.restoring && <p role="status" className="text-[12px] text-text-secondary">正在恢复已保存的邮箱…</p>}
         {credentials?.error && <p role="alert" className="text-[12px] text-danger">{credentials.error}</p>}
         {agent.snapshot?.sender && <p role="status" className="text-[12px] text-success">已连接 {agent.snapshot.sender.address}{credentials?.saved ? ' · 已记住本机' : ''}</p>}

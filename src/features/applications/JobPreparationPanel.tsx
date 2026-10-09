@@ -32,8 +32,8 @@ export function JobPreparationPanel({ jobDescription, attachmentLabel, busy, onC
     <p className="mb-2 mt-2 break-words text-[11px] leading-relaxed text-text-tertiary">{attachmentLabel}</p>
     <details open={open} onToggle={event => setOpen(event.currentTarget.open)}>
       <summary className="cursor-pointer text-[12px] text-text-secondary">岗位要求 · {jobDescription.trim() ? '已填写，查看或修改' : '待补充'}</summary>
-      <label className="mail-label mt-3">职责与任职要求<textarea ref={input} name="jobDescription" className="mail-input min-h-[150px] resize-y leading-[1.8]" maxLength={12000} placeholder="粘贴该岗位的职责与任职要求，简历检查和面试准备会共用这份内容。" value={jobDescription} onChange={event => { onChange(event.target.value); setMissing(false) }} /></label>
-      {missing && <p role="alert" className="mb-0 mt-2 text-[12px] text-warning">先补充岗位要求，就可以针对这个岗位准备。</p>}
+      <label className="mail-label mt-3">职责与任职要求<textarea ref={input} name="jobDescription" className="mail-input min-h-[150px] resize-y leading-[1.8]" maxLength={12000} placeholder="粘贴招聘页里的职责和要求，检查简历、练面试时会用到。" value={jobDescription} onChange={event => { onChange(event.target.value); setMissing(false) }} /></label>
+      {missing && <p role="alert" className="mb-0 mt-2 text-[12px] text-warning">先粘贴岗位要求。</p>}
     </details>
   </section>
 }

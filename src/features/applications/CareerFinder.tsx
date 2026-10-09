@@ -42,7 +42,7 @@ export function CareerFinder({ connected, disabled, onConnect, discover, onChoos
       <label className="min-w-0 flex-1 text-[12px] text-text-secondary">公司官网或招聘页<input className="mail-input mt-1 w-full" type="url" placeholder="https://公司官网" value={url} disabled={busy || disabled} onChange={e => setUrl(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && url.trim() && !busy && !disabled) void search() }} /></label>
       <Button loading={busy} disabled={disabled || !url.trim()} onClick={() => void search()}>{connected ? '查找链接' : '连接后查找'}</Button>
     </div>
-    {busy && <p role="status" className="my-2 text-[12px] text-text-secondary">正在沿官网招聘入口查找，最多读取 6 个页面…</p>}
+    {busy && <p role="status" className="my-2 text-[12px] text-text-secondary">正在查找招聘页面…</p>}
     {error && <p role="alert" className="my-2 text-[12px] text-danger">{error}</p>}
     {result && <>
       <div className="my-2 flex flex-wrap items-center gap-3 text-[12px]"><span>读取 {result.pagesRead} 页 · 找到 {result.links.length} 个链接</span><input aria-label="筛选岗位链接" className="mail-input min-w-0 flex-1" placeholder="筛选岗位或关键词" value={filter} onChange={e => setFilter(e.target.value)} /><Button disabled={!selected.length || disabled} onClick={() => onChoose(selected)}>使用所选岗位（{selected.length}）</Button></div>
@@ -54,7 +54,7 @@ export function CareerFinder({ connected, disabled, onConnect, discover, onChoos
         </div>)}
         {!links.length && <p className="px-3 text-[12px] text-text-secondary">{result.links.length ? '没有匹配的链接。' : '暂无结果。'}</p>}
       </div>
-      <p className="my-2 text-[12px] text-text-secondary">岗位详情可整理为邮件草稿；在线申请请打开原站填写。无招聘邮箱的岗位需要补充地址才能发送。</p>
+      <p className="my-2 text-[12px] text-text-secondary">选择岗位后可添加到清单。官网申请直接打开页面；邮件投递需要招聘邮箱。</p>
       {result.notes.map(note => <p key={note} className="my-1 break-all text-[12px] text-text-tertiary">{note}</p>)}
     </>}
     </details>

@@ -10,7 +10,7 @@ export function ResumeTextEditor({ text, analyzing, onTextChange }: ResumeTextEd
       <div className="flex min-h-16 flex-none flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-6">
         <div className="flex flex-wrap items-baseline gap-3">
           <h2 className="m-0 text-[14px] font-semibold">简历全文</h2>
-          <span className="text-[12px] text-text-tertiary">核对文字、段落和章节顺序</span>
+          <span className="text-[12px] text-text-tertiary">可以直接修改或调整段落顺序</span>
         </div>
       </div>
       <div className="flex min-h-0 flex-1 flex-col bg-surface-soft p-4 sm:p-6">
@@ -22,7 +22,7 @@ export function ResumeTextEditor({ text, analyzing, onTextChange }: ResumeTextEd
           disabled={analyzing}
           placeholder="简历文本…"
         />
-        <p className="mx-auto mb-0 mt-3 w-full max-w-[1040px] text-[12px] leading-relaxed text-text-tertiary">修改会暂存在此浏览器，并同步到 PDF 预览；原简历保留。点击「保存 PDF 并下载」后，会按新稿重新提取练习内容；简历检查需手动重新运行。</p>
+        <p className="mx-auto mb-0 mt-3 w-full max-w-[1040px] text-[12px] leading-relaxed text-text-tertiary">修改会自动暂存，右侧预览同步更新。保存后可下载新稿，再重新检查。</p>
       </div>
     </section>
   )

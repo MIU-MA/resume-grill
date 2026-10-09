@@ -18,7 +18,7 @@ export function KnowledgeEditor({
 }: KnowledgeEditorProps) {
   return (
     <div className="space-y-2.5 rounded-lg bg-white p-4 shadow-card">
-      <div className="text-[13px] font-bold">添加知识点</div>
+      <div className="text-[13px] font-bold">添加笔记</div>
       <input
         autoFocus
         value={title}

@@ -109,7 +109,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
               <h1 id="saved-resumes-title" className="m-0 text-[24px] font-semibold tracking-tight">简历库</h1>
               <span className="text-[13px] text-text-tertiary">{entryCount} 份</span>
             </div>
-            <p className="mb-0 mt-2 text-[14px] leading-relaxed text-text-secondary">检查简历里的问题，练习面试时怎么回答。</p>
+            <p className="mb-0 mt-2 text-[14px] leading-relaxed text-text-secondary">改简历、练面试，也可以直接投递。</p>
           </div>
 
           <div className="border-y border-line">
@@ -119,13 +119,13 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
             {loadingRecords ? <p className="px-3 py-7 text-[13px] text-text-tertiary">正在读取本地记录…</p>
               : entryCount === 0 ? <div className="px-3 py-8">
                 <p className="m-0 text-[14px] font-medium">还没有保存的简历</p>
-                <p className="mb-0 mt-2 text-[13px] leading-relaxed text-text-tertiary">导入后自动保存在这里，可以检查、投递或练习面试。</p>
+                <p className="mb-0 mt-2 text-[13px] leading-relaxed text-text-tertiary">上传文件或粘贴文字，简历会自动保存在这里。</p>
               </div> : <ResumeLibraryList records={savedRecords} documents={savedDocuments} onOpenRecord={onOpenSaved} onOpenDocument={onOpenDocument} onDeleteRecord={onDeleteSaved} onDeleteDocument={onDeleteDocument} />}
 
           </div>
 
           <Link href="/applications" className="library-mail-link mt-6 flex items-center gap-4 border-y px-4 py-4">
-            <div className="min-w-0 flex-1"><strong className="text-[14px] font-medium">去投递简历</strong><p className="mb-0 mt-1 text-[12px] leading-relaxed text-text-secondary">粘贴官网招聘链接，批量整理邮件并发送。</p></div>
+            <div className="min-w-0 flex-1"><strong className="text-[14px] font-medium">投递简历</strong><p className="mb-0 mt-1 text-[12px] leading-relaxed text-text-secondary">找招聘官网、准备邮件、查看投递记录。</p></div>
             <ArrowRight size={17} className="shrink-0 text-text-secondary" />
           </Link>
         </section>
@@ -158,7 +158,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
           {parseError && <p role="alert" className="mt-3 text-[13px] leading-relaxed text-danger">解析失败：{parseError}<button type="button" className="ml-2 underline" onClick={() => setParseError(null)}>关闭</button></p>}
           {error && <p role="alert" className="mt-3 text-[13px] leading-relaxed text-danger">{error}</p>}
           <Button variant="ghost" className="mt-4 w-full text-[13px]" disabled={parsing || analyzing} onClick={async () => { setParsing(true); try { await onExtracted({ text: SAMPLE_RESUME, pageCount: 1, charCount: SAMPLE_RESUME.length }, '示例简历.txt', true) } finally { setParsing(false) } }}><FileText size={14} />试用示例简历</Button>
-          <p className="mb-0 mt-5 border-t border-line pt-4 text-[12px] leading-[1.8] text-text-tertiary">原文件和提取文字保存在当前浏览器。配置模型后，首次导入会自动检查简历，全文将经本站发送给所选模型服务商，可能产生调用费用。</p>
+          <p className="mb-0 mt-5 border-t border-line pt-4 text-[12px] leading-[1.8] text-text-tertiary">简历保存在此浏览器。设置模型后，导入时会自动检查；正文会发送给所选模型，费用按服务商规则计算。</p>
         </section>
       </div>
       </main>

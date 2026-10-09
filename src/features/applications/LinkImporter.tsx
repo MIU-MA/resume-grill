@@ -84,7 +84,7 @@ export function LinkImporter({ existingUrls, slots, connected, onConnect, read, 
     {pasteUrl && <PastedCareerForm key={pasteUrl} url={pasteUrl} disabled={busy || finding} onCancel={() => setPasteUrl(null)} onImported={page => {
       planCareerImports([page.url], existingUrls, slots)
       complete(pasteUrl, page)
-      setMessage('已从正文整理到清单，请核对识别结果。')
+      setMessage('已加入清单，请确认公司、岗位和邮箱。')
     }} />}
   </section>
 }

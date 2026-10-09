@@ -71,7 +71,7 @@ export async function POST(request: Request) {
       userPrompt,
       finalResultSchema,
       config,
-      { signal: withTimeout(SUMMARIZE_TIMEOUT), maxTokens: 10000 },
+      { signal: withTimeout(SUMMARIZE_TIMEOUT) },
     )
 
     return NextResponse.json({

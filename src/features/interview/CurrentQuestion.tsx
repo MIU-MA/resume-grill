@@ -34,7 +34,7 @@ export function CurrentQuestion({
     return (
       <div className="mb-6 rounded-lg border border-success/20 bg-success-soft px-5 py-4">
         <div className="mb-1 flex items-center gap-2 text-[14px] font-medium text-success">
-          <Check size={16} />本轮追问已完成
+          <Check size={16} />这轮练习结束了
         </div>
         <p className="text-[14px] text-text-secondary">
           聊到 {coveredCount}/{totalCount} 个要点 ({coveragePercent}%)

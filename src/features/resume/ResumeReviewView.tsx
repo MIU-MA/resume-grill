@@ -294,7 +294,7 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
 
       <div className="flex h-12 flex-none items-stretch gap-2 border-b border-line px-4 sm:px-6" role="tablist" aria-label="简历检查视图">
         <ReviewTab active={tab === 'diagnosis'} onClick={() => setTab('diagnosis')}>简历检查</ReviewTab>
-        <ReviewTab active={tab === 'structure'} onClick={() => setTab('structure')}>调整练习内容</ReviewTab>
+        <ReviewTab active={tab === 'structure'} onClick={() => setTab('structure')}>练习内容</ReviewTab>
         <ReviewTab active={tab === 'raw'} onClick={() => setTab('raw')}>修改全文</ReviewTab>
       </div>
 
@@ -330,7 +330,7 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
             <div className="flex min-h-16 flex-none flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-6">
               <div className="flex items-center gap-3">
                 <button type="button" className="grid size-8 place-items-center text-text-secondary hover:bg-surface-hover min-[900px]:hidden" aria-label="打开文档目录" onClick={() => setSidebarOpen(true)}><Menu size={16} /></button>
-                <strong className="text-[14px] font-semibold">调整练习内容</strong>
+                <strong className="text-[14px] font-semibold">练习内容</strong>
                 <span className="text-[12px] text-text-tertiary">{selectedCandidates.length} / {candidates.length} 条</span>
               </div>
               <div className="flex items-center gap-1">
@@ -365,7 +365,7 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
       <footer className="flex min-h-14 flex-none flex-wrap items-center justify-between gap-2 border-t border-line bg-surface-soft px-4 py-2.5 sm:px-6">
         <span className="flex flex-col gap-1 text-[12px] text-text-tertiary" role="status">
           <span className={saveState === 'error' ? 'text-danger' : ''}>{saveState === 'saving' ? '正在保存到本地…' : saveState === 'saved' ? '已保存到此浏览器' : '本地保存失败，请导出检查结果备份。'}</span>
-          {revisionPending ? '请先保存新稿或放弃修改，再重新检查或进入练习。' : selectedCandidates.length > 0 ? `已选 ${selectedCandidates.length} 条经历与技能，可直接进入练习` : '未选择练习内容，请在调整页选择或补充原文'}
+          {revisionPending ? '保存新稿后可以重新检查或练习。' : selectedCandidates.length > 0 ? `已选 ${selectedCandidates.length} 条练习内容` : '到「练习内容」中选几条经历。'}
         </span>
         <div className="flex items-center gap-2">
           <Button variant="primary" className="h-9 whitespace-nowrap px-4 text-[13px]" disabled={workflowBlocked || selectedCandidates.length === 0} onClick={submit}>

@@ -137,7 +137,7 @@ export function KnowledgeView({
         <div>
           <h2 className="m-0 text-[18px] font-bold tracking-[-0.025em]">复习笔记</h2>
           <p className="mt-1.5 text-[13px] text-text-tertiary leading-relaxed">
-            模拟面试时记下的「没听懂」会自动放到这里，也可以手动添加。
+            面试里没懂的问题会记在这里，也可以自己添加笔记。
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px]">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-warning-soft px-2.5 py-1 font-semibold text-warning">
@@ -152,7 +152,7 @@ export function KnowledgeView({
           </div>
         </div>
         <Button variant="primary" onClick={startAdd} className="max-[620px]:w-full">
-          <Plus size={15} />添加知识点
+          <Plus size={15} />添加笔记
         </Button>
       </div>
 

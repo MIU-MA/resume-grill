@@ -40,7 +40,7 @@ export function ClaimAuditView({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex-none border-b border-line px-5 py-3 text-[12px] text-text-secondary">选择一项内容即可开始练习，回答要点可按需查看。共 {analysis.claims.length} 项。</div>
+      <div className="flex-none border-b border-line px-5 py-3 text-[12px] text-text-secondary">选一段经历开始练习。共 {analysis.claims.length} 项。</div>
       {error && (
         <div role="alert" className="mx-4 mt-3 bg-danger-soft px-4 py-2 text-[13px] text-danger">
           {error}

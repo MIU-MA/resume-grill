@@ -37,9 +37,9 @@ export function ResumeDiagnosisStep({ diagnosis, configured, demo, analyzing, jo
       目标岗位描述（可选）
       <textarea className="mt-2 block h-24 w-full resize-none border border-line-strong bg-white p-3 text-[13px] leading-relaxed focus:border-brand focus:outline-brand" value={jobDescription} maxLength={12000} disabled={analyzing || revisionPending} onChange={(event) => onJobDescriptionChange(event.target.value)} placeholder="粘贴岗位要求，填写后重新检查。" />
     </label>}
-    {diagnosis.loading && <div role="status" className="flex flex-none items-center gap-2 border-b border-line px-6 py-3 text-[12px] text-text-secondary"><Loader2 size={14} className="animate-spin" />正在检查简历。完成后可直接进入练习，也可以跳过这次检查。</div>}
+    {diagnosis.loading && <div role="status" className="flex flex-none items-center gap-2 border-b border-line px-6 py-3 text-[12px] text-text-secondary"><Loader2 size={14} className="animate-spin" />正在检查简历…</div>}
     {diagnosis.error && <p role="alert" className="m-0 flex-none border-b border-line px-6 py-3 text-[12px] leading-relaxed text-danger">{diagnosis.error}</p>}
-    {diagnosis.stale && !diagnosis.loading && <p role="status" className="m-0 flex-none border-b border-line px-6 py-3 text-[12px] text-text-secondary">文本已修改，重新检查后显示最新结果。</p>}
+    {diagnosis.stale && !diagnosis.loading && <p role="status" className="m-0 flex-none border-b border-line px-6 py-3 text-[12px] text-text-secondary">简历已修改，可以重新检查。</p>}
   </>
 
   return (
@@ -48,7 +48,7 @@ export function ResumeDiagnosisStep({ diagnosis, configured, demo, analyzing, jo
       {notice}
       {diagnosis.report ? <div className="min-h-0 flex-1"><ResumeDiagnosisReport diagnosis={diagnosis.report} showToolbar={false} renderIssueEditor={renderIssueEditor} onIssueSelect={onIssueSelect} /></div>
         : !diagnosis.loading && <div className="min-h-0 flex-1 overflow-y-auto px-6 py-10 text-[14px] leading-relaxed text-text-tertiary">
-          {diagnosis.stale ? '旧结果已收起。' : configured || demo ? '暂无检查结果。点击「开始检查」。' : '简历已导入，练习内容已自动提取。配置模型后即可检查简历和练习面试。'}
+          {diagnosis.stale ? '重新检查后，建议会显示在这里。' : configured || demo ? '点击「开始检查」，查看这份简历有哪些地方可以改。' : '先在模型设置里填好 Key，就能检查这份简历。'}
         </div>}
     </section>
   )

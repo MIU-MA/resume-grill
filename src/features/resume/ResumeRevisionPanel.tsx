@@ -13,7 +13,7 @@ export function ResumeRevisionToolbar({ text, conflict, saving, draftStatus, pdf
 }) {
   return <div className="flex-none border-b border-line bg-brand-soft px-4 py-2.5 sm:px-6">
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <span className="text-[12px] text-text-secondary" role="status">{conflict ? '暂存稿对应的原文已变化，请查看暂存内容后放弃此稿。' : draftStatus === 'error' ? '修改未能暂存，请保持页面打开后重试保存。' : draftStatus === 'saving' ? '正在暂存修改…' : '修改已暂存；检查结果基于修改前内容。'}</span>
+      <span className="text-[12px] text-text-secondary" role="status">{conflict ? '原文已在别处更新。先备份当前修改，再重新打开简历。' : draftStatus === 'error' ? '修改没存成功，请保持页面打开，再试一次保存。' : draftStatus === 'saving' ? '正在暂存…' : '修改已暂存，保存新稿后可以重新检查。'}</span>
       <div className="flex flex-wrap items-center gap-1">
         <Button variant="ghost" className="h-8 px-2.5 text-[12px]" disabled={saving} onClick={onPreview}><Eye size={14} />{conflict ? '查看暂存稿' : '放大预览'}</Button>
         <Button variant="primary" className="h-8 px-3 text-[12px]" disabled={saving || conflict || !text.trim() || text.trim().length > 20_000 || !pdfReady} onClick={onSave}>{saving ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}保存 PDF 并下载</Button>

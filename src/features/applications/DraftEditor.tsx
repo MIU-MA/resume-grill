@@ -39,7 +39,7 @@ export function DraftEditor({ draft, sender, template, connected, busy, focusReq
     {issues.length > 0 && <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-y border-line py-3 text-[12px]"><span className="text-text-tertiary">待补充</span>{issues.map(issue => <button className="text-accent underline underline-offset-4" key={issue.field} onClick={() => focusField(issue.field)}>{issue.label}</button>)}</div>}
     {websiteMode && <div className="border border-line bg-surface-soft p-4 text-[13px]">
       <div className="mb-2 font-medium">官网申请</div>
-      <p className="my-2 text-[12px] leading-relaxed text-text-secondary">页面未提供招聘邮箱，已找到在线申请入口。此条不会进入邮件队列。</p>
+      <p className="my-2 text-[12px] leading-relaxed text-text-secondary">这个岗位通过官网申请。打开下面的页面，填好信息后回来标记。</p>
       {links.length > 1 && <label className="mail-label mb-3">申请入口<select className="mail-input" value={selectedApplication} onChange={event => setApplicationUrl(event.target.value)}>{links.map(link => <option key={link.url} value={link.url}>{link.label || link.url}</option>)}</select></label>}
       <div className="flex flex-wrap items-center gap-3"><a href={selectedApplication} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-accent underline">打开申请页面<ExternalLink size={13} /></a><Button variant="secondary" className="h-8 px-3 text-[12px]" disabled={issues.length > 0 || !selectedApplication || busy} onClick={() => selectedApplication && onApplied(selectedApplication)}>我已完成官网申请</Button></div>
       <button className="mt-3 text-[12px] text-text-tertiary underline" onClick={() => { setEmailMode(true); focusField('recipient') }}>已有招聘邮箱，改为邮件投递</button>

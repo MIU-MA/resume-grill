@@ -28,7 +28,7 @@ export function useLlmStatus() {
 
   const mode: LlmMode | null = !mounted ? null
     : {
-        label: clientConfigured ? '本地 Key' : envConfigured ? '服务端 Key' : '规则示例',
+        label: clientConfigured ? '本地 Key' : envConfigured ? '服务端 Key' : '未设置模型',
         cls: clientConfigured ? 'local' : envConfigured ? 'env' : 'mock',
         testResult: testResult ?? undefined,
       }

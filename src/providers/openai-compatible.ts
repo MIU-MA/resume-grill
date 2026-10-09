@@ -31,11 +31,11 @@ export async function llmStructured<T>(
   userPrompt: string,
   schema: ZodType<T>,
   config?: LlmConfig | null,
-  options?: { signal?: AbortSignal; maxTokens?: number; repair?: (value: unknown) => unknown },
+  options?: { signal?: AbortSignal; repair?: (value: unknown) => unknown },
 ): Promise<T> {
   const resolved = config ?? getLlmConfig()
   if (!resolved) {
-    throw new Error('LLM 未配置：请在设置中填写 baseUrl / apiKey / model，或在服务端 .env.local 配置环境变量。')
+    throw new Error('还没有设置模型，请在模型设置里填写接口地址、Key 和模型名称。')
   }
 
   await assertAllowedBaseUrl(resolved.baseUrl)
@@ -49,7 +49,6 @@ export async function llmStructured<T>(
     response_format: { type: 'json_object' },
     temperature: 0.3,
   }
-  if (options?.maxTokens) body.max_tokens = options.maxTokens
 
   let res: Response
   try {
@@ -86,7 +85,7 @@ export async function llmStructured<T>(
   if (!content) throw new Error('模型返回为空')
 
   if (choice?.finish_reason === 'length') {
-    throw new Error('模型输出因长度限制被截断，请重试或提高模型的最大输出长度。')
+    throw new Error('模型服务把结果截断了，请换用支持更长输出的模型后重试。')
   }
 
   let parsed: unknown

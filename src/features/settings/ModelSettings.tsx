@@ -23,7 +23,7 @@ type Mode = { label: string; cls: 'local' | 'env' | 'mock' }
 function deriveMode(envConfigured: boolean, clientConfigured: boolean): Mode {
   if (clientConfigured) return { label: '本地 Key', cls: 'local' }
   if (envConfigured) return { label: '服务端 Key', cls: 'env' }
-  return { label: '规则示例', cls: 'mock' }
+  return { label: '未设置模型', cls: 'mock' }
 }
 
 const CHIP_VARIANT: Record<Mode['cls'] | 'success' | 'danger', string> = {
@@ -141,7 +141,7 @@ export function ModelSettings({ envConfigured, clientConfigured, onClientChanged
         </div>
 
         <p className="m-0 text-text-tertiary text-[10px] leading-[1.5]">
-          保存后仅存在浏览器本地，请求时经服务端转发到模型。部署成多人服务时请只配服务端 .env.local。
+          Key 保存在此浏览器。请求会经工作台发送到你选择的模型。
         </p>
       </div>
     </div>

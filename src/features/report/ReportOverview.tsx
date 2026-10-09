@@ -64,7 +64,7 @@ export function ReportOverview({
           ))}
           {topActions.length === 0 && (
             <p className="m-0 text-[13px] text-text-tertiary">
-              {doneCount > 0 ? '暂时没有需要优先补练的内容。' : '可以从你最想在面试里聊的项目开始。'}
+              {doneCount > 0 ? '暂时没有需要补练的内容。' : '选一个项目，先练一轮。'}
             </p>
           )}
         </div>
