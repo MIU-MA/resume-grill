@@ -1,5 +1,6 @@
 import { emailSchema, sourceUrlSchema, type CareerPage } from '@/domain/mail-schema'
 import { applyCareerPage, type Draft } from './draft-state'
+import { companyFromCareerUrl } from '@/data/career-sites'
 
 const MAX_TEXT = 24000
 const SECTION = /^(?:岗位职责|工作职责|职位职责|工作内容|岗位要求|任职要求|任职资格|职位要求|职责描述|资格要求|job description|responsibilities|requirements|qualifications)\s*[:：]?\s*/i
@@ -46,7 +47,9 @@ export function settleCareerFailure(failures: CareerFailure[], url: string, mess
 // request a URL, or turn instructions in the text into actions.
 export function parsePastedCareer(sourceUrl: string, input: string): CareerPage {
   const url = careerSourceUrl(sourceUrl).href
-  return { url, ...parseCareerText(input) }
+  const page = parseCareerText(input)
+  const company = page.company || companyFromCareerUrl(url)
+  return { url, ...page, company, notes: page.notes.filter(note => !company || !note.includes('未找到明确的公司名称')) }
 }
 
 export function parseCareerText(input: string): Omit<CareerPage, 'url'> {

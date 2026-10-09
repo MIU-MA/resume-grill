@@ -46,7 +46,7 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare }: { badge
     persist,
   } = useMailDrafts(setError, agent.snapshot?.sender)
   const [defaultsOpen, setDefaultsOpen] = useState(false)
-  const [inputMode, setInputMode] = useState<'contacts' | 'links'>('contacts')
+  const [inputMode, setInputMode] = useState<'contacts' | 'links'>('links')
   const [editOpen, setEditOpen] = useState(false)
   const [previewPreparation, setPreviewPreparation] = useState<Record<string, SavedJobPreparation>>({})
   const [attachmentOpen, setAttachmentOpen] = useState(false)
@@ -231,10 +231,10 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare }: { badge
           {!defaults.sender.name && !snapshot?.sender?.name && <button type="button" className="ml-auto text-accent underline" onClick={() => setDefaultsOpen(true)}>设置发件人，自动填好邮件</button>}
         </div>
         <div hidden={inputMode !== 'contacts'}><ContactImporter disabled={busy || !!preview} slots={20 - drafts.length} onImport={importContacts} /></div>
-        <div hidden={inputMode !== 'links'}><LinkImporter onBusy={setBusy} existingUrls={drafts.map(draft => draft.sourceUrl)} slots={20 - drafts.length} connected={!!snapshot} onConnect={() => setSettingsOpen('agent')} read={url => agent.request<CareerPage>('/extract', { url })} discover={url => agent.request<CareerDiscovery>('/discover', { url })} onImported={result => {
+        <div hidden={inputMode !== 'links'}><LinkImporter onBusy={setBusy} existingUrls={drafts.filter(draft => (draft.extraction?.jobs?.length ?? 0) < 2).map(draft => draft.sourceUrl)} existingJobs={drafts.map(({ sourceUrl, role }) => ({ sourceUrl, role }))} slots={20 - drafts.length} connected={!!snapshot} onConnect={() => setSettingsOpen('agent')} read={url => agent.request<CareerPage>('/extract', { url })} discover={url => agent.request<CareerDiscovery>('/discover', { url })} onImported={result => {
           const id = crypto.randomUUID()
           const draft: Draft = { id, company: result.company ?? '', role: result.role || defaults.role, sourceUrl: result.url, recipient: result.recommendedEmail ?? '', subject: '', body: '', sourceConfirmed: false, automatic: true, extraction: result, jobDescription: result.jobDescription ?? '' }
-          setDrafts(items => items.length >= 20 || items.some(item => { try { return careerUrlKey(item.sourceUrl) === careerUrlKey(result.url) } catch { return false } }) ? items : [...items, draft])
+          setDrafts(items => items.length >= 20 || items.some(item => { try { return careerUrlKey(item.sourceUrl) === careerUrlKey(result.url) && item.role === draft.role } catch { return false } }) ? items : [...items, draft])
           setSelectedDraftIds(items => [...items, id]); setTab('drafts'); setFocusRequest(null); setError('')
         }} /></div>
       </div>}

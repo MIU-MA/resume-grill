@@ -26,3 +26,10 @@ export const careerSites = [
   { company: '阿里云', url: 'https://careers.aliyun.com/' },
   ...crawlCareerSites,
 ] as const
+
+export function companyFromCareerUrl(value: string): string {
+  try {
+    const host = new URL(value).hostname.replace(/^www\./, '')
+    return careerSites.find(site => new URL(site.url).hostname.replace(/^www\./, '') === host)?.company ?? ''
+  } catch { return '' }
+}

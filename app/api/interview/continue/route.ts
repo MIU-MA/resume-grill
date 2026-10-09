@@ -84,11 +84,11 @@ export async function POST(request: Request) {
       .filter((vp) => vp.importance === 'high')
       .map((vp) => vp.point)
       .filter((point) => allMasteryPoints.includes(point))
-    const roundNumber = body.rounds.filter((round) => round.answer.trim().length > 0).length + (hasAnswer ? 1 : 0)
+    const roundNumber = body.rounds.filter((round) => round.action === 'answer' && round.answer.trim().length > 0).length + (hasAnswer ? 1 : 0)
     const interactionCount = body.rounds.filter((round) => round.action !== 'clarify').length + (hasAnswer || isSkip ? 1 : 0)
     const isFinal = isSkip
       ? interactionCount >= MAX_INTERVIEW_ROUNDS
-      : hasAnswer && shouldFinishInterview(roundNumber, result.isFinal, coveredPoints, importantPoints)
+      : hasAnswer && shouldFinishInterview(roundNumber, result.isFinal, coveredPoints, importantPoints, interactionCount)
 
     return NextResponse.json({
       evaluation: {
@@ -106,7 +106,9 @@ export async function POST(request: Request) {
       },
       nextReason: result.nextReason,
       isFinal,
-      nextQuestion: isFinal ? '' : (result.nextQuestion || '请再补充一个具体的过程、决策或结果。'),
+      nextQuestion: isFinal ? '' : (body.action === 'clarify' ? body.question : result.nextQuestion.trim() || (
+        missingPoints.length ? `关于“${missingPoints[0]}”，你在这段经历中具体是怎么做的？` : `回到“${body.claim.title}”，你遇到过什么需要调整原先做法的情况？`
+      )),
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : '生成下一问失败'

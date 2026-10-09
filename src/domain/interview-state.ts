@@ -1,7 +1,7 @@
 import type { InterviewRound } from '@/domain/interview-schema'
 
-export const MIN_INTERVIEW_ROUNDS = 3
-export const MAX_INTERVIEW_ROUNDS = 5
+export const MIN_INTERVIEW_ROUNDS = 6
+export const MAX_INTERVIEW_ROUNDS = 10
 
 export function mergeCoveredPoints(rounds: InterviewRound[], current: string[], allowed: string[]): string[] {
   const allowedSet = new Set(allowed)
@@ -17,8 +17,9 @@ export function shouldFinishInterview(
   modelWantsToFinish: boolean,
   covered: string[],
   importantPoints: string[],
+  interactionCount = roundNumber,
 ): boolean {
-  if (roundNumber >= MAX_INTERVIEW_ROUNDS) return true
+  if (interactionCount >= MAX_INTERVIEW_ROUNDS) return true
   if (roundNumber < MIN_INTERVIEW_ROUNDS) return false
   const coveredSet = new Set(covered)
   const highPointsCovered = importantPoints.length === 0 || importantPoints.every((point) => coveredSet.has(point))

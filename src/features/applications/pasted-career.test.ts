@@ -24,6 +24,13 @@ describe('粘贴招聘正文', () => {
     expect(page.company).toBe('')
     expect(page.jobDescription).toContain('熟悉 React')
   })
+  it('已知官网的正文未含公司名时可以补入，明确写出的公司仍优先', () => {
+    const page = parsePastedCareer('https://www.fontdo.com/joinus', 'Web 前端开发工程师\n任职要求\n熟悉 React。\n简历发 hr@fontdo.com')
+    expect(page.company).toBe('蜂动科技')
+    expect(page.notes.join(' ')).not.toContain('未找到明确的公司名称')
+    expect(parsePastedCareer('https://www.fontdo.com/joinus', text).company).toBe('示例科技')
+    expect(parsePastedCareer('https://www.fontdo.com.evil.test/joinus', '前端工程师').company).toBe('')
+  })
 
   it('公司介绍和通用邮箱不会变成岗位要求或招聘邮箱', () => {
     const page = parsePastedCareer(url, '公司：示例科技\n关于我们\n我们拥有优秀的前端工程师。\n欢迎联系 hello@example.com。')

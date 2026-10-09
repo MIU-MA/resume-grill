@@ -84,7 +84,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       }
 
       setCurrentQuestion(effectiveClaim.initialQuestion)
-      setCurrentIntent(effectiveClaim.initialIntent || '验证具体过程和个人贡献')
+      setCurrentIntent(effectiveClaim.initialIntent || '先讲清这件事里你做了什么')
 
       if (typeof window !== 'undefined') {
         window.sessionStorage.setItem('resume-grill:active-claim', effectiveClaim.id)
@@ -99,7 +99,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
         status: 'in_progress',
         version: resolvedVersion,
         pendingQuestion: effectiveClaim.initialQuestion,
-        pendingIntent: effectiveClaim.initialIntent || '验证具体过程和个人贡献',
+        pendingIntent: effectiveClaim.initialIntent || '先讲清这件事里你做了什么',
       })
     } catch (e) { onError(e instanceof Error ? e.message : '启动面试失败') }
     finally { setLoading(false) }
@@ -144,7 +144,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       version,
       summaryStatus: summarySucceeded ? 'success' : 'failed',
     })
-    if (summarySucceeded) onToast('追问已完成，可在「分析报告」查看结论。')
+    if (summarySucceeded) onToast('练习已结束，可在「面试复盘」查看。')
   }, [activeClaimSnapshot, version, onToast, onSessionSaved])
 
   const saveInProgress = useCallback((claim: ResumeClaim, newRounds: InterviewRound[], nextQuestion: string, nextIntent: string) => {
@@ -237,7 +237,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
         version: session.version,
         summaryStatus: 'success',
       })
-      onToast('总结已重新生成，可在「分析报告」查看。')
+      onToast('复盘已重新生成，可在「面试复盘」查看。')
       return true
     } catch (e) {
       onError(e instanceof Error ? e.message : '重新生成总结失败')

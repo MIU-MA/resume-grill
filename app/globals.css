@@ -167,8 +167,12 @@ button { cursor: pointer; }
 .preparation-state > span { width: 5px; height: 5px; background: var(--color-line-strong); }
 .preparation-state > .is-ready { background: var(--color-success); }
 .career-directory { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
-.career-directory > a { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 10px; border: 1px solid var(--color-line); transition: background .15s, border-color .15s; }
-.career-directory > a:hover { border-color: var(--color-line-strong); background: var(--color-surface-soft); }
+.career-site { display: flex; min-width: 0; border: 1px solid var(--color-line); transition: background .15s, border-color .15s; }
+.career-site:hover { border-color: var(--color-line-strong); background: var(--color-surface-soft); }
+.career-site > a { display: flex; flex: 1; align-items: center; gap: 8px; min-width: 0; padding: 10px; }
+.career-read { flex: none; padding: 0 8px; border-left: 1px solid var(--color-line); font-size: 11px; color: var(--color-info); }
+.career-read:hover { background: var(--color-info-soft); }
+.career-read:disabled { opacity: .4; cursor: default; }
 .career-monogram { display: grid; place-items: center; flex: none; width: 28px; height: 28px; background: var(--color-brand-soft); color: var(--color-brand); font-size: 12px; }
 .career-company { min-width: 0; font-size: 12px; overflow-wrap: anywhere; }
 .career-arrow { margin-left: auto; color: var(--color-text-tertiary); font-size: 12px; }
@@ -185,7 +189,7 @@ button { cursor: pointer; }
   .preparation-heading h2 { font-size: 20px; }
   .preparation-actions { flex-wrap: wrap; padding: 12px 16px; }
 }
-@media (max-width: 480px) { .career-directory { grid-template-columns: repeat(2, minmax(0, 1fr)); } .career-directory > a { gap: 7px; padding: 8px; } }
+@media (max-width: 480px) { .career-directory { grid-template-columns: repeat(2, minmax(0, 1fr)); } .career-site > a { gap: 7px; padding: 8px; } .career-monogram { display: none; } }
 
 
 @container claim-detail (min-width: 800px) {

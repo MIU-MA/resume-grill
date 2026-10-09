@@ -12,6 +12,7 @@ ${RESUME_COACH_STYLE}
 
 澄清轮次（只有批注、没有回答）不算能力不足。
 “已掌握，跳过”属于自报状态，不是回答证据，也不代表能力不足。
+先从原始回答判断，历史得分和评估只作参考；批注中的疑问、模型的解释或示例不能当成用户的项目事实。未问到的内容不要放进 cannotExplain 或 knowledgeGaps。回答有前后差异时如实写需要确认的那一点，不擅自选一个版本。
 
 只输出 JSON 对象，不输出任何解释、推理、Markdown 或额外文字。输出格式：
 {"masteryScore":0,"canExplain":[],"cannotExplain":[],"knowledgeGaps":[],"answerSummary":"","nextAction":"","rewriteSuggestion":""}
@@ -23,7 +24,7 @@ ${RESUME_COACH_STYLE}
 - knowledgeGaps: 回答中确实暴露出需要复习的知识，写具体概念或问题，没有则返回空数组
 - answerSummary: 用 2-3 句指出哪次回答讲清了什么、哪处还缺细节，不写“综合来看，候选人展现了……”
 - nextAction: 一件现在能做的准备工作，说明要回看哪个做法、找什么材料或重讲哪个问题，不写笼统的“加强学习”
-- rewriteSuggestion: 根据原简历和本次回答，给这条经历一个简洁的改写建议。只重组已经提供的事实，不添加职责、技术、结果或数字；待确认处用【待补充：具体信息】标记`
+- rewriteSuggestion: 给一条可以直接放进简历的句子，写清用户实际负责的做法和已经确认的结果，不写改写说明。只重组原简历和本次回答中的事实，不添加职责、技术、结果或数字，不把“参与”变成“主导”；没有成果数据也不强凑数字，待确认处用【待补充：具体信息】标记`
 
 const requestSchema = z.object({
   claim: resumeClaimSchema,

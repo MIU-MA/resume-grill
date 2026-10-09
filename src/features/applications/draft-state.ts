@@ -1,4 +1,5 @@
 import { mailDraftSchema, MAX_ATTACHMENT_BYTES, sourceUrlSchema, type CareerPage, type MailDraft } from '@/domain/mail-schema'
+import { selectCareerJob } from './career-selection'
 
 export type Draft = Omit<MailDraft, 'sourceConfirmed'> & { sourceConfirmed: boolean; automatic?: boolean; extraction?: CareerPage; jobDescription?: string; jobDescriptionEdited?: boolean }
 export type DraftField = 'company' | 'role' | 'sourceUrl' | 'recipient' | 'subject' | 'body'
@@ -27,6 +28,8 @@ export function updateDraft(draft: Draft, change: Partial<Draft>): Draft {
 }
 
 export function applyCareerPage(draft: Draft, page: CareerPage): Draft {
+  const matches = page.jobs?.filter(job => job.role === draft.role) ?? []
+  if (!page.role && matches.length === 1) page = selectCareerJob(page, matches[0].id)
   const edited = draft.jobDescriptionEdited || (!!draft.jobDescription && draft.jobDescription !== draft.extraction?.jobDescription)
   return {
     ...draft, sourceUrl: page.url, company: draft.company || page.company || '', role: draft.role || page.role || '',

@@ -1,17 +1,19 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { sourceUrlSchema, type CareerDiscovery, type CareerPage } from '@/domain/mail-schema'
 import { CareerFinder } from './CareerFinder'
 import { PastedCareerForm } from './PastedCareerForm'
 import { careerUrlKey, planCareerImports, settleCareerFailure, type CareerFailure } from './pasted-career'
+import { CareerPagePicker } from './CareerPagePicker'
 
-export function LinkImporter({ existingUrls, slots, connected, onConnect, read, discover, onImported, onBusy }: {
+export function LinkImporter({ existingUrls, existingJobs, slots, connected, onConnect, read, discover, onImported, onBusy }: {
   existingUrls: string[]; slots: number; connected: boolean; onConnect: () => void
   read: (url: string) => Promise<CareerPage>; onImported: (page: CareerPage) => void
   discover: (url: string) => Promise<CareerDiscovery>
   onBusy: (value: boolean) => void
+  existingJobs: Array<{ sourceUrl: string; role: string }>
 }) {
   const [input, setInput] = useState('')
   const [finding, setFinding] = useState(false)
@@ -19,6 +21,8 @@ export function LinkImporter({ existingUrls, slots, connected, onConnect, read, 
   const [message, setMessage] = useState('')
   const [failures, setFailures] = useState<CareerFailure[]>([])
   const [pasteUrl, setPasteUrl] = useState<string | null>(null)
+  const [pages, setPages] = useState<CareerPage[]>([])
+  const pending = useRef<string[] | null>(null)
   const active = useRef(true)
   useEffect(() => { active.current = true; return () => { active.current = false } }, [])
   const removeInput = (url: string) => setInput(current => current.split(/\s+/).filter(value => value && (!sourceUrlSchema.safeParse(value).success || careerUrlKey(value) !== careerUrlKey(url))).join('\n'))
@@ -27,6 +31,13 @@ export function LinkImporter({ existingUrls, slots, connected, onConnect, read, 
     setFailures(current => settleCareerFailure(current, url))
     removeInput(url)
     setPasteUrl(current => current && careerUrlKey(current) === careerUrlKey(url) ? null : current)
+  }
+  const acceptPage = (url: string, page: CareerPage) => {
+    if (!page.role && (page.jobs?.length ?? 0) > 1) {
+      setPages(current => [...current.filter(item => item.url !== page.url), page])
+      removeInput(url)
+      setFailures(current => settleCareerFailure(current, url))
+    } else complete(url, page)
   }
   const openPaste = (chosen?: string) => {
     try {
@@ -39,12 +50,14 @@ export function LinkImporter({ existingUrls, slots, connected, onConnect, read, 
     } catch (error) { setMessage(error instanceof Error ? error.message : '请检查链接。') }
   }
   const importLinks = async (chosen?: string[]) => {
-    if (!connected) { onConnect(); return }
+    if (busy || finding || slots <= 0) return
     const values = [...new Set(chosen ?? input.split(/\s+/).filter(Boolean))]
     if (!values.length) return
     let urls: string[]
     try { urls = planCareerImports(values, existingUrls, slots) }
     catch (error) { setMessage(error instanceof Error ? error.message : '请检查链接。'); return }
+    if (!connected) { pending.current = urls; onConnect(); return }
+    pending.current = null
     setBusy(true); onBusy(true)
     let failed = 0
     const seen = new Set(existingUrls.filter(value => sourceUrlSchema.safeParse(value).success).map(careerUrlKey))
@@ -55,7 +68,7 @@ export function LinkImporter({ existingUrls, slots, connected, onConnect, read, 
         try {
           const page = await read(urls[i])
           if (active.current) {
-            if (!seen.has(careerUrlKey(page.url))) { complete(urls[i], page); seen.add(careerUrlKey(page.url)) }
+            if (!seen.has(careerUrlKey(page.url))) { acceptPage(urls[i], page); seen.add(careerUrlKey(page.url)) }
             else { removeInput(urls[i]); setFailures(current => settleCareerFailure(current, urls[i])) }
           }
         } catch (error) {
@@ -63,11 +76,17 @@ export function LinkImporter({ existingUrls, slots, connected, onConnect, read, 
           if (active.current) setFailures(current => settleCareerFailure(current, urls[i], error instanceof Error ? error.message : '读取失败'))
         }
       }
-      if (active.current) setMessage(`已处理 ${urls.length - failed} 个链接${failed ? `，${failed} 个未能读取，可重试或粘贴正文。` : '，请核对清单中的内容。'}`)
+      if (active.current) setMessage(`已读取 ${urls.length - failed} 个链接${failed ? `，${failed} 个未能读取，可重试或粘贴正文。` : '。同页多个岗位请在下方选择。'}`)
     } finally { setBusy(false); onBusy(false) }
   }
+  const resumeImport = useEffectEvent((urls: string[]) => { void importLinks(urls) })
+  useEffect(() => {
+    if (connected && !busy && !finding && pending.current) {
+      const urls = pending.current; pending.current = null; resumeImport(urls)
+    }
+  }, [connected, busy, finding])
   return <section className="flex-none border-b border-line bg-surface px-4 py-3 sm:px-5" aria-label="导入招聘链接">
-    <CareerFinder connected={connected} disabled={busy} onConnect={onConnect} discover={discover} onBusy={value => { setFinding(value); onBusy(value) }} onChoose={urls => { setInput(urls.join('\n')); void importLinks(urls) }} />
+    <CareerFinder connected={connected} disabled={busy} existingJobs={existingJobs} slots={slots} onPage={page => complete(page.url, page)} onConnect={onConnect} discover={discover} onBusy={value => { setFinding(value); onBusy(value) }} onChoose={urls => { setInput(urls.join('\n')); void importLinks(urls) }} />
     <details className="mt-3 border-t border-line pt-3">
       <summary className="w-fit cursor-pointer text-[12px] text-text-secondary">已有具体岗位链接 · 粘贴到清单</summary>
     <div className="mt-3 flex flex-wrap items-start gap-2">
@@ -77,6 +96,7 @@ export function LinkImporter({ existingUrls, slots, connected, onConnect, read, 
     </div>
     </details>
     {message && <p role="status" className="mb-0 mt-2 text-[12px] text-text-secondary">{message}</p>}
+    {!!pages.length && <CareerPagePicker pages={pages} existing={existingJobs} disabled={busy || finding || slots <= 0} onChoose={page => complete(page.url, page)} />}
     {failures.length > 0 && <div className="mt-2 space-y-2 text-[12px]">{failures.map(failure => <div key={failure.url} className="border-t border-line pt-2">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1"><a href={failure.url} target="_blank" rel="noopener noreferrer" className="min-w-0 flex-1 break-all text-text-secondary underline">{failure.url}</a><button className="shrink-0 text-text-secondary underline disabled:opacity-40" disabled={busy || finding} onClick={() => void importLinks([failure.url])}>{connected ? '重试读取' : '连接后重试'}</button><button className="shrink-0 text-accent underline disabled:opacity-40" disabled={busy || finding || slots <= 0} onClick={() => openPaste(failure.url)}>粘贴正文补充</button></div>
       <p className="mb-0 mt-1 break-words text-text-tertiary">{failure.message}</p>

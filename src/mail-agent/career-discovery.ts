@@ -1,4 +1,4 @@
-import { sourceUrlSchema, type CareerDiscovery, type CareerLink } from '../domain/mail-schema.ts'
+import { sourceUrlSchema, type CareerDiscovery, type CareerLink, type CareerPage } from '../domain/mail-schema.ts'
 import { normalizeCareerUrl } from './career-links.ts'
 import { readCareerPage } from './public-page.ts'
 
@@ -12,6 +12,7 @@ export async function discoverCareers(input: string, read = readCareerPage): Pro
   const visited = new Set<string>()
   const found = new Map<string, CareerLink>()
   const notes = new Set<string>()
+  const pages: CareerPage[] = []
   let pagesRead = 0
   while (pending.length && visited.size < 6 && Date.now() < deadline) {
     const current = pending.shift()!
@@ -20,6 +21,7 @@ export async function discoverCareers(input: string, read = readCareerPage): Pro
     try {
       const page = await read(current.url, 0, deadline, inScope)
       pagesRead++
+      if (page.role || page.jobs?.length) pages.push(page)
       if (page.role && found.size < 100) found.set(page.url, { url: page.url, label: page.role, kind: 'job', sourceUrl: current.url })
       for (const link of page.links ?? []) {
         if (!found.has(link.url) && found.size < 100) found.set(link.url, link)
@@ -32,6 +34,6 @@ export async function discoverCareers(input: string, read = readCareerPage): Pro
   }
   if (pending.length) notes.add('已达到本次读取范围或时间限制。可复制列表中的招聘入口继续查找。')
   if ([...found.values()].some(link => !inScope(link.url))) notes.add('其他域名的招聘入口已列出，未继续抓取。可打开核对后复制该地址重新查找。')
-  if (!found.size) notes.add('未找到可识别的招聘链接。可直接输入招聘页地址；需要登录或依赖脚本加载的职位列表暂不支持。')
-  return { links: [...found.values()], pagesRead, notes: [...notes] }
+  if (!found.size && !pages.length) notes.add('未找到可识别的招聘链接或岗位正文。需要登录或依赖脚本加载的职位列表暂不支持，可打开官网后粘贴正文。')
+  return { links: [...found.values()], pagesRead, notes: [...notes], ...(pages.length ? { pages } : {}) }
 }

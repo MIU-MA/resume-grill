@@ -48,6 +48,15 @@ describe('official recruiting link discovery', () => {
     expect(result.notes.join(' ')).toContain('HTTP 403')
     expect(result.notes.join(' ')).toContain('限制')
   })
+  it('returns jobs already read from a shared recruiting page without requiring invented detail URLs', async () => {
+    const read = vi.fn(async (url: string) => extractCareerEmails('<article><h3>前端工程师</h3><h4>任职要求</h4><p>熟悉 React。</p></article><article><h3>后端工程师</h3><h4>任职要求</h4><p>熟悉 Java。</p></article><p>招聘邮箱 hr@example.com</p>', url))
+    const result = await discoverCareers('https://www.jienor.com/join/', read)
+    expect(read).toHaveBeenCalledTimes(1)
+    expect(result.pages?.[0].jobs?.map(job => job.role)).toEqual(['前端工程师', '后端工程师'])
+    expect(result.pages?.[0].recommendedEmail).toBe('hr@example.com')
+    expect(result.notes.join(' ')).not.toContain('未找到')
+    expect(result.links).toEqual([])
+  })
   it('reports an unreadable starting page instead of fabricating results', async () => {
     await expect(discoverCareers('https://example.com', async () => { throw new Error('HTTP 403') })).rejects.toThrow('HTTP 403')
     await expect(discoverCareers('http://127.0.0.1')).rejects.toThrow()

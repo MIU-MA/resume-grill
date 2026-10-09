@@ -16,13 +16,16 @@ describe('interview state', () => {
     expect(mergeCoveredPoints([round(['贡献'])], ['基线'], ['基线', '贡献', '结果'])).toEqual(['基线', '贡献'])
   })
 
-  it('does not allow the model to end before three rounds', () => {
+  it('does not allow the model to end before six answered rounds', () => {
     expect(shouldFinishInterview(1, true, ['基线'], ['基线'])).toBe(false)
-    expect(shouldFinishInterview(3, true, ['基线'], ['基线'])).toBe(true)
-    expect(shouldFinishInterview(3, true, [], ['基线'])).toBe(false)
+    expect(shouldFinishInterview(5, true, ['基线'], ['基线'])).toBe(false)
+    expect(shouldFinishInterview(6, true, ['基线'], ['基线'])).toBe(true)
+    expect(shouldFinishInterview(6, true, [], ['基线'])).toBe(false)
   })
 
-  it('ends at five rounds even when the model keeps asking', () => {
-    expect(shouldFinishInterview(5, false, [], ['基线'])).toBe(true)
+  it('ends at ten questions even when some were skipped or the model keeps asking', () => {
+    expect(shouldFinishInterview(10, false, [], ['基线'])).toBe(true)
+    expect(shouldFinishInterview(4, false, [], ['基线'], 10)).toBe(true)
+    expect(shouldFinishInterview(4, true, ['基线'], ['基线'], 9)).toBe(false)
   })
 })

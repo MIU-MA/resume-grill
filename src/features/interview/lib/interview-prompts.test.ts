@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildInterviewContinueUser } from './interview-prompts'
+import { buildInterviewContinueUser, INTERVIEW_CONTINUE_SYSTEM } from './interview-prompts'
 import type { ResumeClaim } from '@/domain/resume-schema'
 
 const claim: ResumeClaim = {
@@ -94,5 +94,18 @@ describe('interview prompts', () => {
     expect(prompt).toContain(`答: ${longAnswer}`)
     expect(prompt).toContain(`不懂: ${annotation}`)
     expect(prompt).not.toContain('…（截断）')
+  })
+  it('keeps prior coverage when a later explanation provides no new evidence', () => {
+    const answered = {
+      action: 'answer' as const, question: '如何实现？', questionIntent: '', answer: '用了版本号。', annotation: '',
+      evaluation: { score: 60, coveredPoints: ['说明具体方案'], missingPoints: [], answerSuggestion: '', evidenceQuotes: [] }, nextReason: '',
+    }
+    const explanation = { ...answered, action: 'clarify' as const, answer: '', annotation: '版本号是什么？', evaluation: { ...answered.evaluation, coveredPoints: [] } }
+    const prompt = buildInterviewContinueUser(claim, '如何处理冲突？', '', '还没理解', 'clarify', [answered, explanation], [], [])
+    expect(prompt).toContain('当前已覆盖：\n说明具体方案')
+    expect(prompt).toContain('有效回答 1 轮，回答与跳过合计 1 个问题')
+    expect(prompt).toContain('操作: 请求通俗解释')
+    expect(INTERVIEW_CONTINUE_SYSTEM).toContain('6-10 个问题')
+    expect(INTERVIEW_CONTINUE_SYSTEM).toContain('保留原问题')
   })
 })

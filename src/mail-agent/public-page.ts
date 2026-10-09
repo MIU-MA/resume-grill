@@ -3,7 +3,8 @@ import { request } from 'node:https'
 import ipaddr from 'ipaddr.js'
 import { load } from 'cheerio'
 import { extractCareerLinks } from './career-links.ts'
-import { emailSchema, sourceUrlSchema, type CareerPage } from '../domain/mail-schema.ts'
+import { emailSchema, sourceUrlSchema, type CareerJob, type CareerPage } from '../domain/mail-schema.ts'
+import { companyFromCareerUrl } from '../data/career-sites.ts'
 
 const ROLE_PATTERN = /工程师|开发|设计师|产品经理|运营|专员|分析师|研究员|实习生|助理|总监|顾问|销售|会计|engineer|developer|designer|analyst|manager|intern|scientist/i
 const DESCRIPTION_SECTION = /^(?:(?:[一二三四五六七八九十\d]+)[、.．）)]\s*)?(?:岗位职责|工作职责|职位职责|职责描述|主要职责|工作内容|任职要求|职位要求|岗位要求|任职资格|应聘要求|技能要求|职责要求|job responsibilities|responsibilities|qualifications|requirements)(?:\s*[:：]|\s*$)/i
@@ -52,7 +53,7 @@ function extractJobDescription(html: string, postings: Array<Record<string, unkn
     if (DESCRIPTION_SECTION.test(line)) {
       finish()
       section = [line]
-    } else if (headings.has(line) || DESCRIPTION_END.test(line)) {
+    } else if (headings.has(line) || DESCRIPTION_END.test(line) || /(?:简历|应聘|投递|招聘邮箱|联系人|send|apply).{0,100}@/i.test(line)) {
       finish()
     } else if (section) {
       section.push(line)
@@ -83,7 +84,7 @@ export async function resolvePublicHost(hostname: string) {
   return addresses[0]
 }
 
-export function extractCareerEmails(html: string, url: string): CareerPage {
+export function extractCareerEmails(html: string, url: string, includeJobs = true): CareerPage {
   const $ = load(html)
   const postings: Array<Record<string, unknown>> = []
   const visit = (value: unknown, depth = 0) => {
@@ -123,28 +124,124 @@ export function extractCareerEmails(html: string, url: string): CareerPage {
   }
   const short = (value: unknown) => typeof value === 'string' ? load(value).text().replace(/\s+/g, ' ').trim().slice(0, 120) : ''
   const single = postings.length === 1 ? postings[0] : undefined
+  const contacts = Array.isArray(single?.applicationContact) ? single.applicationContact : [single?.applicationContact]
+  const contactEmails: string[] = []
+  for (const contact of contacts) {
+    if (!contact || typeof contact !== 'object') continue
+    const value = (contact as Record<string, unknown>).email
+    for (const email of Array.isArray(value) ? value : [value]) {
+      if (typeof email !== 'string') continue
+      const parsed = emailSchema.safeParse(email.replace(/^mailto:/i, '').trim())
+      if (parsed.success) { add(parsed.data, '此岗位的招聘联系人'); contactEmails.push(parsed.data) }
+    }
+  }
   const organization = single?.hiringOrganization as { name?: unknown } | undefined
   const heading = $('h1').length === 1 ? short($('h1').text()) : ''
   const labelledRole = rawText.match(/(?:岗位名称|职位名称)[：:]\s*([^\n。；;]{2,80})/)?.[1]
   const labelledCompany = rawText.match(/(?:公司名称|招聘单位|用人单位)[：:]\s*([^\n。；;]{2,80})/)?.[1]
-  const role = postings.length > 1 ? '' : short(single?.title) || short(labelledRole) || (heading.length < 80 && ROLE_PATTERN.test(heading) ? heading : '')
+  const role = postings.length > 1 ? '' : short(single?.title) || short(labelledRole) || (heading.length < 80 && ROLE_PATTERN.test(heading) && !NON_JOB_HEADING.test(heading) ? heading : '')
   const siteName = short($('meta[property="og:site_name"]').attr('content'))
-  const company = short(organization?.name) || short($('[itemprop="hiringOrganization"] [itemprop="name"]').first().text()) || short(labelledCompany) || (/^(官网|招聘|人才招聘|职位列表|careers?|jobs?)$/i.test(siteName) ? '' : siteName)
+  const company = short(organization?.name) || short($('[itemprop="hiringOrganization"] [itemprop="name"]').first().text()) || short(labelledCompany) || companyFromCareerUrl(url) || (/^(官网|招聘|人才招聘|职位列表|careers?|jobs?)$/i.test(siteName) ? '' : siteName)
   const emails = [...candidates].map(([email, context]) => ({ email, context }))
   const hiring = emails.filter(({ email, context }) => {
     const local = email.split('@')[0]
-    if (/support|privacy|legal|service|sales|security|abuse|noreply|webmaster/i.test(local)) return false
-    return /^(hr|jobs?|careers?|recruit\w*|talent)([._+-]|$)/i.test(local) || /简历|应聘|招聘邮箱|投递|recruit|resume|cv\b|apply|application/i.test(context)
+    if (/support|privacy|legal|service|sales|security|abuse|noreply|webmaster/i.test(local) || /客服|商务合作|隐私|举报|投诉|销售咨询/.test(context)) return false
+    return contactEmails.includes(email) || /^(hr|jobs?|careers?|recruit\w*|talent)([._+-]|$)/i.test(local) || /简历|应聘|招聘邮箱|投递|recruit|resume|cv\b|apply|application/i.test(context)
   })
+  const explicitContacts = hiring.filter(item => contactEmails.includes(item.email))
+  const recommendedEmail = explicitContacts.length === 1 ? explicitContacts[0].email : hiring.length === 1 ? hiring[0].email : ''
   const notes: string[] = []
   if (postings.length > 1) notes.push('页面包含多个岗位，请使用具体岗位详情链接或补充要投的岗位。')
   if (!company) notes.push('未识别到公司名称。')
   if (!role) notes.push('未识别到单一岗位名称。')
-  if (hiring.length !== 1) notes.push(hiring.length > 1 ? '发现多个可能的招聘邮箱，请选择对应岗位的地址。' : '未识别到明确的招聘邮箱，请核对官网。')
+  if (!recommendedEmail) notes.push(hiring.length > 1 ? '发现多个可能的招聘邮箱，请选择对应岗位的地址。' : '未识别到明确的招聘邮箱，请核对官网。')
   const subjectRequirement = rawText.match(/(?:邮件主题|邮件标题)[^\n]{0,180}/)?.[0]
   if (subjectRequirement) notes.push(`官网说明：${subjectRequirement}`)
   const jobDescription = extractJobDescription(html, postings, role)
-  return { url, title, emails, company, role, recommendedEmail: hiring.length === 1 ? hiring[0].email : '', notes, links: extractCareerLinks(html, url), ...(jobDescription ? { jobDescription } : {}) }
+  const jobs = includeJobs ? extractPageJobs(html, url, postings) : []
+  // A listing's first title must not become the user's chosen job.
+  const isListing = jobs.length > 1
+  if (isListing && !notes.some(note => note.includes('多个岗位'))) notes.push('页面包含多个岗位，选择后会带入对应的职责、要求和邮箱。')
+  const resolvedRole = isListing ? '' : role || jobs[0]?.role || ''
+  return { url, title, emails, company, role: resolvedRole, recommendedEmail, notes: notes.filter(note => !resolvedRole || !note.includes('未识别到单一岗位名称')),
+    links: extractCareerLinks(html, url),
+    ...(!isListing && (jobDescription || jobs[0]?.jobDescription) ? { jobDescription: jobDescription || jobs[0]?.jobDescription } : {}),
+    ...(jobs.length ? { jobs } : {}),
+  }
+}
+
+function extractPageJobs(html: string, url: string, postings: Array<Record<string, unknown>>): CareerJob[] {
+  const jobs: CareerJob[] = []
+  const add = (content: string) => {
+    if (jobs.length >= 30) return
+    const page = extractCareerEmails(content, url, false)
+    if (!page.role) return
+    jobs.push({ id: `job-${jobs.length + 1}`, role: page.role, company: page.company || undefined,
+      emails: page.emails, recommendedEmail: page.recommendedEmail, emailAmbiguous: page.notes.some(note => note.includes('多个可能的招聘邮箱')), jobDescription: page.jobDescription })
+  }
+  if (postings.length) {
+    for (const posting of postings) {
+      add(`<script type="application/ld+json">${JSON.stringify(posting).replace(/</g, '\\u003c')}</script>`)
+    }
+    return jobs
+  }
+  const $ = load(html)
+  $('script,style,noscript,svg,template,nav,footer,header,aside').remove()
+  const headings = $('h1,h2,h3,h4,h5,h6,[role="heading"],[role="tab"],[class*="roleTitle"],[class*="job-title"],[class*="jobTitle"],[class*="position-title"]').toArray().filter(element => {
+    const text = $(element).text().replace(/\s+/g, ' ').trim()
+    return text.length > 1 && text.length < 90 && ROLE_PATTERN.test(text) && !NON_JOB_HEADING.test(text)
+      && !DESCRIPTION_SECTION.test(text) && !/^[负责熟悉掌握]|[。；：:]/.test(text)
+  })
+  const hasRequirements = (content: string) => {
+    const doc = load(content)
+    return doc('h1,h2,h3,h4,h5,h6,p,div,strong').toArray().some(element => DESCRIPTION_SECTION.test(doc(element).text().trim()))
+  }
+  for (const heading of headings) {
+    if (jobs.length >= 30) break
+    const title = $(heading).clone().attr('role', 'heading')
+    const metadata = `<script type="application/ld+json">${JSON.stringify({ '@type': 'JobPosting', title: $(heading).text().replace(/\s+/g, ' ').trim() }).replace(/</g, '\\u003c')}</script>`
+    // Tabs often keep each job's full requirements in an initially hidden panel.
+    const panelId = $(heading).attr('aria-controls')
+    if (panelId) {
+      let panel = $('[id]').filter((_, element) => $(element).attr('id') === panelId).first().clone()
+      if (!panel.length && $(heading).attr('role') === 'tab') {
+        // Some server-rendered tab libraries emit inconsistent IDs. Use DOM order
+        // only within one tab group with an equal number of tabs and panels.
+        let group = $(heading).parent()
+        for (let depth = 0; depth < 5 && group.length && !group.is('body,html'); depth++, group = group.parent()) {
+          const tabs = group.find('[role="tab"]')
+          const panels = group.find('[role="tabpanel"]')
+          if (panels.length) {
+            if (tabs.length === panels.length && tabs.toArray().every(tab => headings.includes(tab))) panel = panels.eq(tabs.index(heading)).clone()
+            break
+          }
+        }
+      }
+      if (panel.length && hasRequirements(panel.html() ?? '')) {
+        panel.removeAttr('hidden').removeAttr('aria-hidden').removeAttr('style')
+        add(`${metadata}${panel.toString()}`)
+        continue
+      }
+      if ($(heading).attr('role') === 'tab') continue
+    }
+    if ($(heading).attr('role') === 'tab') continue
+    let scope = $(heading).parent()
+    let content = ''
+    for (let depth = 0; depth < 10 && scope.length && !scope.is('body,html'); depth++, scope = scope.parent()) {
+      if (headings.filter(other => scope.is(other) || scope.find(other).length).length > 1) break
+      if (hasRequirements(scope.html() ?? '')) content = scope.toString()
+    }
+    if (!content) {
+      let siblings = $(heading).next()
+      content = title.toString()
+      while (siblings.length && !headings.some(other => siblings.is(other) || siblings.find(other).length)) {
+        content += siblings.toString()
+        siblings = siblings.next()
+      }
+    }
+    if (hasRequirements(content) || $(heading).is('[class*="roleTitle"],[class*="job-title"],[class*="jobTitle"],[class*="position-title"]')) add(`${metadata}${content}`)
+  }
+  return jobs
 }
 
 const MAX_PAGE_BYTES = 2 * 1024 * 1024
