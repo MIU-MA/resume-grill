@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ArrowLeft, ExternalLink, Mail, Paperclip, Pause, Play, Plus, Settings } from 'lucide-react'
 import type { Mode } from '@/application/types'
 import { WorkbenchFrame } from '@/components/layout/WorkbenchFrame'
@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/Button'
 import { WorkspaceSidebar, type SidebarBadges } from '@/features/workspace/WorkspaceSidebar'
 import { batchSchema, MAIL_STATUS_LABELS, type CareerDiscovery, type CareerPage, type MailBatch, type MailJob } from '@/domain/mail-schema'
 import type { JobPreparationIntent, JobPreparationRequest } from '@/domain/job-preparation'
+import type { JobAssistantTools } from '@/domain/job-assistant'
+import { prepareAssistantDrafts } from './assistant-drafts'
 import { useSidebarCollapsed } from '@/features/workspace/hooks/use-sidebar-collapsed'
 import { useMailAgent } from './hooks/use-mail-agent'
 import { useMailDrafts } from './hooks/use-mail-drafts'
@@ -29,7 +31,7 @@ import { JobPreparationPanel } from './JobPreparationPanel'
 import { careerUrlKey, supplementCareerDraft } from './pasted-career'
 import { applyCareerPage, draftIssues, draftPayload, markWebsiteApplication, preparationAttachment, selectedMailDrafts, updateDraft, validResumeAttachment, websiteLinks, type Draft, type DraftField, type SavedJobPreparation, type WebsiteApplication } from './draft-state'
 
-export function MailWorkbench({ badges, onNavigate, onHome, onPrepare }: { badges: SidebarBadges; onNavigate: (mode: Mode) => void; onHome: () => void; onPrepare: (request: JobPreparationRequest, intent: JobPreparationIntent) => Promise<void> }) {
+export function MailWorkbench({ badges, onNavigate, onHome, onPrepare, renderAssistant }: { badges: SidebarBadges; onNavigate: (mode: Mode) => void; onHome: () => void; onPrepare: (request: JobPreparationRequest, intent: JobPreparationIntent) => Promise<void>; renderAssistant?: (tools: JobAssistantTools) => ReactNode }) {
   const agent = useMailAgent()
   const [error, setError] = useState('')
   const {
@@ -46,7 +48,7 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare }: { badge
     persist,
   } = useMailDrafts(setError, agent.snapshot?.sender)
   const [defaultsOpen, setDefaultsOpen] = useState(false)
-  const [inputMode, setInputMode] = useState<'contacts' | 'links'>('links')
+  const [inputMode, setInputMode] = useState<'contacts' | 'links' | 'assistant'>('links')
   const [editOpen, setEditOpen] = useState(false)
   const [previewPreparation, setPreviewPreparation] = useState<Record<string, SavedJobPreparation>>({})
   const [attachmentOpen, setAttachmentOpen] = useState(false)
@@ -224,12 +226,37 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare }: { badge
         {(['drafts', 'history'] as const).map(value => <button key={value} className={`h-full border-b-2 px-2 text-[12px] ${tab === value ? 'border-brand font-semibold' : 'border-transparent text-text-tertiary'}`} onClick={() => { setTab(value); setSelectedId(null); setFocusRequest(null); setEditOpen(false); setError('') }}>{value === 'drafts' ? `待投递 ${drafts.length}` : `投递记录 ${history.length}`}</button>)}
         {tab === 'drafts' && <button className="ml-auto flex items-center gap-1 px-2 py-2 text-[12px] text-text-secondary hover:bg-surface-hover" disabled={!hydrated || busy || !!preview} onClick={addDraft}><Plus size={13} />补录</button>}
       </div>
-      {tab === 'drafts' && hydrated && <div className="flex-none">
+      {tab === 'drafts' && hydrated && <div className={`flex-none ${inputMode === 'assistant' ? 'max-h-[55vh] overflow-y-auto' : ''}`}>
         <div className="flex items-center gap-4 px-5 pt-3 text-[12px]">
           <button type="button" aria-pressed={inputMode === 'contacts'} disabled={busy} className={inputMode === 'contacts' ? 'font-semibold text-text-primary' : 'text-text-tertiary'} onClick={() => setInputMode('contacts')}>名单 / 招聘正文</button>
           <button type="button" aria-pressed={inputMode === 'links'} disabled={busy} className={inputMode === 'links' ? 'font-semibold text-text-primary' : 'text-text-tertiary'} onClick={() => setInputMode('links')}>官网链接</button>
+          {renderAssistant && <button type="button" aria-pressed={inputMode === 'assistant'} disabled={busy} className={inputMode === 'assistant' ? 'font-semibold text-text-primary' : 'text-text-tertiary'} onClick={() => setInputMode('assistant')}>帮我找岗位</button>}
           {!defaults.sender.name && !snapshot?.sender?.name && <button type="button" className="ml-auto text-accent underline" onClick={() => setDefaultsOpen(true)}>设置发件人，自动填好邮件</button>}
         </div>
+        <div hidden={inputMode !== 'assistant'}>{renderAssistant?.({
+          connected: !!snapshot, disabled: busy || !!preview, slots: 20 - drafts.length,
+          existingJobs: drafts.map(({ sourceUrl, role }) => ({ sourceUrl, role })), preferredResumeId: attachmentSource?.id,
+          onConnect: () => setSettingsOpen('agent'), onBusy: setBusy,
+          discover: url => agent.request<CareerDiscovery>('/discover', { url }), read: url => agent.request<CareerPage>('/extract', { url }),
+          onImport: async (pages, resume) => {
+            if (busy || preview) throw new Error('当前操作尚未完成，请稍后再加入清单。')
+            const additions = prepareAssistantDrafts(pages, drafts, defaults, snapshot?.sender)
+            if (!additions.length) return
+            const file = validResumeAttachment(resume.attachment) ? resume.attachment : null
+            const source = file ? { id: resume.id, updatedAt: resume.attachmentUpdatedAt ?? resume.updatedAt } : undefined
+            if (drafts.length && attachment && (!source || attachmentSource?.id !== source.id || attachmentSource.updatedAt !== source.updatedAt)) {
+              throw new Error('清单中已有使用其他简历的岗位。请先处理当前清单，或使用同一份简历查找。')
+            }
+            const nextDrafts = [...drafts, ...additions]
+            const nextSelected = [...selectedDraftIds, ...additions.map(draft => draft.id)]
+            setBusy(true)
+            try {
+              await persist({ drafts: nextDrafts, attachment: file, attachmentSource: source, websiteApplications, preparationByJob, defaults, selectedIds: nextSelected })
+              setDrafts(nextDrafts); setSelectedDraftIds(nextSelected); setAttachment(file); setAttachmentSource(source)
+              setTab('drafts'); setError('')
+            } finally { setBusy(false) }
+          },
+        })}</div>
         <div hidden={inputMode !== 'contacts'}><ContactImporter disabled={busy || !!preview} slots={20 - drafts.length} onImport={importContacts} /></div>
         <div hidden={inputMode !== 'links'}><LinkImporter onBusy={setBusy} existingUrls={drafts.filter(draft => (draft.extraction?.jobs?.length ?? 0) < 2).map(draft => draft.sourceUrl)} existingJobs={drafts.map(({ sourceUrl, role }) => ({ sourceUrl, role }))} slots={20 - drafts.length} connected={!!snapshot} onConnect={() => setSettingsOpen('agent')} read={url => agent.request<CareerPage>('/extract', { url })} discover={url => agent.request<CareerDiscovery>('/discover', { url })} onImported={result => {
           const id = crypto.randomUUID()

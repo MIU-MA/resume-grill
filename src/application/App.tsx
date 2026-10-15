@@ -14,6 +14,7 @@ import { useKnowledgeActions } from '@/application/hooks/use-knowledge-actions'
 import type { Mode } from '@/application/types'
 import { effectivePriority, summarizeClaimProgress } from '@/domain/risk'
 import { MailWorkbench } from '@/features/applications/MailWorkbench'
+import { JobAssistant } from '@/application/JobAssistant'
 
 function App() {
   const { phase, mode, push, replace } = useAppNavigation()
@@ -142,7 +143,7 @@ function App() {
 
   if (workspace.recovering) return <div className="min-h-screen bg-bg" />
 
-  if (mode === 'applications') return <MailWorkbench badges={sidebarBadges} onNavigate={tab => workspace.analysis ? handleTabChange(tab) : push('upload')} onHome={() => push('upload')} onPrepare={async (request, intent) => {
+  if (mode === 'applications') return <MailWorkbench badges={sidebarBadges} renderAssistant={tools => <JobAssistant tools={tools} envConfigured={workspace.envConfigured} />} onNavigate={tab => workspace.analysis ? handleTabChange(tab) : push('upload')} onHome={() => push('upload')} onPrepare={async (request, intent) => {
     if (interview.loading || interview.regeneratingId) throw new Error('当前回答还在处理中，完成后可切换岗位。')
     await analysis.openJobPreparation(request, intent, () => {
       interview.reset()
