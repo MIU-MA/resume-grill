@@ -11,6 +11,7 @@
 - `src/components/ui/` 和 `src/hooks/` 只放与业务无关的通用控件和交互 Hook。
 - `src/lib/` 只放跨模块基础设施，如共用浏览器存储、模型设置、服务限流与 URL 安全检查；不得依赖应用入口或业务模块。
 - `src/providers/` 放模型适配器；`src/mail-agent/` 放独立的 Node 邮件执行器。浏览器代码不得导入执行器实现。
+- `src/browser-extension/` 放官网填写扩展及可恢复队列；只通过消息与工作台交接数据，不导入工作台视图、Node 执行器或模型适配器。打包入口放 `scripts/`，产物在已忽略的 `dist/website-extension/` 和 `public/generated/`。
 - `scripts/` 只放可执行入口和开发检查；文档及截图放在 `docs/`，示例输入放在 `examples/`，采集快照放在 `data/`，静态网站资源放在 `public/`。
 
 ## 依赖与命名

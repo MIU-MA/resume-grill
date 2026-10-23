@@ -28,6 +28,8 @@ import { applyMailDefaults, renderMailTemplate, senderDefaults } from './mail-de
 import { parseContactList, planContactImports } from './contact-import'
 import { DraftEditor } from './DraftEditor'
 import { JobPreparationPanel } from './JobPreparationPanel'
+import { WebsiteAutofillDialog } from './WebsiteAutofillDialog'
+import { websiteTargets } from './website-automation'
 import { careerUrlKey, supplementCareerDraft } from './pasted-career'
 import { applyCareerPage, draftIssues, draftPayload, markWebsiteApplication, preparationAttachment, selectedMailDrafts, updateDraft, validResumeAttachment, websiteLinks, type Draft, type DraftField, type SavedJobPreparation, type WebsiteApplication } from './draft-state'
 
@@ -57,6 +59,8 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare, renderAss
   const [collapsed, toggleCollapsed] = useSidebarCollapsed()
   const [preview, setPreview] = useState<MailBatch | null>(null)
   const [busy, setBusy] = useState(false)
+  const [websiteIds, setWebsiteIds] = useState<string[] | null>(null)
+  const [websiteChoices, setWebsiteChoices] = useState<Record<string, string>>({})
   const fileInput = useRef<HTMLInputElement>(null)
   const pendingPreparation = useRef<{ id: string; intent: JobPreparationIntent } | null>(null)
   const snapshot = agent.snapshot
@@ -65,6 +69,7 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare, renderAss
   const selected = tab === 'drafts' ? drafts.find(item => item.id === selectedId) ?? drafts[0] : history.find(item => item.id === selectedId) ?? history[0]
   const pending = jobs.filter(job => job.status === 'queued').length
   const selectedReadyDrafts = selectedMailDrafts(drafts, selectedDraftIds)
+  const selectedWebsiteCount = websiteTargets(drafts.filter(draft => selectedDraftIds.includes(draft.id))).length
   const selectedPreparation = selected && tab === 'history' ? preparationByJob[selected.id] : undefined
   const selectedAttachment = preparationAttachment(selectedPreparation, attachment, attachmentSource)
   const selectedDescription = selected ? (tab === 'history' ? selectedPreparation?.jobDescription : undefined) ?? (!isJob(selected) ? selected.jobDescription : '') ?? '' : ''
@@ -179,7 +184,7 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare, renderAss
     setTab('history'); setSelectedId(record.id)
   }
 
-  const draftEditor = selected && tab === 'drafts' ? <DraftEditor key={selected.id} draft={selected as Draft} sender={snapshot?.sender ?? (defaults.sender.name ? defaults.sender : null)} template={renderMailTemplate(defaults, selected as Draft, snapshot?.sender)} connected={!!snapshot} busy={busy} focusRequest={focusRequest} attachmentLabel={attachmentLabel} onPrepare={intent => void run(() => prepareJob(intent))} onUpdate={update} onConnect={() => setSettingsOpen('agent')} onRemove={() => removeDraft(selected.id)} onApplied={url => markApplied(selected as Draft, url)} onSupplement={page => {
+  const draftEditor = selected && tab === 'drafts' ? <DraftEditor key={selected.id} draft={selected as Draft} sender={snapshot?.sender ?? (defaults.sender.name ? defaults.sender : null)} template={renderMailTemplate(defaults, selected as Draft, snapshot?.sender)} connected={!!snapshot} busy={busy} focusRequest={focusRequest} attachmentLabel={attachmentLabel} onWebsiteAutomation={url => { setWebsiteChoices(url ? { [selected.id]: url } : {}); setWebsiteIds([selected.id]); setEditOpen(false) }} onPrepare={intent => void run(() => prepareJob(intent))} onUpdate={update} onConnect={() => setSettingsOpen('agent')} onRemove={() => removeDraft(selected.id)} onApplied={url => markApplied(selected as Draft, url)} onSupplement={page => {
             const id = selected.id
             setDrafts(items => items.map(item => item.id === id ? supplementCareerDraft(item, page) : item))
           }} onExtract={async () => {
@@ -218,7 +223,8 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare, renderAss
         <button className="flex items-center gap-1.5 text-[12px] text-text-secondary hover:text-text-primary" onClick={() => setSettingsOpen('sender')}><Mail size={14} />{snapshot?.sender?.address ?? '设置发件邮箱'}</button>
         <button className="flex items-center gap-1 text-[11px] text-text-tertiary hover:text-text-primary" onClick={() => setSettingsOpen('agent')}><Settings size={12} />{snapshot ? '本机已连接' : '连接本机'}</button>
         <button type="button" className="flex items-center gap-1 text-[12px] text-text-secondary" disabled={!hydrated || !!preview} onClick={() => setDefaultsOpen(true)}><Settings size={13} />投递设置</button>
-        <Button className="ml-auto h-8 px-3 text-[12px]" disabled={tab !== 'drafts' || !selectedReadyDrafts.length || busy || snapshot?.running || pending > 0 || !!snapshot?.fatalError} onClick={() => void run(preparePreview)}>预览并发送 {selectedReadyDrafts.length ? `(${selectedReadyDrafts.length})` : ''}</Button>
+        <Button variant="secondary" className="ml-auto h-8 px-3 text-[12px]" disabled={!hydrated || busy || !!preview} onClick={() => { setWebsiteChoices({}); setWebsiteIds(selectedDraftIds) }}>官网批量填写{selectedWebsiteCount ? ` (${selectedWebsiteCount})` : ''}</Button>
+        <Button className="h-8 px-3 text-[12px]" disabled={tab !== 'drafts' || !selectedReadyDrafts.length || busy || snapshot?.running || pending > 0 || !!snapshot?.fatalError} onClick={() => void run(preparePreview)}>预览并发送 {selectedReadyDrafts.length ? `(${selectedReadyDrafts.length})` : ''}</Button>
       </div>
       {attachmentOpen && <ResumeAttachmentPicker attachment={attachment} attachmentSource={attachmentSource} libraryAttachments={libraryAttachments} libraryError={libraryError} disabled={!!preview} onRemove={() => { setAttachment(null); setAttachmentSource(undefined) }} onChoose={item => { setAttachment(item.file); setAttachmentSource({ id: item.id, updatedAt: item.updatedAt }); setAttachmentOpen(false); setError('') }} />}
       {(error || agent.connectionError || snapshot?.fatalError) && <div role="alert" className="flex-none border-b border-line bg-danger-soft px-5 py-2 text-[12px] leading-relaxed text-danger">{error || agent.connectionError || snapshot?.fatalError}</div>}
@@ -297,6 +303,7 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare, renderAss
       </div>}
     </main>
     {editOpen && tab === 'drafts' && selected && <DraftDialog disabled={busy} onClose={() => setEditOpen(false)}>{draftEditor}</DraftDialog>}
+    {websiteIds && <WebsiteAutofillDialog drafts={drafts.filter(draft => websiteIds.includes(draft.id))} initialUrls={websiteChoices} attachment={attachment} resumeId={attachmentSource?.id} sender={snapshot?.sender ?? defaults.sender} onClose={() => setWebsiteIds(null)} />}
     {settingsOpen && <MailSettings agent={agent} purpose={settingsOpen} rememberedSender={defaults.sender} onVerified={sender => setDefaults(current => senderDefaults(current, sender))} onClose={() => setSettingsOpen(null)} />}
     {defaultsOpen && <MailDefaultsDialog defaults={defaults} attachmentName={attachment?.name} attachmentId={attachmentSource?.id} attachments={libraryAttachments} onChooseFile={() => fileInput.current?.click()} onChooseAttachment={id => {
       const chosen = libraryAttachments.find(item => item.id === id)

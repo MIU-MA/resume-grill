@@ -9,13 +9,14 @@ import type { JobPreparationIntent } from '@/domain/job-preparation'
 import { JobPreparationPanel } from './JobPreparationPanel'
 import { PastedCareerForm } from './PastedCareerForm'
 
-export function DraftEditor({ draft, sender, template, connected, busy, focusRequest, attachmentLabel, onPrepare, onUpdate, onRemove, onExtract, onSupplement, onConnect, onApplied }: {
+export function DraftEditor({ draft, sender, template, connected, busy, focusRequest, attachmentLabel, onPrepare, onUpdate, onRemove, onExtract, onSupplement, onConnect, onApplied, onWebsiteAutomation }: {
   draft: Draft; sender?: MailSender | null; connected: boolean; busy: boolean
   template?: { subject: string; body: string } | null
   focusRequest: { field: DraftField; time: number } | null
   onUpdate: (change: Partial<Draft>) => void; onRemove: () => void
   onExtract: () => Promise<void>; onSupplement: (page: CareerPage) => void; onConnect: () => void; onApplied: (url: string) => void
   attachmentLabel: string; onPrepare: (intent: JobPreparationIntent) => void
+  onWebsiteAutomation?: (url?: string) => void
 }) {
   const root = useRef<HTMLDivElement>(null)
   const [sourceOpen, setSourceOpen] = useState(false)
@@ -39,9 +40,9 @@ export function DraftEditor({ draft, sender, template, connected, busy, focusReq
     {issues.length > 0 && <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-y border-line py-3 text-[12px]"><span className="text-text-tertiary">待补充</span>{issues.map(issue => <button className="text-accent underline underline-offset-4" key={issue.field} onClick={() => focusField(issue.field)}>{issue.label}</button>)}</div>}
     {websiteMode && <div className="border border-line bg-surface-soft p-4 text-[13px]">
       <div className="mb-2 font-medium">官网申请</div>
-      <p className="my-2 text-[12px] leading-relaxed text-text-secondary">这个岗位通过官网申请。打开下面的页面，填好信息后回来标记。</p>
+      <p className="my-2 text-[12px] leading-relaxed text-text-secondary">可用浏览器扩展填写资料并附上简历，核对后在官网提交。</p>
       {links.length > 1 && <label className="mail-label mb-3">申请入口<select className="mail-input" value={selectedApplication} onChange={event => setApplicationUrl(event.target.value)}>{links.map(link => <option key={link.url} value={link.url}>{link.label || link.url}</option>)}</select></label>}
-      <div className="flex flex-wrap items-center gap-3"><a href={selectedApplication} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-accent underline">打开申请页面<ExternalLink size={13} /></a><Button variant="secondary" className="h-8 px-3 text-[12px]" disabled={issues.length > 0 || !selectedApplication || busy} onClick={() => selectedApplication && onApplied(selectedApplication)}>我已完成官网申请</Button></div>
+      <div className="flex flex-wrap items-center gap-3">{onWebsiteAutomation && <Button className="h-8 px-3 text-[12px]" disabled={busy || issues.length > 0} onClick={() => onWebsiteAutomation(selectedApplication)}>自动填写官网</Button>}<a href={selectedApplication} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-accent underline">打开申请页面<ExternalLink size={13} /></a><Button variant="secondary" className="h-8 px-3 text-[12px]" disabled={issues.length > 0 || !selectedApplication || busy} onClick={() => selectedApplication && onApplied(selectedApplication)}>我已完成官网申请</Button></div>
       <button className="mt-3 text-[12px] text-text-tertiary underline" onClick={() => { setEmailMode(true); focusField('recipient') }}>已有招聘邮箱，改为邮件投递</button>
     </div>}
     {sourcePage?.notes?.length ? <details className="text-[12px] leading-relaxed text-text-secondary"><summary className="cursor-pointer text-text-tertiary">查看网页读取说明</summary>{sourcePage.notes.map(note => <p className="my-2" key={note}>{note}</p>)}</details> : null}

@@ -75,6 +75,8 @@ for (const file of ['app', 'src', 'scripts'].flatMap(folder => files(resolve(roo
     if (from.startsWith('src/features/') && to.startsWith('src/application/') && !entry.typeOnly) fail('业务模块不得在运行时依赖应用编排')
     if (/^src\/(features|components|hooks|application)\//.test(from) && (to.startsWith('src/mail-agent/') || to.startsWith('node:'))) fail('浏览器层不得依赖本机执行器或 Node 实现')
     if (from.startsWith('src/mail-agent/') && /^src\/(features|application|components|hooks)\//.test(to)) fail('执行器不得依赖浏览器业务实现')
+    if (from.startsWith('src/browser-extension/') && /^(src\/(features|application|components|hooks|providers|mail-agent)\/|node:)/.test(to)) fail('扩展只能依赖领域契约和扩展内部实现')
+    if (!from.startsWith('src/browser-extension/') && !from.startsWith('scripts/') && to.startsWith('src/browser-extension/')) fail('工作台通过消息使用扩展，不直接导入扩展实现')
   }
 }
 
