@@ -3,7 +3,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { sourceUrlSchema, type CareerDiscovery, type CareerPage } from '@/domain/mail-schema'
-import { careerSites } from '@/data/career-sites'
+import { careerSites, filterCareerSites } from '@/data/career-sites'
 import { CareerPagePicker } from './CareerPagePicker'
 
 const labels = { entry: '招聘入口', job: '岗位详情', apply: '在线申请' }
@@ -21,6 +21,8 @@ export function CareerFinder({ connected, disabled, onConnect, discover, onChoos
   const [filter, setFilter] = useState('')
   const [error, setError] = useState('')
   const [open, setOpen] = useState(false)
+  const [directoryQuery, setDirectoryQuery] = useState('')
+  const [frontendOnly, setFrontendOnly] = useState(false)
   const pending = useRef<string | null>(null)
   const active = useRef(true)
   useEffect(() => { active.current = true; return () => { active.current = false } }, [])
@@ -44,13 +46,21 @@ export function CareerFinder({ connected, disabled, onConnect, discover, onChoos
     }
   }, [connected, disabled, busy])
   const links = result?.links.filter(link => `${link.label} ${link.url}`.toLowerCase().includes(filter.toLowerCase())) ?? []
+  const sites = filterCareerSites(directoryQuery, frontendOnly)
   return <div>
     <p className="mb-2 mt-0 text-[12px] text-text-secondary">打开官网挑职位，或点击「读取」从网页中选择。</p>
-    <div className="career-directory" aria-label="招聘官网">
-      {careerSites.map(site => <div className="career-site" key={site.url}><a href={site.url} target="_blank" rel="noopener noreferrer" title={site.url}>
+    <div className="mb-3 flex flex-wrap items-center gap-3 text-[12px]">
+      <input className="mail-input min-w-0 flex-1" aria-label="搜索招聘官网" placeholder="搜索公司、英文名、域名或技术，如 React" value={directoryQuery} onChange={event => setDirectoryQuery(event.target.value)} />
+      <label className="flex items-center gap-1.5 text-text-secondary"><input type="checkbox" checked={frontendOnly} onChange={event => setFrontendOnly(event.target.checked)} />有前端线索</label>
+      <span className="text-text-tertiary">{sites.length} / {careerSites.length} 家</span>
+    </div>
+    <div className="career-directory max-h-[280px] overflow-y-auto pr-1" aria-label="招聘官网">
+      {sites.map(site => <div className="career-site" key={site.url}><a href={site.url} target="_blank" rel="noopener noreferrer" title={[site.url, site.frontendRoles?.join('、'), site.reviewedAt ? `入口核对：${site.reviewedAt}` : ''].filter(Boolean).join('\n')}>
         <span className="career-monogram" aria-hidden="true">{site.company.slice(0, 1)}</span><span className="career-company">{site.company}</span><span className="career-arrow" aria-hidden="true">↗</span>
       </a><button type="button" className="career-read" aria-label={`读取${site.company}招聘岗位`} disabled={busy || disabled} onClick={() => void search(site.url)}>读取</button></div>)}
     </div>
+    {!sites.length && <p className="my-2 text-[12px] text-text-tertiary">没有匹配的官网，可以换个关键词，或在下方粘贴公司招聘链接。</p>}
+    {frontendOnly && <p className="my-2 text-[11px] text-text-tertiary">前端线索来自官网正文或公开索引，是否仍在招请以原站为准。</p>}
     <details open={open} onToggle={event => setOpen(event.currentTarget.open)} className="mt-3 text-[12px]">
       <summary className="w-fit cursor-pointer text-text-secondary">查找其他官网或岗位链接</summary>
     <div className="mt-3 flex flex-wrap items-end gap-2">

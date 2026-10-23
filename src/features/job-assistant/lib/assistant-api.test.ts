@@ -16,6 +16,14 @@ function modelReply(value: unknown) {
 beforeEach(() => { vi.clearAllMocks(); vi.mocked(resolveLlmConfig).mockReturnValue(config); vi.mocked(rateLimit).mockReturnValue({ ok: true }) })
 
 describe('求职助手接口', () => {
+  it('扩充后的官网同样可被助手选择，不仅在页面目录中展示', async () => {
+    const source = careerSites.find(site => site.company === '优码云')!
+    expect(assistantSources('前端 React')).toContainEqual(source)
+    modelReply({ ...plan, sourceUrls: [source.url] })
+    const response = await handleAssistantRequest(request())
+    expect(response.status).toBe(200)
+    expect((await response.json()).sources).toEqual([{ company: source.company, url: source.url }])
+  })
   it('仅规划收录官网或用户明确提供的 HTTPS 链接，不接受模型补造来源', async () => {
     modelReply({ ...plan, sourceUrls: ['https://invented.example/careers'] })
     expect((await handleAssistantRequest(request())).status).toBe(502)
