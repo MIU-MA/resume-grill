@@ -2,10 +2,10 @@
 
 /* ── 设计 token ── */
 @theme {
-  --color-bg: #faf9f6;
+  --color-bg: #f6f5f1;
   --color-surface: #ffffff;
-  --color-surface-soft: #f3f4f1;
-  --color-surface-hover: #e9ece8;
+  --color-surface-soft: #f7f7f5;
+  --color-surface-hover: #eeefec;
   --color-canvas: #edf0f2;
 
   --color-text-primary: #282d33;
@@ -14,8 +14,8 @@
   --color-text-muted: #78818a;
   --shadow-card: 0 1px 3px rgba(48, 44, 37, 0.05);
 
-  --color-line: #dedfda;
-  --color-line-strong: #bfc3bd;
+  --color-line: #e5e5df;
+  --color-line-strong: #c5c7c1;
 
   --color-brand: #343b45;
   --color-brand-hover: #242b34;
@@ -81,19 +81,31 @@ button { cursor: pointer; }
   background: var(--color-surface);
 }
 .workbench-library { height: auto; min-height: 100dvh; overflow: visible; background: var(--color-bg); }
-.workbench-library > header { border-top: 3px solid var(--color-brand); background: var(--color-surface); }
-.library-content { display: flex; flex: 1 0 auto; align-items: center; justify-content: center; min-width: 0; padding: 32px 24px; }
-.library-body { max-width: 1320px; margin: 0; border: 1px solid var(--color-line); background: var(--color-surface); }
-.library-import { background: #f7f7f3; }
-.library-dropzone { --color-line-strong: #aeb6bf; }
-.library-mail-link { border-color: #e7cbb9; background: var(--color-accent-soft); color: var(--color-accent); transition: background-color .12s; }
-.library-mail-link:hover { background: #fbe7d9; }
+.workbench-library > header { min-height: 64px; background: var(--color-surface); }
+.library-content { display: flex; flex: 1 0 auto; align-items: center; justify-content: center; min-width: 0; padding: 40px 32px; }
+.library-body { max-width: 1240px; margin: 0; border: 1px solid var(--color-line); background: var(--color-surface); }
+.library-collection { display: flex; flex-direction: column; }
+.library-collection, .library-import { padding: clamp(24px, 3vw, 44px); }
+.library-collection > div:first-child { margin-bottom: 32px; }
+.library-body h1 { font-size: 30px; line-height: 1.35; letter-spacing: -.04em; }
+.library-import { background: #faf9f6; }
+.library-import h2 { font-size: 20px; letter-spacing: -.025em; }
+.library-dropzone { --color-line-strong: #c4c7c0; min-height: 218px; transition: border-color .15s, background-color .15s; }
+.library-dropzone:hover { border-color: var(--color-accent); }
+.library-dropzone > svg { box-sizing: content-box; padding: 12px; background: var(--color-accent-soft); color: var(--color-accent); }
+.library-files > div:first-child { background: transparent; padding-inline: 0; font-size: 11px; }
+.library-file-row { padding-inline: 0; gap: 16px; }
+.library-file-icon { display: grid; place-items: center; flex: none; width: 42px; height: 50px; border: 1px solid #e5d8ca; background: #faf4ec; color: #95603b; }
+.library-mail-link { border: 1px solid #ecdcd0; background: #fcf7f0; color: var(--color-accent); transition: background-color .12s; }
+.library-collection > .library-mail-link { margin-top: auto; }
+.library-files { margin-bottom: 32px; }
+.library-mail-link:hover { background: #f8edde; }
 .library-mail-link strong, .library-mail-link > svg { color: var(--color-accent); }
-.library-body h1 { border-left: 3px solid var(--color-brand); padding-left: 12px; }
 .workbench-library > footer { margin-top: 0; }
-@media (min-width: 900px) { .library-body { grid-template-columns: minmax(0, 1fr) minmax(360px, .72fr); } }
+@media (min-width: 900px) { .library-body { grid-template-columns: minmax(0, 1.15fr) minmax(360px, .85fr); } }
 @media (max-width: 1375px) { .library-content { padding-block: 24px; } }
 @media (max-width: 899px) { .library-content { align-items: flex-start; padding: 0; } .library-body { width: 100%; border: 0; } }
+@media (max-width: 639px) { .library-file-icon { display: none; } }
 
 .diagnosis-layout { container: diagnosis / inline-size; }
 .diagnosis-report-grid { display: grid; grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
@@ -105,18 +117,21 @@ button { cursor: pointer; }
 
 /* White content, neutral navigation and colored status labels have separate roles. */
 .workspace-dock, .workspace-drawer {
-  background: #f0f2ee; color: var(--color-text-primary);
+  background: #f5f4ef; color: var(--color-text-primary);
 }
-.workspace-brand { color: var(--color-text-primary); }
+.workspace-brand { min-height: 68px; color: var(--color-text-primary); }
+.workspace-dock nav, .workspace-drawer nav { padding-top: 20px; }
+.workspace-dock nav > div, .workspace-drawer nav > div { display: grid; gap: 6px; }
 .workspace-nav-row { color: var(--color-text-secondary); transition: background-color .12s, color .12s; }
-.workspace-nav-row:hover, .workspace-nav-row:focus-visible { background: #e6e9e3; color: var(--color-text-primary); }
-.workspace-nav-row[aria-current="page"] { background: #e1e7ee; color: #2c3b4c; font-weight: 600; }
-.workspace-nav-row[aria-current="page"]:hover { background: #d6dfe9; }
-.workspace-nav-marker { background: var(--color-info); }
-.workspace-nav-count { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; padding: 1px 5px; background: #e1e5df; color: var(--color-text-secondary); font-size: 10px; font-weight: 600; }
-.workspace-nav-row[aria-current="page"] .workspace-nav-count { background: #cbd7e4; color: #2c3b4c; }
+.workspace-nav-row:hover, .workspace-nav-row:focus-visible { background: #eae9e2; color: var(--color-text-primary); }
+.workspace-nav-row[aria-current="page"] { background: var(--color-brand); color: white; font-weight: 500; }
+.workspace-nav-row[aria-current="page"]:hover { background: var(--color-brand-hover); }
+.workspace-nav-marker { background: #dea67e; }
+.workspace-nav-count { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; padding: 1px 5px; background: #e8e7df; color: var(--color-text-secondary); font-size: 10px; font-weight: 600; }
+.workspace-nav-row[aria-current="page"] .workspace-nav-count { background: #535a63; color: white; }
 .workspace-nav-tooltip { position: fixed; z-index: 80; pointer-events: none; border: 1px solid var(--color-line-strong); background: var(--color-surface); color: var(--color-text-primary); padding: 7px 11px; font-size: 12px; line-height: 18px; white-space: nowrap; }
-.workspace-section-heading { border-top: 3px solid var(--color-brand); background: var(--color-surface); }
+.workspace-section-heading { min-height: 68px; background: var(--color-surface); }
+.workspace-section-heading h1 { font-size: 19px; letter-spacing: -.025em; }
 .workbench-status { display: inline-flex; flex: none; align-items: center; gap: 5px; padding: 2px 6px; white-space: nowrap; background: var(--color-surface-hover); color: var(--color-text-secondary); font-size: 11px; line-height: 18px; font-weight: 500; }
 .workbench-status[data-tone="success"] { background: var(--color-success-soft); color: var(--color-success); }
 .workbench-status[data-tone="warning"] { background: var(--color-warning-soft); color: var(--color-warning); }
@@ -166,14 +181,18 @@ button { cursor: pointer; }
 .preparation-state { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--color-text-tertiary); }
 .preparation-state > span { width: 5px; height: 5px; background: var(--color-line-strong); }
 .preparation-state > .is-ready { background: var(--color-success); }
-.career-directory { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
-.career-site { display: flex; min-width: 0; border: 1px solid var(--color-line); transition: background .15s, border-color .15s; }
-.career-site:hover { border-color: var(--color-line-strong); background: var(--color-surface-soft); }
-.career-site > a { display: flex; flex: 1; align-items: center; gap: 8px; min-width: 0; padding: 10px; }
-.career-read { flex: none; padding: 0 8px; border-left: 1px solid var(--color-line); font-size: 11px; color: var(--color-info); }
+.career-directory-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px; margin-bottom: 16px; }
+.career-directory-heading h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.career-directory-heading p { margin: 0; font-size: 12px; color: var(--color-text-tertiary); }
+.career-directory-search > input { max-width: 440px; background: var(--color-surface-soft); border-color: var(--color-line); }
+.career-directory { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0 20px; margin-bottom: 16px; scrollbar-width: thin; scrollbar-color: var(--color-line-strong) transparent; }
+.career-site { display: flex; min-width: 0; border-bottom: 1px solid var(--color-line); transition: background .15s; }
+.career-site:hover { background: var(--color-surface-soft); }
+.career-site > a { display: flex; flex: 1; align-items: center; gap: 10px; min-width: 0; padding: 11px 4px; }
+.career-read { flex: none; padding: 0 8px; font-size: 11px; color: var(--color-info); }
 .career-read:hover { background: var(--color-info-soft); }
 .career-read:disabled { opacity: .4; cursor: default; }
-.career-monogram { display: grid; place-items: center; flex: none; width: 28px; height: 28px; background: var(--color-brand-soft); color: var(--color-brand); font-size: 12px; }
+.career-monogram { display: grid; place-items: center; flex: none; width: 28px; height: 28px; background: #f2ece3; color: #886547; font-size: 12px; font-weight: 600; }
 .career-company { min-width: 0; font-size: 12px; overflow-wrap: anywhere; }
 .career-arrow { margin-left: auto; color: var(--color-text-tertiary); font-size: 12px; }
 @container preparation (min-width: 760px) { .preparation-columns { grid-template-columns: minmax(0, 1fr) minmax(200px, .48fr); } }
@@ -214,6 +233,56 @@ button:focus-visible, textarea:focus-visible, a:focus-visible, input:focus-visib
 ::selection { background: #dce7f3; color: #28394c; }
 
 .mail-work-area { display: grid; grid-template-columns: 290px minmax(0, 1fr); }
+.mail-workbench { container: mail-workbench / inline-size; min-height: 0; overflow-y: auto; }
+.mail-workbench > .workspace-section-heading { padding-inline: 28px; }
+.mail-toolbar { display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding: 14px 28px; border-bottom: 1px solid var(--color-line); background: var(--color-surface); }
+.mail-toolbar-resources { display: flex; flex: 1; flex-wrap: wrap; min-width: 0; align-items: center; gap: 12px 16px; }
+.mail-toolbar-resources > button { min-height: 28px; }
+.mail-toolbar-resources > button:disabled { cursor: not-allowed; opacity: .45; }
+.mail-toolbar-resources > button:hover { color: var(--color-text-primary); }
+.mail-toolbar-resources > .mail-attachment { max-width: 280px; border: 1px solid var(--color-line); padding: 5px 8px; background: var(--color-surface-soft); }
+.mail-toolbar-actions { display: flex; flex-wrap: wrap; margin-left: auto; gap: 8px; }
+.mail-settings-menu { position: relative; font-size: 12px; color: var(--color-text-secondary); }
+.mail-settings-menu > summary { cursor: pointer; padding: 6px 0; }
+.mail-settings-menu > div { position: absolute; top: 100%; left: 0; z-index: 30; display: grid; gap: 12px; width: 240px; max-width: 70vw; padding: 16px; border: 1px solid var(--color-line); background: white; box-shadow: 0 6px 20px #282d3310; }
+.mail-settings-menu button { overflow-wrap: anywhere; text-align: left; }
+.career-directory-disclosure > summary { padding-block: 4px; }
+.mail-tabs { padding-inline: 28px; gap: 20px; }
+.mail-tabs > button { padding-inline: 0; }
+.mail-tabs > button.border-brand { border-color: var(--color-accent); }
+.mail-import-area { background: #faf9f6; border-bottom: 1px solid var(--color-line); }
+.mail-input-modes { padding: 14px 28px 0; gap: 8px; }
+.mail-input-modes > button { padding: 7px 12px; border: 1px solid transparent; }
+.mail-input-modes > button[aria-pressed="true"] { border-color: var(--color-line); background: white; box-shadow: 0 1px 2px #282d3305; }
+.mail-input-modes > button:hover { color: var(--color-text-primary); }
+.mail-link-importer { margin: 12px 28px 20px; padding: 20px; border: 1px solid var(--color-line); }
+.mail-empty { display: flex; flex: 1; align-items: flex-start; justify-content: center; gap: 18px; min-height: 180px; overflow-y: auto; padding: 36px 28px; }
+.mail-empty > svg { flex: none; box-sizing: content-box; padding: 14px; background: var(--color-surface-soft); color: var(--color-text-tertiary); }
+.mail-empty h2 { font-size: 15px; }
+.mail-empty p { max-width: 430px; font-size: 12px; color: var(--color-text-tertiary); }
+.mail-draft-table { min-height: 240px; }
+.mail-draft-table > div:first-child { padding-inline: 28px; background: var(--color-surface); }
+.mail-draft-table thead { background: #f7f7f4; font-size: 11px; }
+.mail-draft-table thead th { font-weight: 500; }
+.mail-draft-table tbody tr[data-selected="true"] { background: #f6f8fb; }
+.mail-draft-table tbody tr:hover { background: #eef2f6; }
+.mail-draft-table tbody td:nth-child(2) input { font-weight: 600; }
+.resume-workbench input[type="checkbox"] { accent-color: var(--color-brand); }
+.resume-workbench input::placeholder, .resume-workbench textarea::placeholder { color: var(--color-text-muted); }
+@container mail-workbench (max-width: 760px) {
+  .mail-workbench > .workspace-section-heading, .mail-toolbar, .mail-tabs { padding-inline: 16px; }
+  .mail-toolbar-resources { flex-basis: 100%; }
+  .mail-toolbar-actions { width: 100%; }
+  .mail-toolbar-actions > button { flex: 1; }
+  .mail-input-modes { padding-inline: 16px; }
+  .mail-link-importer { margin: 12px 16px 16px; padding: 14px; }
+  .career-directory { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 12px; }
+}
+@container mail-workbench (max-width: 480px) {
+  .career-directory { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mail-empty { padding: 24px 16px; }
+  .mail-empty > svg { display: none; }
+}
 .mail-label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--color-text-secondary); }
 .mail-input { width: 100%; min-width: 0; border: 1px solid var(--color-line-strong); border-radius: 0; background: white; color: var(--color-text-primary); padding: 8px 10px; font: inherit; font-size: 13px; }
 input.mail-input, select.mail-input { height: 36px; }

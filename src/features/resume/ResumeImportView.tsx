@@ -103,7 +103,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
 
       <main className="library-content">
       <div className="library-body grid min-h-0 w-full">
-        <section className="order-2 min-w-0 px-5 py-6 sm:p-7 min-[900px]:order-1" aria-labelledby="saved-resumes-title">
+        <section className="library-collection order-2 min-w-0 px-5 py-6 sm:p-7 min-[900px]:order-1" aria-labelledby="saved-resumes-title">
           <div className="mb-6">
             <div className="flex items-baseline gap-3">
               <h1 id="saved-resumes-title" className="m-0 text-[24px] font-semibold tracking-tight">简历库</h1>
@@ -112,7 +112,7 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
             <p className="mb-0 mt-2 text-[14px] leading-relaxed text-text-secondary">改简历、练面试，也可以直接投递。</p>
           </div>
 
-          <div className="border-y border-line">
+          <div className="library-files border-y border-line">
             <div className="flex items-center justify-between bg-surface-soft px-3 py-2.5 text-[12px] text-text-tertiary">
               <span>简历 / 最近更新</span><span>操作</span>
             </div>

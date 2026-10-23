@@ -4,6 +4,7 @@ import { isWorkbenchUrl, PROFILE_LABELS, profileSchema, websiteBatchSchema, type
 import type { Draft } from './draft-state'
 import { validResumeAttachment } from './draft-state'
 import { encodeAttachment } from './mail-attachment'
+import type { WebsiteExperience } from '@/domain/website-experience'
 
 const PROFILE_KEY = 'website-autofill:profile:v1'
 export async function loadWebsiteProfile() { return profileSchema.parse((await get<WebsiteProfile>(PROFILE_KEY)) ?? {}) }
@@ -32,7 +33,7 @@ export function websiteTargets(drafts: Draft[]) {
     return { draft, links, url: links.length === 1 ? links[0].url : links.length ? '' : draft.sourceUrl }
   })
 }
-export async function makeWebsiteBatch(drafts: Draft[], urls: Record<string, string>, profile: WebsiteProfile, file: File | null) {
+export async function makeWebsiteBatch(drafts: Draft[], urls: Record<string, string>, profile: WebsiteProfile, file: File | null, experiences?: WebsiteExperience[]) {
   if (!validResumeAttachment(file)) throw new Error('请先选择 5 MB 以内的 PDF、DOCX 或 TXT 简历。')
   const targets = websiteTargets(drafts)
   if (!targets.length) throw new Error('先勾选带有官网链接的岗位；有招聘邮箱的条目仍走邮件投递。')
@@ -41,7 +42,7 @@ export async function makeWebsiteBatch(drafts: Draft[], urls: Record<string, str
     if (!selected || (links.length && !links.some(link => link.url === selected)) || (!links.length && selected !== draft.sourceUrl)) throw new Error(`请为 ${draft.company} 选择申请入口。`)
     return { id: draft.id, company: draft.company, role: draft.role, url: selected }
   })
-  return websiteBatchSchema.parse({ id: crypto.randomUUID(), createdAt: Date.now(), jobs, profile, attachment: { name: file.name, base64: await encodeAttachment(file) } })
+  return websiteBatchSchema.parse({ id: crypto.randomUUID(), createdAt: Date.now(), jobs, profile, experiences, attachment: { name: file.name, base64: await encodeAttachment(file) } })
 }
 export function extensionRequest<T>(type: 'ping' | 'snapshot' | 'stage', batch?: unknown): Promise<T> {
   if (!isWorkbenchUrl(location.href)) return Promise.reject(new Error('官网填写扩展目前支持本机 3000 / 3107 端口的工作台。'))

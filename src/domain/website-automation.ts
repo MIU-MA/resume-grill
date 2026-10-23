@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { attachmentSchema, sourceUrlSchema } from './mail-schema'
+import { experiencesSchema } from './website-experience'
 
 export const PROFILE_LABELS = { name: '姓名', email: '邮箱', phone: '手机号', city: '所在城市', school: '学校', major: '专业', degree: '最高学历', educationStart: '入学时间', educationEnd: '毕业时间', company: '最近任职公司', jobTitle: '最近职位', workStart: '入职时间', workEnd: '离职时间', github: 'GitHub', portfolio: '作品集' } as const
 export type ProfileKey = keyof typeof PROFILE_LABELS
@@ -13,6 +14,7 @@ export const answerSchema = z.object({ origin: z.url().refine(value => { const u
 export type WebsiteAnswer = z.infer<typeof answerSchema>
 export const websiteBatchSchema = z.object({
   id: z.uuid(), createdAt: z.number(), profile: profileSchema,
+  experiences: experiencesSchema.optional(),
   jobs: z.array(z.object({ id: z.uuid(), company: z.string().trim().min(1).max(120), role: z.string().trim().min(1).max(120), url: sourceUrlSchema }).strict()).min(1).max(20),
   attachment: attachmentSchema,
 }).strict().superRefine((batch, ctx) => {

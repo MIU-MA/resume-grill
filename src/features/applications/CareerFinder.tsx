@@ -47,10 +47,13 @@ export function CareerFinder({ connected, disabled, onConnect, discover, onChoos
   }, [connected, disabled, busy])
   const links = result?.links.filter(link => `${link.label} ${link.url}`.toLowerCase().includes(filter.toLowerCase())) ?? []
   const sites = filterCareerSites(directoryQuery, frontendOnly)
-  return <div>
-    <p className="mb-2 mt-0 text-[12px] text-text-secondary">打开官网挑职位，或点击「读取」从网页中选择。</p>
-    <div className="mb-3 flex flex-wrap items-center gap-3 text-[12px]">
-      <input className="mail-input min-w-0 flex-1" aria-label="搜索招聘官网" placeholder="搜索公司、英文名、域名或技术，如 React" value={directoryQuery} onChange={event => setDirectoryQuery(event.target.value)} />
+  return <div className="career-finder">
+    <details className="career-directory-disclosure">
+    <summary className="cursor-pointer text-[13px] font-medium">浏览招聘官网 <span className="ml-2 text-[12px] font-normal text-text-tertiary">{careerSites.length} 家 · 支持搜索与筛选</span></summary>
+    <div className="mt-4">
+    <div className="career-directory-heading"><h2>招聘官网</h2><p>去官网选职位，也可以直接读取岗位。</p></div>
+    <div className="career-directory-search mb-3 flex flex-wrap items-center gap-3 text-[12px]">
+      <input className="mail-input min-w-0 flex-1" aria-label="搜索招聘官网" placeholder="搜索公司 / 技术方向" value={directoryQuery} onChange={event => setDirectoryQuery(event.target.value)} />
       <label className="flex items-center gap-1.5 text-text-secondary"><input type="checkbox" checked={frontendOnly} onChange={event => setFrontendOnly(event.target.checked)} />有前端线索</label>
       <span className="text-text-tertiary">{sites.length} / {careerSites.length} 家</span>
     </div>
@@ -61,6 +64,8 @@ export function CareerFinder({ connected, disabled, onConnect, discover, onChoos
     </div>
     {!sites.length && <p className="my-2 text-[12px] text-text-tertiary">没有匹配的官网，可以换个关键词，或在下方粘贴公司招聘链接。</p>}
     {frontendOnly && <p className="my-2 text-[11px] text-text-tertiary">前端线索来自官网正文或公开索引，是否仍在招请以原站为准。</p>}
+    </div>
+    </details>
     <details open={open} onToggle={event => setOpen(event.currentTarget.open)} className="mt-3 text-[12px]">
       <summary className="w-fit cursor-pointer text-text-secondary">查找其他官网或岗位链接</summary>
     <div className="mt-3 flex flex-wrap items-end gap-2">

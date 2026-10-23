@@ -85,7 +85,7 @@ export function LinkImporter({ existingUrls, existingJobs, slots, connected, onC
       const urls = pending.current; pending.current = null; resumeImport(urls)
     }
   }, [connected, busy, finding])
-  return <section className="flex-none border-b border-line bg-surface px-4 py-3 sm:px-5" aria-label="导入招聘链接">
+  return <section className="mail-link-importer flex-none border-b border-line bg-surface px-4 py-3 sm:px-5" aria-label="导入招聘链接">
     <CareerFinder connected={connected} disabled={busy} existingJobs={existingJobs} slots={slots} onPage={page => complete(page.url, page)} onConnect={onConnect} discover={discover} onBusy={value => { setFinding(value); onBusy(value) }} onChoose={urls => { setInput(urls.join('\n')); void importLinks(urls) }} />
     <details className="mt-3 border-t border-line pt-3">
       <summary className="w-fit cursor-pointer text-[12px] text-text-secondary">已有具体岗位链接 · 粘贴到清单</summary>

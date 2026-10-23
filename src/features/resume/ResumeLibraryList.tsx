@@ -21,8 +21,8 @@ export function ResumeLibraryList({ records, documents, onOpenRecord, onOpenDocu
       const job = document?.jobContext ?? record?.analysis.jobContext
       const completed = Object.values(record?.sessions ?? {}).flat().filter(session => session.status === 'done').length
       const open = () => record ? onOpenRecord(record) : onOpenDocument(document!)
-      return <div key={id} className="flex items-center gap-3 px-3 py-4 hover:bg-surface-soft">
-        <FileText size={19} className="flex-none text-brand max-sm:hidden" />
+      return <div key={id} className="library-file-row flex items-center gap-3 px-3 py-4 hover:bg-surface-soft">
+        <span className="library-file-icon max-sm:hidden"><FileText size={20} strokeWidth={1.5} /></span>
         <button type="button" className="min-w-0 flex-1 text-left" onClick={open}>
           <strong className="block truncate text-[14px] font-semibold">{title}</strong>
           {job && <span className="mt-1 block truncate text-[12px] text-brand">{job.company} / {job.role} · 版本 {job.resumeVersion.slice(0, 8)}</span>}

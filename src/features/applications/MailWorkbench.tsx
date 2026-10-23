@@ -198,13 +198,13 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare, renderAss
 
   return <WorkbenchFrame className="flex">
     <WorkspaceSidebar mode="applications" collapsed={collapsed} onToggleCollapsed={toggleCollapsed} onNavigate={onNavigate} badges={badges} onOpenHistory={onHome} onOpenSettings={() => setSettingsOpen('sender')} variant="dock" />
-    <main className="flex min-w-0 flex-1 flex-col">
+    <main className="mail-workbench flex min-w-0 flex-1 flex-col">
       <header className="workspace-section-heading flex h-14 flex-none items-center gap-3 border-b border-line px-4 sm:px-5">
         <Button variant="ghost" className="size-8 p-0 md:hidden" aria-label="返回简历库" onClick={onHome}><ArrowLeft size={17} /></Button>
         <h1 className="m-0 whitespace-nowrap text-[16px] font-semibold">投递清单</h1>
         <span className="ml-auto min-w-0 truncate text-[12px] text-text-tertiary max-sm:hidden">{drafts.length} 个待处理 · {history.length} 条记录</span>
       </header>
-      <div className="flex flex-none flex-wrap items-center gap-x-4 gap-y-2 border-b border-line bg-surface-soft px-4 py-2 sm:px-5">
+      <div className="mail-toolbar">
         <input ref={fileInput} hidden type="file" accept=".pdf,.docx,.txt" onChange={event => {
           const file = event.target.files?.[0]
           if (file) {
@@ -218,22 +218,28 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare, renderAss
           }
           event.target.value = ''
         }} />
-        <button className="flex min-w-0 max-w-full items-center gap-1.5 text-[12px] text-text-secondary hover:text-text-primary" disabled={!hydrated || !!preview} title={attachment ? '更换本地简历附件' : '选择本地简历附件'} onClick={() => fileInput.current?.click()}><Paperclip size={14} className="shrink-0" /><span className="truncate" title={attachment?.name}>{attachment?.name ?? '选择简历附件'}</span><span className="shrink-0 text-text-tertiary">{attachmentSource ? `· ${savedDate(attachmentSource.updatedAt)} 版本` : attachment ? '· 更换' : ''}</span></button>
+        <div className="mail-toolbar-resources">
+        <button className="mail-attachment flex min-w-0 max-w-full items-center gap-1.5 text-[12px] text-text-secondary hover:text-text-primary" disabled={!hydrated || !!preview} title={attachment ? '更换本地简历附件' : '选择本地简历附件'} onClick={() => fileInput.current?.click()}><Paperclip size={14} className="shrink-0" /><span className="truncate" title={attachment?.name}>{attachment?.name ?? '选择简历附件'}</span><span className="shrink-0 text-text-tertiary">{attachmentSource ? `· ${savedDate(attachmentSource.updatedAt)} 版本` : attachment ? '· 更换' : ''}</span></button>
         <button className="text-[11px] text-text-tertiary hover:text-text-primary" disabled={!hydrated || !!preview} aria-expanded={attachmentOpen} onClick={() => setAttachmentOpen(value => !value)}>{attachmentOpen ? '收起简历库' : '从简历库选择'}</button>
+        <details className="mail-settings-menu"><summary>发件与设置</summary><div>
         <button className="flex items-center gap-1.5 text-[12px] text-text-secondary hover:text-text-primary" onClick={() => setSettingsOpen('sender')}><Mail size={14} />{snapshot?.sender?.address ?? '设置发件邮箱'}</button>
         <button className="flex items-center gap-1 text-[11px] text-text-tertiary hover:text-text-primary" onClick={() => setSettingsOpen('agent')}><Settings size={12} />{snapshot ? '本机已连接' : '连接本机'}</button>
         <button type="button" className="flex items-center gap-1 text-[12px] text-text-secondary" disabled={!hydrated || !!preview} onClick={() => setDefaultsOpen(true)}><Settings size={13} />投递设置</button>
-        <Button variant="secondary" className="ml-auto h-8 px-3 text-[12px]" disabled={!hydrated || busy || !!preview} onClick={() => { setWebsiteChoices({}); setWebsiteIds(selectedDraftIds) }}>官网批量填写{selectedWebsiteCount ? ` (${selectedWebsiteCount})` : ''}</Button>
+        </div></details>
+        </div>
+        <div className="mail-toolbar-actions">
+        <Button variant="secondary" className="h-8 px-3 text-[12px]" disabled={!hydrated || busy || !!preview} onClick={() => { setWebsiteChoices({}); setWebsiteIds(selectedDraftIds) }}>官网批量填写{selectedWebsiteCount ? ` (${selectedWebsiteCount})` : ''}</Button>
         <Button className="h-8 px-3 text-[12px]" disabled={tab !== 'drafts' || !selectedReadyDrafts.length || busy || snapshot?.running || pending > 0 || !!snapshot?.fatalError} onClick={() => void run(preparePreview)}>预览并发送 {selectedReadyDrafts.length ? `(${selectedReadyDrafts.length})` : ''}</Button>
+        </div>
       </div>
       {attachmentOpen && <ResumeAttachmentPicker attachment={attachment} attachmentSource={attachmentSource} libraryAttachments={libraryAttachments} libraryError={libraryError} disabled={!!preview} onRemove={() => { setAttachment(null); setAttachmentSource(undefined) }} onChoose={item => { setAttachment(item.file); setAttachmentSource({ id: item.id, updatedAt: item.updatedAt }); setAttachmentOpen(false); setError('') }} />}
       {(error || agent.connectionError || snapshot?.fatalError) && <div role="alert" className="flex-none border-b border-line bg-danger-soft px-5 py-2 text-[12px] leading-relaxed text-danger">{error || agent.connectionError || snapshot?.fatalError}</div>}
-      <div className="flex h-11 flex-none items-center border-b border-line px-4">
+      <div className="mail-tabs flex h-11 flex-none items-center border-b border-line px-4">
         {(['drafts', 'history'] as const).map(value => <button key={value} className={`h-full border-b-2 px-2 text-[12px] ${tab === value ? 'border-brand font-semibold' : 'border-transparent text-text-tertiary'}`} onClick={() => { setTab(value); setSelectedId(null); setFocusRequest(null); setEditOpen(false); setError('') }}>{value === 'drafts' ? `待投递 ${drafts.length}` : `投递记录 ${history.length}`}</button>)}
         {tab === 'drafts' && <button className="ml-auto flex items-center gap-1 px-2 py-2 text-[12px] text-text-secondary hover:bg-surface-hover" disabled={!hydrated || busy || !!preview} onClick={addDraft}><Plus size={13} />补录</button>}
       </div>
-      {tab === 'drafts' && hydrated && <div className={`flex-none ${inputMode === 'assistant' ? 'max-h-[55vh] overflow-y-auto' : ''}`}>
-        <div className="flex items-center gap-4 px-5 pt-3 text-[12px]">
+      {tab === 'drafts' && hydrated && <div className={`mail-import-area flex-none ${inputMode === 'assistant' ? 'max-h-[55vh] overflow-y-auto' : ''}`}>
+        <div className="mail-input-modes flex flex-wrap items-center gap-x-4 gap-y-2 px-5 pt-3 text-[12px]">
           <button type="button" aria-pressed={inputMode === 'contacts'} disabled={busy} className={inputMode === 'contacts' ? 'font-semibold text-text-primary' : 'text-text-tertiary'} onClick={() => setInputMode('contacts')}>名单 / 招聘正文</button>
           <button type="button" aria-pressed={inputMode === 'links'} disabled={busy} className={inputMode === 'links' ? 'font-semibold text-text-primary' : 'text-text-tertiary'} onClick={() => setInputMode('links')}>官网链接</button>
           {renderAssistant && <button type="button" aria-pressed={inputMode === 'assistant'} disabled={busy} className={inputMode === 'assistant' ? 'font-semibold text-text-primary' : 'text-text-tertiary'} onClick={() => setInputMode('assistant')}>帮我找岗位</button>}

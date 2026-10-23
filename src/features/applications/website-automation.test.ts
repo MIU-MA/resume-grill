@@ -8,6 +8,11 @@ const draft = (extra: Partial<Draft> = {}): Draft => ({ id: crypto.randomUUID(),
 afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers() })
 
 describe('工作台与官网填写交接', () => {
+  it('将已核对的多段经历随批次传给扩展', async () => {
+    const experiences = [{ id: 'entry-1', kind: 'work' as const, organization: '甲公司', title: '前端', start: '2023-01', end: '2024-01', description: '开发页面' }]
+    const batch = await makeWebsiteBatch([draft()], {}, {}, new File(['resume'], 'resume.txt'), experiences)
+    expect(websiteBatchSchema.parse(batch).experiences).toEqual(experiences)
+  })
   it('只带入有公司岗位的官网条目，邮箱岗位继续走原有发送流程', () => {
     const kept = draft()
     expect(websiteTargets([kept, draft({ recipient: 'jobs@example.com' }), draft({ company: '' }), draft({ sourceUrl: 'javascript:alert(1)' })]).map(item => item.draft.id)).toEqual([kept.id])
