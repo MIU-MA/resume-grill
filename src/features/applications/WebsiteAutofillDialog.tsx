@@ -30,22 +30,27 @@ export function WebsiteAutofillDialog({ drafts, attachment, resumeId, sender, in
     dialog.current?.showModal()
     let active = true
     void Promise.all([loadWebsiteProfile(), resumeId ? loadResumeDocument(resumeId) : Promise.resolve(undefined)]).then(async ([saved, doc]) => {
-      const initial = { ...seedWebsiteProfile(doc?.review?.rawText ?? doc?.extracted.text ?? '', sender), ...saved }
       const source = attachment ? (await extractTextFromFile(attachment)).text : doc?.extracted.text ?? ''
+      const initial = { ...seedWebsiteProfile(source, sender), ...saved }
       const experiences = await loadExperiences(source)
-      if (active) { setExperienceSource(source); setExperienceDraft(experiences) }
+      if (active) {
+        setExperienceSource(source); setExperienceDraft(experiences)
+        // Inputs are editable while loading. Preserve every user edit, including
+        // intentional empty values; an older extension batch is not this draft.
+        setProfile(current => ({ ...initial, ...current }))
+        setReady(true)
+      }
       try {
         const snapshot = await extensionRequest<WebsiteSnapshot | null>('snapshot')
-        if (active) { setConnected(true); setQueue(snapshot); setProfile({ ...initial, ...snapshot?.profile }) }
-      } catch { if (active) setProfile(initial) }
-      if (active) setReady(true)
+        if (active) { setConnected(true); setQueue(snapshot) }
+      } catch { if (active) setConnected(false) }
     }).catch(() => { if (active) setError('填写资料未能读取，请检查浏览器存储。') })
     const timer = setInterval(() => { void extensionRequest<WebsiteSnapshot | null>('snapshot').then(snapshot => { if (active) { setConnected(true); setQueue(snapshot) } }).catch(() => { if (active) setConnected(false) }) }, 4000)
     return () => { active = false; clearInterval(timer) }
     // Snapshot the selected resume and sender when this dialog opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-  const field = (key: keyof WebsiteProfile) => <label key={key} className="mail-label">{PROFILE_LABELS[key]}<input className="mail-input" disabled={busy} maxLength={200} type={key === 'email' ? 'email' : key === 'phone' ? 'tel' : 'text'} value={profile[key] ?? ''} onChange={event => setProfile(current => ({ ...current, [key]: event.target.value }))} /></label>
+  const field = (key: keyof WebsiteProfile) => <label key={key} className="mail-label">{PROFILE_LABELS[key]}<input className="mail-input" disabled={busy} maxLength={200} type={key === 'email' ? 'email' : key === 'phone' ? 'tel' : 'text'} value={profile[key] ?? ''} onChange={event => { const value = event.currentTarget.value; setProfile(current => ({ ...current, [key]: value })) }} /></label>
   return <dialog ref={dialog} onCancel={event => { if (busy) event.preventDefault(); else onClose() }} aria-label="官网批量填写" className="mail-dialog resume-workbench w-[760px] max-w-[calc(100vw-24px)] border border-line-strong bg-surface p-0 text-text-primary backdrop:bg-black/30">
     <header className="flex items-center justify-between border-b border-line px-5 py-4"><h2 className="m-0 text-[16px] font-semibold">官网批量填写</h2><Button variant="ghost" className="size-8 p-0" aria-label="关闭官网填写" disabled={busy} onClick={onClose}><X size={17} /></Button></header>
     <div className="max-h-[72vh] space-y-4 overflow-y-auto p-5 text-[12px]">
