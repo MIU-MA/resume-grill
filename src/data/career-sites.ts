@@ -57,10 +57,9 @@ export const careerSites: readonly CareerSite[] = [
   ...additionalCareerSites,
 ] as const
 
-export function filterCareerSites(query = '', frontendOnly = false): CareerSite[] {
+export function filterCareerSites(query = ''): CareerSite[] {
   const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean)
   return careerSites.filter(site => {
-    if (frontendOnly && !site.frontendRoles?.length) return false
     const text = [site.company, site.url, ...(site.aliases ?? []), ...(site.frontendRoles ?? [])].join(' ').toLowerCase()
     return terms.every(term => text.includes(term))
   })

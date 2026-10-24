@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { ArrowLeft, ExternalLink, Mail, Paperclip, Pause, Play, Plus, Settings } from 'lucide-react'
+import { ExternalLink, Mail, Menu, Paperclip, Pause, Play, Plus, Settings } from 'lucide-react'
 import type { Mode } from '@/application/types'
 import { WorkbenchFrame } from '@/components/layout/WorkbenchFrame'
 import { Button } from '@/components/ui/Button'
@@ -33,7 +33,7 @@ import { websiteTargets } from './website-automation'
 import { careerUrlKey, supplementCareerDraft } from './pasted-career'
 import { applyCareerPage, draftIssues, draftPayload, markWebsiteApplication, preparationAttachment, selectedMailDrafts, updateDraft, validResumeAttachment, websiteLinks, type Draft, type DraftField, type SavedJobPreparation, type WebsiteApplication } from './draft-state'
 
-export function MailWorkbench({ badges, onNavigate, onHome, onPrepare, renderAssistant }: { badges: SidebarBadges; onNavigate: (mode: Mode) => void; onHome: () => void; onPrepare: (request: JobPreparationRequest, intent: JobPreparationIntent) => Promise<void>; renderAssistant?: (tools: JobAssistantTools) => ReactNode }) {
+export function MailWorkbench({ mode = 'applications', badges, onNavigate, onHome, onPrepare, renderAssistant }: { mode?: 'applications' | 'careers' | 'application-history'; badges: SidebarBadges; onNavigate: (mode: Mode) => void; onHome: () => void; onPrepare: (request: JobPreparationRequest, intent: JobPreparationIntent) => Promise<void>; renderAssistant?: (tools: JobAssistantTools) => ReactNode }) {
   const agent = useMailAgent()
   const [error, setError] = useState('')
   const {
@@ -46,11 +46,20 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare, renderAss
     websiteApplications, setWebsiteApplications,
     preparationByJob, setPreparationByJob,
     selectedId, setSelectedId,
-    tab, setTab,
+    setTab: setStoredTab,
     persist,
   } = useMailDrafts(setError, agent.snapshot?.sender)
+  const tab = mode === 'application-history' ? 'history' : 'drafts'
+  const isCareers = mode === 'careers'
+  const setTab = (value: 'drafts' | 'history') => {
+    setStoredTab(value)
+    if (value === 'history') onNavigate('application-history')
+    else if (mode === 'application-history') onNavigate('applications')
+  }
+  const [navOpen, setNavOpen] = useState(false)
   const [defaultsOpen, setDefaultsOpen] = useState(false)
   const [inputMode, setInputMode] = useState<'contacts' | 'links' | 'assistant'>('links')
+  useEffect(() => { if (isCareers) setInputMode('links') }, [isCareers])
   const [editOpen, setEditOpen] = useState(false)
   const [previewPreparation, setPreviewPreparation] = useState<Record<string, SavedJobPreparation>>({})
   const [attachmentOpen, setAttachmentOpen] = useState(false)
@@ -197,14 +206,15 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare, renderAss
           }} /> : null
 
   return <WorkbenchFrame className="flex">
-    <WorkspaceSidebar mode="applications" collapsed={collapsed} onToggleCollapsed={toggleCollapsed} onNavigate={onNavigate} badges={badges} onOpenHistory={onHome} onOpenSettings={() => setSettingsOpen('sender')} variant="dock" />
-    <main className="mail-workbench flex min-w-0 flex-1 flex-col">
+    <WorkspaceSidebar mode={mode} collapsed={collapsed} onToggleCollapsed={toggleCollapsed} onNavigate={onNavigate} badges={badges} onOpenHistory={onHome} onOpenSettings={() => setSettingsOpen('sender')} variant="dock" />
+    <WorkspaceSidebar mode={mode} collapsed={false} onToggleCollapsed={() => undefined} onNavigate={onNavigate} badges={badges} onOpenHistory={onHome} onOpenSettings={() => { setSettingsOpen('sender'); setNavOpen(false) }} variant="drawer" open={navOpen} onClose={() => setNavOpen(false)} />
+    <main className="mail-workbench flex min-w-0 flex-1 flex-col" data-view={mode}>
       <header className="workspace-section-heading flex h-14 flex-none items-center gap-3 border-b border-line px-4 sm:px-5">
-        <Button variant="ghost" className="size-8 p-0 md:hidden" aria-label="返回简历库" onClick={onHome}><ArrowLeft size={17} /></Button>
-        <h1 className="m-0 whitespace-nowrap text-[16px] font-semibold">投递清单</h1>
+        <Button variant="ghost" className="size-8 p-0 md:hidden" aria-label="打开导航" onClick={() => setNavOpen(true)}><Menu size={17} /></Button>
+        <h1 className="m-0 whitespace-nowrap text-[16px] font-semibold">{isCareers ? '招聘官网' : tab === 'history' ? '投递记录' : '投递清单'}</h1>
         <span className="ml-auto min-w-0 truncate text-[12px] text-text-tertiary max-sm:hidden">{drafts.length} 个待处理 · {history.length} 条记录</span>
       </header>
-      <div className="mail-toolbar">
+      <div className="mail-toolbar" hidden={isCareers}>
         <input ref={fileInput} hidden type="file" accept=".pdf,.docx,.txt" onChange={event => {
           const file = event.target.files?.[0]
           if (file) {
@@ -234,14 +244,12 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare, renderAss
       </div>
       {attachmentOpen && <ResumeAttachmentPicker attachment={attachment} attachmentSource={attachmentSource} libraryAttachments={libraryAttachments} libraryError={libraryError} disabled={!!preview} onRemove={() => { setAttachment(null); setAttachmentSource(undefined) }} onChoose={item => { setAttachment(item.file); setAttachmentSource({ id: item.id, updatedAt: item.updatedAt }); setAttachmentOpen(false); setError('') }} />}
       {(error || agent.connectionError || snapshot?.fatalError) && <div role="alert" className="flex-none border-b border-line bg-danger-soft px-5 py-2 text-[12px] leading-relaxed text-danger">{error || agent.connectionError || snapshot?.fatalError}</div>}
-      <div className="mail-tabs flex h-11 flex-none items-center border-b border-line px-4">
-        {(['drafts', 'history'] as const).map(value => <button key={value} className={`h-full border-b-2 px-2 text-[12px] ${tab === value ? 'border-brand font-semibold' : 'border-transparent text-text-tertiary'}`} onClick={() => { setTab(value); setSelectedId(null); setFocusRequest(null); setEditOpen(false); setError('') }}>{value === 'drafts' ? `待投递 ${drafts.length}` : `投递记录 ${history.length}`}</button>)}
-        {tab === 'drafts' && <button className="ml-auto flex items-center gap-1 px-2 py-2 text-[12px] text-text-secondary hover:bg-surface-hover" disabled={!hydrated || busy || !!preview} onClick={addDraft}><Plus size={13} />补录</button>}
-      </div>
-      {tab === 'drafts' && hydrated && <div className={`mail-import-area flex-none ${inputMode === 'assistant' ? 'max-h-[55vh] overflow-y-auto' : ''}`}>
+      {isCareers ? <div className="mail-section-description"><p>去官网选择职位，读取后加入投递清单。</p><Button variant="secondary" className="h-8 text-[12px]" onClick={() => onNavigate('applications')}>查看投递清单{drafts.length ? ` (${drafts.length})` : ''}</Button></div> : tab === 'drafts' ? <div className="mail-tabs flex h-11 flex-none items-center border-b border-line px-4"><span className="text-[12px] font-medium">待投递 {drafts.length}</span><button className="ml-auto flex items-center gap-1 px-2 py-2 text-[12px] text-text-secondary hover:bg-surface-hover" disabled={!hydrated || busy || !!preview} onClick={addDraft}><Plus size={13} />手动添加</button></div> : null}
+      {hydrated && <div hidden={tab !== 'drafts'} className={`mail-import-area flex-none ${inputMode === 'assistant' ? 'max-h-[55vh] overflow-y-auto' : ''}`}>
         <div className="mail-input-modes flex flex-wrap items-center gap-x-4 gap-y-2 px-5 pt-3 text-[12px]">
-          <button type="button" aria-pressed={inputMode === 'contacts'} disabled={busy} className={inputMode === 'contacts' ? 'font-semibold text-text-primary' : 'text-text-tertiary'} onClick={() => setInputMode('contacts')}>名单 / 招聘正文</button>
+          <span className="mail-input-caption">添加岗位</span>
           <button type="button" aria-pressed={inputMode === 'links'} disabled={busy} className={inputMode === 'links' ? 'font-semibold text-text-primary' : 'text-text-tertiary'} onClick={() => setInputMode('links')}>官网链接</button>
+          <button type="button" aria-pressed={inputMode === 'contacts'} disabled={busy} className={inputMode === 'contacts' ? 'font-semibold text-text-primary' : 'text-text-tertiary'} onClick={() => setInputMode('contacts')}>名单 / 招聘正文</button>
           {renderAssistant && <button type="button" aria-pressed={inputMode === 'assistant'} disabled={busy} className={inputMode === 'assistant' ? 'font-semibold text-text-primary' : 'text-text-tertiary'} onClick={() => setInputMode('assistant')}>帮我找岗位</button>}
           {!defaults.sender.name && !snapshot?.sender?.name && <button type="button" className="ml-auto text-accent underline" onClick={() => setDefaultsOpen(true)}>设置发件人，自动填好邮件</button>}
         </div>
@@ -270,14 +278,14 @@ export function MailWorkbench({ badges, onNavigate, onHome, onPrepare, renderAss
           },
         })}</div>
         <div hidden={inputMode !== 'contacts'}><ContactImporter disabled={busy || !!preview} slots={20 - drafts.length} onImport={importContacts} /></div>
-        <div hidden={inputMode !== 'links'}><LinkImporter onBusy={setBusy} existingUrls={drafts.filter(draft => (draft.extraction?.jobs?.length ?? 0) < 2).map(draft => draft.sourceUrl)} existingJobs={drafts.map(({ sourceUrl, role }) => ({ sourceUrl, role }))} slots={20 - drafts.length} connected={!!snapshot} onConnect={() => setSettingsOpen('agent')} read={url => agent.request<CareerPage>('/extract', { url })} discover={url => agent.request<CareerDiscovery>('/discover', { url })} onImported={result => {
+        <div hidden={inputMode !== 'links'}><LinkImporter expandedDirectory={isCareers} onBusy={setBusy} existingUrls={drafts.filter(draft => (draft.extraction?.jobs?.length ?? 0) < 2).map(draft => draft.sourceUrl)} existingJobs={drafts.map(({ sourceUrl, role }) => ({ sourceUrl, role }))} slots={20 - drafts.length} connected={!!snapshot} onConnect={() => setSettingsOpen('agent')} read={url => agent.request<CareerPage>('/extract', { url })} discover={url => agent.request<CareerDiscovery>('/discover', { url })} onImported={result => {
           const id = crypto.randomUUID()
           const draft: Draft = { id, company: result.company ?? '', role: result.role || defaults.role, sourceUrl: result.url, recipient: result.recommendedEmail ?? '', subject: '', body: '', sourceConfirmed: false, automatic: true, extraction: result, jobDescription: result.jobDescription ?? '' }
           setDrafts(items => items.length >= 20 || items.some(item => { try { return careerUrlKey(item.sourceUrl) === careerUrlKey(result.url) && item.role === draft.role } catch { return false } }) ? items : [...items, draft])
           setSelectedDraftIds(items => [...items, id]); setTab('drafts'); setFocusRequest(null); setError('')
         }} /></div>
       </div>}
-      {tab === 'drafts' ? <DraftTable drafts={drafts} selectedIds={selectedDraftIds} disabled={!hydrated || busy || !!preview} onSelection={setSelectedDraftIds} onUpdate={updateById} onOpen={openDraft} onRemove={removeDraft} onAdd={addDraft} /> : <div className="mail-work-area min-h-0 flex-1">
+      {isCareers ? null : tab === 'drafts' ? <DraftTable drafts={drafts} selectedIds={selectedDraftIds} disabled={!hydrated || busy || !!preview} onSelection={setSelectedDraftIds} onUpdate={updateById} onOpen={openDraft} onRemove={removeDraft} onAdd={addDraft} /> : <div className="mail-work-area min-h-0 flex-1">
         <section className="mail-list flex min-h-0 min-w-0 flex-col border-r border-line" aria-label="投递记录">
           {(pending > 0 || snapshot?.running) && <div className="flex flex-wrap items-center gap-2 border-b border-line bg-surface-soft px-3 py-2 text-[12px]">
             <span className="mr-auto">{snapshot?.running ? (snapshot.paused ? '完成当前邮件后暂停' : '正在发送') : `待继续 ${pending} 封`}</span>

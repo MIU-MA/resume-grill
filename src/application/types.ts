@@ -9,7 +9,7 @@ import type { JobContext } from '@/domain/job-context'
 import type { JobPreparationIntent } from '@/domain/job-preparation'
 import type { ResumeReviewSubmission } from '@/domain/resume-review'
 
-export type Mode = 'diagnosis' | 'audit' | 'interview' | 'report' | 'knowledge' | 'applications'
+export type Mode = 'diagnosis' | 'audit' | 'interview' | 'report' | 'knowledge' | 'applications' | 'careers' | 'application-history'
 
 export type AppNavigation = {
   push: (phase: 'upload' | 'review' | 'workspace', mode?: Mode) => void

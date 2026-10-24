@@ -8,7 +8,8 @@ import { PastedCareerForm } from './PastedCareerForm'
 import { careerUrlKey, planCareerImports, settleCareerFailure, type CareerFailure } from './pasted-career'
 import { CareerPagePicker } from './CareerPagePicker'
 
-export function LinkImporter({ existingUrls, existingJobs, slots, connected, onConnect, read, discover, onImported, onBusy }: {
+export function LinkImporter({ existingUrls, existingJobs, slots, connected, onConnect, read, discover, onImported, onBusy, expandedDirectory = false }: {
+  expandedDirectory?: boolean
   existingUrls: string[]; slots: number; connected: boolean; onConnect: () => void
   read: (url: string) => Promise<CareerPage>; onImported: (page: CareerPage) => void
   discover: (url: string) => Promise<CareerDiscovery>
@@ -86,15 +87,15 @@ export function LinkImporter({ existingUrls, existingJobs, slots, connected, onC
     }
   }, [connected, busy, finding])
   return <section className="mail-link-importer flex-none border-b border-line bg-surface px-4 py-3 sm:px-5" aria-label="导入招聘链接">
-    <CareerFinder connected={connected} disabled={busy} existingJobs={existingJobs} slots={slots} onPage={page => complete(page.url, page)} onConnect={onConnect} discover={discover} onBusy={value => { setFinding(value); onBusy(value) }} onChoose={urls => { setInput(urls.join('\n')); void importLinks(urls) }} />
-    <details className="mt-3 border-t border-line pt-3">
-      <summary className="w-fit cursor-pointer text-[12px] text-text-secondary">已有具体岗位链接 · 粘贴到清单</summary>
-    <div className="mt-3 flex flex-wrap items-start gap-2">
-      <textarea aria-label="招聘链接，每行一个" className="mail-input min-h-9 flex-1 basis-full resize-y text-[12px] sm:basis-0" rows={Math.min(3, input.split('\n').length)} placeholder="粘贴招聘详情链接，多个链接每行一个" disabled={busy || finding} value={input} onChange={e => setInput(e.target.value)} />
+    <div className="mail-link-entry">
+      <label htmlFor="career-import-links" className="text-[12px] font-medium">添加岗位链接</label>
+    <div className="mt-2 flex flex-wrap items-start gap-2">
+      <textarea id="career-import-links" aria-label="招聘链接，每行一个" className="mail-input min-h-9 flex-1 basis-full resize-y text-[12px] sm:basis-0" rows={Math.min(3, input.split('\n').length)} placeholder="粘贴招聘详情链接，多个链接每行一个" disabled={busy || finding} value={input} onChange={e => setInput(e.target.value)} />
       <Button loading={busy} disabled={finding || !input.trim() || slots <= 0} onClick={() => void importLinks()}>{connected ? '整理到清单' : '连接后整理'}</Button>
       <Button variant="ghost" className="px-2 text-[12px]" disabled={busy || finding || slots <= 0} onClick={() => openPaste()}>粘贴正文</Button>
     </div>
-    </details>
+    </div>
+    <CareerFinder expanded={expandedDirectory} connected={connected} disabled={busy} existingJobs={existingJobs} slots={slots} onPage={page => complete(page.url, page)} onConnect={onConnect} discover={discover} onBusy={value => { setFinding(value); onBusy(value) }} onChoose={urls => { setInput(urls.join('\n')); void importLinks(urls) }} />
     {message && <p role="status" className="mb-0 mt-2 text-[12px] text-text-secondary">{message}</p>}
     {!!pages.length && <CareerPagePicker pages={pages} existing={existingJobs} disabled={busy || finding || slots <= 0} onChoose={page => complete(page.url, page)} />}
     {failures.length > 0 && <div className="mt-2 space-y-2 text-[12px]">{failures.map(failure => <div key={failure.url} className="border-t border-line pt-2">

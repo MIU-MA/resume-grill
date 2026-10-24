@@ -8,6 +8,8 @@ export type Phase = 'upload' | 'review' | 'workspace'
 
 export function parseAppPath(pathname: string): { phase: Phase; mode: Mode } {
   if (pathname === '/applications') return { phase: 'workspace', mode: 'applications' }
+  if (pathname === '/careers') return { phase: 'workspace', mode: 'careers' }
+  if (pathname === '/application-history') return { phase: 'workspace', mode: 'application-history' }
   if (pathname === '/review') return { phase: 'review', mode: 'audit' }
   if (pathname === '/diagnosis') return { phase: 'workspace', mode: 'diagnosis' }
   if (pathname === '/interview') return { phase: 'workspace', mode: 'interview' }

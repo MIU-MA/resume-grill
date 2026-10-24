@@ -12,6 +12,10 @@ import {
   Settings,
   FileSearch,
   Mail,
+  Globe,
+  MessagesSquare,
+  ChartNoAxesColumn,
+  Library,
   type LucideIcon,
 } from 'lucide-react'
 import type { Mode } from '@/application/types'
@@ -25,16 +29,27 @@ export type SidebarBadges = {
 }
 
 type NavItem = {
-  key: Mode
+  key: Mode | 'library'
   label: string
   icon: LucideIcon
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { key: 'applications', label: '邮箱投递', icon: Mail },
-  { key: 'diagnosis', label: '简历检查', icon: FileSearch },
-  { key: 'audit', label: '面试练习', icon: ListChecks },
-  { key: 'knowledge', label: '待复习', icon: Lightbulb },
+const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
+  { label: '简历', items: [
+    { key: 'library', label: '简历库', icon: Library },
+    { key: 'diagnosis', label: '简历检查', icon: FileSearch },
+  ] },
+  { label: '投递', items: [
+    { key: 'careers', label: '招聘官网', icon: Globe },
+    { key: 'applications', label: '投递清单', icon: Mail },
+    { key: 'application-history', label: '投递记录', icon: History },
+  ] },
+  { label: '面试', items: [
+    { key: 'audit', label: '面试准备', icon: ListChecks },
+    { key: 'interview', label: '模拟面试', icon: MessagesSquare },
+    { key: 'report', label: '面试复盘', icon: ChartNoAxesColumn },
+    { key: 'knowledge', label: '待复习', icon: Lightbulb },
+  ] },
 ]
 
 type WorkspaceSidebarProps = {
@@ -65,6 +80,7 @@ export function WorkspaceSidebar({
   const isDock = variant === 'dock'
   const compact = useSyncExternalStore(subscribeCompact, getCompactSnapshot, () => false)
   const iconOnly = isDock && (collapsed || compact)
+  const mailMode = ['applications', 'careers', 'application-history'].includes(mode)
 
   const handleNavigate = (tab: Mode) => {
     onNavigate(tab)
@@ -79,27 +95,29 @@ export function WorkspaceSidebar({
       {!iconOnly && <div className="workspace-nav-label flex min-w-0 flex-col"><strong className="truncate text-[14px] font-bold">Resume Grill</strong><span className="truncate text-[11px] text-text-tertiary">求职工作台</span></div>}
     </div>
     <nav className="min-h-0 flex-1 overflow-y-auto px-2 py-3" aria-label="工作区页面">
-      <div className="space-y-0.5">
-        {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
-          const active = mode === key || (key === 'audit' && (mode === 'interview' || mode === 'report'))
-          const badge = renderBadge(key, badges)
-          return <SidebarButton key={key} label={label} iconOnly={iconOnly} active={active} onClick={() => handleNavigate(key)}>
+      {NAV_GROUPS.map(group => <section key={group.label} className="workspace-nav-group" aria-label={group.label}>
+        {!iconOnly && <h2 className="workspace-nav-group-title">{group.label}</h2>}
+        <div className="workspace-nav-items">
+        {group.items.map(({ key, label, icon: Icon }) => {
+          const active = mode === key
+          const badge = key === 'library' ? null : renderBadge(key, badges)
+          return <SidebarButton key={key} label={label} iconOnly={iconOnly} active={active} onClick={() => {
+            if (key === 'library') { onOpenHistory(); if (!isDock) onClose?.() }
+            else handleNavigate(key)
+          }}>
             {active && <span aria-hidden="true" className="workspace-nav-marker absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2" />}
             <Icon size={16} className="flex-none" aria-hidden="true" />
             {!iconOnly && <span className="workspace-nav-label min-w-0 truncate">{label}</span>}
             {!iconOnly && badge && <span className="workspace-nav-label ml-auto">{badge}</span>}
           </SidebarButton>
         })}
-      </div>
+        </div>
+      </section>)}
     </nav>
     <div className="flex-none space-y-0.5 border-t border-line px-2 py-2">
-      <SidebarButton label="简历库" iconOnly={iconOnly} onClick={onOpenHistory}>
-        <History size={16} className="flex-none" aria-hidden="true" />
-        {!iconOnly && <span className="workspace-nav-label">简历库</span>}
-      </SidebarButton>
-      <SidebarButton label={mode === 'applications' ? '邮箱设置' : '模型设置'} iconOnly={iconOnly} onClick={onOpenSettings}>
+      <SidebarButton label={mailMode ? '邮箱设置' : '模型设置'} iconOnly={iconOnly} onClick={onOpenSettings}>
         <Settings size={16} className="flex-none" aria-hidden="true" />
-        {!iconOnly && <span className="workspace-nav-label">{mode === 'applications' ? '邮箱设置' : '模型设置'}</span>}
+        {!iconOnly && <span className="workspace-nav-label">{mailMode ? '邮箱设置' : '模型设置'}</span>}
       </SidebarButton>
       <SidebarButton label={collapsed ? '展开导航' : '收起导航'} iconOnly={iconOnly} onClick={onToggleCollapsed} className="hidden min-[1200px]:flex">
         {collapsed ? <PanelLeftOpen size={16} className="flex-none" aria-hidden="true" /> : <PanelLeftClose size={16} className="flex-none" aria-hidden="true" />}
@@ -148,10 +166,10 @@ function renderBadge(key: Mode, badges: SidebarBadges) {
       return <span className="workspace-nav-count">{badges.claimTotal}</span>
     case 'interview':
       return badges.testingActive > 0
-        ? <span className="ml-auto size-2 rounded-full bg-warning" title={`${badges.testingActive} 个进行中`} />
+        ? <span className="workspace-nav-count" title={`${badges.testingActive} 个进行中`}>{badges.testingActive}</span>
         : null
     case 'report':
-      return <span className="ml-auto text-[11px] font-semibold text-text-tertiary">{badges.testedDone}/{badges.claimTotal}</span>
+      return badges.testedDone > 0 ? <span className="workspace-nav-count">{badges.testedDone}</span> : null
     case 'knowledge':
       return badges.knowledgeOpen > 0
         ? <span className="workspace-nav-count">{badges.knowledgeOpen}</span>

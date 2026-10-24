@@ -20,9 +20,8 @@ describe('招聘官网目录', () => {
     expect(filterCareerSites('UMAYUN React').map(site => site.company)).toEqual(['优码云'])
     expect(filterCareerSites('不存在的公司')).toEqual([])
   })
-  it('前端筛选只包含有公开线索的来源，不把招聘门户默认为在招前端', () => {
-    expect(filterCareerSites('', true).every(site => !!site.frontendRoles?.length)).toBe(true)
-    expect(filterCareerSites('涂鸦', true)).toEqual([])
-    expect(filterCareerSites('绿雪', true)).toHaveLength(1)
+  it('不输入关键词时展示全部官网，不按技术方向排除公司', () => {
+    expect(filterCareerSites()).toEqual(careerSites)
+    expect(filterCareerSites('涂鸦')).toHaveLength(1)
   })
 })

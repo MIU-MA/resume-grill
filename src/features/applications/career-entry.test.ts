@@ -15,12 +15,23 @@ describe('官网链接入口', () => {
     expect(disclosure.attr('open')).toBeUndefined()
     expect(disclosure.children('summary').text()).toContain('浏览招聘官网')
     expect(directory.find('a').length).toBe(careerSites.length)
+    expect($('label').text()).not.toContain('有前端线索')
+    expect($('.career-directory-search input[type="checkbox"]').length).toBe(0)
     for (const site of careerSites) {
       const anchor = directory.find(`a[href="${site.url}"]`)
       expect(anchor.text()).toContain(site.company)
       expect(anchor.attr('target')).toBe('_blank')
     }
-    expect($('textarea[aria-label="招聘链接，每行一个"]').closest('details').length).toBe(1)
+    // 常用的粘贴入口直接显示，目录仍按需展开。
+    const linkInput = $('textarea[aria-label="招聘链接，每行一个"]')
+    expect(linkInput.length).toBe(1)
+    expect(linkInput.closest('details, [hidden]').length).toBe(0)
     expect(read).not.toHaveBeenCalled(); expect(discover).not.toHaveBeenCalled(); expect(onImported).not.toHaveBeenCalled()
+  })
+  it('招聘官网独立入口默认展开完整目录', () => {
+    const html = renderToStaticMarkup(createElement(LinkImporter, { expandedDirectory: true, existingUrls: [], existingJobs: [], slots: 20, connected: false, onConnect: vi.fn(), read: vi.fn(), discover: vi.fn(), onImported: vi.fn(), onBusy: vi.fn() }))
+    const $ = load(html)
+    expect($('[aria-label="招聘官网"]').closest('details').attr('open')).toBeDefined()
+    expect($('[aria-label="招聘官网"] a').length).toBe(careerSites.length)
   })
 })
