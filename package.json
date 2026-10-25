@@ -2,7 +2,7 @@
   "name": "resume-grill",
   "private": true,
   "version": "0.1.0",
-  "description": "提前模拟对简历逐句追问，找出表述不清的经历细节。",
+  "description": "本地优先的求职工作台：简历修改、岗位整理、邮件投递与面试练习。",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -14,6 +14,9 @@
     "prebuild": "node scripts/copy-pdf-worker.mjs && npm run build:extension",
     "build:extension": "node scripts/build-website-extension.mjs",
     "dev": "next dev",
+    "predev:local": "node scripts/copy-pdf-worker.mjs && npm run build:extension",
+    "dev:local": "tsx scripts/workbench.ts",
+    "release:assets": "node scripts/release-assets.mjs",
     "mail-agent": "tsx scripts/mail-agent.ts",
     "build": "next build",
     "start": "next start",

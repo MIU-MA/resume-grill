@@ -22,13 +22,14 @@ server.maxConnections = 16
 server.on('error', error => {
   console.error((error as NodeJS.ErrnoException).code === 'EADDRINUSE' ? '4318 端口已被占用，请使用已打开的邮箱执行器。' : '邮箱执行器启动失败，请检查本机网络设置。')
   process.exitCode = 1
+  stop()
 })
 // Bind first so a second instance cannot rewrite an active instance's journal.
 server.listen(4318, '127.0.0.1', () => {
   try { queue = new MailQueue(directory) }
   catch {
     console.error('无法读取本地投递记录。请备份 .mail-agent 目录后检查 state.json，程序不会覆盖旧记录。')
-    server.close()
+    stop()
     process.exitCode = 1
     return
   }
@@ -41,14 +42,21 @@ server.listen(4318, '127.0.0.1', () => {
     if (status.sender) console.log('已恢复本机保存的发件邮箱；未发送的队列仍保持暂停。')
     else if (status.credentials?.error) console.log(status.credentials.error)
   })
-  console.log('请在工作台的“邮箱投递”中填写连接码；已记住的邮箱会自动恢复。')
+  console.log('请在工作台的“投递清单 → 连接本机”中填写连接码；已记住的邮箱会自动恢复。')
   console.log('Windows 可加密记住本机授权码。关闭本窗口会停止后续发送；本地数据保存在 .mail-agent 目录。\n')
 })
 let stopping = false
-for (const signal of ['SIGINT', 'SIGTERM'] as const) process.on(signal, () => {
+function stop() {
   if (stopping) return
   stopping = true
   queue?.pause()
   console.log('正在停止后续发送，等待当前邮件完成…')
-  void (queue?.settled() ?? Promise.resolve()).finally(() => server.close())
+  void (queue?.settled() ?? Promise.resolve()).finally(() => server.close(() => {
+    if (process.connected) process.disconnect()
+  }))
+}
+for (const signal of ['SIGINT', 'SIGTERM'] as const) process.on(signal, stop)
+process.on('message', message => {
+  if (message && typeof message === 'object' && 'type' in message && message.type === 'workbench:shutdown') stop()
 })
+process.on('disconnect', stop)

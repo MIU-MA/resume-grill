@@ -4,8 +4,11 @@ out
 .git
 .gitignore
 .env
-.env.local
-.env*.local
+.env.*
+.mail-agent
+**/.mail-agent
+dist
+public/generated
 docs
 *.log
 npm-debug.log*

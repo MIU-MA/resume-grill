@@ -6,6 +6,8 @@
 
 本地优先的个人求职工作台。修改简历、整理招聘岗位、准备投递，再按岗位练习面试。
 
+当前为 Beta 阶段，官网自动填写属于实验性功能，适配范围以实测记录为准。
+
 可以从简历开始，也可以直接添加招聘链接。各个功能独立使用，不必走完一套流程。
 
 ## 功能
@@ -23,7 +25,7 @@
 
 ## 界面预览
 
-以下是此前版本的实际截图，使用示例数据；投递页布局已调整，截图尚未更新。
+以下为当前版本的实际界面，使用内置示例简历与虚构投递数据。截图更新于 2026-10-25。
 
 ![投递工作台](docs/screenshots/applications.jpg)
 
@@ -34,7 +36,7 @@
   </tr>
   <tr>
     <td><img src="docs/screenshots/resume-edit.jpg" alt="简历段落修改"><br>对照修改</td>
-    <td><img src="docs/screenshots/resume-preview.jpg" alt="早期版本的新稿预览"><br>新稿预览（早期版本）</td>
+    <td><img src="docs/screenshots/resume-preview.jpg" alt="实际 PDF 新稿预览"><br>新稿预览</td>
   </tr>
 </table>
 
@@ -51,13 +53,13 @@ npm run dev
 
 打开 [localhost:3000](http://localhost:3000)。点击「试用示例简历」可以先体验检查和初始练习内容；连续问答、回答判断和复盘仍需配置模型。也可使用仓库里的[示例材料](examples/README.md)。
 
-需要自动读取招聘页、查找链接或发送邮件时，在另一个终端启动本机执行器：
+需要一起启动网页和本机执行器时，先停止上面的网页进程，再运行：
 
 ```bash
-npm run mail-agent
+npm run dev:local
 ```
 
-在投递页的「发件与设置 → 连接本机」填入终端显示的连接码。读取网页无需连接邮箱；发送邮件时再设置 QQ／163 邮箱和 SMTP 授权码。Windows 支持加密记住授权码，重启后恢复。
+打开 [127.0.0.1:3000](http://127.0.0.1:3000)，在「运行状态 → 连接本机」填入终端连接码；同一区域可检测和下载扩展。Ctrl+C 停止两项服务。也可保留已有网页，单独运行 `npm run mail-agent`。发送邮件时再设置 QQ／163 邮箱和 SMTP 授权码，Windows 支持加密记住授权码。
 
 ## 开始使用
 
@@ -90,6 +92,8 @@ npm run build:extension
 **适配仍在完善：**腾讯、字节、阿里、小红书、B站、美团、京东、百度、快手、网易已检查公开入口或部分前端资源，均未完成登录后实测。Lever 有真实公开 HTML 本地回归；B站使用公开代码重建表单契约。目录收录不等于填写兼容，日期、多级选择、跨域表单等仍可能需要手动处理。
 
 安装、操作和逐站验证范围见[官网填写说明](docs/website-automation.md)与[适配记录](docs/website-adaptation.md)。
+
+发布版也可从仓库 Releases 下载扩展 ZIP 和 SHA-256 校验文件，无需自行构建扩展。
 
 ## 模型配置
 
@@ -148,6 +152,7 @@ npm run build
 - [招聘目录：来源与维护](docs/career-directory.md)
 - [官网扩展：安装与使用](docs/website-automation.md)
 - [官网适配：证据与未验证范围](docs/website-adaptation.md)
+- [参与开发](CONTRIBUTING.md) · [安全报告](SECURITY.md) · [发布验收](docs/releasing.md)
 
 运行 `npx tsx scripts/crawl-careers.ts` 可刷新已配置来源的 `data/career-leads/latest.md` 和 `latest.json`；不会提交申请，也不更新人工核对日期。
 

@@ -20,9 +20,17 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - run: npm run check:architecture
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - run: npx tsc --noEmit
+      - run: npm run release:assets
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: dist/release/*
+          if-no-files-found: error
 
   docker:
     needs: verify
@@ -54,19 +62,18 @@ jobs:
           cache-to: type=gha,mode=max
 
   release:
-    needs: docker
+    needs: verify
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Generate changelog
-        id: changelog
-        run: |
-          {
-            echo '## 变更'
-            echo ''
-            git log $(git describe --tags --abbrev=0 @~ 2>/dev/null || git rev-list --max-parents=0 HEAD)..HEAD --oneline --no-merges | sed 's/^/- /' | head -50
-          } > /tmp/CHANGELOG.md
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: release-assets
       - uses: softprops/action-gh-release@v2
         with:
-          body_path: /tmp/CHANGELOG.md
           generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          fail_on_unmatched_files: true
+          files: |
+            release-assets/*.zip
+            release-assets/SHA256SUMS.txt

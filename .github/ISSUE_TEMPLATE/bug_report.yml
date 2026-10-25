@@ -17,7 +17,7 @@ body:
     id: reproduction
     attributes:
       label: 复现步骤
-      placeholder: "1. 使用 examples/sample-resume.txt\n2. 进入声明审计\n3. ..."
+      placeholder: "1. 使用 examples/sample-resume.txt\n2. 进入简历检查或投递清单\n3. ..."
     validations:
       required: true
   - type: textarea

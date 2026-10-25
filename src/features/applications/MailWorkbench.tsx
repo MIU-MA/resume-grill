@@ -19,6 +19,7 @@ import { MailJobDetails } from './MailJobDetails'
 import { DraftDialog } from './DraftDialog'
 import { ResumeAttachmentPicker } from './ResumeAttachmentPicker'
 import { MailSettings } from './MailSettings'
+import { LocalSetupStatus } from './LocalSetupStatus'
 import { MailPreview } from './MailPreview'
 import { LinkImporter } from './LinkImporter'
 import { ContactImporter } from './ContactImporter'
@@ -214,6 +215,7 @@ export function MailWorkbench({ mode = 'applications', badges, onNavigate, onHom
         <h1 className="m-0 whitespace-nowrap text-[16px] font-semibold">{isCareers ? '招聘官网' : tab === 'history' ? '投递记录' : '投递清单'}</h1>
         <span className="ml-auto min-w-0 truncate text-[12px] text-text-tertiary max-sm:hidden">{drafts.length} 个待处理 · {history.length} 条记录</span>
       </header>
+      <LocalSetupStatus connected={!!snapshot} connectionError={agent.connectionError} onConnect={() => setSettingsOpen('agent')} />
       <div className="mail-toolbar" hidden={isCareers}>
         <input ref={fileInput} hidden type="file" accept=".pdf,.docx,.txt" onChange={event => {
           const file = event.target.files?.[0]
