@@ -16,7 +16,7 @@ export function WebsiteExperienceEditor({ draft, source, disabled, onChange, onS
   const change = (items: WebsiteExperience[]) => onChange({ items, confirmed: false })
   return <details className="border-y border-line py-3">
     <summary className="cursor-pointer">教育、工作与项目经历 <span className="text-text-tertiary">· {draft.items.length} 段 · {draft.confirmed ? '已核对' : '待核对'}</span></summary>
-    <p className="text-text-secondary">首次核对后随这份简历保存。官网无法自动填写时，可以复制单段经历。</p>
+    <p className="text-text-secondary">选填。勾选下方“已核对”后，才会把这些经历交给扩展；不勾选也可以先填写基本资料并上传简历。首次核对后随这份简历保存，官网无法自动填写时可复制单段经历。</p>
     <details><summary className="cursor-pointer text-text-tertiary">对照简历原文</summary><pre className="max-h-48 overflow-auto whitespace-pre-wrap bg-surface-soft p-3 font-sans">{source || '未取得简历文本，可手动添加经历。'}</pre></details>
     {draft.items.map((item, index) => <ExperienceDetails key={item.id} initiallyOpen={!item.organization}>
       <summary className="cursor-pointer font-medium">{EXPERIENCE_KINDS[item.kind]} · {item.organization || `第 ${index + 1} 段`}</summary>

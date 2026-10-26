@@ -3,13 +3,17 @@ import { createElement, act, StrictMode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { WebsiteAutofillDialog } from './WebsiteAutofillDialog'
-import { extensionRequest, loadWebsiteProfile } from './website-automation'
+import { extensionRequest, loadWebsiteProfile, makeWebsiteBatch } from './website-automation'
 import { PROFILE_LABELS, type WebsiteSnapshot } from '@/domain/website-automation'
+import { loadExperiences } from './website-experience-storage'
+import type { Draft } from './draft-state'
 
 vi.mock('./website-automation', async importOriginal => ({
   ...await importOriginal<typeof import('./website-automation')>(),
   loadWebsiteProfile: vi.fn(async () => ({})),
   extensionRequest: vi.fn(async () => null),
+  saveWebsiteProfile: vi.fn(async () => undefined),
+  makeWebsiteBatch: vi.fn(async () => ({ id: 'batch' })),
 }))
 vi.mock('@/features/resume/lib/resume-library', () => ({ loadResumeDocument: vi.fn() }))
 vi.mock('@/features/resume/lib/pdf', () => ({ extractTextFromFile: vi.fn(async () => ({ text: '' })) }))
@@ -18,9 +22,74 @@ vi.mock('./website-experience-storage', () => ({ loadExperiences: vi.fn(async ()
 let root: Root
 let host: HTMLDivElement
 beforeEach(() => {
+  vi.clearAllMocks()
+  vi.mocked(loadWebsiteProfile).mockReset().mockResolvedValue({})
+  vi.mocked(extensionRequest).mockReset().mockResolvedValue(null)
+  vi.mocked(loadExperiences).mockResolvedValue({ items: [], confirmed: false })
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value: function (this: HTMLDialogElement) { this.open = true } })
   host = document.createElement('div'); document.body.append(host); root = createRoot(host)
+})
+
+const job = (extra: Partial<Draft> = {}): Draft => ({ id: crypto.randomUUID(), company: '示例公司', role: '前端', sourceUrl: 'https://example.com/jobs/1', recipient: '', subject: '', body: '', sourceConfirmed: false, ...extra })
+const submit = () => [...host.querySelectorAll('button')].find(button => button.textContent === '发送到扩展')!
+const withJob = (draft: Draft, attachment: File | null = new File(['resume'], 'resume.txt')) => root.render(createElement(WebsiteAutofillDialog, { drafts: [draft], attachment, onClose: () => {} }))
+
+it('只要求附件和岗位入口，基本资料留空也能交接；未核对经历不发送', async () => {
+  const experiences = [{ id: 'exp', kind: 'work' as const, organization: '公司', title: '前端', start: '2023-01', end: '2024-01', description: '' }]
+  vi.mocked(loadExperiences).mockResolvedValue({ items: experiences, confirmed: false })
+  await act(async () => withJob(job()))
+  expect(inputFor('姓名').required).toBe(false)
+  expect(inputFor('姓名').parentElement!.textContent).toContain('选填')
+  expect(submit().disabled).toBe(false)
+  await act(async () => submit().click())
+  expect(makeWebsiteBatch).toHaveBeenCalledWith(expect.any(Array), {}, expect.any(Object), expect.any(File), [])
+  expect(extensionRequest).toHaveBeenCalledWith('stage', { id: 'batch' })
+  expect(host.textContent).toContain('下一步：点击浏览器工具栏')
+})
+
+it('缺附件时解释原因，并能在窗口内直接选择简历', async () => {
+  await act(async () => withJob(job(), null))
+  expect(submit().disabled).toBe(true)
+  expect(host.querySelector('#website-blocker')!.textContent).toContain('请选择 5 MB')
+  const input = host.querySelector<HTMLInputElement>('input[type=file]')!
+  const attachment = new File(['resume'], 'selected.txt')
+  Object.defineProperty(input, 'files', { configurable: true, value: [attachment] })
+  await act(async () => input.dispatchEvent(new Event('change', { bubbles: true })))
+  expect(host.textContent).toContain('selected.txt')
+  expect(submit().disabled).toBe(false)
+  await act(async () => submit().click())
+  expect(makeWebsiteBatch).toHaveBeenCalledWith(expect.any(Array), {}, expect.any(Object), attachment, [])
+})
+
+it('多个入口未选择前不能交接，选择后恢复按钮', async () => {
+  const draft = job()
+  draft.extraction = { url: draft.sourceUrl, company: draft.company, role: draft.role, title: '', notes: [], emails: [], recommendedEmail: '', links: ['a', 'b'].map(path => ({ kind: 'apply', label: path, sourceUrl: draft.sourceUrl, url: `https://example.com/${path}` })) }
+  await act(async () => withJob(draft))
+  expect(submit().disabled).toBe(true)
+  expect(host.querySelector('#website-blocker')!.textContent).toContain('选择申请入口')
+  const select = host.querySelector<HTMLSelectElement>('select[aria-label="示例公司 申请入口"]')!
+  expect(select.required).toBe(true)
+  await act(async () => { select.value = 'https://example.com/a'; select.dispatchEvent(new Event('change', { bubbles: true })) })
+  expect(submit().disabled).toBe(false)
+})
+
+it('格式错误和扩展旧任务会明确说明，不能重复交接覆盖', async () => {
+  await act(async () => withJob(job()))
+  await type(inputFor('邮箱'), 'invalid')
+  expect(submit().disabled).toBe(true)
+  expect(inputFor('邮箱').getAttribute('aria-invalid')).toBe('true')
+  expect(host.querySelector('#website-blocker')!.textContent).toContain('邮箱格式')
+  await type(inputFor('邮箱'), '')
+  expect(submit().disabled).toBe(false)
+  vi.useFakeTimers()
+  vi.mocked(extensionRequest).mockResolvedValue({ id: 'old', createdAt: 0, updatedAt: 0, running: false, profile: {}, answers: [], attachmentName: 'old.txt', jobs: [{ id: 'old-job', company: '旧公司', role: '前端', url: 'https://example.com/apply', status: 'pending' }] } satisfies WebsiteSnapshot)
+  // Re-mount to check the initial snapshot, without relying on the real interval.
+  await act(async () => root.unmount())
+  root = createRoot(host)
+  await act(async () => withJob(job()))
+  expect(submit().disabled).toBe(true)
+  expect(host.querySelector('#website-blocker')!.textContent).toContain('未结束的任务')
 })
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); Reflect.deleteProperty(HTMLDialogElement.prototype, 'showModal'); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers() })
 const mount = () => root.render(createElement(StrictMode, null, createElement(WebsiteAutofillDialog, { drafts: [], attachment: null, onClose: () => {} })))
