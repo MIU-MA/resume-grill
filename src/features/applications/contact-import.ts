@@ -102,7 +102,7 @@ export function parseContactList(raw: string, defaultRole = ''): ImportedContact
 function contactKeys(contact: Pick<ImportedContact, 'recipient' | 'role' | 'sourceUrl'>) {
   const keys: string[] = []
   const role = contact.role.normalize('NFKC').replace(/\s+/g, '').toLowerCase()
-  if (emailSchema.safeParse(contact.recipient).success && role) keys.push(`mail:${contact.recipient.toLowerCase()}\n${role}`)
+  if (emailSchema.safeParse(contact.recipient).success) keys.push(`mail:${contact.recipient.toLowerCase()}\n${role}`)
   else if (sourceUrlSchema.safeParse(contact.sourceUrl).success && role) keys.push(`url:${careerUrlKey(contact.sourceUrl)}\n${role}`)
   return keys
 }

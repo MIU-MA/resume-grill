@@ -22,6 +22,20 @@ const send = (message: object, sender = popup) => new Promise<{ ok: boolean; dat
 beforeEach(async () => { stored = null; redirected = false; nextTab = 100; tabs.clear(); vi.resetModules(); vi.clearAllMocks(); vi.stubGlobal('chrome', fake); await import('./background') })
 afterEach(async () => { if (stored) await vi.waitFor(() => expect(stored?.running).toBe(false)); vi.unstubAllGlobals() })
 describe('扩展权限与任务交接', () => {
+  it('独立填写资料只允许扩展面板读取，工作台不能直接执行', async () => {
+    expect((await send({ type: 'direct-state' })).ok).toBe(true)
+    expect((await send({ type: 'direct-state' }, workbench)).ok).toBe(false)
+    expect((await send({ type: 'direct-fill', request: {} }, workbench)).ok).toBe(false)
+    expect(fake.scripting.executeScript).not.toHaveBeenCalled()
+  })
+  it('接受从诊断页和运行状态页加载的工作台连接，但仍禁止网页执行填写', async () => {
+    for (const path of ['/diagnosis', '/audit']) {
+      const sender = { ...workbench, url: `http://localhost:3000${path}` }
+      expect((await send({ type: 'ping' }, sender)).ok).toBe(true)
+      expect((await send({ type: 'command', action: 'start' }, sender)).ok).toBe(false)
+    }
+    expect(fake.tabs.create).not.toHaveBeenCalled()
+  })
   it('存储初始化尚未结束时也能接住唤醒消息，准备好后再答复', async () => {
     vi.resetModules(); fake.runtime.onMessage.addListener.mockClear()
     let release!: () => void

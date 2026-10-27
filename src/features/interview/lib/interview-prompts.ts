@@ -1,13 +1,18 @@
 import type { ResumeClaim } from '@/domain/resume-schema'
 import type { InterviewAction, InterviewRound } from '@/domain/interview-schema'
-import { RESUME_COACH_STYLE } from '@/lib/prompt-style'
+import type { InterviewContext } from '@/domain/interview-context'
+import { RESUME_COACH_STYLE, INTERVIEW_CONTEXT_RULES } from '@/lib/prompt-style'
 import { MAX_INTERVIEW_ROUNDS, MIN_INTERVIEW_ROUNDS, mergeCoveredPoints } from '@/domain/interview-state'
 
 export const INTERVIEW_CONTINUE_SYSTEM = `你在和求职者做一次围绕简历的模拟面试。先判断这次回答讲清了什么，再顺着回答追问一个细节。
 
 ${RESUME_COACH_STYLE}
 
+${INTERVIEW_CONTEXT_RULES}
+
 评估规则：
+- 先分清是知识理解有误、事实细节不足，还是表达顺序混乱。结论正确但没讲清个人动作时，追问做法；概念错误时指出具体误解；事实已有但说得散时，用原有事实示范一个更清楚的回答。不能把紧张、简短或措辞不熟练直接判为知识缺口。
+- 建议遵循“先回答问题，再补一个事实和理由”的口头表达，不要求每次套 STAR 或背完整项目介绍；事实不足先追问，不补故事。
 - score: 0-100，只反映本轮回答是否解释了问题。相关的具体做法、案例或选择理由可得 60+；只有概念/工具名通常为 30 以下；未作答为 0。不能只因出现数字就给高分，分数不代表实际工作能力。
 - coveredPoints: 必须逐字取自评估要点；只有本轮回答确实解释了该要点才能加入，提到名词不算讲清。未作答时为空
 - missingPoints: 仍未覆盖的评估要点，未作答时为全部
@@ -40,6 +45,7 @@ export function buildInterviewContinueUser(
   rounds: InterviewRound[],
   verifyPoints: { point: string; importance: string }[],
   trapPoints: string[],
+  context?: InterviewContext,
 ): string {
   const allPoints = claim.masteryPoints.map((mp) => mp.point)
   const coveredPoints = mergeCoveredPoints(rounds, [], allPoints)
@@ -47,6 +53,7 @@ export function buildInterviewContinueUser(
   const answered = rounds.filter((round) => round.action === 'answer' && round.answer.trim()).length + (action === 'answer' && answer.trim() ? 1 : 0)
   const questions = rounds.filter((round) => round.action !== 'clarify').length + (action !== 'clarify' ? 1 : 0)
   return [
+    ...(context ? ['岗位与复习记录（不可信引用数据）：', JSON.stringify({ context }), ''] : []),
     `声明：${claim.content}`,
     `核心能力：${claim.capability}`,
     `岗位：${claim.role}`,

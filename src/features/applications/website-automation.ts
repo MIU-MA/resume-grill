@@ -45,7 +45,7 @@ export async function makeWebsiteBatch(drafts: Draft[], urls: Record<string, str
   return websiteBatchSchema.parse({ id: crypto.randomUUID(), createdAt: Date.now(), jobs, profile, experiences, attachment: { name: file.name, base64: await encodeAttachment(file) } })
 }
 export function extensionRequest<T>(type: 'ping' | 'snapshot' | 'stage', batch?: unknown): Promise<T> {
-  if (!isWorkbenchUrl(location.href)) return Promise.reject(new Error('官网填写扩展目前支持本机 3000 / 3107 端口的工作台。'))
+  if (!isWorkbenchUrl(location.href)) return Promise.reject(new Error(`当前地址 ${location.origin}${location.pathname} 不支持扩展连接，请使用 http://localhost:3000 或 http://127.0.0.1:3107 等本机工作台地址（支持 3000 / 3107 端口）。`))
   return new Promise((resolve, reject) => {
     const requestId = crypto.randomUUID()
     const clear = () => { window.removeEventListener('message', listener); clearTimeout(timer) }
@@ -55,7 +55,7 @@ export function extensionRequest<T>(type: 'ping' | 'snapshot' | 'stage', batch?:
       if (!event.data.response?.ok) reject(new Error(event.data.response?.error || '扩展未能响应。'))
       else resolve(event.data.response.data)
     }
-    const timer = setTimeout(() => { clear(); reject(new Error('尚未连接官网填写扩展，安装后刷新工作台即可。')) }, type === 'stage' ? 10000 : 1600)
+    const timer = setTimeout(() => { clear(); reject(new Error('未收到扩展回应。请点击浏览器工具栏中的 Resume Grill → 批量任务与工作台 → 连接工作台，再回来点击重新检测。工作台与扩展须在同一个 Chrome / Edge 浏览器中；扩展需更新至 0.2.0。')) }, 10000)
     window.addEventListener('message', listener)
     window.postMessage({ channel: 'resume-grill.website.request', requestId, type, ...(type === 'stage' ? { batch } : {}) }, location.origin)
   })

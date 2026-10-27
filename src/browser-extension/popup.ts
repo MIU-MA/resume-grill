@@ -1,4 +1,6 @@
 import { isWorkbenchUrl, PROFILE_LABELS, type WebsiteAnswer, type WebsiteJob, type WebsiteProfile, type WebsiteSnapshot } from '../domain/website-automation'
+import { connectWorkbench } from './workbench-connection'
+import { mountDirectPopup } from './direct-popup'
 
 const message = document.getElementById('message')!
 const list = document.getElementById('jobs')!
@@ -7,6 +9,8 @@ const navigation = document.getElementById('navigation')!
 let snapshot: WebsiteSnapshot | null = null
 let busy = false
 let loaded = false
+let workbenchTab: chrome.tabs.Tab | undefined
+let connectionNote = ''
 const tabOrigins = new Map<number, string>()
 const edits = new Map<string, Map<string, string>>()
 const statuses = { pending: '等待填写', opening: '正在打开', filling: '正在填写', waiting: '需要处理', ready: '已准备 · 待核对提交', done: '已手动确认提交', skipped: '已跳过' }
@@ -53,18 +57,16 @@ async function continueJob(job: WebsiteJob, inputs: Array<{ input: HTMLInputElem
 }
 function render() {
   toolbar.replaceChildren(); list.replaceChildren()
-  navigation.replaceChildren(button('打开工作台', openWorkbench), button('刷新任务', async () => undefined))
+  navigation.replaceChildren(button('打开工作台', openWorkbench), button('连接工作台', async () => {
+    connectionNote = ''
+    if (!workbenchTab) throw new Error('没有找到本机工作台标签页。请先在当前浏览器打开工作台，再点击“刷新任务”。')
+    connectionNote = await connectWorkbench(workbenchTab)
+  }), button('刷新任务', async () => undefined))
+  if (connectionNote) { const note = document.createElement('p'); note.className = 'detail'; note.textContent = connectionNote; navigation.append(note) }
   document.getElementById('progress')!.textContent = snapshot ? `${snapshot.jobs.filter(job => ['ready', 'done', 'skipped'].includes(job.status)).length}/${snapshot.jobs.length}` : ''
   if (!snapshot) {
-    if (!message.classList.contains('error')) message.textContent = loaded ? '还没有收到填写任务。先在工作台选择岗位和简历。' : '正在读取任务…'
-    const help = document.createElement('section'); help.className = 'empty-state'
-    const title = document.createElement('h2'); title.textContent = '第一次使用'
-    const steps = document.createElement('ol')
-    for (const text of ['打开工作台，添加具体岗位链接并勾选官网岗位。', '点击“官网批量填写”，选择简历，核对可复用的资料，点击“发送到扩展”。', '回到这里，点击“开始填写”，允许本批招聘网站的访问权限。']) {
-      const step = document.createElement('li'); step.textContent = text; steps.append(step)
-    }
-    const note = document.createElement('p'); note.className = 'detail'; note.textContent = '扩展负责填写，简历和岗位在工作台选择。若工作台打不开，请先在项目目录运行 npm run dev；默认地址为 127.0.0.1:3000。'
-    help.append(title, steps, note); list.append(help); return
+    if (!message.classList.contains('error')) message.textContent = loaded ? '没有批量任务。单个官网直接用上方“填写当前页面”即可。' : '正在读取任务…'
+    return
   }
   const pending = snapshot.jobs.filter(job => job.status === 'pending')
   const waiting = snapshot.jobs.filter(job => job.status === 'waiting')
@@ -112,6 +114,8 @@ function render() {
 async function refresh() {
   const previousId = snapshot?.id
   snapshot = await send({ type: 'snapshot' })
+  const workbenches = (await chrome.tabs.query({})).filter(tab => tab.url && isWorkbenchUrl(tab.url))
+  workbenchTab = workbenches.find(tab => tab.active) ?? workbenches.find(tab => new URL(tab.url!).pathname === '/applications') ?? workbenches[0]
   loaded = true
   if (previousId !== snapshot?.id) edits.clear()
   await Promise.all((snapshot?.jobs ?? []).filter(job => job.tabId !== undefined).map(async job => {
@@ -121,6 +125,7 @@ async function refresh() {
   }))
   if (!(document.activeElement instanceof HTMLInputElement)) render()
 }
+mountDirectPopup(document.getElementById('direct')!)
 render()
 void refresh().catch(error => { message.textContent = String(error); message.className = 'error'; render() })
 setInterval(() => { if (!busy) void refresh().catch(() => undefined) }, 2000)

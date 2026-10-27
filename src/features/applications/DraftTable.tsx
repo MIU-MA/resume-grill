@@ -16,9 +16,9 @@ export function DraftTable({ drafts, selectedIds, disabled, onSelection, onUpdat
   const needsAttention = drafts.filter(draft => draftIssues(draft).length && !websiteLinks(draft).length)
   if (!drafts.length) return <div className="mail-empty text-[13px]">
     <ListPlus size={24} strokeWidth={1.5} aria-hidden="true" />
-    <div><h2 className="mb-2 mt-0 text-[17px] font-semibold">还没有待投递的岗位</h2>
-    <p className="mb-4 leading-relaxed text-text-secondary">从官网读取职位，或粘贴招聘正文，公司和投递信息会一起带入。</p>
-    <Button variant="secondary" disabled={disabled} onClick={onAdd}>手动添加岗位</Button></div>
+    <div><h2 className="mb-2 mt-0 text-[17px] font-semibold">还没有待投递的条目</h2>
+    <p className="mb-4 leading-relaxed text-text-secondary">在上方填写收件邮箱即可预览邮件，也可以从官网导入岗位。</p>
+    <Button variant="secondary" disabled={disabled} onClick={onAdd}>添加邮件</Button></div>
   </div>
   return <section className="mail-draft-table flex min-h-0 flex-1 flex-col" aria-label="批量核对投递名单">
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line px-5 py-2.5 text-[12px]">
@@ -39,8 +39,8 @@ export function DraftTable({ drafts, selectedIds, disabled, onSelection, onUpdat
           const candidates = draft.extraction?.url === draft.sourceUrl ? draft.extraction.emails : []
           return <tr key={draft.id} data-selected={checked.has(draft.id)} className="border-b border-line hover:bg-surface-soft">
             <td className="px-4 py-3 align-top"><input type="checkbox" aria-label={`选择 ${draft.company || '未填公司'} ${draft.role || '未填岗位'}`} disabled={disabled} checked={checked.has(draft.id)} onChange={event => onSelection(event.target.checked ? [...selectedIds, draft.id] : selectedIds.filter(id => id !== draft.id))} /></td>
-            <td className="mail-draft-identity px-3 py-2 align-top"><input className="mail-input !border-transparent !bg-transparent !px-0 focus:!border-brand" aria-label={`公司 ${draft.id}`} value={draft.company} maxLength={120} disabled={disabled} placeholder="补充公司" onChange={event => onUpdate(draft.id, { company: event.target.value })} />
-              <input className="mail-input !border-transparent !bg-transparent !px-0 focus:!border-brand" aria-label={`岗位 ${draft.id}`} value={draft.role} maxLength={120} disabled={disabled} placeholder="补充岗位" onChange={event => onUpdate(draft.id, { role: event.target.value })} /></td>
+            <td className="mail-draft-identity px-3 py-2 align-top"><input className="mail-input !border-transparent !bg-transparent !px-0 focus:!border-brand" aria-label={`公司 ${draft.id}`} value={draft.company} maxLength={120} disabled={disabled} placeholder={website ? '补充公司' : '公司（选填）'} onChange={event => onUpdate(draft.id, { company: event.target.value })} />
+              <input className="mail-input !border-transparent !bg-transparent !px-0 focus:!border-brand" aria-label={`岗位 ${draft.id}`} value={draft.role} maxLength={120} disabled={disabled} placeholder={website ? '补充岗位' : '岗位（选填）'} onChange={event => onUpdate(draft.id, { role: event.target.value })} /></td>
             <td className="px-3 py-2 align-top">{website ? <button type="button" disabled={disabled} onClick={() => onOpen(draft.id)} className="flex h-9 items-center gap-1 text-accent underline">官网申请<ExternalLink size={12} /></button> : <>
               <input className="mail-input !border-transparent !bg-transparent !px-0 focus:!border-brand" aria-label={`招聘邮箱 ${draft.id}`} type="email" value={draft.recipient} disabled={disabled} placeholder={candidates.length ? '在下方选择邮箱' : '补充招聘邮箱'} onChange={event => onUpdate(draft.id, { recipient: event.target.value })} />
               {!draft.recipient && !!candidates.length && <select className="mail-input w-full text-[11px]" aria-label={`选择 ${draft.company} ${draft.role} 的官网邮箱`} value="" disabled={disabled} onChange={event => { if (event.target.value) onUpdate(draft.id, { recipient: event.target.value }) }}>

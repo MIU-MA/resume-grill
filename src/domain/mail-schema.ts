@@ -39,8 +39,8 @@ export type MailSender = Pick<SmtpConfig, 'address' | 'name'>
 
 export const mailDraftSchema = z.object({
   id: z.uuid(),
-  company: line(120),
-  role: line(120),
+  company: z.union([line(120), z.string().trim().length(0)]),
+  role: z.union([line(120), z.string().trim().length(0)]),
   sourceUrl: z.union([sourceUrlSchema, z.literal('')]),
   recipient: emailSchema,
   subject: line(200),
@@ -93,8 +93,10 @@ export type CareerDiscovery = { links: CareerLink[]; pagesRead: number; notes: s
 export type CareerPage = { url: string; title: string; emails: EmailCandidate[]; company: string; role: string; recommendedEmail: string; notes: string[]; links?: CareerLink[]; jobDescription?: string; jobs?: CareerJob[] }
 
 export function applicationTemplate(name: string, company: string, role: string) {
+  const position = role.trim()
+  const signature = name.trim()
   return {
-    subject: `应聘${role || '岗位名称'}-${name || '姓名'}`,
-    body: `您好：\n\n我想应聘${company || '贵公司'}的${role || '岗位名称'}岗位，附件是我的简历。\n\n感谢您查看，期待有机会进一步沟通。\n\n${name || '姓名'}`,
+    subject: `${position ? `应聘${position}` : '求职申请'}${signature ? `-${signature}` : ''}`,
+    body: `您好：\n\n${position ? `我想应聘${company.trim() || '贵公司'}的${position}岗位，附件是我的简历。` : '附件是我的简历，供您参考。'}\n\n感谢您查看，期待有机会进一步沟通。${signature ? `\n\n${signature}` : ''}`,
   }
 }

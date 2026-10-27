@@ -24,6 +24,18 @@ function batch(count = 1): MailBatch {
 }
 
 describe('durable email queue', () => {
+  it('sends and restores email-only applications and still rejects duplicates', async () => {
+    const dir = temp(); const send = vi.fn().mockResolvedValue(undefined)
+    const input = batch(); Object.assign(input.jobs[0], { company: '', role: '', sourceUrl: '' })
+    const queue = new MailQueue(dir, { send, interval: 0 }); queue.configure(config)
+    queue.enqueue(input); await queue.settled()
+    expect(send).toHaveBeenCalledTimes(1)
+    const restarted = new MailQueue(dir, { send }); restarted.configure(config)
+    expect(restarted.snapshot().jobs[0]).toMatchObject({ company: '', role: '', sourceUrl: '', status: 'sent' })
+    const duplicate = { ...input, id: randomUUID(), jobs: [{ ...input.jobs[0], id: randomUUID() }] }
+    expect(() => restarted.enqueue(duplicate)).toThrow(input.jobs[0].recipient)
+    expect(send).toHaveBeenCalledTimes(1)
+  })
   it('uses the configured NetEase sender and restores records without persisting the authorization code', async () => {
     const dir = temp(); const send = vi.fn().mockResolvedValue(undefined)
     const netease: SmtpConfig = { ...config, provider: '163', address: 'candidate@163.com' }

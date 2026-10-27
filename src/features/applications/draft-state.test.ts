@@ -31,7 +31,7 @@ describe('投递清单状态', () => {
 
   it('对缺失字段和有内容但格式错误的字段给出可定位提示', () => {
     expect(draftIssues(draft({ company: '', recipient: 'not-email', body: '' }))).toEqual([
-      { field: 'company', label: '缺公司' }, { field: 'recipient', label: '检查招聘邮箱' }, { field: 'body', label: '缺邮件正文' },
+      { field: 'recipient', label: '检查招聘邮箱' }, { field: 'body', label: '缺邮件正文' },
     ])
     expect(draftIssues(draft())).toEqual([])
   })

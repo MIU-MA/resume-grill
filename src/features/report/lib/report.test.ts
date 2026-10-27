@@ -31,6 +31,17 @@ const analysis: ResumeAnalysis = {
   ],
 }
 
+it('导出复盘时保留反问、目的和后续澄清提示', () => {
+  const session: InterviewSession = { id: 's', claimContent: analysis.claims[0].content, rounds: [], claimAnalysis: null, status: 'done', version: 1, finalResult: {
+    masteryScore: 2, masteryLevel: 'partial', canExplain: [], cannotExplain: [], knowledgeGaps: [], answerSummary: '', nextAction: '', rewriteSuggestion: '',
+    interviewQuestions: [{ question: '这个岗位优先解决什么问题？', reason: '向用人经理了解目标', followUp: '确认约束再分享经历' }],
+  } }
+  const report = buildFullReport(analysis, { [analysis.claims[0].id]: [session] })
+  expect(report).toContain('这个岗位优先解决什么问题？')
+  expect(report).toContain('想了解：向用人经理了解目标')
+  expect(report).toContain('听完后：确认约束再分享经历')
+})
+
 describe('buildReport', () => {
   it('包含候选人与来源', () => {
     const report = buildReport(analysis)

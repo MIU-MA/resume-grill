@@ -106,7 +106,7 @@ export class MailQueue {
     const ids = new Set(this.jobs.map(job => job.id))
     for (const draft of batch.jobs) {
       const key = duplicateKey({ ...draft, sender: batch.sender })
-      if (keys.has(key) || ids.has(draft.id)) throw new Error(`「${draft.company} / ${draft.role}」已有投递记录，不能重复加入；发送失败的邮件请在记录中重试`)
+      if (keys.has(key) || ids.has(draft.id)) throw new Error(`「${[draft.company, draft.role].filter(Boolean).join(' / ') || draft.recipient}」已有投递记录，不能重复加入；发送失败的邮件请在记录中重试`)
       keys.add(key)
       ids.add(draft.id)
     }

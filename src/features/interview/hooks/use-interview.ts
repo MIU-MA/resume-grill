@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react'
 import type { ResumeClaim } from '@/domain/resume-schema'
 import type { ClaimAnalysis, InterviewAction, InterviewRound, InterviewSession, InterviewContinueResult, FinalResult } from '@/domain/interview-schema'
+import type { InterviewContext } from '@/domain/interview-context'
 import { getLlmSettings } from '@/lib/settings'
 
 type Callbacks = {
@@ -16,7 +17,7 @@ type StartOptions = {
   claimContent?: string
 }
 
-export function useInterview(envConfigured: boolean, { onError, onToast, onSessionSaved }: Callbacks) {
+export function useInterview(envConfigured: boolean, { onError, onToast, onSessionSaved }: Callbacks, getContext?: (claimId: string) => InterviewContext) {
   const [rounds, setRounds] = useState<InterviewRound[]>([])
   const [currentQuestion, setCurrentQuestion] = useState('')
   const [currentIntent, setCurrentIntent] = useState('')
@@ -27,17 +28,19 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
   const [activeClaimSnapshot, setActiveClaimSnapshot] = useState<ResumeClaim | null>(null)
   const [version, setVersion] = useState(1)
 
+  const contextRef = useRef<InterviewContext | undefined>(undefined)
   const cache = useRef<Map<string, ClaimAnalysis>>(new Map())
   const cacheKey = (claim: ResumeClaim) => `${claim.id}:${hashClaimContent(claim.content)}`
 
   const reset = useCallback(() => {
-    cache.current.clear()
+    cache.current.clear(); contextRef.current = undefined
     setRounds([]); setCurrentQuestion(''); setCurrentIntent(''); setAnswer(''); setAnnotation('')
     setDone(false); setActiveClaimSnapshot(null); setVersion(1)
   }, [])
 
   const restore = useCallback((claim: ResumeClaim, session: InterviewSession): boolean => {
     if (session.status !== 'in_progress') return false
+    contextRef.current = session.context ?? getContext?.(claim.id)
     const snapshot: ResumeClaim = session.claimContent && session.claimContent !== claim.content
       ? { ...claim, content: session.claimContent }
       : claim
@@ -51,7 +54,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       cache.current.set(cacheKey(snapshot), session.claimAnalysis)
     }
     return true
-  }, [])
+  }, [getContext])
 
   const start = useCallback(async (claim: ResumeClaim, opts?: StartOptions) => {
     if (!getLlmSettings() && !envConfigured) {
@@ -59,6 +62,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       return
     }
     setLoading(true); onError('')
+    contextRef.current = getContext?.(claim.id)
 
     const resolvedVersion = opts?.version ?? 1
     const resolvedContent = opts?.claimContent ?? claim.content
@@ -92,6 +96,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
 
       onSessionSaved(effectiveClaim.id, {
         id: `${effectiveClaim.id}:v${resolvedVersion}`,
+        context: contextRef.current,
         claimContent: resolvedContent,
         rounds: [],
         claimAnalysis,
@@ -103,17 +108,19 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       })
     } catch (e) { onError(e instanceof Error ? e.message : '启动面试失败') }
     finally { setLoading(false) }
-  }, [envConfigured, onError, onSessionSaved])
+  }, [envConfigured, onError, onSessionSaved, getContext])
 
   const finalizeSession = useCallback(async (claim: ResumeClaim, finalRounds: InterviewRound[]) => {
     const snapshot = activeClaimSnapshot ?? claim
     const sessionId = `${snapshot.id}:v${version}`
+    const context = contextRef.current
     const claimAnalysis = cache.current.get(cacheKey(snapshot))!
     let finalResult: FinalResult | null = null
     let summarySucceeded = false
 
     onSessionSaved(snapshot.id, {
       id: sessionId,
+      context,
       claimContent: snapshot.content,
       rounds: finalRounds,
       claimAnalysis,
@@ -124,7 +131,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
 
     try {
       const llm = getLlmSettings()
-      const body: any = { claim: snapshot, rounds: finalRounds }; if (llm) body.llm = llm
+      const body: any = { claim: snapshot, rounds: finalRounds, context }; if (llm) body.llm = llm
       const res = await fetch('/api/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const data = (await res.json()) as FinalResult | { error: string }
       if (!res.ok || 'error' in data) {
@@ -136,6 +143,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
 
     onSessionSaved(snapshot.id, {
       id: sessionId,
+      context,
       claimContent: snapshot.content,
       rounds: finalRounds,
       claimAnalysis,
@@ -152,6 +160,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
     const claimAnalysis = cache.current.get(cacheKey(snapshot))
     onSessionSaved(snapshot.id, {
       id: `${snapshot.id}:v${version}`,
+      context: contextRef.current,
       claimContent: snapshot.content,
       rounds: newRounds,
       claimAnalysis: claimAnalysis ?? null,
@@ -177,6 +186,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       const submittedAnnotation = action === 'skip' ? '' : annotation
       const body: any = {
         claim: snapshot,
+        context: contextRef.current,
         action, question: currentQuestion,
         answer: submittedAnswer, annotation: submittedAnnotation,
         rounds, verifyPoints: claimAnalysis.verifyPoints, trapPoints: claimAnalysis.trapPoints,
@@ -217,10 +227,11 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       : claim
     const claimAnalysis = session.claimAnalysis ?? buildClaimAnalysisFromClaim(snapshot)
     cache.current.set(cacheKey(snapshot), claimAnalysis)
+    const context = session.context ?? getContext?.(claim.id)
     setRegeneratingId(session.id)
     try {
       const llm = getLlmSettings()
-      const body: any = { claim: snapshot, rounds: session.rounds }; if (llm) body.llm = llm
+      const body: any = { claim: snapshot, rounds: session.rounds, context }; if (llm) body.llm = llm
       const res = await fetch('/api/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const data = (await res.json()) as FinalResult | { error: string }
       if (!res.ok || 'error' in data) {
@@ -229,6 +240,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       }
       onSessionSaved(snapshot.id, {
         id: `${snapshot.id}:v${session.version}`,
+        context,
         claimContent: snapshot.content,
         rounds: session.rounds,
         claimAnalysis,
@@ -243,7 +255,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       onError(e instanceof Error ? e.message : '重新生成总结失败')
       return false
     } finally { setRegeneratingId(null) }
-  }, [onError, onToast, onSessionSaved])
+  }, [onError, onToast, onSessionSaved, getContext])
 
   const covered = rounds[rounds.length - 1]?.evaluation?.coveredPoints ?? []
 

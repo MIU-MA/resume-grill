@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { emailSchema, inferSmtpProvider, type MailSender } from '@/domain/mail-schema'
+import { applicationTemplate, emailSchema, inferSmtpProvider, type MailSender } from '@/domain/mail-schema'
 import type { Draft } from './draft-state'
 
 export const DEFAULT_SUBJECT_TEMPLATE = '应聘{{岗位}}-{{姓名}}'
@@ -42,7 +42,11 @@ export function renderMailTemplate(defaults: MailDefaults, draft: Pick<Draft, 'c
   const values = { company: draft.company.trim() || '贵公司', role: draft.role.trim() || '相关', name: person.name.trim(), address: person.address.trim() }
   if (!values.name) return null
   const fill = (value: string) => value.replace(placeholder, (_, key: string) => values[VARIABLES[key.trim()]])
-  return { subject: fill(defaults.subject), body: fill(defaults.body) }
+  const standard = applicationTemplate(values.name, draft.company, draft.role)
+  return {
+    subject: defaults.subject === DEFAULT_SUBJECT_TEMPLATE ? standard.subject : fill(defaults.subject),
+    body: defaults.body === DEFAULT_BODY_TEMPLATE ? standard.body : fill(defaults.body),
+  }
 }
 
 // Only generated drafts follow settings changes. A user's own text stays intact.

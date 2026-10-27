@@ -175,6 +175,15 @@ export function ClaimReportDetail({
         </section>
       )}
 
+      {!!result.interviewQuestions?.length && <section className="mt-5 border-t border-line pt-4">
+        <div className="mb-2 text-[13px] font-bold">可以问面试官</div>
+        {result.interviewQuestions.map((item, index) => <details key={index} className="border-b border-line py-3 text-[12px] leading-relaxed">
+          <summary className="cursor-pointer font-medium">{item.question}</summary>
+          <p className="mt-2 text-text-secondary">{item.reason}</p>
+          <p className="mt-1 text-text-secondary">{item.followUp}</p>
+        </details>)}
+      </section>}
+
       {/* 问答记录 */}
       {session.rounds.length > 0 && (
         <div className="mt-5 border-t border-line pt-4">

@@ -7,6 +7,16 @@ afterEach(() => { document.body.replaceChildren(); vi.restoreAllMocks(); vi.unst
 function form(html: string) { document.body.innerHTML = `<form>${html}</form>` }
 
 describe('官网实际 DOM 填写', () => {
+  it('不选附件也能填写资料，只在官网必传时提示附件缺项', async () => {
+    form('<label>姓名<input required></label><label>简历<input type="file"></label>')
+    const optional = await fillApplication({ name: '测试人' }, [], null)
+    expect(optional.filled).toContain('姓名')
+    expect(optional.missing).toEqual([])
+    form('<label>姓名<input required></label><label>简历<input type="file" required></label>')
+    const required = await fillApplication({ name: '测试人' }, [])
+    expect(required.filled).toContain('姓名')
+    expect(required.missing).toContainEqual(expect.objectContaining({ kind: 'upload', label: expect.stringContaining('官网要求上传') }))
+  })
   it('填写中英文标签、原生下拉框并触发框架事件，不点击提交', async () => {
     form('<label>姓名<input required></label><label>Email<input type="email" required></label><label>最高学历<select><option value="">请选择</option><option value="bachelor">本科</option></select></label><button type="submit">提交</button>')
     const submit = vi.fn(event => event.preventDefault()); document.querySelector('form')!.addEventListener('submit', submit)

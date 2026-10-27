@@ -23,6 +23,8 @@ import { LocalSetupStatus } from './LocalSetupStatus'
 import { MailPreview } from './MailPreview'
 import { LinkImporter } from './LinkImporter'
 import { ContactImporter } from './ContactImporter'
+import { QuickMail } from './QuickMail'
+import { prepareQuickMail } from './quick-mail'
 import { DraftTable } from './DraftTable'
 import { MailDefaultsDialog } from './MailDefaultsDialog'
 import { applyMailDefaults, renderMailTemplate, senderDefaults } from './mail-defaults'
@@ -59,7 +61,7 @@ export function MailWorkbench({ mode = 'applications', badges, onNavigate, onHom
   }
   const [navOpen, setNavOpen] = useState(false)
   const [defaultsOpen, setDefaultsOpen] = useState(false)
-  const [inputMode, setInputMode] = useState<'contacts' | 'links' | 'assistant'>('links')
+  const [inputMode, setInputMode] = useState<'email' | 'contacts' | 'links' | 'assistant'>(isCareers ? 'links' : 'email')
   useEffect(() => { if (isCareers) setInputMode('links') }, [isCareers])
   const [editOpen, setEditOpen] = useState(false)
   const [previewPreparation, setPreviewPreparation] = useState<Record<string, SavedJobPreparation>>({})
@@ -138,7 +140,7 @@ export function MailWorkbench({ mode = 'applications', badges, onNavigate, onHom
   const addDraft = () => {
     if (drafts.length >= 20) { setError('每批最多 20 封，请先发送或移除当前草稿'); return }
     const draft: Draft = { id: crypto.randomUUID(), company: '', role: defaults.role, sourceUrl: '', recipient: '', subject: '', body: '', sourceConfirmed: false, automatic: true }
-    setDrafts(items => [...items, draft]); setSelectedDraftIds(items => [...items, draft.id]); setSelectedId(draft.id); setTab('drafts'); setFocusRequest({ field: 'company', time: Date.now() }); setEditOpen(true); setError('')
+    setDrafts(items => [...items, draft]); setSelectedDraftIds(items => [...items, draft.id]); setSelectedId(draft.id); setTab('drafts'); setFocusRequest({ field: 'recipient', time: Date.now() }); setEditOpen(true); setError('')
   }
   const importContacts = (text: string) => {
     const result = planContactImports(parseContactList(text, defaults.role), drafts, 20 - drafts.length)
@@ -146,29 +148,36 @@ export function MailWorkbench({ mode = 'applications', badges, onNavigate, onHom
     setDrafts(items => [...items, ...applyMailDefaults(added, defaults, snapshot?.sender)])
     setSelectedDraftIds(items => [...items, ...added.map(item => item.id)])
     setTab('drafts'); setEditOpen(false); setError('')
-    return `已添加 ${added.length} 个岗位${result.duplicates ? `，跳过 ${result.duplicates} 个重复条目` : ''}。缺项可直接在表格补充。`
+    return `已添加 ${added.length} 个条目${result.duplicates ? `，跳过 ${result.duplicates} 个重复条目` : ''}。`
   }
   const removeDraft = (id: string) => {
     setDrafts(items => items.filter(item => item.id !== id))
     if (selected?.id === id) setEditOpen(false)
     setPreparationByJob(items => { const next = { ...items }; delete next[id]; return next })
   }
-  const preparePreview = async () => {
+  const preparePreview = async (targets = selectedReadyDrafts, currentDrafts = drafts, currentIds = selectedDraftIds) => {
     if (!snapshot?.sender) { setSettingsOpen('sender'); return }
     if (!attachment) { fileInput.current?.click(); throw new Error('请选择这批投递要附上的简历原文件') }
-    const prepared = selectedReadyDrafts.map(draftPayload)
+    const prepared = targets.map(draftPayload)
     const parsed = batchSchema.safeParse({ id: crypto.randomUUID(), sender: snapshot.sender, jobs: prepared, attachment: { name: attachment.name, base64: await encodeAttachment(attachment) } })
     if (!parsed.success) {
       const index = parsed.error.issues.find(issue => issue.path[0] === 'jobs')?.path[1]
-      if (typeof index === 'number') setSelectedId(selectedReadyDrafts[index]?.id ?? null)
-      const target = typeof index === 'number' ? selectedReadyDrafts[index] : undefined
-      const missing = target ? [['公司', target.company], ['岗位', target.role], ['招聘邮箱', target.recipient], ['主题', target.subject], ['正文', target.body]].filter(([, value]) => !value.trim()).map(([label]) => label).join('、') : ''
+      if (typeof index === 'number') setSelectedId(targets[index]?.id ?? null)
+      const target = typeof index === 'number' ? targets[index] : undefined
+      const missing = target ? [['招聘邮箱', target.recipient], ['主题', target.subject], ['正文', target.body]].filter(([, value]) => !value.trim()).map(([label]) => label).join('、') : ''
       throw new Error(`请检查${typeof index === 'number' ? `第 ${index + 1} 个岗位` : '投递内容'}${missing ? `，还缺：${missing}` : '的邮箱、官网链接或附件格式'}。`)
     }
-    const captured = Object.fromEntries(selectedReadyDrafts.map(draft => [draft.id, { jobDescription: draft.jobDescription ?? '', attachment, attachmentSource, attachmentUse: 'preview' as const }]))
+    const captured = Object.fromEntries(targets.map(draft => [draft.id, { jobDescription: draft.jobDescription ?? '', attachment, attachmentSource, attachmentUse: 'preview' as const }]))
     const nextPreparation = { ...preparationByJob, ...captured }
-    await persist({ drafts, attachment, attachmentSource, websiteApplications, preparationByJob: nextPreparation, defaults, selectedIds: selectedDraftIds })
+    await persist({ drafts: currentDrafts, attachment, attachmentSource, websiteApplications, preparationByJob: nextPreparation, defaults, selectedIds: currentIds })
     setPreparationByJob(nextPreparation); setPreviewPreparation(captured); setPreview(parsed.data)
+  }
+  const previewQuickMail = async (recipient: string) => {
+    const next = prepareQuickMail(recipient, drafts, defaults, snapshot?.sender)
+    const ids = [...new Set([...selectedDraftIds, next.draft.id])]
+    await persist({ drafts: next.drafts, attachment, attachmentSource, websiteApplications, preparationByJob, defaults, selectedIds: ids })
+    setDrafts(next.drafts); setSelectedDraftIds(ids); setSelectedId(next.draft.id)
+    await preparePreview([next.draft], next.drafts, ids)
   }
   const jobAction = async (job: MailJob, action: 'retry' | 'cancel' | 'confirm-sent') => {
     if (job.status === 'uncertain' && !window.confirm(action === 'confirm-sent' ? '已核对邮箱发信记录，确认这封邮件已经发出？' : '取消本条不会撤回邮件；如需再次投递，请先核实上次发送结果。继续取消？')) return
@@ -249,7 +258,8 @@ export function MailWorkbench({ mode = 'applications', badges, onNavigate, onHom
       {isCareers ? <div className="mail-section-description"><p>去官网选择职位，读取后加入投递清单。</p><Button variant="secondary" className="h-8 text-[12px]" onClick={() => onNavigate('applications')}>查看投递清单{drafts.length ? ` (${drafts.length})` : ''}</Button></div> : tab === 'drafts' ? <div className="mail-tabs flex h-11 flex-none items-center border-b border-line px-4"><span className="text-[12px] font-medium">待投递 {drafts.length}</span><button className="ml-auto flex items-center gap-1 px-2 py-2 text-[12px] text-text-secondary hover:bg-surface-hover" disabled={!hydrated || busy || !!preview} onClick={addDraft}><Plus size={13} />手动添加</button></div> : null}
       {hydrated && <div hidden={tab !== 'drafts'} className={`mail-import-area flex-none ${inputMode === 'assistant' ? 'max-h-[55vh] overflow-y-auto' : ''}`}>
         <div className="mail-input-modes flex flex-wrap items-center gap-x-4 gap-y-2 px-5 pt-3 text-[12px]">
-          <span className="mail-input-caption">添加岗位</span>
+          <span className="mail-input-caption">添加投递</span>
+          {!isCareers && <button type="button" aria-pressed={inputMode === 'email'} disabled={busy} className={inputMode === 'email' ? 'font-semibold text-text-primary' : 'text-text-tertiary'} onClick={() => setInputMode('email')}>邮箱投递</button>}
           <button type="button" aria-pressed={inputMode === 'links'} disabled={busy} className={inputMode === 'links' ? 'font-semibold text-text-primary' : 'text-text-tertiary'} onClick={() => setInputMode('links')}>官网链接</button>
           <button type="button" aria-pressed={inputMode === 'contacts'} disabled={busy} className={inputMode === 'contacts' ? 'font-semibold text-text-primary' : 'text-text-tertiary'} onClick={() => setInputMode('contacts')}>名单 / 招聘正文</button>
           {renderAssistant && <button type="button" aria-pressed={inputMode === 'assistant'} disabled={busy} className={inputMode === 'assistant' ? 'font-semibold text-text-primary' : 'text-text-tertiary'} onClick={() => setInputMode('assistant')}>帮我找岗位</button>}
@@ -279,6 +289,7 @@ export function MailWorkbench({ mode = 'applications', badges, onNavigate, onHom
             } finally { setBusy(false) }
           },
         })}</div>
+        {!isCareers && <div hidden={inputMode !== 'email'}><QuickMail disabled={busy || !!preview || !!snapshot?.running || pending > 0 || !!snapshot?.fatalError} onPreview={recipient => void run(() => previewQuickMail(recipient))} /></div>}
         <div hidden={inputMode !== 'contacts'}><ContactImporter disabled={busy || !!preview} slots={20 - drafts.length} onImport={importContacts} /></div>
         <div hidden={inputMode !== 'links'}><LinkImporter expandedDirectory={isCareers} onBusy={setBusy} existingUrls={drafts.filter(draft => (draft.extraction?.jobs?.length ?? 0) < 2).map(draft => draft.sourceUrl)} existingJobs={drafts.map(({ sourceUrl, role }) => ({ sourceUrl, role }))} slots={20 - drafts.length} connected={!!snapshot} onConnect={() => setSettingsOpen('agent')} read={url => agent.request<CareerPage>('/extract', { url })} discover={url => agent.request<CareerDiscovery>('/discover', { url })} onImported={result => {
           const id = crypto.randomUUID()
@@ -295,7 +306,7 @@ export function MailWorkbench({ mode = 'applications', badges, onNavigate, onHom
           </div>}
           <div className="min-h-0 flex-1 overflow-y-auto">
             {history.map(item => <button key={item.id} className={`block w-full border-b border-line px-4 py-3 text-left ${selected?.id === item.id ? 'border-l-2 border-l-brand bg-brand-soft' : 'border-l-2 border-l-transparent hover:bg-surface-soft'}`} onClick={() => selectItem(item)}>
-              <span className="flex items-baseline gap-2"><strong className="min-w-0 flex-1 truncate text-[13px] font-semibold">{item.company}</strong><span className="workbench-status whitespace-nowrap text-[11px]" data-tone={isWebsite(item) ? 'success' : MAIL_STATUS_TONES[item.status]}>{isWebsite(item) ? '官网已投 · 手动' : MAIL_STATUS_LABELS[item.status]}</span></span>
+              <span className="flex items-baseline gap-2"><strong className="min-w-0 flex-1 truncate text-[13px] font-semibold">{item.company || (isWebsite(item) ? item.role : item.recipient)}</strong><span className="workbench-status whitespace-nowrap text-[11px]" data-tone={isWebsite(item) ? 'success' : MAIL_STATUS_TONES[item.status]}>{isWebsite(item) ? '官网已投 · 手动' : MAIL_STATUS_LABELS[item.status]}</span></span>
               <span className="mt-1 block truncate text-[12px] text-text-secondary">{item.role}</span>
               <span className="mt-1 block truncate text-[11px] text-text-tertiary">{isWebsite(item) ? `${savedDate(item.appliedAt)} 标记` : item.recipient}</span>
             </button>)}
@@ -329,7 +340,10 @@ export function MailWorkbench({ mode = 'applications', badges, onNavigate, onHom
       await persist({ drafts: updated, attachment, attachmentSource, websiteApplications, preparationByJob, defaults: value, selectedIds: selectedDraftIds })
       setDefaults(value); setDrafts(updated)
     }} />}
-    {preview && <MailPreview batch={preview} skippedCount={drafts.length - preview.jobs.length} onClose={() => setPreview(null)} onSend={async batch => {
+    {preview && <MailPreview batch={preview} onEdit={(id, change) => {
+      setPreview(current => current ? { ...current, jobs: current.jobs.map(job => job.id === id ? { ...job, ...change } : job) } : null)
+      setDrafts(items => items.map(item => item.id === id ? updateDraft(item, change) : item))
+    }} skippedCount={drafts.length - preview.jobs.length} onClose={() => setPreview(null)} onSend={async batch => {
       const sentPreparation = Object.fromEntries(batch.jobs.map(job => [job.id, { ...previewPreparation[job.id], attachmentUse: 'mail' as const }]))
       const nextPreparation = { ...preparationByJob, ...sentPreparation }
       await persist({ drafts, attachment, attachmentSource, websiteApplications, preparationByJob: nextPreparation, defaults, selectedIds: selectedDraftIds })

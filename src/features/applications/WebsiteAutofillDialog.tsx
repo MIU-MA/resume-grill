@@ -19,6 +19,7 @@ export function WebsiteAutofillDialog({ drafts, attachment, resumeId, sender, in
   const [selectedAttachment, setSelectedAttachment] = useState(attachment)
   const [urls, setUrls] = useState<Record<string, string>>(initialUrls)
   const [connected, setConnected] = useState(false)
+  const [connectionError, setConnectionError] = useState('正在检测扩展连接…')
   const [queue, setQueue] = useState<WebsiteSnapshot | null>(null)
   const [ready, setReady] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -30,7 +31,7 @@ export function WebsiteAutofillDialog({ drafts, attachment, resumeId, sender, in
   const parsedProfile = profileSchema.safeParse(profile)
   const missingEntrances = targets.filter(({ draft, links }) => links.length > 1 && !links.some(link => link.url === urls[draft.id]))
   const unfinishedQueue = queue?.jobs.some(job => !['done', 'skipped'].includes(job.status))
-  const blocker = !ready ? '正在读取已保存的资料…' : !connected ? '尚未连接扩展。安装或重新加载后，请刷新工作台。' : !validResumeAttachment(selectedAttachment) ? '请选择 5 MB 以内的 PDF、DOCX 或 TXT 简历附件。' : !targets.length ? '请先在投递清单勾选官网岗位，需要有公司、职位和 HTTPS 招聘链接；邮箱岗位走邮件投递。' : targets.length > 20 ? '每批最多 20 个官网岗位，请减少勾选数量。' : missingEntrances.length ? `请为 ${missingEntrances.map(item => item.draft.company).join('、')} 选择申请入口。` : !parsedProfile.success ? parsedProfile.error.issues[0]?.message : unfinishedQueue ? '扩展已有未结束的任务。请打开工具栏中的 Resume Grill，继续处理或清空上一批。' : ''
+  const blocker = !ready ? '正在读取已保存的资料…' : !connected ? connectionError : !validResumeAttachment(selectedAttachment) ? '请选择 5 MB 以内的 PDF、DOCX 或 TXT 简历附件。' : !targets.length ? '请先在投递清单勾选官网岗位，需要有公司、职位和 HTTPS 招聘链接；邮箱岗位走邮件投递。' : targets.length > 20 ? '每批最多 20 个官网岗位，请减少勾选数量。' : missingEntrances.length ? `请为 ${missingEntrances.map(item => item.draft.company).join('、')} 选择申请入口。` : !parsedProfile.success ? parsedProfile.error.issues[0]?.message : unfinishedQueue ? '扩展已有未结束的任务。请打开工具栏中的 Resume Grill，继续处理或清空上一批。' : ''
   useEffect(() => {
     dialog.current?.showModal()
     let active = true
@@ -49,12 +50,20 @@ export function WebsiteAutofillDialog({ drafts, attachment, resumeId, sender, in
         setProfile(current => ({ ...initial, ...current }))
         setReady(true)
       }
+    }).catch(() => { if (active) setError('填写资料未能读取，请检查浏览器存储。') })
+    let checking = false
+    const checkConnection = async () => {
+      if (checking) return
+      checking = true
       try {
         const snapshot = await extensionRequest<WebsiteSnapshot | null>('snapshot')
-        if (active) { setConnected(true); setQueue(snapshot) }
-      } catch { if (active) setConnected(false) }
-    }).catch(() => { if (active) setError('填写资料未能读取，请检查浏览器存储。') })
-    const timer = setInterval(() => { void extensionRequest<WebsiteSnapshot | null>('snapshot').then(snapshot => { if (active) { setConnected(true); setQueue(snapshot) } }).catch(() => { if (active) setConnected(false) }) }, 4000)
+        if (active) { setConnected(true); setQueue(snapshot); setConnectionError('') }
+      } catch (cause) {
+        if (active) { setConnected(false); setConnectionError(cause instanceof Error ? cause.message : '扩展连接失败，请刷新工作台后重试。') }
+      } finally { checking = false }
+    }
+    void checkConnection()
+    const timer = setInterval(() => { void checkConnection() }, 4000)
     return () => { active = false; clearInterval(timer) }
     // Snapshot the selected resume and sender when this dialog opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps

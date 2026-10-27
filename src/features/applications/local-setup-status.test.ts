@@ -26,6 +26,8 @@ it('检测失败不会声称扩展未安装；重新检测后更新状态', asyn
   vi.mocked(extensionRequest).mockRejectedValueOnce(new Error('timeout'))
   await act(async () => root.render(createElement(LocalSetupStatus, { connected: true, connectionError: '', onConnect: vi.fn() })))
   expect(host.querySelector('summary')!.textContent).toContain('执行器已连接 · 扩展未连接')
+  expect(host.textContent).toContain('timeout')
+  expect([...host.querySelectorAll('button')].some(button => button.textContent === '刷新工作台')).toBe(true)
   await act(async () => [...host.querySelectorAll('button')].find(button => button.textContent === '重新检测')!.click())
   expect(host.querySelector('summary')!.textContent).toContain('扩展已连接')
 })

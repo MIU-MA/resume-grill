@@ -138,6 +138,10 @@ export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<strin
           '改写建议：',
           s.rewriteSuggestion || '暂无改写建议',
         )
+        if (s.interviewQuestions?.length) {
+          lines.push('', '可以问面试官：')
+          for (const item of s.interviewQuestions) lines.push(`- ${item.question}`, `  想了解：${item.reason}`, `  听完后：${item.followUp}`)
+        }
       })
     }
     lines.push('')

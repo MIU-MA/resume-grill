@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { interviewContextSchema } from './interview-context'
 
 export const verifyPointSchema = z.object({
   point: z.string(),
@@ -84,10 +85,12 @@ export const finalResultSchema = z.object({
   answerSummary: z.string().default(''),
   nextAction: z.string().default(''),
   rewriteSuggestion: z.string(),
+  interviewQuestions: z.array(z.object({ question: z.string(), reason: z.string(), followUp: z.string() })).max(3).optional(),
 })
 export type FinalResult = z.infer<typeof finalResultSchema>
 
 export const interviewSessionSchema = z.object({
+  context: interviewContextSchema.optional(),
   id: z.string(),
   claimContent: z.string(),
   rounds: z.array(interviewRoundSchema),

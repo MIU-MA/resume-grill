@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Resume Grill 官网填写",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "minimum_chrome_version": "114",
-  "description": "复用求职工作台中的资料和简历，批量准备官网申请，遇到缺项后继续。",
+  "description": "保存个人资料，直接填写当前招聘官网；简历附件选填，也可接收工作台的批量任务。",
   "permissions": ["storage", "scripting", "tabs"],
-  "optional_host_permissions": ["https://*/*"],
+  "optional_host_permissions": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
   "background": { "service_worker": "background.js", "type": "module" },
   "action": { "default_popup": "popup.html", "default_title": "Resume Grill 官网填写" },
   "content_scripts": [{ "matches": ["http://localhost/*", "http://127.0.0.1/*"], "js": ["bridge.js"], "run_at": "document_start" }]

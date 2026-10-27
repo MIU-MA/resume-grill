@@ -54,4 +54,19 @@ describe('工作台与官网填写交接', () => {
     expect(isWorkbenchUrl('http://localhost:3000.evil.test/applications')).toBe(false)
     expect(isWorkbenchUrl('http://127.0.0.1:3107/applications')).toBe(true)
   })
+  it('后台冷启动超过 1.6 秒时仍等待响应，且不重复发送任务', async () => {
+    vi.useFakeTimers()
+    const post = vi.spyOn(window, 'postMessage').mockImplementation(() => undefined)
+    const pending = extensionRequest('snapshot')
+    const request = post.mock.calls[0][0] as { requestId: string }
+    await vi.advanceTimersByTimeAsync(3000)
+    window.dispatchEvent(new MessageEvent('message', { source: window, origin: location.origin, data: { channel: 'resume-grill.website.response', requestId: request.requestId, response: { ok: true, data: null } } }))
+    expect(await pending).toBeNull()
+    expect(post).toHaveBeenCalledOnce()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+  it('所有工作台页面都可连接，远程来源、API 和其他端口不放行', () => {
+    for (const path of ['/', '/audit', '/diagnosis', '/review', '/report', '/interview', '/knowledge', '/careers', '/applications', '/application-history']) expect(isWorkbenchUrl(`http://localhost:3000${path}`)).toBe(true)
+    for (const url of ['https://example.com/audit', 'http://localhost:3000/api/status', 'http://localhost:8000/applications', 'http://localhost.evil.test:3000/applications']) expect(isWorkbenchUrl(url)).toBe(false)
+  })
 })

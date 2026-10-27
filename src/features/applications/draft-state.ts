@@ -45,7 +45,8 @@ export function draftPayload({ id, company, role, sourceUrl, recipient, subject,
 
 export function draftIssues(draft: Draft): Array<{ field: DraftField; label: string }> {
   const labels: Record<DraftField, string> = { company: '公司', role: '岗位', sourceUrl: '官网链接', recipient: '招聘邮箱', subject: '邮件主题', body: '邮件正文' }
-  const parsed = mailDraftSchema.safeParse(draftPayload(draft))
+  const schema = websiteLinks(draft).length ? mailDraftSchema.extend({ company: mailDraftSchema.shape.company.refine(value => !!value.trim()), role: mailDraftSchema.shape.role.refine(value => !!value.trim()) }) : mailDraftSchema
+  const parsed = schema.safeParse(draftPayload(draft))
   if (parsed.success) return []
   const fields = new Set(parsed.error.issues.map(issue => issue.path[0]))
   return (Object.keys(labels) as DraftField[]).filter(field => fields.has(field)).map(field => ({ field, label: `${draft[field].trim() ? '检查' : '缺'}${labels[field]}` }))

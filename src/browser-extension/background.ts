@@ -1,9 +1,11 @@
 import { z } from 'zod'
 import { answerSchema, isWorkbenchUrl, profileSchema, sensitiveField, websiteBatchSchema, type FormResult, type WebsiteQueue } from '../domain/website-automation'
 import { createWebsiteQueue } from './queue'
+import { createDirectFill } from './direct-fill'
 
 const KEY = 'website-queue:v1'
 const storageReady = chrome.storage.local.setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' })
+const direct = createDirectFill()
 const engine = createWebsiteQueue({
   load: async () => (await chrome.storage.local.get(KEY))[KEY] as WebsiteQueue | null ?? null,
   save: async queue => { if (queue) await chrome.storage.local.set({ [KEY]: queue }); else await chrome.storage.local.remove(KEY) },
@@ -38,6 +40,12 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   const workbench = sender.id === chrome.runtime.id && !!sender.tab && isWorkbenchUrl(sender.url ?? '')
   if (!popup && !workbench) return
   void (async () => {
+    if (popup && ['direct-state', 'direct-save', 'direct-fill'].includes(message.type)) {
+      await storageReady
+      if (message.type === 'direct-state') return direct.get()
+      if (message.type === 'direct-save') return direct.save(message.data)
+      return direct.fill(message.request)
+    }
     const startupError = await recovered
     if (startupError) throw startupError
     if (message.type === 'ping') return { version: 1 }

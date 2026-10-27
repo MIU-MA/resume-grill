@@ -53,7 +53,7 @@ function fileAccepted(element: HTMLInputElement, name: string) {
   return !accepted.length || accepted.some(value => value === suffix || value === mime || value === '*/*' || (value === 'application/*' && mime.startsWith('application/')))
 }
 
-export async function fillApplication(profile: WebsiteProfile, answers: WebsiteAnswer[], attachment: WebsiteBatch['attachment'], scope = '', experiences: WebsiteExperience[] = []): Promise<FormResult> {
+export async function fillApplication(profile: WebsiteProfile, answers: WebsiteAnswer[], attachment?: WebsiteBatch['attachment'] | null, scope = '', experiences: WebsiteExperience[] = []): Promise<FormResult> {
   const fields = controls(document)
   const editable = fields.filter(element => !element.matches(':disabled') && !(element instanceof HTMLInputElement && element.readOnly) && !(element instanceof HTMLTextAreaElement && element.readOnly) && visible(element))
   const missing: MissingField[] = []
@@ -127,6 +127,7 @@ export async function fillApplication(profile: WebsiteProfile, answers: WebsiteA
   for (const input of uploadInputs) {
     const label = labelFor(input) || '简历附件'
     if (input.files?.length || biliUploadState(input) === 'confirmed' || (leverForm()?.contains(input) && leverUploadConfirmed())) { uploaded = true; continue }
+    if (!attachment) { if (required(input)) addMissing({ label: `${label}（官网要求上传，可在扩展选择或手动上传）`, kind: 'upload' }); continue }
     if (!fileAccepted(input, attachment.name)) { addMissing({ label: `${label}（附件格式不支持）`, kind: 'upload' }); continue }
     try {
       const bytes = Uint8Array.from(atob(attachment.base64), character => character.charCodeAt(0))
@@ -145,9 +146,9 @@ export async function fillApplication(profile: WebsiteProfile, answers: WebsiteA
   if (leverForm()) {
     // Binding FileList is not proof that Lever's asynchronous /parseResume succeeded.
     uploaded = leverUploadConfirmed()
-    if (uploadInputs.length && !uploaded) addMissing({ label: '简历尚未取得官网上传确认，请检查上传提示，完成后继续', kind: 'upload' })
+    if (uploadInputs.length && !uploaded && (attachment || uploadInputs.some(required))) addMissing({ label: '简历尚未取得官网上传确认，请检查上传提示，完成后继续', kind: 'upload' })
     leverMissing(visible).forEach(addMissing)
-  } else if (domesticSite(location.hostname) && uploadInputs.length) {
+  } else if (domesticSite(location.hostname) && uploadInputs.length && (attachment || uploadInputs.some(required))) {
     // For domestic sites, FileList alone cannot establish server acceptance.
     uploaded = uploadInputs.every(input => biliUploadState(input) === 'confirmed')
     if (!uploaded) addMissing({ label: '简历上传结果尚未确认，请在官网检查上传或解析提示', kind: 'upload' })

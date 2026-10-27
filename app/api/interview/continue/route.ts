@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { resumeClaimSchema } from '@/domain/resume-schema'
+import { interviewContextSchema } from '@/domain/interview-context'
 import { interviewActionSchema, interviewRoundSchema, interviewContinueSchema } from '@/domain/interview-schema'
 import { INTERVIEW_CONTINUE_SYSTEM, buildInterviewContinueUser } from '@/features/interview/lib/interview-prompts'
 import { sanitizeCoverage } from '@/domain/coverage'
@@ -10,6 +11,7 @@ import { MAX_INTERVIEW_ROUNDS, mergeCoveredPoints, shouldFinishInterview } from 
 
 const requestSchema = z.object({
   claim: resumeClaimSchema,
+  context: interviewContextSchema.optional(),
   action: interviewActionSchema.default('answer'),
   question: z.string(),
   answer: z.string().trim().max(MAX_ANSWER),
@@ -62,6 +64,7 @@ export async function POST(request: Request) {
         body.rounds,
         body.verifyPoints,
         body.trapPoints,
+        body.context,
       ),
       interviewContinueSchema,
       config,

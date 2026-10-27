@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { buildInterviewContext } from '@/domain/interview-context'
 import { ResumeReviewView } from '@/features/resume/ResumeReviewView'
 import { ResumeImportView } from '@/features/resume/ResumeImportView'
 import { WorkspaceShell } from '@/features/workspace/WorkspaceShell'
@@ -19,11 +20,12 @@ import { JobAssistant } from '@/application/JobAssistant'
 function App() {
   const { phase, mode, push, replace } = useAppNavigation()
   const workspace = useResumeWorkspace(phase)
+  const getInterviewContext = useCallback((claimId: string) => buildInterviewContext(workspace.analysis?.jobDescription, workspace.knowledgeItems, claimId), [workspace.analysis?.jobDescription, workspace.knowledgeItems])
   const interview = useInterview(workspace.envConfigured, {
     onError: workspace.setError,
     onToast: workspace.showToast,
     onSessionSaved: workspace.handleSessionSaved,
-  })
+  }, getInterviewContext)
   const navigation = { push, replace }
   const analysis = useResumeAnalysis(workspace, navigation)
   const actions = useClaimActions(workspace, interview, navigation)

@@ -35,7 +35,7 @@ export function publicWebsiteQueue(queue: WebsiteQueue | null): WebsiteSnapshot 
   return { ...rest, attachmentName: attachment.name }
 }
 export function isWorkbenchUrl(value: string) {
-  try { const url = new URL(value); return url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname) && ['3000', '3107'].includes(url.port) && ['/', '/applications', '/careers', '/application-history'].includes(url.pathname) }
+  try { const url = new URL(value); return url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname) && ['3000', '3107'].includes(url.port) && ['/', '/applications', '/careers', '/application-history', '/audit', '/diagnosis', '/review', '/report', '/interview', '/knowledge'].includes(url.pathname) }
   catch { return false }
 }
 export function normalizeFieldLabel(value: string) { return value.toLowerCase().replace(/[\s*：:()（）_-]/g, '').slice(0, 200) }
