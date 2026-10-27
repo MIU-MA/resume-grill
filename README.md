@@ -37,8 +37,6 @@
   </tr>
 </table>
 
-截图使用演示数据，更新于 2026-10-27。[查看全部 16 张截图](docs/screenshots/README.md)。
-
 ## 启动
 
 需要 Node.js ≥ 22.13，推荐 Node.js 24。
