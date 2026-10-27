@@ -55,7 +55,7 @@ export function extensionRequest<T>(type: 'ping' | 'snapshot' | 'stage', batch?:
       if (!event.data.response?.ok) reject(new Error(event.data.response?.error || '扩展未能响应。'))
       else resolve(event.data.response.data)
     }
-    const timer = setTimeout(() => { clear(); reject(new Error('未收到扩展回应。请点击浏览器工具栏中的 Resume Grill → 批量任务与工作台 → 连接工作台，再回来点击重新检测。工作台与扩展须在同一个 Chrome / Edge 浏览器中；扩展需更新至 0.2.0。')) }, 10000)
+    const timer = setTimeout(() => { clear(); reject(new Error('未收到扩展回应。请在同一个 Chrome / Edge 中打开工具栏的 Resume Grill，查看顶部的工作台连接状态；点击“连接工作台”后会显示具体结果。扩展需更新至 0.2.1。')) }, 10000)
     window.addEventListener('message', listener)
     window.postMessage({ channel: 'resume-grill.website.request', requestId, type, ...(type === 'stage' ? { batch } : {}) }, location.origin)
   })

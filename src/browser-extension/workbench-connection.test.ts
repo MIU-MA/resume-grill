@@ -4,7 +4,7 @@ import { connectWorkbench, probeWorkbench } from './workbench-connection'
 
 const tab = { id: 7, url: 'http://localhost:3000/applications' } as chrome.tabs.Tab
 const fake = {
-  permissions: { request: vi.fn(async (_input: unknown) => true) },
+  permissions: { request: vi.fn(async (_input: unknown) => true), contains: vi.fn(async (_input: unknown) => true) },
   tabs: { get: vi.fn(async (_id: number) => tab) },
   scripting: { executeScript: vi.fn(async (_input: unknown) => [{ frameId: 0, result: { ok: true } }]) },
 }
@@ -18,9 +18,16 @@ it('点击时先申请当前本机来源，再注入通信脚本并从网页环�
   const pending = connectWorkbench(tab)
   expect(fake.permissions.request).toHaveBeenCalledWith({ origins: ['http://localhost:3000/*'] })
   expect(fake.tabs.get).not.toHaveBeenCalled()
-  expect(await pending).toContain('已验证')
+  expect(await pending).toContain('已连接')
   expect(fake.scripting.executeScript).toHaveBeenNthCalledWith(1, { target: { tabId: 7, frameIds: [0] }, files: ['bridge.js'] })
   expect(fake.scripting.executeScript).toHaveBeenNthCalledWith(2, { target: { tabId: 7, frameIds: [0] }, world: 'MAIN', func: probeWorkbench, args: [tab.url] })
+})
+it('恢复已有权限时不弹授权框，并明确报告连接阶段', async () => {
+  const onProgress = vi.fn()
+  expect(await connectWorkbench(tab, { requestAccess: false, onProgress })).toContain('已连接')
+  expect(fake.permissions.request).not.toHaveBeenCalled()
+  expect(fake.permissions.contains).toHaveBeenCalledWith({ origins: ['http://localhost:3000/*'] })
+  expect(onProgress.mock.calls.flat()).toEqual(['正在检查工作台访问权限…', '正在加载网页通信脚本…', '正在等待工作台与扩展互相回应…'])
 })
 it('未授权或页面跳转时不注入，不接触其他网站', async () => {
   await expect(connectWorkbench({ ...tab, url: 'https://example.com' })).rejects.toThrow('本机工作台')

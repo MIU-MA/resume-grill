@@ -27,6 +27,7 @@ afterEach(() => {
 it('从诊断页加载后切换到投递清单，仍能与扩展通信', async () => {
   history.replaceState(null, '', '/diagnosis')
   await import('./bridge')
+  expect(window.postMessage).toHaveBeenCalledWith({ channel: 'resume-grill.website.ready', url: location.href }, location.origin)
   request('ping')
   history.pushState(null, '', '/applications')
   request()

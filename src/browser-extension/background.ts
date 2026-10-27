@@ -40,6 +40,8 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   const workbench = sender.id === chrome.runtime.id && !!sender.tab && isWorkbenchUrl(sender.url ?? '')
   if (!popup && !workbench) return
   void (async () => {
+    // Connectivity must not depend on recovering an unrelated batch or file.
+    if (message.type === 'ping') return { version: 1 }
     if (popup && ['direct-state', 'direct-save', 'direct-fill'].includes(message.type)) {
       await storageReady
       if (message.type === 'direct-state') return direct.get()
@@ -48,7 +50,6 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
     }
     const startupError = await recovered
     if (startupError) throw startupError
-    if (message.type === 'ping') return { version: 1 }
     if (message.type === 'snapshot') return engine.snapshot()
     if (message.type === 'stage' && workbench) return engine.stage(websiteBatchSchema.parse(message.batch))
     if (message.type === 'focus' && popup) { await engine.focus(z.string().parse(message.id)); return engine.snapshot() }

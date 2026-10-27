@@ -20,3 +20,6 @@ const receive = (event: MessageEvent) => {
 }
 bridgeWindow.__resumeGrillBridge = receive
 window.addEventListener('message', receive)
+// Notify an already-open workbench after installation or reinjection. The page
+// must still verify connectivity with its own request before showing connected.
+if (isWorkbenchUrl(location.href)) window.postMessage({ channel: 'resume-grill.website.ready', url: location.href }, location.origin)

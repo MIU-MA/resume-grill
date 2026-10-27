@@ -9,7 +9,7 @@ const fake = {
   runtime: { sendMessage: vi.fn(async (_input: unknown) => ({ ok: true, data: snapshot })) },
   tabs: { query: vi.fn(async () => [] as Array<{ id: number; url: string; windowId: number }>), create: vi.fn(async (_input: unknown) => ({ id: 10 })), update: vi.fn(async (_id: number, _input: unknown) => ({})), get: vi.fn(async (_id: number) => ({ url: 'https://example.com/apply' })) },
   windows: { update: vi.fn(async (_id: number, _input: unknown) => ({})) },
-  permissions: { request: vi.fn(async (_input: unknown) => true) },
+  permissions: { request: vi.fn(async (_input: unknown) => true), contains: vi.fn(async (_input: unknown) => false) },
 }
 const getButton = (label: string) => [...document.querySelectorAll('button')].find(button => button.textContent === label)!
 const click = async (label: string) => { getButton(label).click(); await vi.advanceTimersByTimeAsync(0); await vi.waitFor(() => expect(getButton('刷新任务').disabled).toBe(false)) }
@@ -35,6 +35,14 @@ it('没有任务也能打开工作台、刷新任务，并看见下一步', asyn
   snapshot = queue()
   await click('刷新任务')
   await vi.waitFor(() => expect(getButton('开始填写（1）')).toBeDefined())
+})
+it('批量任务刷新不替换连接按钮，也不遮住顶部的连接提示', async () => {
+  await load()
+  const button = getButton('连接工作台')
+  expect(document.querySelector('#batch-panel')!.contains(button)).toBe(false)
+  await vi.advanceTimersByTimeAsync(4000)
+  expect(getButton('连接工作台')).toBe(button)
+  expect(document.querySelector('#workbench-connection')!.textContent).toContain('当前浏览器没有打开本机工作台')
 })
 it('复用已打开的 3107 工作台，不另开错误端口', async () => {
   fake.tabs.query.mockResolvedValue([{ id: 8, windowId: 9, url: 'http://localhost:3107/careers' }, { id: 3, windowId: 4, url: 'https://evil.example/applications' }])

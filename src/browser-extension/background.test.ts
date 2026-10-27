@@ -36,14 +36,15 @@ describe('扩展权限与任务交接', () => {
     }
     expect(fake.tabs.create).not.toHaveBeenCalled()
   })
-  it('存储初始化尚未结束时也能接住唤醒消息，准备好后再答复', async () => {
+  it('存储初始化尚未结束时仍能检测连接，任务读取继续等待初始化', async () => {
     vi.resetModules(); fake.runtime.onMessage.addListener.mockClear()
     let release!: () => void
     fake.storage.local.setAccessLevel.mockImplementationOnce(() => new Promise<void>(resolve => { release = resolve }))
     const loading = import('./background')
     await vi.waitFor(() => expect(fake.runtime.onMessage.addListener).toHaveBeenCalledTimes(1))
     let answered = false
-    const pending = send({ type: 'ping' }).then(reply => { answered = true; return reply })
+    expect((await send({ type: 'ping' }, workbench)).ok).toBe(true)
+    const pending = send({ type: 'snapshot' }).then(reply => { answered = true; return reply })
     await Promise.resolve(); expect(answered).toBe(false)
     release(); await loading
     expect((await pending).ok).toBe(true)

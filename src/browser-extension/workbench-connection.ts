@@ -17,15 +17,20 @@ export function probeWorkbench(expectedUrl: string): Promise<{ ok: boolean; erro
   })
 }
 
-export async function connectWorkbench(tab: chrome.tabs.Tab) {
+export async function connectWorkbench(tab: chrome.tabs.Tab, options: { requestAccess?: boolean; onProgress?: (message: string) => void } = {}) {
   if (tab.id === undefined || !tab.url || !isWorkbenchUrl(tab.url)) throw new Error('请在当前浏览器打开本机工作台，再点击“连接工作台”。')
   // Request immediately from the popup click, before asynchronous tab work.
-  if (!await chrome.permissions.request({ origins: [`${new URL(tab.url).origin}/*`] })) throw new Error('未允许访问本机工作台，连接没有修改。')
+  const origins = [`${new URL(tab.url).origin}/*`]
+  options.onProgress?.('正在检查工作台访问权限…')
+  const allowed = options.requestAccess === false ? await chrome.permissions.contains({ origins }) : await chrome.permissions.request({ origins })
+  if (!allowed) throw new Error('未允许访问本机工作台，请点击“连接工作台”授权。')
   const current = await chrome.tabs.get(tab.id)
   if (current.url !== tab.url) throw new Error('页面已跳转，请回到工作台再连接。')
+  options.onProgress?.('正在加载网页通信脚本…')
   await chrome.scripting.executeScript({ target: { tabId: tab.id, frameIds: [0] }, files: ['bridge.js'] })
+  options.onProgress?.('正在等待工作台与扩展互相回应…')
   const results = await chrome.scripting.executeScript({ target: { tabId: tab.id, frameIds: [0] }, world: 'MAIN', func: probeWorkbench, args: [tab.url] })
   const result = results.find(item => item.frameId === 0)?.result
   if (!result?.ok) throw new Error(result?.error || '未能检查网页通信，请刷新工作台后重试。')
-  return `已验证 ${new URL(tab.url).origin} 的网页与扩展通信。回到工作台点击“重新检测”即可。`
+  return `已连接 ${new URL(tab.url).origin}，网页与扩展通信正常。`
 }
