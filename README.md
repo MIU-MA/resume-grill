@@ -1,159 +1,63 @@
-<p align="center">
-  <img src="public/favicon.svg" width="56" height="56" alt="Resume Grill">
-</p>
-
+<p align="center"><img src="public/favicon.svg" width="56" height="56" alt="Resume Grill"></p>
 <h1 align="center">Resume Grill</h1>
 
-本地优先的个人求职工作台。修改简历、整理招聘岗位、准备投递，再按岗位练习面试。
-
-当前为 Beta 阶段，官网自动填写属于实验性功能，适配范围以实测记录为准。
-
-可以从简历开始，也可以直接添加招聘链接。各个功能独立使用，不必走完一套流程。
+本地优先的求职工作台：改简历、找岗位、准备投递、练习面试。各功能可以独立使用。
 
 ## 功能
 
-| 功能 | 能帮你做什么 |
+| 功能 | 支持内容 |
 | --- | --- |
-| 简历修改 | 导入 PDF、DOCX、TXT、Markdown 或粘贴文本，检查内容、结构和表达；对照实际 PDF 预览修改，保存为新的可投递 PDF |
-| 岗位整理 | 浏览招聘官网、读取岗位链接，带入公司、岗位、招聘邮箱和职责要求；读取失败时可粘贴正文 |
-| 找岗位 | 结合求职目标和已保存的简历，批量读取官网岗位并比较匹配情况；任务可暂停、继续 |
-| 邮箱投递 | 只填收件邮箱即可预览邮件，公司和岗位选填；复用简历与发件设置，用 QQ／163 邮箱发送并保留记录 |
-| 官网填写 | 扩展直接填写当前官网，个人资料保存后复用、附件选填；也支持从工作台批量交接资料与多段经历，最终提交由你完成 |
-| 面试准备 | 结合 JD、简历和复习记录追问，复盘区分知识缺口与表达问题，并准备可以问面试官的问题 |
+| 简历库 | PDF／DOCX／TXT／Markdown、粘贴文字、多份简历 |
+| 简历检查 | 内容、结构、表达检查，结合 JD 核对岗位要求 |
+| 简历修改 | 定位原文、段落与全文编辑、PDF 预览和新稿下载 |
+| 招聘官网 | 公司招聘目录、官网和岗位链接查找 |
+| 岗位整理 | 网页提取、多职位选择、CSV／TSV 与招聘正文导入 |
+| 找岗位 | 按目标和简历核对匹配依据，任务暂停、继续、重试 |
+| 邮箱投递 | 只填收件邮箱，复用简历与模板，预览修改后用 QQ／163 发送 |
+| 官网填写 | 独立扩展填写、资料复用、附件上传、批量任务与多段经历 |
+| 投递记录 | 邮件状态、官网申请标记、队列暂停、取消与失败处理 |
+| 面试准备 | 选择练习内容、调整优先级、回答要点与准备标记 |
+| 模拟面试 | 按回答追问、疑问批注、跳题、练习恢复、语音输入 |
+| 面试复盘 | 问答回看、知识与表达问题、反问建议、改写对比与多次练习 |
+| 待复习 | 自动收集问题、手动笔记、状态与来源筛选 |
+| 配置与导出 | 自备模型接口和 Key、连接测试、Markdown／JSON 导出 |
 
-模型分析需自备兼容接口和 Key；手动整理名单、读取网页、邮箱发送和扩展填写不依赖模型。项目目前适合个人本机使用或自用部署。
+## 界面
 
-## 界面预览
-
-以下为当前版本的实际界面，使用内置示例简历与虚构投递数据。截图更新于 2026-10-25。
-
-![投递工作台](docs/screenshots/applications.jpg)
+![邮箱投递与投递清单](docs/screenshots/applications.jpg)
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/home.jpg" alt="简历库与导入"><br>简历库</td>
-    <td width="50%"><img src="docs/screenshots/resume-review.jpg" alt="简历检查与修改建议"><br>简历检查</td>
+    <td width="50%"><img src="docs/screenshots/resume-edit.jpg" alt="简历段落修改"><br>简历修改</td>
+    <td width="50%"><img src="docs/screenshots/job-assistant.jpg" alt="岗位匹配演示"><br>岗位匹配</td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/resume-edit.jpg" alt="简历段落修改"><br>对照修改</td>
-    <td><img src="docs/screenshots/resume-preview.jpg" alt="实际 PDF 新稿预览"><br>新稿预览</td>
+    <td><img src="docs/screenshots/interview.jpg" alt="模拟面试演示"><br>模拟面试</td>
+    <td><img src="docs/screenshots/report.jpg" alt="面试复盘演示"><br>面试复盘</td>
   </tr>
 </table>
 
-更多截图：[面试准备](docs/screenshots/audit.jpg) · [招聘官网](docs/screenshots/career-sites.jpg)
+截图使用演示数据，更新于 2026-10-27。[查看全部 16 张截图](docs/screenshots/README.md)。
 
-## 本地启动
+## 启动
 
-需要 **Node.js ≥ 22.13，推荐 Node.js 24**（与 CI、容器一致）。在项目目录运行：
+需要 Node.js ≥ 22.13，推荐 Node.js 24。
 
 ```bash
 npm ci
 npm run dev
 ```
 
-打开 [localhost:3000](http://localhost:3000)。点击「试用示例简历」可以先体验检查和初始练习内容；连续问答、回答判断和复盘仍需配置模型。也可使用仓库里的[示例材料](examples/README.md)。
+打开 [localhost:3000](http://localhost:3000)，点击「试用示例简历」体验。模型功能需在「模型设置」填写 Base URL、API Key 和 Model。
 
-需要一起启动网页和本机执行器时，先停止上面的网页进程，再运行：
+读取官网或发送邮件时，将启动命令换成 `npm run dev:local`，按页面提示连接本机。扩展安装、模型配置和部署步骤见[使用说明](docs/getting-started.md)。
 
-```bash
-npm run dev:local
-```
+当前为 Beta。官网填写的覆盖范围见[适配记录](docs/website-adaptation.md)，最终申请由你核对提交；暂不支持 BOSS 自动投递。语音输入取决于浏览器支持。数据主要保存在本机，清理站点数据前请备份。
 
-打开 [127.0.0.1:3000](http://127.0.0.1:3000)，在「运行状态 → 连接本机」填入终端连接码；同一区域可检测和下载扩展。Ctrl+C 停止两项服务。也可保留已有网页，单独运行 `npm run mail-agent`。发送邮件时再设置 QQ／163 邮箱和 SMTP 授权码，Windows 支持加密记住授权码。
+## 文档
 
-## 开始使用
+[使用与配置](docs/getting-started.md) · [邮箱投递](docs/email-applications.md) · [官网扩展](docs/website-automation.md) · [招聘目录](docs/career-directory.md) · [参与开发](CONTRIBUTING.md)
 
-### 修改简历
-
-导入后查看检查建议，点击相关段落修改，右侧预览同步更新。点击「保存 PDF 并下载」生成独立的新稿，可继续用作投递附件。
-
-新稿使用单栏排版，**不还原原 PDF 版式，也不会覆盖原文件**。只暂存文字不会更新投递附件；粘贴的文本需先保存为 PDF。暂不支持扫描件 OCR。
-
-### 整理岗位与投递
-
-从侧栏「招聘官网」搜索公司、选择职位，也可在「投递清单」直接粘贴岗位链接。读取后选择具体职位；公司、岗位、邮箱可在清单中直接修改，也可以导入 CSV 或招聘正文。
-
-- **邮箱投递**：选好简历和发件邮箱，在「邮箱投递」输入收件邮箱，点击「预览邮件」。公司和岗位选填，主题与正文自动生成，也可在预览中修改；核对后发送。多个邮箱可粘贴到名单，一行一个。每批最多 20 封，附件支持 5 MB 以内的 PDF／DOCX／TXT。
-- **官网填写**：打开官网表单，点扩展图标，填好个人资料后点「填写当前页面」。无需邮箱配置或投递清单，附件选填；批量处理仍可从工作台勾选岗位交接。最终在原站核对并提交。
-- **面试准备**：从岗位详情进入，沿用当前岗位要求和附件；练习围绕回答追问，随时结束或之后继续。
-
-「已提交邮箱」只表示邮箱服务接受邮件，不代表招聘方已读。当前网易支持普通 `@163.com` 邮箱；不支持 BOSS 直聘自动投递。
-
-### 安装官网填写扩展
-
-```bash
-npm run build:extension
-```
-
-在 Chrome／Edge 扩展管理页开启开发者模式，加载 `dist/website-extension`，然后刷新工作台。也可以下载填写窗口提供的扩展包，解压后加载。
-
-工作台桥接目前仅支持 `http://localhost`／`http://127.0.0.1` 的 **3000、3107** 端口。扩展使用当前浏览器登录状态，按批次申请官网权限；填写不需要邮件执行器。任务与资料保存在扩展本机存储，支持暂停、继续和单项重试。
-
-**适配仍在完善：**腾讯、字节、阿里、小红书、B站、美团、京东、百度、快手、网易已检查公开入口或部分前端资源，均未完成登录后实测。Lever 有真实公开 HTML 本地回归；B站使用公开代码重建表单契约。目录收录不等于填写兼容，日期、多级选择、跨域表单等仍可能需要手动处理。
-
-安装、操作和逐站验证范围见[官网填写说明](docs/website-automation.md)与[适配记录](docs/website-adaptation.md)。
-
-发布版也可从仓库 Releases 下载扩展 ZIP 和 SHA-256 校验文件，无需自行构建扩展。
-
-## 模型配置
-
-在「模型设置」填写 `Base URL`、`API Key`、`Model`，使用兼容 **OpenAI Chat Completions 协议及 JSON 输出**的服务。测试连接会实际请求模型，可能产生费用。
-
-也可参考 [.env.example](.env.example)，在根目录的 `.env.local` 配置：
-
-```dotenv
-OPENAI_BASE_URL=https://your-provider.example/v1
-OPENAI_API_KEY=your-api-key
-OPENAI_MODEL=your-model-id
-```
-
-三个值需完整填写，修改后重启。完整的网页配置优先于服务端配置。网页 Key 保存在当前浏览器，调用时经工作台后端请求模型，因此仍需信任部署服务器。
-
-本机或内网模型需配置服务端白名单，例如：
-
-```dotenv
-ALLOWED_LLM_BASE_URLS=http://127.0.0.1:11434
-```
-
-按协议、主机、端口匹配，多个来源用逗号分隔；设置后未列出的地址也会被拒绝。远程部署时，`127.0.0.1` 指服务器自身。项目不固定限制模型输出 token，实际仍受模型上下文和服务商限制。
-
-## 数据与部署
-
-简历、修改草稿、练习和投递清单保存在当前浏览器；扩展任务保存在扩展本机存储；邮件队列、附件和记录在项目 `.mail-agent/` 目录。Windows 记住的授权码由当前系统账户加密保存。
-
-模型分析发送所需文本，不上传原简历文件；求职邮件会发送所选附件。数据不自动跨设备同步，清理浏览器站点数据会丢失记录。报告可导出 Markdown、练习可导出 JSON，但不包含所有附件；邮件记录需单独备份 `.mail-agent/`。
-
-构建运行网页：
-
-```bash
-npm run build
-npm start
-```
-
-也可使用 [Dockerfile](Dockerfile) 或 [Compose](docker-compose.yml)，容器只运行网页。公开部署尚无账户和独立额度管理，不建议预置供所有用户回退使用的模型 Key。
-
-线上网页读取招聘页和发送邮件仍需用户自己的本机执行器，并设置 `MAIL_WORKBENCH_ORIGIN` 为网页来源。执行器监听 `127.0.0.1:4318`，线上连接的浏览器兼容性尚未全面验证；扩展桥接仍限上述本地地址。详见[部署后的连接方式](docs/email-applications.md#网页部署后的连接方式)。
-
-## 开发与文档
-
-Next.js / React / TypeScript / Tailwind CSS；PDF.js 与 mammoth 解析文件，IndexedDB 保存浏览器数据，Nodemailer 发送邮件。
-
-路由在 `app/`，业务在 `src/features/`，跨模块流程在 `src/application/`；执行器和扩展分别在 `src/mail-agent/`、`src/browser-extension/`。目录和依赖规则见 [AGENTS.md](AGENTS.md) 与[模块说明](src/features/README.md)。
-
-```bash
-npm run check:architecture
-npm run lint
-npx tsc --noEmit
-npm test
-npm run build
-```
-
-- [邮箱投递：连接、模板、记录与失败处理](docs/email-applications.md)
-- [招聘目录：来源与维护](docs/career-directory.md)
-- [官网扩展：安装与使用](docs/website-automation.md)
-- [官网适配：证据与未验证范围](docs/website-adaptation.md)
-- [参与开发](CONTRIBUTING.md) · [安全报告](SECURITY.md) · [发布验收](docs/releasing.md)
-
-运行 `npx tsx scripts/crawl-careers.ts` 可刷新已配置来源的 `data/career-leads/latest.md` 和 `latest.json`；不会提交申请，也不更新人工核对日期。
+Next.js / React / TypeScript / Tailwind CSS；PDF.js、mammoth、IndexedDB、Nodemailer。目录约定见 [AGENTS.md](AGENTS.md)。
 
 [MIT License](LICENSE)

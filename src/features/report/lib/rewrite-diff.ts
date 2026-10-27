@@ -56,10 +56,9 @@ export function diffRewrite(original: string, suggestion: string): RewriteDiff {
 }
 
 function splitSentences(text: string): string[] {
-  const protectedText = text.replace(/(\d)\.(\d)/g, '$1·$2')
-  return protectedText
+  return text
     .split(/[。；！？；!?;]+|\.(?=\s|$)/)
-    .map((s) => s.replace(/·/g, '../../../lib').trim())
+    .map((s) => s.trim())
     .filter(Boolean)
 }
 

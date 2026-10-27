@@ -2,6 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { diffRewrite } from '@/features/report/lib/rewrite-diff'
 
 describe('diffRewrite', () => {
+  it('保留小数与名字中的间隔号，不向对比正文插入路径文字', () => {
+    const text = '阿·里负责首屏优化，从 2.1s 降至 0.8s。使用 React 18.2。'
+    const sentences = ['阿·里负责首屏优化，从 2.1s 降至 0.8s', '使用 React 18.2']
+    const result = diffRewrite(text, text)
+    expect(result.original.map(item => item.text)).toEqual(sentences)
+    expect(result.suggestion.map(item => item.text)).toEqual(sentences)
+  })
   it('逐字相同整句标为 same', () => {
     const result = diffRewrite('负责核心编辑器前端架构', '负责核心编辑器前端架构')
     expect(result.original[0].kind).toBe('same')
