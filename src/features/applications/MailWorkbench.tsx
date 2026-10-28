@@ -17,6 +17,7 @@ import { createMailPreviewBatch } from './mail-preview-batch'
 import { JobResumeDialog } from './JobResumeDialog'
 import { tailoringIsCurrent } from './job-resume-tailoring'
 import type { AttachmentSource } from './mail-draft-storage'
+import type { ResumeTemplateId } from '@/domain/resume-template'
 import { MAIL_STATUS_TONES, isJob, isWebsite, savedDate, safeLink } from './mail-presentation'
 import { MailJobDetails } from './MailJobDetails'
 import { DraftDialog } from './DraftDialog'
@@ -76,7 +77,7 @@ export function MailWorkbench({ mode = 'applications', badges, onNavigate, onHom
   const [busy, setBusy] = useState(false)
   const [websiteIds, setWebsiteIds] = useState<string[] | null>(null)
   const [websiteChoices, setWebsiteChoices] = useState<Record<string, string>>({})
-  const [tailoring, setTailoring] = useState<{ draft: Draft; file: File; source?: AttachmentSource } | null>(null)
+  const [tailoring, setTailoring] = useState<{ draft: Draft; file: File; source?: AttachmentSource; initialTemplate?: ResumeTemplateId } | null>(null)
   const pendingTailoring = useRef<string | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const pendingPreparation = useRef<{ id: string; intent: JobPreparationIntent } | null>(null)
@@ -96,7 +97,7 @@ export function MailWorkbench({ mode = 'applications', badges, onNavigate, onHom
     const file = pickedFile ?? saved?.sourceFile ?? attachment
     if (!file) { pendingTailoring.current = draft.id; fileInput.current?.click(); return }
     pendingTailoring.current = null
-    setEditOpen(false); setTailoring({ draft: { ...draft }, file, source: pickedFile ? undefined : saved?.source ?? attachmentSource })
+    setEditOpen(false); setTailoring({ draft: { ...draft }, file, source: pickedFile ? undefined : saved?.source ?? attachmentSource, initialTemplate: saved?.template })
   }
   const attachmentLabel = selectedAttachment.file
     ? `${selectedAttachment.saved ? selectedAttachment.use === 'mail' ? '发送附件' : selectedAttachment.use === 'preview' ? '邮件预览时附件' : '准备时附件' : tab === 'history' ? '使用当前附件' : '使用附件'}：${selectedAttachment.file.name}${selectedAttachment.source ? ` · ${savedDate(selectedAttachment.source.updatedAt)} 版本` : ''}`

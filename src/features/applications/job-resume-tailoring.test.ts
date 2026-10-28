@@ -45,6 +45,8 @@ it('从原文件生成真实岗位版 PDF，提取文字匹配新稿，保存新
   expect(retained.review).toEqual(original.review)
   expect(retained.review?.rawText).toBe(rawText)
   expect(vi.mocked(fetch).mock.calls.filter(([url]) => url === '/api/tailor-resume')).toHaveLength(1)
+  const request = vi.mocked(fetch).mock.calls.find(([url]) => url === '/api/tailor-resume')!
+  expect(JSON.parse((request[1] as RequestInit).body as string)).toMatchObject({ rawText, jobDescription: draft.jobDescription })
 }, 15000)
 it('请求在解析后取消时不调用模型', async () => {
   const abort = new AbortController(); abort.abort()

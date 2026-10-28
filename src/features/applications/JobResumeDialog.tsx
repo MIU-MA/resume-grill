@@ -1,60 +1,88 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Button } from '@/components/ui/Button'
-import { tailoredResumeText, tailoringChangeKey, tailoringMail } from '@/domain/resume-tailoring'
-import { PdfPages } from '@/features/resume/PdfPages'
+import { tailoredOriginalResumeText, tailoredResumeText, tailoringChangeKey, tailoringMail } from '@/domain/resume-tailoring'
+import { JobResumeWorkspace, type JobResumeView } from './JobResumeWorkspace'
 import type { ResumePdfArtifact } from '@/features/resume/lib/resume-pdf'
 import { generateJobResume, previewJobResume, saveJobResume, type TailoringSession } from './job-resume-tailoring'
 import type { AttachmentSource } from './mail-draft-storage'
 import type { Draft, SavedJobPreparation } from './draft-state'
+import { resumeTemplateId, type ResumeTemplateId } from '@/domain/resume-template'
+import { useResumePdf } from '@/features/resume/hooks/use-resume-pdf'
 
 type Props = {
-  draft: Draft; file: File; source?: AttachmentSource; person: string
+  draft: Draft; file: File; source?: AttachmentSource; person: string; initialTemplate?: ResumeTemplateId
   onClose: () => void
   onApply: (change: Partial<Draft>, saved: SavedJobPreparation) => Promise<void>
 }
-export function JobResumeDialog({ draft, file, source, person, onClose, onApply }: Props) {
+export function JobResumeDialog({ draft, file, source, person, initialTemplate, onClose, onApply }: Props) {
   const ref = useRef<HTMLDialogElement>(null)
   const controller = useRef<AbortController | null>(null)
   const savedRevision = useRef<{ artifact: ResumePdfArtifact; company: string; role: string; document: Awaited<ReturnType<typeof saveJobResume>> } | null>(null)
   const [session, setSession] = useState<TailoringSession | null>(null)
   const [accepted, setAccepted] = useState<Set<string>>(new Set())
   const [edits, setEdits] = useState<Record<string, string>>({})
-  const [originalOrder, setOriginalOrder] = useState(false)
+  const [originalOrder, setOriginalOrder] = useState(true)
   const [company, setCompany] = useState(draft.company)
   const [role, setRole] = useState(draft.role)
   const [mailEdit, setMailEdit] = useState<{ subject?: string; body?: string }>({})
   const [artifact, setArtifact] = useState<ResumePdfArtifact | null>(null)
-  const [view, setView] = useState<'compare' | 'pdf'>('compare')
+  const isPdf = /\.pdf$/i.test(file.name)
+  const [template, setTemplate] = useState<ResumeTemplateId>(resumeTemplateId(initialTemplate ?? (isPdf ? 'original' : undefined)))
+  const [view, setView] = useState<JobResumeView>(isPdf ? 'source' : 'compare')
   const [busy, setBusy] = useState(false)
+  const [generating, setGenerating] = useState(true)
+  const [editingKey, setEditingKey] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [suggestionError, setSuggestionError] = useState('')
   const [retry, setRetry] = useState(0)
   useEffect(() => { ref.current?.showModal() }, [])
   useEffect(() => {
     const abort = new AbortController(); controller.current = abort
-    setBusy(true); setError(''); setSession(null)
-    void generateJobResume(draft, file, source, abort.signal).then(value => {
+    setGenerating(true); setSuggestionError('')
+    void generateJobResume(draft, file, source, abort.signal, value => {
+      if (!abort.signal.aborted) setSession(current => current ?? value)
+    }).then(value => {
       if (abort.signal.aborted) return
-      setSession(value); setAccepted(new Set(value.plan.changes.map(tailoringChangeKey)))
-      setCompany(draft.company || value.plan.company); setRole(draft.role || value.plan.role)
-    }).catch(cause => { if (!abort.signal.aborted) setError(cause instanceof Error ? cause.message : '生成失败。') })
-      .finally(() => { if (!abort.signal.aborted) setBusy(false) })
+      setSession(value)
+      setCompany(current => current || draft.company || value.plan.company); setRole(current => current || draft.role || value.plan.role)
+    }).catch(cause => { if (!abort.signal.aborted) setSuggestionError(cause instanceof Error ? cause.message : '建议未能生成。') })
+      .finally(() => { if (!abort.signal.aborted) setGenerating(false) })
     return () => abort.abort()
     // Inputs are a frozen snapshot taken on the explicit generate click.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [retry])
-  const text = useMemo(() => session ? tailoredResumeText(session.sections, session.plan, accepted, edits, originalOrder) : '', [session, accepted, edits, originalOrder])
+  const text = useMemo(() => session ? template === 'original'
+    ? tailoredOriginalResumeText(session.rawText, session.sections, session.plan, accepted, edits)
+    : tailoredResumeText(session.sections, session.plan, accepted, edits, originalOrder) : '', [session, accepted, edits, originalOrder, template])
+  const sourcePdf = useResumePdf(text, file.name, !!session && template === 'original', template, file, session?.rawText ?? '')
   const generatedMail = session ? tailoringMail(session.sections, session.plan, accepted, edits, person, company, role) : { subject: '', body: '' }
   const mail = { subject: mailEdit.subject ?? generatedMail.subject, body: mailEdit.body ?? generatedMail.body }
-  const invalidate = () => { setArtifact(null); setView('compare'); setError('') }
-  const perform = async (apply: boolean) => {
+  const invalidate = () => { setArtifact(null); setError('') }
+  const editLine = (key: string, value: string) => {
+    if (busy) return
+    const original = session?.sections.flatMap(section => section.lines.map((line, lineIndex) => ({ key: tailoringChangeKey({ sectionId: section.id, lineIndex }), line }))).find(item => item.key === key)?.line
+    if (value === original) { resetLine(key); return }
+    setEdits(current => ({ ...current, [key]: value }))
+    setAccepted(current => { const next = new Set(current); next.add(key); return next })
+    invalidate()
+  }
+  const resetLine = (key: string) => {
+    if (busy) return
+    setEdits(current => { const next = { ...current }; delete next[key]; return next })
+    setAccepted(current => { const next = new Set(current); next.delete(key); return next })
+    invalidate()
+  }
+  const perform = async (apply: boolean, selectedTemplate = template) => {
     if (!session || busy) return
+    // Saving confirms the visible draft; a late model response must not change it mid-save.
+    if (apply && generating) { controller.current?.abort(); setGenerating(false) }
     setBusy(true); setError('')
     try {
       if (!text.trim() || text.length > 20000) throw new Error('简历正文须为 1–20000 字。')
-      if (!mail.subject.trim() || mail.subject.length > 200 || /[\r\n]/.test(mail.subject) || !mail.body.trim() || mail.body.length > 12000) throw new Error('请检查邮件主题和正文。')
-      const pdf = artifact ?? await previewJobResume(session, text, company, role)
+      if (apply && (!mail.subject.trim() || mail.subject.length > 200 || /[\r\n]/.test(mail.subject) || !mail.body.trim() || mail.body.length > 12000)) throw new Error('请检查邮件主题和正文。')
+      const current = artifact && artifact.inputText === text && resumeTemplateId(artifact.template) === selectedTemplate ? artifact : selectedTemplate === 'original' ? sourcePdf.artifact : null
+      const pdf = current ?? await previewJobResume(session, text, company, role, selectedTemplate)
       setArtifact(pdf)
       if (!apply) { setView('pdf'); return }
       const cached = savedRevision.current
@@ -64,28 +92,36 @@ export function JobResumeDialog({ draft, file, source, person, onClose, onApply 
       await onApply({ company, role, subject: mail.subject, body: mail.body, automatic: false }, {
         jobDescription: (draft.jobDescription ?? '').trim(), attachment: document.originalFile,
         attachmentSource: { id: document.id, updatedAt: document.originalFileUpdatedAt ?? document.updatedAt }, attachmentUse: 'preparation',
-        tailoredResume: { jobDescription: (draft.jobDescription ?? '').trim(), company, role, sourceFile: file, source, documentId: document.id, text: pdf.text },
+        tailoredResume: { jobDescription: (draft.jobDescription ?? '').trim(), company, role, sourceFile: file, source, documentId: document.id, text: pdf.text, template: selectedTemplate },
       })
     } catch (cause) { setError(cause instanceof Error ? cause.message : '保存失败。') }
     finally { setBusy(false) }
   }
-  return <dialog ref={ref} aria-label="按岗位修改简历" onCancel={event => { event.preventDefault(); if (!busy || !session) { controller.current?.abort(); onClose() } }} className="mail-dialog resume-workbench w-[1120px] max-w-[calc(100vw-24px)] border border-line-strong bg-surface p-0 text-text-primary backdrop:bg-black/30">
-    <header className="flex items-center gap-3 border-b border-line px-5 py-4"><div className="min-w-0 flex-1"><h2 className="m-0 text-[16px] font-semibold">按岗位修改简历</h2><p className="mb-0 mt-1 truncate text-[12px] text-text-tertiary">{file.name} · {draft.recipient || '当前岗位'}</p></div><Button variant="ghost" disabled={busy && !!session} onClick={() => { controller.current?.abort(); onClose() }}>关闭</Button></header>
-    <div className="max-h-[65dvh] overflow-y-auto p-5">
-      {!session && <p role="status" className="text-[13px] text-text-secondary">{busy ? '正在根据 JD 整理修改建议…' : '生成未完成。'}{!busy && <Button variant="secondary" onClick={() => setRetry(value => value + 1)}>重试</Button>}</p>}
-      {session && <>
-        <div className="mb-4 grid gap-3 sm:grid-cols-2"><label className="mail-label">公司（选填）<input className="mail-input" maxLength={120} value={company} disabled={busy} onChange={event => { setCompany(event.target.value); invalidate() }} /></label><label className="mail-label">岗位（选填）<input className="mail-input" maxLength={120} value={role} disabled={busy} onChange={event => { setRole(event.target.value); invalidate() }} /></label></div>
-        <div className="mb-3 flex flex-wrap items-center gap-3 text-[12px]"><span className="mr-auto text-text-secondary">{session.plan.changes.length} 处建议 · 已采用 {accepted.size} 处</span><Button variant="secondary" disabled={busy} onClick={() => { if (view === 'pdf') setView('compare'); else void perform(false) }}>{view === 'pdf' ? '返回修改对照' : '预览实际 PDF'}</Button><label className="flex items-center gap-1"><input type="checkbox" checked={originalOrder} disabled={busy} onChange={event => { setOriginalOrder(event.target.checked); invalidate() }} />保留原章节顺序</label></div>
-        {view === 'pdf' && artifact ? <PdfPages file={artifact.file} /> : <div className="divide-y divide-line border-y border-line">
-          {session.plan.changes.map(change => { const key = tailoringChangeKey(change); const section = session.sections.find(item => item.id === change.sectionId)!; return <article key={key} className="py-4"><div className="mb-3 flex gap-3 text-[12px]"><strong className="mr-auto font-medium">{section.title}</strong><label className="flex items-center gap-1"><input type="checkbox" checked={accepted.has(key)} disabled={busy} onChange={() => { setAccepted(current => { const next = new Set(current); if (next.has(key)) next.delete(key); else next.add(key); return next }); invalidate() }} />采用这处修改</label></div><div className="grid gap-4 sm:grid-cols-2"><div><p className="mt-0 text-[11px] text-text-tertiary">原文</p><p className="m-0 whitespace-pre-wrap text-[13px] leading-[1.8]">{section.lines[change.lineIndex]}</p></div><label className="mail-label">修改稿<textarea className="mail-input mt-2 min-h-[110px] resize-y leading-[1.8]" value={edits[key] ?? change.after} maxLength={3000} disabled={busy || !accepted.has(key)} onChange={event => { setEdits(current => ({ ...current, [key]: event.target.value })); invalidate() }} /></label></div><p className="mb-0 mt-3 text-[12px] leading-relaxed text-text-secondary">岗位要求：{change.requirement}<br />{change.reason}</p></article> })}
-          {!session.plan.changes.length && <p className="text-[13px] text-text-secondary">没有需要改写的段落，可以查看完整简历和岗位缺项。</p>}
-          <details className="py-3 text-[12px]"><summary className="cursor-pointer text-text-secondary">查看完整投递稿与章节顺序</summary><p className="whitespace-pre-wrap leading-[1.8]">{text}</p></details>
-        </div>}
-        {session.plan.gaps.length > 0 && <details className="my-4 text-[12px]"><summary className="cursor-pointer text-warning">原简历未体现的要求 · {session.plan.gaps.length} 项</summary>{session.plan.gaps.map(gap => <p key={gap} className="leading-relaxed text-text-secondary">{gap}</p>)}</details>}
-        <section className="mt-5 border-t border-line pt-4" aria-label="随附邮件"><label className="mail-label">邮件主题<input className="mail-input" maxLength={200} value={mail.subject} disabled={busy} onChange={event => setMailEdit(current => ({ ...current, subject: event.target.value }))} /></label><label className="mail-label mt-3">正文<textarea className="mail-input min-h-[180px] resize-y leading-[1.8]" maxLength={12000} value={mail.body} disabled={busy} onChange={event => setMailEdit(current => ({ ...current, body: event.target.value }))} /></label>{mailEdit.body !== undefined && <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-text-tertiary"><span>正文已手动修改，调整简历时会保留。</span><button type="button" className="text-accent underline" disabled={busy} onClick={() => setMailEdit(current => ({ ...current, body: undefined }))}>按当前简历更新正文</button></div>}</section>
-      </>}
-      {error && <p role="alert" className="text-[12px] text-danger">{error}</p>}
-    </div>
-    <footer className="flex flex-wrap items-center gap-3 border-t border-line bg-surface-soft px-5 py-4"><p className="m-0 mr-auto text-[12px] text-text-tertiary">确认后另存为 PDF，只用于当前岗位；原文件保留。</p><Button disabled={!session || busy} loading={busy && !!session} onClick={() => void perform(true)}>保存并用于这封邮件</Button></footer>
+  const close = () => { controller.current?.abort(); onClose() }
+  return <dialog ref={ref} aria-label="按岗位修改简历" onCancel={event => { event.preventDefault(); if (!busy || !session) close() }} className="tailoring-dialog resume-workbench">
+    <JobResumeWorkspace
+      fileName={file.name} recipient={draft.recipient} session={session} text={text}
+      accepted={accepted} edits={edits} originalOrder={originalOrder} view={view} artifact={template === 'original' ? sourcePdf.artifact ?? artifact : artifact} originalFile={isPdf ? file : undefined}
+      template={template} onTemplate={value => { if (value !== template) { setTemplate(value); setArtifact(null); if (value === 'original') setView('source'); else { setView('pdf'); void perform(false, value) } } }}
+      fields={{ company, role, ...mail }} manualMail={mailEdit.body !== undefined} busy={busy} generating={generating} suggestionError={suggestionError} editingKey={editingKey} error={error || (template === 'original' ? sourcePdf.error ?? '' : '')}
+      onSelectLine={setEditingKey} onDeselectLine={() => setEditingKey(null)} onResetLine={resetLine}
+      onField={(key, value) => {
+        if (key === 'company') { setCompany(value); invalidate() }
+        else if (key === 'role') { setRole(value); invalidate() }
+        else setMailEdit(current => ({ ...current, [key]: value }))
+      }}
+      onAccept={key => {
+        if (accepted.has(key)) resetLine(key)
+        else {
+          const change = session?.plan.changes.find(change => tailoringChangeKey(change) === key)
+          if (change) editLine(key, change.after)
+        }
+      }}
+      onEdit={editLine}
+      onOrder={value => { setOriginalOrder(value); invalidate() }}
+      onView={value => { setView(value); if (value === 'source' && template !== 'original') { setTemplate('original'); setArtifact(null) }; if (value === 'pdf' && !artifact) void perform(false) }}
+      onRefreshMail={() => setMailEdit(current => ({ ...current, body: undefined }))}
+      onRetry={() => setRetry(value => value + 1)} onClose={close} onSave={() => void perform(true)}
+    />
   </dialog>
 }

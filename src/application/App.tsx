@@ -173,6 +173,7 @@ function App() {
           preparationIntent={workspace.pendingExtracted.preparationIntent}
           onSaveReview={analysis.saveReview}
           initialRevisionDraft={workspace.pendingExtracted.revisionDraft}
+          initialPdfTemplate={workspace.pendingExtracted.pdfTemplate}
           onSaveRevisionDraft={analysis.saveRevisionDraft}
           onSaveRevision={async (text, preview) => {
             if (interview.loading || interview.regeneratingId) throw new Error('当前回答还在处理中，完成后可保存新稿。')

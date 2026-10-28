@@ -61,7 +61,7 @@ export function useResumeAnalysis(
   const openResumeDocument = useCallback((document: ResumeDocument, autoDiagnose = false, preparationIntent: JobPreparationIntent = 'diagnosis') => {
     ws.setAnalysis(null)
     ws.setRecordId(document.recordId ?? null)
-    ws.setPendingExtracted({ extracted: document.extracted, sourceFile: document.sourceFile, demo: document.demo, documentId: document.id, initialReview: document.review, autoDiagnose, jobContext: document.jobContext, preparationIntent, revisionId: document.revisionId, revisionDraft: document.revisionDraft, hasAttachment: Boolean(document.originalFile) })
+    ws.setPendingExtracted({ extracted: document.extracted, sourceFile: document.sourceFile, demo: document.demo, documentId: document.id, initialReview: document.review, autoDiagnose, jobContext: document.jobContext, preparationIntent, revisionId: document.revisionId, pdfTemplate: document.pdfTemplate, revisionDraft: document.revisionDraft, hasAttachment: Boolean(document.originalFile) })
     ws.setError(null)
     window.sessionStorage.setItem('resume-grill:review-document', document.id)
     window.sessionStorage.setItem('resume-grill:review-intent', preparationIntent)
@@ -118,7 +118,7 @@ export function useResumeAnalysis(
   const saveRevision = useCallback(async (text: string, preview?: ResumePdfArtifact) => {
     const pending = ws.pendingExtracted
     if (!pending?.documentId) throw new Error('原简历未保存，请先重新导入。')
-    const document = await createResumeRevision(pending.documentId, text, pending.initialReview?.rawText ?? pending.extracted.text, preview)
+    const document = await createResumeRevision(pending.documentId, text, pending.initialReview?.rawText ?? pending.extracted.text, preview, { allowUnchanged: !!preview?.template })
     openResumeDocument(document, false)
     try { downloadResumeFile(document.originalFile!) } catch { ws.setError('新稿已保存，可点击“下载简历”重试下载。') }
   }, [ws, openResumeDocument])

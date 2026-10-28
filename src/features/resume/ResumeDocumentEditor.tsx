@@ -7,6 +7,7 @@ import { PdfPages } from './PdfPages'
 import { changedRevisionRanges, editableRevisionRange, findRevisionTargets, mapRevisionTarget } from './resume-revision'
 import type { ResumePdfArtifact, PdfTextBlock } from './lib/resume-pdf'
 import { downloadResumeFile } from './lib/resume-revision'
+import type { ResumeTemplateId } from '@/domain/resume-template'
 
 type Selection = { start: number; end: number; snapshot: string; original: string }
 type Props = {
@@ -21,9 +22,10 @@ type Props = {
   onChange: (text: string) => void
   onRetry: () => void
   onLoadOriginal?: () => Promise<File | undefined>
+  layout?: ResumeTemplateId
 }
 
-export function ResumeDocumentEditor({ baseText, text, artifact, previous, loading, error, disabled, request, onChange, onRetry, onLoadOriginal }: Props) {
+export function ResumeDocumentEditor({ baseText, text, artifact, previous, loading, error, disabled, request, onChange, onRetry, onLoadOriginal, layout }: Props) {
   const [view, setView] = useState<'draft' | 'original'>('draft')
   const [original, setOriginal] = useState<File | null>(null)
   const [originalError, setOriginalError] = useState('')
@@ -89,7 +91,7 @@ export function ResumeDocumentEditor({ baseText, text, artifact, previous, loadi
       {view === 'draft' && <span role="status" className="flex items-center gap-1 text-[11px] text-text-tertiary">{loading ? <><Loader2 size={12} className="animate-spin" />更新中</> : artifact ? `${artifact.pageCount} 页` : ''}</span>}
     </header>
     {view === 'draft' && <>
-      <p className="m-0 flex-none border-b border-line px-4 py-2 text-[11px] leading-relaxed text-text-secondary">点击段落就能改。新稿按单列排版，原文件仍保留。</p>
+      <p className="m-0 flex-none border-b border-line px-4 py-2 text-[11px] leading-relaxed text-text-secondary">{layout === 'original' ? '点击原简历中的文字修改。照片和原有排版保留，保存为独立新稿。' : '点击段落修改。当前已选择重新排版，保存为独立新稿。'}</p>
       {notice && <p role="status" className="m-0 px-4 py-2 text-[12px] text-text-secondary">{notice}</p>}
       {matches.length > 0 && <div className="max-h-40 flex-none overflow-y-auto border-b border-line p-3 text-[12px]"><p className="mt-0">有多处相同原文，请选择：</p>{matches.map(target => <button key={target.start} type="button" disabled={disabled} className="mb-2 block w-full border border-line bg-surface p-2 text-left" onClick={() => select(target)}>第 {target.line} 行 · {target.text}</button>)}</div>}
       {active && <div className="flex-none border-b border-line bg-surface p-3">

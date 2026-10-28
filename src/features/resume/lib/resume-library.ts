@@ -6,6 +6,7 @@ import type { ResumeReviewSubmission } from '@/domain/resume-review'
 import { resumeContentKey, type SavedRecord } from '../../../lib/storage'
 import { extractResumeClaimCandidates } from '../../../domain/resume-structure'
 import type { JobContext } from '@/domain/job-context'
+import type { ResumeTemplateId } from '@/domain/resume-template'
 
 // Keep source documents separate from generated interview records, including legacy ones.
 const PREFIX = 'resume-document:'
@@ -21,13 +22,14 @@ export type ResumeDocument = {
   jobContext?: JobContext
   revisionOf?: string
   revisionId?: string
+  pdfTemplate?: ResumeTemplateId
   revisionDraft?: ResumeRevisionDraft
   review?: ResumeReviewSubmission
   recordId?: string
   updatedAt: number
 }
 
-export type ResumeRevisionDraft = { baseText: string; text: string }
+export type ResumeRevisionDraft = { baseText: string; text: string; template?: ResumeTemplateId }
 
 export function saveResumeRevisionDraft(id: string, draft: ResumeRevisionDraft | null): Promise<void> {
   return update<ResumeDocument>(id, existing => {

@@ -84,7 +84,7 @@ describe('useResumeAnalysis resume revisions', () => {
 
     await useResumeAnalysis(ws, nav).saveRevision('修改后的正文')
 
-    expect(revision.createResumeRevision).toHaveBeenCalledWith(document().id, '修改后的正文', submission.rawText, undefined)
+    expect(revision.createResumeRevision).toHaveBeenCalledWith(document().id, '修改后的正文', submission.rawText, undefined, { allowUnchanged: false })
     expect(ws.setPendingExtracted).toHaveBeenCalledWith(expect.objectContaining({ documentId: next.id, revisionId: next.id, autoDiagnose: false, hasAttachment: true }))
     expect(ws.setRecordId).toHaveBeenCalledWith(null)
     expect(revision.downloadResumeFile).toHaveBeenCalledWith(file)

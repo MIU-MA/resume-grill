@@ -1,4 +1,5 @@
-export type ResumeRevisionDraft = { baseText: string; text: string }
+import type { ResumeTemplateId } from '@/domain/resume-template'
+export type ResumeRevisionDraft = { baseText: string; text: string; template?: ResumeTemplateId }
 export type RevisionTarget = { start: number; end: number; line: number; text: string }
 
 /** Match quotations without guessing missing words; whitespace from PDF extraction may differ. */
@@ -46,7 +47,7 @@ export function mapRevisionTarget(base: string, text: string, target: Pick<Revis
   return start === null || end === null || start > end ? null : { start, end }
 }
 
-function alignRevisionLines(base: string, text: string): Span[] {
+export function alignRevisionLines(base: string, text: string): Span[] {
   const oldLines = base.match(/[^\n]*\n|[^\n]+$/g) ?? []
   const newLines = text.match(/[^\n]*\n|[^\n]+$/g) ?? []
   let prefix = 0

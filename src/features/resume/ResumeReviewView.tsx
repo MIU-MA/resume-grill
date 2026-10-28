@@ -37,6 +37,8 @@ import { SettingsDialog } from '@/features/settings/SettingsDialog'
 import { useResumeDiagnosis } from '@/features/resume/hooks/use-resume-diagnosis'
 import { ResumeRevisionPreview, ResumeRevisionToolbar } from './ResumeRevisionPanel'
 import type { ResumeRevisionDraft } from './resume-revision'
+import { ResumeTemplatePicker } from './ResumeTemplatePicker'
+import { resumeTemplateId, type ResumeTemplateId } from '@/domain/resume-template'
 
 type ResumeReviewViewProps = {
   sourceFile: string
@@ -56,13 +58,14 @@ type ResumeReviewViewProps = {
   preparationIntent?: JobPreparationIntent
   onSaveReview: (review: ResumeReviewSubmission) => Promise<void>
   initialRevisionDraft?: ResumeRevisionDraft
+  initialPdfTemplate?: ResumeTemplateId
   onSaveRevisionDraft: (draft: ResumeRevisionDraft | null) => Promise<void>
   onSaveRevision: (text: string, preview?: ResumePdfArtifact) => Promise<void>
   onLoadOriginal?: () => Promise<File | undefined>
   onDownloadResume?: () => Promise<void>
 }
 
-export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error, envConfigured, clientConfigured, onClientChanged, onConfirm, onBack, onApplications, initialReview, autoDiagnose, onSaveReview, jobContext, preparationIntent, initialRevisionDraft, onSaveRevisionDraft, onSaveRevision, onDownloadResume, onLoadOriginal }: ResumeReviewViewProps) {
+export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error, envConfigured, clientConfigured, onClientChanged, onConfirm, onBack, onApplications, initialReview, autoDiagnose, onSaveReview, jobContext, preparationIntent, initialRevisionDraft, initialPdfTemplate, onSaveRevisionDraft, onSaveRevision, onDownloadResume, onLoadOriginal }: ResumeReviewViewProps) {
   const [text] = useState(() => (initialReview?.rawText ?? extracted.text).trim())
   const sections = useMemo(() => parseResumeStructure(text), [text])
   const [candidates, setCandidates] = useState<ReviewCandidate[]>(() => initialReview?.candidateDrafts ?? (initialReview ? initialReview.reviewedCandidates.map((candidate, index) => ({ ...candidate, id: `saved-${index}`, enabled: true })) : createReviewCandidates(extracted.text)))
@@ -88,7 +91,22 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
   const revisionSequence = useRef(0)
   const revisionAction = useRef(false)
   const editingText = revisionDraft?.text ?? text
-  const pdf = useResumePdf(editingText, sourceFile, tab !== 'structure' || revisionDraft !== null)
+  const canUseOriginal = !!onLoadOriginal && /\.pdf$/i.test(sourceFile)
+  const [original, setOriginal] = useState<File | undefined>()
+  const [originalError, setOriginalError] = useState('')
+  const [originalAttempt, setOriginalAttempt] = useState(0)
+  const template = resumeTemplateId(revisionDraft?.template ?? (canUseOriginal ? 'original' : initialPdfTemplate))
+  useEffect(() => {
+    if (!canUseOriginal || !onLoadOriginal) return
+    let active = true
+    setOriginalError('')
+    void onLoadOriginal().then(file => { if (active) { setOriginal(file); if (!file) setOriginalError('原文件未找到，请重新上传简历。') } })
+      .catch(() => { if (active) setOriginalError('原文件读取失败，请重新打开简历。') })
+    return () => { active = false }
+    // Load once for this opened document, rather than refetching on each edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sourceFile, canUseOriginal, originalAttempt])
+  const pdf = useResumePdf(editingText, sourceFile, (tab !== 'structure' || revisionDraft !== null) && (template !== 'original' || !!original), template, original, text)
   const revisionPending = revisionDraft !== null
   const revisionConflict = revisionDraft !== null && revisionDraft.baseText !== text
   const workflowBlocked = analyzing || revisionPending || revisionBusy || leaving || draftSaveState !== 'saved'
@@ -133,9 +151,17 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
   const updateText = (value: string) => {
     if (analyzing || revisionAction.current || leaving || revisionConflict) return
     diagnosis.cancel()
-    const draft = value === text ? null : { baseText: text, text: value }
+    const draft = value === text && revisionDraft?.template === undefined ? null : { baseText: text, text: value, template }
     setRevisionDraft(draft)
     setRevisionError(null)
+    void persistRevisionDraft(draft)
+  }
+  const changeTemplate = (value: ResumeTemplateId) => {
+    if (analyzing || revisionAction.current || leaving || revisionConflict) return
+    diagnosis.cancel()
+    const draft = { baseText: text, text: editingText, template: value }
+    setRevisionDraft(draft); setRevisionError(null)
+    setPreviewOpen(true)
     void persistRevisionDraft(draft)
   }
 
@@ -298,6 +324,7 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
         <ReviewTab active={tab === 'raw'} onClick={() => setTab('raw')}>修改全文</ReviewTab>
       </div>
 
+      {(tab === 'raw' || revisionDraft) && <ResumeTemplatePicker value={template} canUseOriginal={canUseOriginal} disabled={analyzing || revisionBusy || leaving || revisionConflict} onChange={changeTemplate} />}
       {revisionDraft && <ResumeRevisionToolbar text={revisionDraft.text} conflict={revisionConflict} saving={revisionBusy || leaving || analyzing} draftStatus={draftSaveState} pdfReady={!!pdf.artifact} error={revisionError} onPreview={() => setPreviewOpen(true)} onSave={() => { void saveRevision() }} onDiscard={() => { void discardRevision() }} />}
 
       <div className="relative flex min-h-0 flex-1">
@@ -323,7 +350,7 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
                   : <ResumeTextEditor text={revisionConflict ? text : editingText} analyzing={analyzing || revisionBusy || leaving || revisionConflict || diagnosis.loading} onTextChange={updateText} />}
               </div>
               <div className={`min-h-0 min-w-0 flex-col ${mobileDocument ? 'flex' : 'hidden min-[1100px]:flex'}`}>
-                <ResumeDocumentEditor baseText={text} text={editingText} artifact={pdf.artifact} previous={pdf.previous} loading={pdf.loading} error={pdf.error} disabled={analyzing || revisionBusy || leaving || revisionConflict || diagnosis.loading} request={editRequest} onChange={updateText} onRetry={pdf.retry} onLoadOriginal={onLoadOriginal} />
+                <ResumeDocumentEditor baseText={text} text={editingText} artifact={pdf.artifact} previous={pdf.previous} loading={pdf.loading || (template === 'original' && !original && !originalError)} error={(template === 'original' ? originalError : '') || pdf.error} disabled={analyzing || revisionBusy || leaving || revisionConflict || diagnosis.loading} request={editRequest} onChange={updateText} onRetry={() => { if (template === 'original' && !original) setOriginalAttempt(value => value + 1); else pdf.retry() }} onLoadOriginal={onLoadOriginal} layout={template} />
               </div>
             </div>
           </> : <>

@@ -5,6 +5,7 @@ import { createCanvas } from '@napi-rs/canvas'
 import fontkit from '@pdf-lib/fontkit'
 import { createResumePdf, RESUME_PAGE } from './resume-pdf'
 import { resumePdfSource } from './resume-pdf-offsets'
+import { RESUME_TEMPLATES } from '@/domain/resume-template'
 
 const font = new Uint8Array(readFileSync(new URL('../../../../public/fonts/NotoSansSC-Regular.ttf', import.meta.url)))
 const compact = (text: string) => text.replace(/\s/g, '')
@@ -24,13 +25,13 @@ async function inspect(file: File) {
 }
 
 describe('可投递 PDF', () => {
-  it('实际渲染时每个中文、英文字母和数字都有可见字形', async () => {
+  it.each(RESUME_TEMPLATES)('$name：实际渲染时每个中文、英文字母和数字都有可见字形', async template => {
     expect(
       typeof ArrayBuffer.prototype.transferToFixedLength,
       'PDF 渲染测试需要 Node.js 22.13 以上，请使用 .nvmrc 指定的 Node.js 24',
     ).toBe('function')
     const text = '林沐\nABCdef0123\n订单优化'
-    const pdf = await createResumePdf(text, '简历.pdf', font)
+    const pdf = await createResumePdf(text, '简历.pdf', font, template.id)
     // Draw embedded glyph paths without system-font fallback, and request
     // strict parsing so malformed files cannot pass as a blank preview.
     const task = getDocument({
@@ -49,8 +50,8 @@ describe('可投递 PDF', () => {
       const context = canvas.getContext('2d')
       const sourceFont = fontkit.create(font)
       for (const block of pdf.pages[0].blocks) {
-        const size = block.kind === 'name' ? 20 : block.kind === 'heading' ? 12 : 10.5
-        let x: number = RESUME_PAGE.margin
+        const size = block.fontSize!
+        let x: number = block.left ?? RESUME_PAGE.margin
         for (const character of text.slice(block.start, block.end)) {
           const width = sourceFont.layout(character).glyphs[0].advanceWidth / sourceFont.unitsPerEm * size
           const pixels = context.getImageData(Math.floor(x * scale), Math.floor(block.top * scale), Math.ceil(width * scale), Math.ceil(block.height * scale)).data
@@ -67,6 +68,31 @@ describe('可投递 PDF', () => {
     }
   }, 15000) // Real glyph rendering competes with other font/PDF tests in CI.
 
+  it.each(RESUME_TEMPLATES)('$name：长简历跨页后仍保留全部文字和可点击位置', async template => {
+    const text = '林沐\nlin@example.com\n\n项目经历\n订单管理系统\n' + '使用 React 开发页面，参与接口联调与测试。'.repeat(120) + '\n\n专业技能\nReact、TypeScript、CSS'
+    const pdf = await createResumePdf(text, '简历.pdf', font, template.id)
+    expect(pdf.template).toBe(template.id)
+    expect(pdf.pageCount).toBeGreaterThan(1)
+    expect(compact((await inspect(pdf.file)).text)).toBe(compact(text))
+    for (const page of pdf.pages) for (const block of page.blocks) {
+      expect(block.top).toBeGreaterThanOrEqual(RESUME_PAGE.margin)
+      expect(block.height).toBeGreaterThan(0)
+      expect(block.top + block.height).toBeLessThanOrEqual(RESUME_PAGE.height - RESUME_PAGE.margin)
+      if (block.left !== undefined && block.width !== undefined) {
+        expect(block.left).toBeGreaterThanOrEqual(RESUME_PAGE.margin)
+        expect(block.left + block.width).toBeLessThanOrEqual(RESUME_PAGE.width - RESUME_PAGE.margin + .01)
+      }
+      if (block.kind === 'blank') expect(text.slice(block.start, block.end)).toBe('')
+      else expect(text.slice(block.start, block.end).trim()).not.toBe('')
+    }
+    if (template.id === 'sidebar') {
+      const heading = pdf.pages[0].blocks.find(block => block.kind === 'heading')!
+      const entry = pdf.pages[0].blocks.find(block => text.slice(block.start, block.end) === '订单管理系统')!
+      expect(entry.top).toBe(heading.top)
+      expect(entry.left).toBeGreaterThan(heading.left!)
+    }
+  }, 15000)
+
   it('输出包含中文和英文的可提取文字，文件、分页和预览段落一致', async () => {
     const text = '张三\n项目经历\n使用 React & TypeScript 开发订单页面，首屏耗时从 800ms 降至 120ms。'
     const pdf = await createResumePdf(text, '张三.docx', font)
@@ -78,6 +104,41 @@ describe('可投递 PDF', () => {
     expect(pdf.file.size).toBeLessThan(5 * 1024 * 1024)
     expect(pdf.pages[0].blocks.map(block => text.slice(block.start, block.end))).toEqual(text.split('\n'))
   })
+
+  it.each(RESUME_TEMPLATES.filter(template => ['meowth', 'brilliant', 'persian', 'typst'].includes(template.id)))('$name：经历日期对齐，分栏、独立职位和未知正文均不丢失', async template => {
+    const text = '林沐\n工作经历\n星河科技 | 前端开发工程师 | 2024.07 — 至今\n- 负责订单页面与接口联调。\n\n2023.07 — 2023.12\n远山软件\n- 参与运营后台开发。\n\n示例公司\n前端开发实习生\n2022.07 — 2022.12\n- 完成页面测试。\n\n其他信息\n个人主页：https://example.com/a-long-path\n尚未分类的内容保持原样。'
+    const pdf = await createResumePdf(text, '简历.pdf', font, template.id)
+    expect(compact((await inspect(pdf.file)).text)).toBe(compact(text))
+    const blocks = pdf.pages.flatMap(page => page.blocks)
+    const title = blocks.find(block => text.slice(block.start, block.end).startsWith('星河科技'))!
+    const date = blocks.find(block => text.slice(block.start, block.end) === '2024.07 — 至今')!
+    expect(date.top).toBe(title.top)
+    if (template.id === 'typst') expect(date.left).toBeLessThan(title.left!)
+    else expect(date.left).toBeGreaterThan(title.left!)
+    const company = blocks.find(block => text.slice(block.start, block.end) === '示例公司')!
+    const role = blocks.find(block => text.slice(block.start, block.end) === '前端开发实习生')!
+    expect(role.top).toBeGreaterThan(company.top)
+    for (const block of blocks.filter(block => block.kind !== 'blank')) {
+      expect(text.slice(block.start, block.end).trim()).not.toBe('')
+      expect(block.top + block.height).toBeLessThanOrEqual(RESUME_PAGE.height - RESUME_PAGE.margin)
+      expect(block.left! + block.width!).toBeLessThanOrEqual(RESUME_PAGE.width - RESUME_PAGE.margin + .01)
+    }
+  }, 15000)
+
+  it.each(RESUME_TEMPLATES.filter(template => ['meowth', 'brilliant', 'persian', 'typst'].includes(template.id)))('$name：长经历标题分页时不重叠、不截断，日期仍能定位原文', async template => {
+    const text = '林沐\n项目经历\n' + Array.from({ length: 18 }, (_, index) => `第 ${index + 1} 个跨部门协作运营管理系统 | 前端开发与测试负责人\n2023.01 — 2024.06\n- ${'使用 React 开发业务组件并完成测试。'.repeat(3)}\n`).join('\n')
+    const pdf = await createResumePdf(text, '简历.pdf', font, template.id)
+    expect(pdf.pageCount).toBeGreaterThan(1)
+    expect(compact((await inspect(pdf.file)).text)).toBe(compact(text))
+    for (const page of pdf.pages) {
+      const dates = page.blocks.filter(block => text.slice(block.start, block.end) === '2023.01 — 2024.06')
+      for (const date of dates) expect(page.blocks.some(block => block.kind === 'body' && block.top === date.top && text.slice(block.start, block.end).startsWith('第 '))).toBe(true)
+      for (const block of page.blocks) {
+        expect(block.top).toBeGreaterThanOrEqual(RESUME_PAGE.margin)
+        expect(block.top + block.height).toBeLessThanOrEqual(RESUME_PAGE.height - RESUME_PAGE.margin)
+      }
+    }
+  }, 15000)
 
   it('长段落自动换行并跨页，页面不溢出、没有遗漏或重复文本', async () => {
     const text = '李四\n项目经历\n' + '负责 React 组件开发与性能优化，记录接口耗时与问题定位过程。'.repeat(100)

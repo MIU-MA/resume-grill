@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { groundedTailoringSchema } from '@/domain/resume-tailoring'
+import { usableTailoringSchema } from '@/domain/resume-tailoring'
 import { TAILORING_SYSTEM_PROMPT, buildTailoringPrompt } from '@/features/resume/lib/resume-tailoring-prompt'
 import { getClientIp, rateLimit, withTimeout, MAX_RAWTEXT } from '@/lib/server-limits'
 import { llmStructured, resolveLlmConfig } from '@/providers/openai-compatible'
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
   if (!config) return json({ error: '请先在模型设置中配置模型，再生成岗位版简历。' }, 400)
   const signal = AbortSignal.any([request.signal, withTimeout(90000)])
   try {
-    const plan = await llmStructured(TAILORING_SYSTEM_PROMPT, buildTailoringPrompt(body.rawText, body.jobDescription), groundedTailoringSchema(body.rawText, body.jobDescription), config, { signal })
+    const plan = await llmStructured(TAILORING_SYSTEM_PROMPT, buildTailoringPrompt(body.rawText, body.jobDescription), usableTailoringSchema(body.rawText, body.jobDescription), config, { signal })
     return json(plan)
   } catch { return json({ error: signal.aborted ? '生成已取消或超时，可以重试。' : '未能生成可核对的修改稿，请检查模型连接后重试。' }, signal.aborted ? 504 : 502) }
 }

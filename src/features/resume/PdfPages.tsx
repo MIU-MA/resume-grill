@@ -34,12 +34,13 @@ export function PdfPages({ file, artifact, disabled, selectedStart, changedRange
   }, [selectedStart, document])
   if (error) return <p role="alert" className="p-4 text-[12px] text-danger">{error}</p>
   if (!document) return <p role="status" className="p-4 text-[12px] text-text-tertiary">正在显示 PDF…</p>
-  return <div ref={container} className="space-y-4">{Array.from({ length: document.numPages }, (_, index) => <PdfPage key={index} document={document} pageNumber={index + 1} blocks={artifact?.pages[index]?.blocks} disabled={disabled} selectedStart={selectedStart} changedRanges={changedRanges} onSelect={onSelect} />)}</div>
+  return <div ref={container} className="space-y-4">{Array.from({ length: document.numPages }, (_, index) => <PdfPage key={index} document={document} pageNumber={index + 1} layout={artifact?.pages[index]} disabled={disabled} selectedStart={selectedStart} changedRanges={changedRanges} onSelect={onSelect} />)}</div>
 }
 
-function PdfPage({ document, pageNumber, blocks, disabled, selectedStart, changedRanges, onSelect }: {
-  document: PDFDocumentProxy; pageNumber: number; blocks?: PdfTextBlock[]; disabled?: boolean; selectedStart?: number; changedRanges?: Props['changedRanges']; onSelect?: Props['onSelect']
+function PdfPage({ document, pageNumber, layout, disabled, selectedStart, changedRanges, onSelect }: {
+  document: PDFDocumentProxy; pageNumber: number; layout?: ResumePdfArtifact['pages'][number]; disabled?: boolean; selectedStart?: number; changedRanges?: Props['changedRanges']; onSelect?: Props['onSelect']
 }) {
+  const pageWidth = layout?.width ?? RESUME_PAGE.width, pageHeight = layout?.height ?? RESUME_PAGE.height
   const canvas = useRef<HTMLCanvasElement>(null)
   const [ratio, setRatio] = useState(RESUME_PAGE.width / RESUME_PAGE.height)
   const [error, setError] = useState('')
@@ -62,7 +63,7 @@ function PdfPage({ document, pageNumber, blocks, disabled, selectedStart, change
   return <div>
     <div className="relative mx-auto w-full max-w-[794px] border border-line-strong bg-white" style={{ aspectRatio: ratio }}>
       <canvas ref={canvas} className="block h-full w-full" aria-label={`简历 PDF 第 ${pageNumber} 页`} />
-      {blocks?.filter(block => block.kind !== 'blank').map((block, index) => <button key={`${block.start}-${block.top}`} type="button" aria-label={`修改第 ${pageNumber} 页第 ${index + 1} 段`} title="点击修改这段" disabled={disabled} data-resume-start={block.start} onClick={() => onSelect?.(block)} className={`absolute border text-left hover:border-brand hover:bg-brand/10 focus:border-brand focus:outline-brand ${selectedStart === block.start ? 'border-brand bg-brand/10' : changedRanges?.some(range => range.start < block.end && range.end > block.start) ? 'border-brand/30 bg-brand/5' : 'border-transparent'}`} style={{ left: `${RESUME_PAGE.margin / RESUME_PAGE.width * 100}%`, width: `${(RESUME_PAGE.width - RESUME_PAGE.margin * 2) / RESUME_PAGE.width * 100}%`, top: `${block.top / RESUME_PAGE.height * 100}%`, height: `${block.height / RESUME_PAGE.height * 100}%` }} />)}
+      {layout?.blocks.filter(block => block.kind !== 'blank').map((block, index) => <button key={`${block.start}-${block.top}`} type="button" aria-label={`修改第 ${pageNumber} 页第 ${index + 1} 段`} title="点击修改这段" disabled={disabled} data-resume-start={block.start} onClick={() => onSelect?.(block)} className={`absolute border text-left hover:border-brand hover:bg-brand/10 focus:border-brand focus:outline-brand ${selectedStart === block.start ? 'border-brand bg-brand/10' : changedRanges?.some(range => range.start < block.end && range.end > block.start) ? 'border-brand/30 bg-brand/5' : 'border-transparent'}`} style={{ left: `${(block.left ?? RESUME_PAGE.margin) / pageWidth * 100}%`, width: `${(block.width ?? pageWidth - RESUME_PAGE.margin * 2) / pageWidth * 100}%`, top: `${block.top / pageHeight * 100}%`, height: `${block.height / pageHeight * 100}%` }} />)}
     </div>
     {error && <p role="alert" className="text-[12px] text-danger">{error}</p>}
     <p className="mb-0 mt-2 text-center text-[11px] text-text-tertiary">{pageNumber} / {document.numPages}</p>

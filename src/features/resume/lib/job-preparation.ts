@@ -33,7 +33,7 @@ export async function prepareJobResume({ job, attachment, attachmentSource }: Jo
   const rawText = extracted.text.trim()
   if (!rawText) throw new Error('这份附件未读到简历正文，请更换可读取的原文件。')
   const created: ResumeDocument = {
-    id, sourceFile: attachment.name, extracted, originalFile: attachment, demo: false,
+    id, sourceFile: attachment.name, extracted, originalFile: attachment, demo: false, pdfTemplate: matchesSource ? source.pdfTemplate : undefined,
     originalFileUpdatedAt: attachmentSource?.updatedAt ?? Date.now(), updatedAt: Date.now(),
     jobContext: {
       applicationId: job.id, company: job.company.trim(), role: job.role.trim(), sourceUrl: job.sourceUrl,

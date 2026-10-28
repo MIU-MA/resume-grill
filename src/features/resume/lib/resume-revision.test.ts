@@ -130,6 +130,20 @@ describe('resume revision drafts', () => {
 })
 
 describe('createResumeRevision', () => {
+  it('只更换模板也能另存新稿，保留原文件和选定的模板', async () => {
+    const source = await sourceDocument()
+    const preview = await createResumePdf(originalText, source.sourceFile, fontBytes, 'sidebar')
+    const revision = await createResumeRevision(source.id, originalText, originalText, preview)
+    expect(revision.pdfTemplate).toBe('sidebar')
+    expect(revision.originalFile).toBe(preview.file)
+    expect((await loadResumeDocument(revision.id))?.pdfTemplate).toBe('sidebar')
+    expect((await loadResumeDocument(source.id))?.originalFile).toBe(source.originalFile)
+    const stale = await createResumePdf(revisedText, source.sourceFile, fontBytes, 'classic')
+    const updated = await createResumeRevision(source.id, revisedText, originalText, stale, { template: 'modern' })
+    expect(updated.pdfTemplate).toBe('modern')
+    expect(updated.originalFile).not.toBe(stale.file)
+    expect(await fileText(updated.originalFile!)).toBe(revisedText.replace(/\s/g, ''))
+  }, 15000)
   it('saves a real new PDF with matching text and fresh candidates while retaining the old review and practice', async () => {
     const source = await sourceDocument()
     const oldRecord = structuredClone(database.values.get(source.recordId!))
