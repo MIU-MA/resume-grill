@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
+import { createCanvas } from '@napi-rs/canvas'
 import { createResumePdf } from './resume-pdf'
 
 const fontBytes = new Uint8Array(readFileSync(new URL('../../../../public/fonts/NotoSansSC-Regular.ttf', import.meta.url)))
@@ -130,6 +131,27 @@ describe('resume revision drafts', () => {
 })
 
 describe('createResumeRevision', () => {
+  it('照片随草稿和新文件保存，替换或移除时不复用带旧照片的预览，也不更改原文件', async () => {
+    const source = await sourceDocument()
+    const portrait = createCanvas(30, 40), context = portrait.getContext('2d')
+    context.fillStyle = '#e32120'; context.fillRect(0, 0, 30, 40)
+    const photo = { dataUrl: portrait.toDataURL('image/png'), position: 'left' as const }
+    await saveResumeRevisionDraft(source.id, { baseText: originalText, text: revisedText, template: 'classic', photo })
+    expect((await loadResumeDocument(source.id))?.revisionDraft?.photo).toEqual(photo)
+    const stale = await createResumePdf(revisedText, source.sourceFile, fontBytes, 'classic')
+    const saved = await createResumeRevision(source.id, revisedText, originalText, stale, { photo })
+    expect(saved.photo).toEqual(photo)
+    expect(saved.originalFile).not.toBe(stale.file)
+    expect((await loadResumeDocument(saved.id))?.photo).toEqual(photo)
+    expect((await loadResumeDocument(source.id))?.originalFile).toBe(source.originalFile)
+    expect((await loadResumeDocument(source.id))?.revisionDraft).toBeUndefined()
+    const clearedPreview = await createResumePdf(revisedText, saved.sourceFile, fontBytes, 'classic', null)
+    await saveResumeRevisionDraft(saved.id, { baseText: revisedText, text: revisedText, template: 'classic', photo: null })
+    const cleared = await createResumeRevision(saved.id, revisedText, revisedText, clearedPreview)
+    expect(cleared.photo).toBeUndefined()
+    expect(cleared.originalFile).toBe(clearedPreview.file)
+    expect((await loadResumeDocument(saved.id))?.revisionDraft).toBeUndefined()
+  })
   it('只更换模板也能另存新稿，保留原文件和选定的模板', async () => {
     const source = await sourceDocument()
     const preview = await createResumePdf(originalText, source.sourceFile, fontBytes, 'sidebar')

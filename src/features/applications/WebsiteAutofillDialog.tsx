@@ -1,5 +1,7 @@
 'use client'
 
+import { ResumeProfileFields } from '@/features/resume/ResumeProfileFields'
+
 import { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -68,7 +70,7 @@ export function WebsiteAutofillDialog({ drafts, attachment, resumeId, sender, in
     // Snapshot the selected resume and sender when this dialog opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-  const field = (key: keyof WebsiteProfile) => <label key={key} className="mail-label">{PROFILE_LABELS[key]}<span className="ml-1 font-normal text-text-tertiary">（选填）</span><input className="mail-input" disabled={busy} maxLength={200} aria-describedby="website-profile-help" aria-invalid={!parsedProfile.success && parsedProfile.error.issues.some(issue => issue.path[0] === key)} type={key === 'email' ? 'email' : key === 'phone' ? 'tel' : 'text'} placeholder="留空时在官网补充" value={profile[key] ?? ''} onChange={event => { const value = event.currentTarget.value; setProfile(current => ({ ...current, [key]: value })) }} /></label>
+  const field = (key: keyof WebsiteProfile) => <ResumeProfileFields key={key} keys={[key]} profile={profile} disabled={busy} onChange={setProfile} optional describedBy="website-profile-help" invalidKeys={!parsedProfile.success && parsedProfile.error.issues.some(issue => issue.path[0] === key) ? [key] : []} />
   const chooseAttachment = async (file: File) => {
     if (!validResumeAttachment(file)) { setError('请选择 5 MB 以内的 PDF、DOCX 或 TXT 简历。'); return }
     setBusy(true); setError(''); setMessage(''); setSelectedAttachment(file)

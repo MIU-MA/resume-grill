@@ -26,7 +26,7 @@ vi.mock('idb-keyval', () => database)
 vi.mock('./pdf', () => extraction)
 
 import { prepareJobResume, type JobPreparationRequest } from './job-preparation'
-import { importResumeDocument, loadResumeDocument, updateResumeDocument } from './resume-library'
+import { importResumeDocument, listResumeDocuments, loadResumeDocument, saveResumeRevisionDraft, updateResumeDocument } from './resume-library'
 
 const rawText = '张三\n项目经历\n负责订单系统前端开发，使用 React 实现订单管理和数据展示。'
 const extracted: ExtractedText = { text: rawText, charCount: rawText.length, pageCount: 1 }
@@ -46,6 +46,23 @@ beforeEach(() => {
 })
 
 describe('prepareJobResume', () => {
+  it('同一岗位的编辑快照与检查、练习文档分开，不能带入检查 JD、结果或草稿', async () => {
+    const input = request()
+    const review = await prepareJobResume(input)
+    const edited = { ...review.review!, rawText: rawText + '\n只在检查里添加的说明', diagnosis }
+    await updateResumeDocument(review.id, { review: edited, recordId: 'interview-record' })
+    const draft = { baseText: edited.rawText, text: '检查里暂存的改写' }
+    await saveResumeRevisionDraft(review.id, draft)
+    const before = await loadResumeDocument(review.id)
+    const tailoring = await prepareJobResume(input, 'tailoring')
+    expect(tailoring.id).not.toBe(review.id)
+    expect(tailoring.extracted.text).toBe(rawText)
+    expect(tailoring.review?.rawText).toBe(rawText)
+    expect(tailoring.review?.diagnosis).toBeUndefined()
+    expect(tailoring.revisionDraft).toBeUndefined()
+    expect(await loadResumeDocument(review.id)).toEqual(before)
+    expect((await listResumeDocuments()).some(document => document.id === tailoring.id)).toBe(false)
+  })
   it('reopens the same job and attachment without overwriting an edited review or practice linkage', async () => {
     const input = request()
     const first = await prepareJobResume(input)

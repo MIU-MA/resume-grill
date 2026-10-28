@@ -7,6 +7,7 @@ import { resumeContentKey, type SavedRecord } from '../../../lib/storage'
 import { extractResumeClaimCandidates } from '../../../domain/resume-structure'
 import type { JobContext } from '@/domain/job-context'
 import type { ResumeTemplateId } from '@/domain/resume-template'
+import type { ResumePhoto } from '@/domain/resume-photo'
 
 // Keep source documents separate from generated interview records, including legacy ones.
 const PREFIX = 'resume-document:'
@@ -23,13 +24,14 @@ export type ResumeDocument = {
   revisionOf?: string
   revisionId?: string
   pdfTemplate?: ResumeTemplateId
+  photo?: ResumePhoto
   revisionDraft?: ResumeRevisionDraft
   review?: ResumeReviewSubmission
   recordId?: string
   updatedAt: number
 }
 
-export type ResumeRevisionDraft = { baseText: string; text: string; template?: ResumeTemplateId }
+export type ResumeRevisionDraft = { baseText: string; text: string; template?: ResumeTemplateId; photo?: ResumePhoto | null }
 
 export function saveResumeRevisionDraft(id: string, draft: ResumeRevisionDraft | null): Promise<void> {
   return update<ResumeDocument>(id, existing => {
@@ -41,8 +43,8 @@ export function saveResumeRevisionDraft(id: string, draft: ResumeRevisionDraft |
   })
 }
 
-export async function listResumeDocuments(): Promise<ResumeDocument[]> {
-  const ids = (await keys()).filter((key): key is string => typeof key === 'string' && key.startsWith(PREFIX))
+export async function listResumeDocuments(options: { includeInternal?: boolean } = {}): Promise<ResumeDocument[]> {
+  const ids = (await keys()).filter((key): key is string => typeof key === 'string' && key.startsWith(PREFIX) && (options.includeInternal || !key.startsWith(`${PREFIX}tailoring-source:`)))
   const documents = await Promise.all(ids.map(id => get<ResumeDocument>(id)))
   return documents.filter((item): item is ResumeDocument => Boolean(item)).sort((a, b) => b.updatedAt - a.updatedAt)
 }
@@ -70,7 +72,7 @@ export async function resumeDocumentForRecord(record: SavedRecord): Promise<Resu
   return saved
 }
 
-export async function importResumeDocument(extracted: ExtractedText, sourceFile: string, demo: boolean, originalFile?: File): Promise<ResumeDocument> {
+export async function importResumeDocument(extracted: ExtractedText, sourceFile: string, demo: boolean, originalFile?: File, options: { select?: boolean } = {}): Promise<ResumeDocument> {
   const id = `${PREFIX}${resumeContentKey(extracted.text)}:${demo ? 'demo' : 'personal'}`
   let document!: ResumeDocument
   await update<ResumeDocument>(id, existing => {
@@ -85,7 +87,7 @@ export async function importResumeDocument(extracted: ExtractedText, sourceFile:
     }
     return document
   })
-  await setCurrentResumeDocument(id)
+  if (options.select !== false) await setCurrentResumeDocument(id)
   return document
 }
 

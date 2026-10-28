@@ -59,8 +59,14 @@ export async function updateRecordDiagnosis(id: string, review: ResumeReviewSubm
 
 export async function loadRecord(id: string): Promise<SavedRecord | undefined> {
   if (typeof window === 'undefined') return undefined
-  const record = (await get(id)) as SavedRecord | undefined
-  return record ? migrateLegacyRecord(record) : undefined
+  const value = await get<unknown>(id)
+  // This namespace also contains preferences and selection pointers. They are
+  // not interview records, and must not make the entire resume library fail.
+  if (!value || typeof value !== 'object' || !('analysis' in value)) return undefined
+  const analysis = value.analysis
+  if (!analysis || typeof analysis !== 'object' || !('rawText' in analysis) || typeof analysis.rawText !== 'string' || !('claims' in analysis) || !Array.isArray(analysis.claims)
+    || analysis.claims.some(claim => !claim || typeof claim !== 'object' || typeof claim.content !== 'string')) return undefined
+  return migrateLegacyRecord(value as SavedRecord)
 }
 
 export async function listRecords(): Promise<SavedRecord[]> {

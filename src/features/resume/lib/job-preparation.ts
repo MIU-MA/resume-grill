@@ -12,7 +12,7 @@ async function digest(value: ArrayBuffer): Promise<string> {
 }
 
 /** Freeze the exact attachment and job inputs without changing the general resume review. */
-export async function prepareJobResume({ job, attachment, attachmentSource }: JobPreparationRequest): Promise<ResumeDocument> {
+export async function prepareJobResume({ job, attachment, attachmentSource }: JobPreparationRequest, purpose: 'review' | 'tailoring' = 'review'): Promise<ResumeDocument> {
   const jobDescription = job.jobDescription.trim()
   if (!jobDescription) throw new Error('请先补充该岗位的职责或任职要求。')
   if (jobDescription.length > 12000) throw new Error('岗位要求请控制在 12000 字以内。')
@@ -21,7 +21,7 @@ export async function prepareJobResume({ job, attachment, attachmentSource }: Jo
   }
   const resumeVersion = await digest(await attachment.arrayBuffer())
   const identity = JSON.stringify([job.id, job.company.trim(), job.role.trim(), job.sourceUrl, jobDescription, attachment.name, resumeVersion])
-  const id = `resume-document:job:${await digest(new TextEncoder().encode(identity).buffer)}`
+  const id = `resume-document:${purpose === 'tailoring' ? 'tailoring-source' : 'job'}:${await digest(new TextEncoder().encode(identity).buffer)}`
   const existing = await loadResumeDocument(id)
   if (existing) return existing
 
@@ -33,7 +33,7 @@ export async function prepareJobResume({ job, attachment, attachmentSource }: Jo
   const rawText = extracted.text.trim()
   if (!rawText) throw new Error('这份附件未读到简历正文，请更换可读取的原文件。')
   const created: ResumeDocument = {
-    id, sourceFile: attachment.name, extracted, originalFile: attachment, demo: false, pdfTemplate: matchesSource ? source.pdfTemplate : undefined,
+    id, sourceFile: attachment.name, extracted, originalFile: attachment, demo: false, pdfTemplate: matchesSource ? source.pdfTemplate : undefined, photo: matchesSource ? source.photo : undefined,
     originalFileUpdatedAt: attachmentSource?.updatedAt ?? Date.now(), updatedAt: Date.now(),
     jobContext: {
       applicationId: job.id, company: job.company.trim(), role: job.role.trim(), sourceUrl: job.sourceUrl,

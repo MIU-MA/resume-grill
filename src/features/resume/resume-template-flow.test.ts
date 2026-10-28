@@ -63,3 +63,46 @@ it('已有原 PDF 时默认原位编辑并加载上传文件，只有主动选�
   expect(calls.onDraft).toHaveBeenLastCalledWith({ baseText: text, text, template: 'original' })
   expect(load).toHaveBeenCalledOnce()
 })
+it('检查页复用逐条编辑和全文重写，只暂存新稿，不改写原检查结果的正文', async () => {
+  await act(async () => root.render(createElement(ResumeReviewView, {
+    sourceFile: '简历.txt', demo: false, extracted: { text, pageCount: 1, charCount: text.length },
+    analyzing: false, error: null, envConfigured: false, clientConfigured: false,
+    onClientChanged: vi.fn(), onConfirm: vi.fn(), onBack: vi.fn(), onApplications: vi.fn(),
+    onSaveReview: calls.onReview, onSaveRevisionDraft: calls.onDraft, onSaveRevision: calls.onSave,
+  })))
+  const button = (label: string) => [...host.querySelectorAll('button')].find(item => item.textContent === label)!
+  const type = async (label: string, value: string) => {
+    await act(async () => {
+      const field = host.querySelector<HTMLTextAreaElement>(`textarea[aria-label="${label}"]`)!
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(field, value)
+      field.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+  }
+  await act(async () => button('修改全文').click())
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="编辑项目经历第 1 条"]')!.click())
+  await type('修改项目经历第 1 条', '用户逐条补充的项目说明')
+  expect(calls.onDraft).toHaveBeenLastCalledWith(expect.objectContaining({ baseText: text, text: '林同学\n项目经历\n用户逐条补充的项目说明' }))
+  expect(calls.onReview.mock.calls.at(-1)?.[0].rawText).toBe(text)
+  await act(async () => button('还原这条').click())
+  expect(host.querySelector<HTMLTextAreaElement>('[aria-label="修改项目经历第 1 条"]')!.value).toBe('使用 React 开发订单页面')
+  await act(async () => button('全文重写').click())
+  await type('简历全文', '用户重新编写的整份简历')
+  expect(calls.onDraft).toHaveBeenLastCalledWith(expect.objectContaining({ baseText: text, text: '用户重新编写的整份简历' }))
+  await act(async () => button('保存 PDF 并下载').click())
+  expect(calls.onSave).toHaveBeenCalledWith('用户重新编写的整份简历', expect.anything())
+})
+it('空白简历可以连续输入全文，不会输入第一个字后切走编辑框', async () => {
+  await act(async () => root.render(createElement(ResumeReviewView, {
+    sourceFile: '新简历.txt', demo: false, extracted: { text: '', pageCount: 1, charCount: 0 }, initialTab: 'raw',
+    analyzing: false, error: null, envConfigured: false, clientConfigured: false,
+    onClientChanged: vi.fn(), onConfirm: vi.fn(), onBack: vi.fn(), onApplications: vi.fn(),
+    onSaveReview: calls.onReview, onSaveRevisionDraft: calls.onDraft, onSaveRevision: calls.onSave,
+  })))
+  const field = host.querySelector<HTMLTextAreaElement>('[aria-label="简历全文"]')!
+  for (const value of ['林', '林同学\n项目经历\n用户自行编写的经历']) await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(field, value)
+    field.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  expect(host.querySelector('[aria-label="简历全文"]')).toBe(field)
+  expect(field.value).toContain('用户自行编写的经历')
+})

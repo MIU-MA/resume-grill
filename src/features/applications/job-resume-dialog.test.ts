@@ -104,8 +104,8 @@ it('切换整份简历和对照时保留修改选择，不重新请求模型', a
   const checkbox = host.querySelector<HTMLInputElement>('input[aria-label="采用第 1 处修改"]')!
   await act(async () => checkbox.click())
   await act(async () => button('逐条修改').click())
-  expect(host.querySelector('[aria-label="完整投递稿"]')!.textContent).toContain('参与页面开发')
-  expect(host.querySelector('[aria-label="完整投递稿"]')!.textContent).not.toContain('参与开发业务页面')
+  expect(host.querySelector('[aria-label="简历逐条编辑"]')!.textContent).toContain('参与页面开发')
+  expect(host.querySelector('[aria-label="简历逐条编辑"]')!.textContent).not.toContain('参与开发业务页面')
   await act(async () => button('AI 建议').click())
   expect(host.querySelector<HTMLInputElement>('input[aria-label="采用第 1 处修改"]')!.checked).toBe(false)
   expect(generateJobResume).toHaveBeenCalledOnce()

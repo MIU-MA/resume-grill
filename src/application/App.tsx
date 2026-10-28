@@ -16,6 +16,7 @@ import type { Mode } from '@/application/types'
 import { effectivePriority, summarizeClaimProgress } from '@/domain/risk'
 import { MailWorkbench } from '@/features/applications/MailWorkbench'
 import { JobAssistant } from '@/application/JobAssistant'
+import { ResumeCheckWorkspace } from './ResumeCheckWorkspace'
 
 function App() {
   const { phase, mode, push, replace } = useAppNavigation()
@@ -143,9 +144,15 @@ function App() {
     window.scrollTo({ top: 0, left: 0 })
   }
 
+  if (mode === 'diagnosis') return <ResumeCheckWorkspace badges={sidebarBadges} envConfigured={workspace.envConfigured} clientConfigured={workspace.clientConfigured} onClientChanged={workspace.refreshClientLlm} onHome={() => push('upload')} onNavigate={tab => workspace.analysis || ['diagnosis', 'applications', 'careers', 'application-history'].includes(tab) ? handleTabChange(tab) : push('upload')} onPractice={async (document, review) => {
+    if (interview.loading || interview.regeneratingId) throw new Error('当前回答还在处理中，完成后可切换简历。')
+    interview.reset(); restoredRef.current = false
+    await analysis.handleConfirmText(review, document.sourceFile, document)
+  }} />
+
   if (workspace.recovering) return <div className="min-h-screen bg-bg" />
 
-  if (mode === 'applications' || mode === 'careers' || mode === 'application-history') return <MailWorkbench mode={mode} badges={sidebarBadges} renderAssistant={tools => <JobAssistant tools={tools} envConfigured={workspace.envConfigured} />} onNavigate={tab => workspace.analysis || ['applications', 'careers', 'application-history'].includes(tab) ? handleTabChange(tab) : push('upload')} onHome={() => push('upload')} onPrepare={async (request, intent) => {
+  if (mode === 'applications' || mode === 'careers' || mode === 'application-history') return <MailWorkbench mode={mode} badges={sidebarBadges} renderAssistant={tools => <JobAssistant tools={tools} envConfigured={workspace.envConfigured} />} onNavigate={tab => workspace.analysis || ['diagnosis', 'applications', 'careers', 'application-history'].includes(tab) ? handleTabChange(tab) : push('upload')} onHome={() => push('upload')} onPrepare={async (request, intent) => {
     if (interview.loading || interview.regeneratingId) throw new Error('当前回答还在处理中，完成后可切换岗位。')
     await analysis.openJobPreparation(request, intent, () => {
       interview.reset()
@@ -173,7 +180,7 @@ function App() {
           preparationIntent={workspace.pendingExtracted.preparationIntent}
           onSaveReview={analysis.saveReview}
           initialRevisionDraft={workspace.pendingExtracted.revisionDraft}
-          initialPdfTemplate={workspace.pendingExtracted.pdfTemplate}
+          initialPdfTemplate={workspace.pendingExtracted.pdfTemplate} initialPhoto={workspace.pendingExtracted.photo}
           onSaveRevisionDraft={analysis.saveRevisionDraft}
           onSaveRevision={async (text, preview) => {
             if (interview.loading || interview.regeneratingId) throw new Error('当前回答还在处理中，完成后可保存新稿。')
@@ -250,10 +257,6 @@ function App() {
       onDismissToast={() => workspace.setToast('')}
     >
       <WorkspaceContent onNavigate={handleTabChange}
-        onEditResume={() => {
-          if (interview.loading || interview.regeneratingId) { workspace.setError('当前回答还在处理中，完成后可修改简历。'); return }
-          void analysis.editActiveResume()
-        }}
         mode={mode}
         analysis={workspace.analysis}
         sessions={workspace.sessions}

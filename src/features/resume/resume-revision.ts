@@ -1,5 +1,6 @@
 import type { ResumeTemplateId } from '@/domain/resume-template'
-export type ResumeRevisionDraft = { baseText: string; text: string; template?: ResumeTemplateId }
+import type { ResumePhoto } from '@/domain/resume-photo'
+export type ResumeRevisionDraft = { baseText: string; text: string; template?: ResumeTemplateId; photo?: ResumePhoto | null }
 export type RevisionTarget = { start: number; end: number; line: number; text: string }
 
 /** Match quotations without guessing missing words; whitespace from PDF extraction may differ. */

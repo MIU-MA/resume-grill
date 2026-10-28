@@ -4,22 +4,24 @@ import { useLayoutEffect, useRef } from 'react'
 import { tailoringChangeKey, type TailoringSection, type TailoringPlan } from '@/domain/resume-tailoring'
 
 type Props = {
-  sections: TailoringSection[]; plan: TailoringPlan; edits: Record<string, string>; accepted: ReadonlySet<string>
+  sections: TailoringSection[]; plan?: TailoringPlan; edits?: Record<string, string>; accepted?: ReadonlySet<string>
   selected: string | null; disabled: boolean
   onSelect: (key: string) => void; onChange: (key: string, text: string) => void; onReset: (key: string) => void
   onlySelected?: boolean
+  originals?: Record<string, string>
 }
 
-export function ResumeParagraphEditor({ sections, plan, edits, accepted, selected, disabled, onSelect, onChange, onReset, onlySelected }: Props) {
-  return <article className="tailoring-line-editor" aria-label="完整投递稿">
+export function ResumeParagraphEditor({ sections, plan, edits = {}, accepted, selected, disabled, onSelect, onChange, onReset, onlySelected, originals }: Props) {
+  return <article className="tailoring-line-editor" aria-label="简历逐条编辑">
     {!onlySelected && <p className="tailoring-line-note">点击任意一条直接修改，修改会自动进入当前新稿。</p>}
     {sections.filter(section => !onlySelected || selected?.startsWith(`${section.id}:`)).map(section => <section key={section.id} aria-label={section.title}>
       <h3>{section.title}</h3>
-      {section.lines.map((original, lineIndex) => {
+      {section.lines.map((line, lineIndex) => {
         const key = tailoringChangeKey({ sectionId: section.id, lineIndex })
         if (onlySelected && selected !== key) return null
-        const change = plan.changes.find(change => tailoringChangeKey(change) === key)
-        const value = Object.hasOwn(edits, key) ? edits[key] : change && accepted.has(key) ? change.after : original
+        const original = originals?.[key] ?? line
+        const change = plan?.changes.find(change => tailoringChangeKey(change) === key)
+        const value = Object.hasOwn(edits, key) ? edits[key] : change && accepted?.has(key) ? change.after : line
         const modified = value !== original
         const label = `${section.title}第 ${lineIndex + 1} 条`
         return selected === key ? <div className="tailoring-line-active" key={key}>

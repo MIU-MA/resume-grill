@@ -2,6 +2,8 @@ import { resumeDocumentParagraphs } from './resume-docx'
 import { resumePdfSource } from './resume-pdf-offsets'
 import { DEFAULT_RESUME_TEMPLATE, resumeTemplateId, type ResumeTemplateId } from '@/domain/resume-template'
 import { embedResumeFont } from './resume-pdf-font'
+import type { ResumePhoto } from '@/domain/resume-photo'
+import { drawResumePhoto } from './resume-photo'
 
 export const RESUME_PAGE = { width: 595.28, height: 841.89, margin: 42 } as const
 export type PdfTextBlock = { start: number; end: number; top: number; height: number; kind: 'name' | 'heading' | 'body' | 'blank'; fontSize?: number; left?: number; width?: number }
@@ -13,6 +15,7 @@ export type ResumePdfArtifact = {
   pageCount: number
   pages: Array<{ blocks: PdfTextBlock[]; width?: number; height?: number }>
   template?: ResumeTemplateId
+  photo?: ResumePhoto | null
 }
 
 function fileName(source: string) {
@@ -23,7 +26,7 @@ function fileName(source: string) {
 }
 
 /** One layout engine supplies the actual PDF and the clickable paragraph positions. */
-export async function createResumePdf(rawText: string, sourceFile: string, fontBytes?: Uint8Array, selectedTemplate: ResumeTemplateId = DEFAULT_RESUME_TEMPLATE): Promise<ResumePdfArtifact> {
+export async function createResumePdf(rawText: string, sourceFile: string, fontBytes?: Uint8Array, selectedTemplate: ResumeTemplateId = DEFAULT_RESUME_TEMPLATE, photo?: ResumePhoto | null): Promise<ResumePdfArtifact> {
   const template = resumeTemplateId(selectedTemplate)
   if (template === 'original') throw new Error('原文件上修改需要提供上传的 PDF，请重新打开这份简历。')
   const source = resumePdfSource(rawText)
@@ -40,10 +43,12 @@ export async function createResumePdf(rawText: string, sourceFile: string, fontB
   document.setModificationDate(new Date(0))
   const { isDesignedResumeTemplate, renderDesignedResume } = await import('./resume-pdf-designs')
   if (isDesignedResumeTemplate(template)) {
-    const pages = renderDesignedResume(document, font, source, template, RESUME_PAGE)
+    const first = document.addPage([RESUME_PAGE.width, RESUME_PAGE.height])
+    const photoBox = await drawResumePhoto(document, first, photo)
+    const pages = renderDesignedResume(document, font, source, template, RESUME_PAGE, first, photoBox)
     const pdfBytes = await document.save()
     const file = new File([Uint8Array.from(pdfBytes).buffer], fileName(sourceFile), { type: 'application/pdf' })
-    return { sourceFile, inputText: rawText, text, file, pageCount: pages.length, pages, template }
+    return { sourceFile, inputText: rawText, text, file, pageCount: pages.length, pages, template, photo }
   }
   const { width, height, margin } = RESUME_PAGE
   const contentWidth = width - margin * 2
@@ -51,6 +56,7 @@ export async function createResumePdf(rawText: string, sourceFile: string, fontB
   const accent = template === 'modern' ? rgb(.19, .37, .53) : template === 'sidebar' ? rgb(.48, .38, .28) : rgb(.17, .19, .22)
   const pages: ResumePdfArtifact['pages'] = []
   let page = document.addPage([width, height])
+  const photoBox = await drawResumePhoto(document, page, photo)
   let top: number = margin
   let blocks: PdfTextBlock[] = []
   pages.push({ blocks })
@@ -85,7 +91,7 @@ export async function createResumePdf(rawText: string, sourceFile: string, fontB
       continue
     }
     const heading = paragraph.kind === 'heading'
-    if (heading) { inHeader = false; sectionTitle = paragraph.text; top = Math.max(top, sidebarBottom) }
+    if (heading) { inHeader = false; sectionTitle = paragraph.text; top = Math.max(top, sidebarBottom, pages.length === 1 && photoBox ? photoBox.bottom + 4 : 0) }
     const entry = !inHeader && /工作|实习|项目|教育|experience|internship|projects?|education/i.test(sectionTitle) && paragraph.kind === 'body' && (afterHeading || afterBlank)
       && paragraph.text.length < 96 && !/^\s*(?:[-•·*]|\d{4}|负责|参与|主导|协助|使用|开发|熟悉|掌握|精通|通过)/.test(paragraph.text)
     const size = paragraph.kind === 'name' ? compact ? 20 : template === 'modern' ? 26 : 24 : heading ? compact ? 10.5 : 11.5 : inHeader ? 9.5 : compact ? 9.5 : 10.5
@@ -95,8 +101,9 @@ export async function createResumePdf(rawText: string, sourceFile: string, fontB
     const bold = paragraph.kind === 'name' || heading || entry
     const color = heading || paragraph.kind === 'name' ? accent : inHeader ? rgb(0.37, 0.40, 0.44) : rgb(0.17, 0.19, 0.22)
     const sidebar = template === 'sidebar' && !inHeader && paragraph.kind !== 'name'
-    const left = sidebar ? heading ? margin : margin + 90 : margin + (template === 'modern' && heading ? 9 : 0)
-    const availableWidth = sidebar ? heading ? 74 : contentWidth - 90 : contentWidth - (left - margin)
+    const besidePhoto = pages.length === 1 && photoBox && top < photoBox.bottom && !heading && !sidebar
+    const left = besidePhoto ? photoBox.textLeft : sidebar ? heading ? margin : margin + 90 : margin + (template === 'modern' && heading ? 9 : 0)
+    const availableWidth = besidePhoto ? photoBox.textWidth : sidebar ? heading ? 74 : contentWidth - 90 : contentWidth - (left - margin)
     if (sidebar && !heading && sidebarStart !== null) { top = sidebarStart; sidebarStart = null }
     const lines: string[] = []
     let line = ''
@@ -119,7 +126,7 @@ export async function createResumePdf(rawText: string, sourceFile: string, fontB
     let blockTop = top
     const centered = template === 'classic' && (inHeader || paragraph.kind === 'name')
     const maxLineWidth = Math.max(...lines.map(value => font.widthOfTextAtSize(value, size)))
-    const blockLeft = centered ? margin + (contentWidth - maxLineWidth) / 2 : left
+    const blockLeft = centered ? left + (availableWidth - maxLineWidth) / 2 : left
     const blockWidth = centered ? maxLineWidth : availableWidth
     for (const value of lines) {
       if (top + lineHeight > height - margin) {
@@ -130,7 +137,7 @@ export async function createResumePdf(rawText: string, sourceFile: string, fontB
       // A light outline adds heading weight using the embedded CJK font. It
       // keeps one text operation per line, preserving extraction and selection.
       if (bold) page.pushOperators(pushGraphicsState(), setTextRenderingMode(2), setLineWidth(heading || paragraph.kind === 'name' ? 0.18 : 0.10))
-      const x = centered ? margin + (contentWidth - font.widthOfTextAtSize(value, size)) / 2 : left
+      const x = centered ? left + (availableWidth - font.widthOfTextAtSize(value, size)) / 2 : left
       page.drawText(value, { x, y: height - top - size, size, font, color })
       if (bold) page.pushOperators(popGraphicsState())
       if (heading && lines.length === 1) {
@@ -149,5 +156,5 @@ export async function createResumePdf(rawText: string, sourceFile: string, fontB
   }
   const pdfBytes = await document.save()
   const file = new File([Uint8Array.from(pdfBytes).buffer], fileName(sourceFile), { type: 'application/pdf' })
-  return { sourceFile, inputText: rawText, text, file, pageCount: pages.length, pages, template }
+  return { sourceFile, inputText: rawText, text, file, pageCount: pages.length, pages, template, photo }
 }

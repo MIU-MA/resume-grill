@@ -1,4 +1,5 @@
-import { rgb, pushGraphicsState, popGraphicsState, setTextRenderingMode, setLineWidth, type PDFDocument, type PDFFont, type RGB } from 'pdf-lib'
+import { rgb, pushGraphicsState, popGraphicsState, setTextRenderingMode, setLineWidth, type PDFDocument, type PDFPage, type PDFFont, type RGB } from 'pdf-lib'
+import type { PdfPhotoBox } from './resume-photo'
 import type { ResumeTemplateId } from '@/domain/resume-template'
 import type { RESUME_PAGE, ResumePdfArtifact } from './resume-pdf'
 import type { resumePdfSource } from './resume-pdf-offsets'
@@ -19,7 +20,7 @@ const DESIGNS = {
 } as const
 
 /** Independent PDF adaptations of the referenced layouts; no Typst runtime or remote rendering. */
-export function renderDesignedResume(document: PDFDocument, font: PDFFont, source: ReturnType<typeof resumePdfSource>, template: DesignId, pageSize: typeof RESUME_PAGE): ResumePdfArtifact['pages'] {
+export function renderDesignedResume(document: PDFDocument, font: PDFFont, source: ReturnType<typeof resumePdfSource>, template: DesignId, pageSize: typeof RESUME_PAGE, firstPage: PDFPage, photoBox?: PdfPhotoBox): ResumePdfArtifact['pages'] {
   const design = DESIGNS[template]
   const { width, height, margin } = pageSize
   const contentWidth = width - 2 * margin
@@ -27,7 +28,7 @@ export function renderDesignedResume(document: PDFDocument, font: PDFFont, sourc
   const paragraphs = resumeLayoutParagraphs(source.text)
   const entries = resumeEntries(paragraphs)
   const pages: ResumePdfArtifact['pages'] = []
-  let page = document.addPage([width, height])
+  let page = firstPage
   let top: number = margin
   let blocks: ResumePdfArtifact['pages'][number]['blocks'] = []
   let inHeader = paragraphs.some(paragraph => paragraph.kind === 'heading')
@@ -82,6 +83,7 @@ export function renderDesignedResume(document: PDFDocument, font: PDFFont, sourc
     blocks.push({ ...source.range(paragraph.start, paragraph.end), top: blockTop, height: top - blockTop, kind: paragraph.kind, fontSize: size, left: blockX, width: blockWidth })
   }
   function section(paragraph: ResumeLayoutParagraph, index: number) {
+    if (pages.length === 1 && photoBox) top = Math.max(top, photoBox.bottom + 4)
     const size = template === 'brilliant' ? 13 : 12
     const leading = 19
     const titleLines = wrap(paragraph.text, size, contentWidth).length
@@ -151,9 +153,12 @@ export function renderDesignedResume(document: PDFDocument, font: PDFFont, sourc
     const size = name ? design.name : inHeader ? 9.5 : design.body
     const leading = name ? design.name + 9 : inHeader ? 15 : design.leading
     const color = name ? INK : inHeader && template === 'brilliant' ? design.accent : inHeader ? MUTED : INK
-    const paragraphHeight = wrap(paragraph.text, size, contentWidth).length * leading
+    const besidePhoto = pages.length === 1 && photoBox && top < photoBox.bottom
+    const paragraphLeft = besidePhoto ? photoBox.textLeft : margin
+    const paragraphWidth = besidePhoto ? photoBox.textWidth : contentWidth
+    const paragraphHeight = wrap(paragraph.text, size, paragraphWidth).length * leading
     ensureSpace(Math.min(paragraphHeight, bottom - margin))
-    drawBlock(paragraph, margin, contentWidth, size, leading, color, name, (inHeader || name) && design.centered ? 'center' : 'left')
+    drawBlock(paragraph, paragraphLeft, paragraphWidth, size, leading, color, name, (inHeader || name) && design.centered ? 'center' : 'left')
     top += name ? 5 : inHeader ? 1 : 2
   }
   return pages

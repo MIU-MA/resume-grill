@@ -15,11 +15,13 @@ const library = vi.hoisted(() => ({
 }))
 const preparation = vi.hoisted(() => ({ prepareJobResume: vi.fn() }))
 const revision = vi.hoisted(() => ({ createResumeRevision: vi.fn(), downloadResumeFile: vi.fn() }))
+const checkSelection = vi.hoisted(() => ({ selectResumeCheckDocument: vi.fn() }))
 
 // Exercise the hook's asynchronous orchestration with explicit input snapshots.
 // Rendering is not needed to verify which saved record receives the results.
 vi.mock('react', () => ({ useCallback: <T>(callback: T) => callback, useState: <T>(initial: T) => [initial, vi.fn()] }))
 vi.mock('@/lib/storage', async (importOriginal) => ({ ...await importOriginal<typeof import('@/lib/storage')>(), ...persistence }))
+vi.mock('@/features/resume/lib/resume-check-workspace', () => checkSelection)
 vi.mock('@/features/resume/lib/resume-library', () => library)
 vi.mock('@/lib/settings', () => ({ getLlmSettings: () => null }))
 vi.mock('@/features/resume/lib/job-preparation', () => preparation)
@@ -68,6 +70,7 @@ beforeEach(() => {
   persistence.saveRecord.mockResolvedValue(undefined)
   library.updateResumeDocument.mockResolvedValue(undefined)
   library.setCurrentResumeDocument.mockResolvedValue(undefined)
+  checkSelection.selectResumeCheckDocument.mockResolvedValue(undefined)
   fetchMock.mockResolvedValue({ ok: true, json: async () => analysis })
   vi.stubGlobal('fetch', fetchMock)
   vi.stubGlobal('window', { sessionStorage: { setItem: vi.fn(), getItem: vi.fn(), removeItem: vi.fn() } })
@@ -75,6 +78,14 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals() })
 
 describe('useResumeAnalysis resume revisions', () => {
+  it('从库中显式打开普通简历时更新独立检查选择，打开岗位文档则不覆盖它', () => {
+    const general = document({ id: 'resume-document:general', jobContext: undefined })
+    const actions = useResumeAnalysis(workspace(), navigation())
+    actions.openResumeDocument(general)
+    expect(checkSelection.selectResumeCheckDocument).toHaveBeenCalledWith(general)
+    actions.openResumeDocument(document())
+    expect(checkSelection.selectResumeCheckDocument).toHaveBeenCalledOnce()
+  })
   it('opens the saved new document and downloads its file without requesting analysis', async () => {
     const file = new File(['new pdf'], '简历-修改稿.pdf', { type: 'application/pdf' })
     const next = document({ id: 'resume-document:revision:new', revisionId: 'resume-document:revision:new', originalFile: file })

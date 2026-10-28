@@ -103,7 +103,7 @@ export function ResumeDocumentEditor({ baseText, text, artifact, previous, loadi
     <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">
       {view === 'draft' ? <>
         {error && <p role="alert" className="border border-danger bg-danger-soft p-3 text-[12px] text-danger">{error}<button type="button" className="ml-2 underline" onClick={onRetry}>重试预览</button></p>}
-        {shown ? <PdfPages file={shown.file} artifact={shown} disabled={disabled || !artifact} selectedStart={active?.start} changedRanges={artifact ? changedRanges : undefined} onSelect={select} /> : !error && <p role="status" className="text-[12px] text-text-tertiary">正在生成 PDF 预览…</p>}
+        {shown ? <PdfPages file={shown.file} artifact={shown} disabled={disabled || !artifact} selectedStart={active?.start} changedRanges={artifact ? changedRanges : undefined} onSelect={select} /> : !error && <p role="status" className="text-[12px] text-text-tertiary">{text.trim() ? '正在生成 PDF 预览…' : '填写简历内容后显示预览。'}</p>}
       </> : original ? original.name.toLowerCase().endsWith('.pdf') ? <PdfPages file={original} /> : <div className="border border-line bg-surface p-4 text-[12px] leading-relaxed"><FileText size={18} /><p>{original.name}</p><p>原文件是 Word 或文本文件。请下载后打开核对；新版 PDF 可在「新稿」中查看。</p><Button variant="secondary" className="text-[12px]" onClick={() => downloadResumeFile(original)}>下载原文件</Button></div>
         : <p role={originalError ? 'alert' : 'status'} className={`text-[12px] ${originalError ? 'text-danger' : 'text-text-secondary'}`}>{originalLoading ? '正在读取原文件…' : originalError || '暂无原文件。'}{originalError && <button className="ml-2 underline" onClick={() => { void showOriginal() }}>重试</button>}</p>}
     </div>

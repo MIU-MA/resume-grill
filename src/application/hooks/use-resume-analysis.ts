@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react'
 import { deleteResumeDocument, importResumeDocument, listResumeDocuments, loadResumeDocument, resumeDocumentForRecord, saveResumeRevisionDraft, setCurrentResumeDocument, updateResumeDocument, type ResumeDocument, type ResumeRevisionDraft } from '@/features/resume/lib/resume-library'
 import { createResumeRevision, downloadResumeFile } from '@/features/resume/lib/resume-revision'
+import { selectResumeCheckDocument } from '@/features/resume/lib/resume-check-workspace'
 import type { ResumePdfArtifact } from '@/features/resume/lib/resume-pdf'
 import type { ResumeAnalysis } from '@/domain/resume-schema'
 import type { AnalysisGoal, ReviewedCandidate } from '@/domain/analysis-config'
@@ -61,11 +62,12 @@ export function useResumeAnalysis(
   const openResumeDocument = useCallback((document: ResumeDocument, autoDiagnose = false, preparationIntent: JobPreparationIntent = 'diagnosis') => {
     ws.setAnalysis(null)
     ws.setRecordId(document.recordId ?? null)
-    ws.setPendingExtracted({ extracted: document.extracted, sourceFile: document.sourceFile, demo: document.demo, documentId: document.id, initialReview: document.review, autoDiagnose, jobContext: document.jobContext, preparationIntent, revisionId: document.revisionId, pdfTemplate: document.pdfTemplate, revisionDraft: document.revisionDraft, hasAttachment: Boolean(document.originalFile) })
+    ws.setPendingExtracted({ extracted: document.extracted, sourceFile: document.sourceFile, demo: document.demo, documentId: document.id, initialReview: document.review, autoDiagnose, jobContext: document.jobContext, preparationIntent, revisionId: document.revisionId, pdfTemplate: document.pdfTemplate, photo: document.photo, revisionDraft: document.revisionDraft, hasAttachment: Boolean(document.originalFile) })
     ws.setError(null)
     window.sessionStorage.setItem('resume-grill:review-document', document.id)
     window.sessionStorage.setItem('resume-grill:review-intent', preparationIntent)
     void setCurrentResumeDocument(document.id).catch(() => undefined)
+    if (!document.jobContext) void selectResumeCheckDocument(document).catch(() => undefined)
     push('review')
   }, [ws, push])
 
