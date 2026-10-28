@@ -9,7 +9,7 @@ import type { JobPreparationIntent } from '@/domain/job-preparation'
 import { JobPreparationPanel } from './JobPreparationPanel'
 import { PastedCareerForm } from './PastedCareerForm'
 
-export function DraftEditor({ draft, sender, template, connected, busy, focusRequest, attachmentLabel, onPrepare, onUpdate, onRemove, onExtract, onSupplement, onConnect, onApplied, onWebsiteAutomation }: {
+export function DraftEditor({ draft, sender, template, connected, busy, focusRequest, attachmentLabel, onPrepare, onUpdate, onRemove, onExtract, onSupplement, onConnect, onApplied, onWebsiteAutomation, onTailor, onOriginalResume, tailoredStatus }: {
   draft: Draft; sender?: MailSender | null; connected: boolean; busy: boolean
   template?: { subject: string; body: string } | null
   focusRequest: { field: DraftField; time: number } | null
@@ -17,6 +17,7 @@ export function DraftEditor({ draft, sender, template, connected, busy, focusReq
   onExtract: () => Promise<void>; onSupplement: (page: CareerPage) => void; onConnect: () => void; onApplied: (url: string) => void
   attachmentLabel: string; onPrepare: (intent: JobPreparationIntent) => void
   onWebsiteAutomation?: (url?: string) => void
+  onTailor?: () => void; onOriginalResume?: () => void; tailoredStatus?: 'current' | 'outdated'
 }) {
   const root = useRef<HTMLDivElement>(null)
   const [sourceOpen, setSourceOpen] = useState(false)
@@ -66,6 +67,7 @@ export function DraftEditor({ draft, sender, template, connected, busy, focusReq
       </details>
     </div>
     <JobPreparationPanel jobDescription={draft.jobDescription ?? ''} attachmentLabel={attachmentLabel} busy={busy} onChange={jobDescription => onUpdate({ jobDescription })} onPrepare={onPrepare} />
+    {!websiteMode && onTailor && <div className="flex flex-wrap items-center gap-3 text-[12px]"><Button variant="secondary" disabled={busy || !draft.jobDescription?.trim()} onClick={onTailor}>{tailoredStatus ? '重新生成岗位版' : '按 JD 修改简历'}</Button>{tailoredStatus && <><span className={tailoredStatus === 'outdated' ? 'text-warning' : 'text-text-secondary'}>{tailoredStatus === 'outdated' ? '岗位信息已改动，发送前请更新简历或改用原版。' : '这封邮件使用已确认的岗位版 PDF。'}</span><button className="text-text-secondary underline" disabled={busy} onClick={onOriginalResume}>改用原简历</button></>}</div>}
     {!websiteMode && <div className="pt-1">
       <div className="mb-3 flex items-center justify-between gap-2"><span className="text-[13px] font-medium">邮件内容</span><button className="text-[12px] text-text-secondary underline disabled:opacity-40" disabled={!template && !sender?.name} onClick={() => {
         if (!draft.automatic && (draft.body || draft.subject) && !window.confirm('用默认模板替换当前主题和正文？')) return

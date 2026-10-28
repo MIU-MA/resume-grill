@@ -1,5 +1,6 @@
 import { mailDraftSchema, MAX_ATTACHMENT_BYTES, sourceUrlSchema, type CareerPage, type MailDraft } from '@/domain/mail-schema'
 import { selectCareerJob } from './career-selection'
+import type { TailoredResume } from './job-resume-tailoring'
 
 export type Draft = Omit<MailDraft, 'sourceConfirmed'> & { sourceConfirmed: boolean; automatic?: boolean; extraction?: CareerPage; jobDescription?: string; jobDescriptionEdited?: boolean }
 export type DraftField = 'company' | 'role' | 'sourceUrl' | 'recipient' | 'subject' | 'body'
@@ -9,6 +10,7 @@ export type SavedJobPreparation = {
   attachment?: File
   attachmentSource?: { id: string; updatedAt: number }
   attachmentUse?: 'preparation' | 'preview' | 'mail'
+  tailoredResume?: TailoredResume
 }
 
 export function preparationAttachment(saved: SavedJobPreparation | undefined, current: File | null, currentSource?: { id: string; updatedAt: number }) {

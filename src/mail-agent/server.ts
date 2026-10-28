@@ -20,12 +20,12 @@ export function allowedOrigins(extra?: string) {
 async function readJson(req: IncomingMessage) {
   if (!req.headers['content-type']?.startsWith('application/json')) throw new Error('请求必须使用 JSON')
   const limit = 8 * 1024 * 1024
-  if (Number(req.headers['content-length'] ?? 0) > limit) throw new Error('请求过大，简历附件不能超过 5 MB')
+  if (Number(req.headers['content-length'] ?? 0) > limit) throw new Error('这批邮件和附件合计过大，请减少本批岗位；单份附件须在 5 MB 以内')
   let size = 0
   const chunks: Buffer[] = []
   for await (const chunk of req) {
     size += chunk.length
-    if (size > limit) throw new Error('请求过大，简历附件不能超过 5 MB')
+    if (size > limit) throw new Error('这批邮件和附件合计过大，请减少本批岗位；单份附件须在 5 MB 以内')
     chunks.push(chunk)
   }
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown }

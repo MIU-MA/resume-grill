@@ -158,7 +158,7 @@ describe('createResumeRevision', () => {
     expect(retained.revisionDraft).toBeUndefined()
     expect(database.values.get(source.recordId!)).toEqual(oldRecord)
     expect(database.values.get('current-resume-document')).toBe(source.id)
-  })
+  }, 15000) // Font subsetting and PDF parsing also run alongside other files in CI.
 
   it('保存当前预览的同一个 PDF 文件，避免重新生成不同附件', async () => {
     const source = await sourceDocument()

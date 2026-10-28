@@ -7,14 +7,14 @@ import { loadResumeDocument, type ResumeDocument } from './resume-library'
 import { extractResumeClaimCandidates } from '../../../domain/resume-structure'
 
 /** A confirmed revision gets its own file, review and practice identity. */
-export async function createResumeRevision(sourceId: string, text: string, baseText: string, preview?: ResumePdfArtifact): Promise<ResumeDocument> {
+export async function createResumeRevision(sourceId: string, text: string, baseText: string, preview?: ResumePdfArtifact, options: { allowUnchanged?: boolean } = {}): Promise<ResumeDocument> {
   const rawText = normalizeResumeDocumentText(text).trim()
   if (!rawText) throw new Error('新稿正文不能为空。')
   if (rawText.length > 20000) throw new Error('新稿请控制在 20000 字以内。')
   const source = await loadResumeDocument(sourceId)
   if (!source) throw new Error('原简历已被删除，请重新导入。')
   if ((source.review?.rawText ?? source.extracted.text).trim() !== baseText.trim()) throw new Error('原文已在其他页面更新，请重新打开后再保存新稿。')
-  if (rawText === normalizeResumeDocumentText(baseText).trim()) throw new Error('还没有修改正文。')
+  if (!options.allowUnchanged && rawText === normalizeResumeDocumentText(baseText).trim()) throw new Error('还没有修改正文。')
 
   const pdf = preview?.inputText === text && preview.text === rawText && preview.sourceFile === source.sourceFile
     ? preview : await createResumePdf(text, source.sourceFile)

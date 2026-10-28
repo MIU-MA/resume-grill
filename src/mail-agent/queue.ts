@@ -98,10 +98,14 @@ export class MailQueue {
     if (!this.config || batch.sender.address !== this.config.address || batch.sender.name !== this.config.name) throw new Error('发件邮箱已变化，请连接邮箱并重新预览')
     if (this.running || this.jobs.some(job => job.status === 'queued')) throw new Error('请先完成或取消上一批待发送的邮件')
     if (this.jobs.length + batch.jobs.length > 2000) throw new Error('本机投递记录已达 2000 条，请先备份记录再整理本地数据目录')
-    const content = Buffer.from(batch.attachment.base64, 'base64')
-    if (!content.length || content.length > MAX_ATTACHMENT_BYTES) throw new Error('简历附件不能超过 5 MB')
-    if (/\.pdf$/i.test(batch.attachment.name) && content.subarray(0, 5).toString() !== '%PDF-') throw new Error('附件内容不是 PDF，请重新选择文件')
-    if (/\.docx$/i.test(batch.attachment.name) && !content.subarray(0, 4).equals(Buffer.from([80, 75, 3, 4]))) throw new Error('附件内容不是 DOCX，请重新选择文件')
+    const attachments = batch.jobs.map(draft => {
+      const attachment = draft.attachment ?? batch.attachment
+      const content = Buffer.from(attachment.base64, 'base64')
+      if (!content.length || content.length > MAX_ATTACHMENT_BYTES) throw new Error('简历附件不能超过 5 MB')
+      if (/\.pdf$/i.test(attachment.name) && content.subarray(0, 5).toString() !== '%PDF-') throw new Error('附件内容不是 PDF，请重新选择文件')
+      if (/\.docx$/i.test(attachment.name) && !content.subarray(0, 4).equals(Buffer.from([80, 75, 3, 4]))) throw new Error('附件内容不是 DOCX，请重新选择文件')
+      return { content, hash: digest(content), name: attachment.name }
+    })
     const keys = new Set(this.jobs.filter(job => job.status !== 'cancelled').map(duplicateKey))
     const ids = new Set(this.jobs.map(job => job.id))
     for (const draft of batch.jobs) {
@@ -110,13 +114,12 @@ export class MailQueue {
       keys.add(key)
       ids.add(draft.id)
     }
-    const hash = digest(content)
-    writeFileSync(join(this.directory, 'attachments', hash), content, { mode: 0o600 })
+    for (const { hash, content } of attachments) writeFileSync(join(this.directory, 'attachments', hash), content, { mode: 0o600 })
     const now = Date.now()
-    this.jobs.push(...batch.jobs.map(draft => ({
+    this.jobs.push(...batch.jobs.map((draft, index) => ({
       ...draft, batchId: batch.id, sender: batch.sender, status: 'queued' as const,
       messageId: `<${draft.id}@${batch.sender.address.split('@')[1]}>`,
-      attachment: { hash, name: batch.attachment.name, size: content.length },
+      attachment: { hash: attachments[index].hash, name: attachments[index].name, size: attachments[index].content.length },
       createdAt: now, updatedAt: now,
     })))
     this.batches[batch.id] = fingerprint

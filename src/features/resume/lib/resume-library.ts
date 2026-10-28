@@ -87,7 +87,7 @@ export async function importResumeDocument(extracted: ExtractedText, sourceFile:
   return document
 }
 
-export function updateResumeDocument(id: string, changes: Pick<Partial<ResumeDocument>, 'review' | 'recordId'>): Promise<void> {
+export function updateResumeDocument(id: string, changes: Pick<Partial<ResumeDocument>, 'review' | 'recordId' | 'jobContext'>): Promise<void> {
   // Atomic updates keep review autosaves from overwriting a newly linked interview record.
   return update<ResumeDocument>(id, existing => {
     if (!existing) throw new Error('这份简历已被删除，请重新导入。')

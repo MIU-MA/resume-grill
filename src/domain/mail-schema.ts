@@ -58,7 +58,7 @@ export type MailAttachment = z.infer<typeof attachmentSchema>
 export const batchSchema = z.object({
   id: z.uuid(),
   sender: z.object({ address: emailSchema, name: line(80) }).strict(),
-  jobs: z.array(mailDraftSchema).min(1).max(20),
+  jobs: z.array(mailDraftSchema.extend({ attachment: attachmentSchema.optional() })).min(1).max(20),
   attachment: attachmentSchema,
 }).strict()
 export type MailBatch = z.infer<typeof batchSchema>

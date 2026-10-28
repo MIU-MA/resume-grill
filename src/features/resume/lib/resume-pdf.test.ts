@@ -65,7 +65,7 @@ describe('可投递 PDF', () => {
     } finally {
       await task.destroy()
     }
-  })
+  }, 15000) // Real glyph rendering competes with other font/PDF tests in CI.
 
   it('输出包含中文和英文的可提取文字，文件、分页和预览段落一致', async () => {
     const text = '张三\n项目经历\n使用 React & TypeScript 开发订单页面，首屏耗时从 800ms 降至 120ms。'

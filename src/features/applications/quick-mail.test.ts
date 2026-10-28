@@ -8,6 +8,14 @@ import { parseContactList, planContactImports } from './contact-import'
 const defaults = { ...initialMailDefaults(), sender: { provider: 'qq' as const, name: '张三', address: 'candidate@qq.com' } }
 
 describe('只填收件邮箱', () => {
+  it('相同邮箱的不同 JD 单独保存，重复生成同一 JD 可复用已有岗位草稿', () => {
+    const first = prepareQuickMail('hr@example.com', [], defaults, undefined, 'JD A')
+    const second = prepareQuickMail('hr@example.com', first.drafts, defaults, undefined, 'JD B')
+    expect(second.drafts).toHaveLength(2)
+    const named = { ...first.draft, company: '公司', role: '前端' }
+    expect(prepareQuickMail('hr@example.com', [named], defaults, undefined, 'JD A').draft.id).toBe(named.id)
+    expect(prepareQuickMail('hr@example.com', [named], defaults).draft.id).not.toBe(named.id)
+  })
   it('生成无占位符的邮件并通过真正的发送协议校验', () => {
     const { draft } = prepareQuickMail(' HR@Example.com ', [], defaults)
     expect(draft).toMatchObject({ company: '', role: '', sourceUrl: '', recipient: 'hr@example.com', subject: '求职申请-张三' })

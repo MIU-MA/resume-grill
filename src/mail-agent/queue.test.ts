@@ -24,6 +24,26 @@ function batch(count = 1): MailBatch {
 }
 
 describe('durable email queue', () => {
+  it('同批使用不同岗位版附件，发送字节与重启后的记录分别对应', async () => {
+    const dir = temp(); const send = vi.fn().mockResolvedValue(undefined)
+    const input = batch(2)
+    input.jobs[1].attachment = { name: '岗位版.pdf', base64: Buffer.from('%PDF-TARGETED').toString('base64') }
+    const queue = new MailQueue(dir, { send, interval: 0 }); queue.configure(config)
+    queue.enqueue(input); await queue.settled()
+    expect(send.mock.calls[0][2].toString()).toBe('TEST RESUME ONLY')
+    expect(send.mock.calls[1][2].toString()).toBe('%PDF-TARGETED')
+    const restored = new MailQueue(dir, { send }).snapshot().jobs
+    expect(restored.map(job => job.attachment.name)).toEqual(['简历.txt', '岗位版.pdf'])
+    expect(JSON.stringify(restored)).not.toContain('base64')
+    expect(() => queue.enqueue({ ...input, jobs: [input.jobs[0], { ...input.jobs[1], attachment: input.attachment }] })).toThrow('内容已改变')
+  })
+  it('任一岗位附件格式不符时整批拒绝，不发送前面的有效邮件', () => {
+    const send = vi.fn(); const input = batch(2)
+    input.jobs[1].attachment = { name: 'fake.pdf', base64: Buffer.from('NOT PDF').toString('base64') }
+    const queue = new MailQueue(temp(), { send }); queue.configure(config)
+    expect(() => queue.enqueue(input)).toThrow('不是 PDF')
+    expect(queue.snapshot().jobs).toEqual([]); expect(send).not.toHaveBeenCalled()
+  })
   it('sends and restores email-only applications and still rejects duplicates', async () => {
     const dir = temp(); const send = vi.fn().mockResolvedValue(undefined)
     const input = batch(); Object.assign(input.jobs[0], { company: '', role: '', sourceUrl: '' })

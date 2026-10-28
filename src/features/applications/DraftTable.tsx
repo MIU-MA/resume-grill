@@ -5,15 +5,16 @@ import { Button } from '@/components/ui/Button'
 import { sourceUrlSchema } from '@/domain/mail-schema'
 import { draftIssues, websiteLinks, type Draft } from './draft-state'
 
-export function DraftTable({ drafts, selectedIds, disabled, onSelection, onUpdate, onOpen, onRemove, onAdd }: {
+export function DraftTable({ drafts, selectedIds, disabled, onSelection, onUpdate, onOpen, onRemove, onAdd, resumeLabels = {} }: {
   drafts: Draft[]; selectedIds: string[]; disabled: boolean
   onSelection: (ids: string[]) => void; onUpdate: (id: string, change: Partial<Draft>) => void
   onOpen: (id: string) => void; onRemove: (id: string) => void; onAdd: () => void
+  resumeLabels?: Record<string, { name: string; outdated: boolean }>
 }) {
   const checked = new Set(selectedIds)
   const all = drafts.length > 0 && drafts.every(draft => checked.has(draft.id))
-  const ready = drafts.filter(draft => !draftIssues(draft).length)
-  const needsAttention = drafts.filter(draft => draftIssues(draft).length && !websiteLinks(draft).length)
+  const ready = drafts.filter(draft => !draftIssues(draft).length && !resumeLabels[draft.id]?.outdated)
+  const needsAttention = drafts.filter(draft => (draftIssues(draft).length || resumeLabels[draft.id]?.outdated) && !websiteLinks(draft).length)
   if (!drafts.length) return <div className="mail-empty text-[13px]">
     <ListPlus size={24} strokeWidth={1.5} aria-hidden="true" />
     <div><h2 className="mb-2 mt-0 text-[17px] font-semibold">还没有待投递的条目</h2>
@@ -47,7 +48,7 @@ export function DraftTable({ drafts, selectedIds, disabled, onSelection, onUpdat
                 <option value="">选择页面中的邮箱</option>{candidates.map(candidate => <option key={candidate.email} value={candidate.email}>{candidate.email} · {candidate.context.slice(0, 60)}</option>)}
               </select>}
             </>}</td>
-            <td className="px-3 py-3 align-top"><span className="workbench-status leading-relaxed" data-tone={website ? 'info' : issues.length ? 'warning' : 'success'}>{website ? '原站填写' : issues.length ? issues.map(issue => issue.label).join(' · ') : '可发送'}</span>{sourceUrlSchema.safeParse(draft.sourceUrl).success && <a href={draft.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-1 block truncate text-[11px] text-text-tertiary underline">查看来源</a>}</td>
+            <td className="px-3 py-3 align-top"><span className="workbench-status leading-relaxed" data-tone={website ? 'info' : issues.length || resumeLabels[draft.id]?.outdated ? 'warning' : 'success'}>{website ? '原站填写' : resumeLabels[draft.id]?.outdated ? '岗位版待更新' : issues.length ? issues.map(issue => issue.label).join(' · ') : '可发送'}</span>{resumeLabels[draft.id] && <span className="mt-1 block truncate text-[11px] text-text-secondary" title={resumeLabels[draft.id].name}>{resumeLabels[draft.id].name}</span>}{sourceUrlSchema.safeParse(draft.sourceUrl).success && <a href={draft.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-1 block truncate text-[11px] text-text-tertiary underline">查看来源</a>}</td>
             <td className="px-3 py-3 align-top"><div className="flex items-center gap-3"><button type="button" disabled={disabled} onClick={() => onOpen(draft.id)} className="text-accent underline">{website ? '打开' : '查看'}</button><button type="button" disabled={disabled} title="移除岗位" aria-label={`移除 ${draft.company || '岗位'}`} className="text-text-tertiary hover:text-danger" onClick={() => onRemove(draft.id)}><Trash2 size={13} /></button></div></td>
           </tr>
         })}</tbody>
