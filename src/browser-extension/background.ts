@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { answerSchema, isWorkbenchUrl, profileSchema, sensitiveField, websiteBatchSchema, type FormResult, type WebsiteQueue } from '../domain/website-automation'
 import { createWebsiteQueue } from './queue'
 import { createDirectFill } from './direct-fill'
+import { reconnectOpenWorkbenches } from './workbench-recovery'
 
 const KEY = 'website-queue:v1'
 const storageReady = chrome.storage.local.setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' })
@@ -41,7 +42,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   if (!popup && !workbench) return
   void (async () => {
     // Connectivity must not depend on recovering an unrelated batch or file.
-    if (message.type === 'ping') return { version: 1 }
+    if (message.type === 'ping') return { version: 1, extensionVersion: chrome.runtime.getManifest().version }
     if (popup && ['direct-state', 'direct-save', 'direct-fill'].includes(message.type)) {
       await storageReady
       if (message.type === 'direct-state') return direct.get()
@@ -76,3 +77,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   })().then(data => respond({ ok: true, data })).catch(error => respond({ ok: false, error: error instanceof z.ZodError ? '填写资料或岗位数据有误，请回工作台检查。' : error instanceof Error ? error.message : '操作失败。' }))
   return true
 })
+
+const reconnect = () => { void reconnectOpenWorkbenches().catch(error => console.warn('工作台连接恢复失败', error)) }
+chrome.runtime.onInstalled.addListener(reconnect)
+chrome.runtime.onStartup.addListener(reconnect)

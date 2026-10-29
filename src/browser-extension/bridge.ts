@@ -15,7 +15,8 @@ const receive = (event: MessageEvent) => {
       reply(error ? { ok: false, error: `扩展通信中断，请刷新工作台后重试。${error.message ?? ''}` } : response ?? { ok: false, error: '扩展没有返回结果，请重新加载扩展，再刷新工作台。' })
     })
   } catch {
-    reply({ ok: false, error: '扩展连接已失效。请刷新工作台；若仍失败，请在扩展管理页重新加载 Resume Grill，再刷新工作台。' })
+    window.removeEventListener('message', receive)
+    reply({ ok: false, staleBridge: true, error: '扩展连接已失效。请刷新工作台；若仍失败，请在扩展管理页重新加载 Resume Grill，再刷新工作台。' })
   }
 }
 bridgeWindow.__resumeGrillBridge = receive

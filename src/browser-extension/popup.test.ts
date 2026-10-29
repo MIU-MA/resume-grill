@@ -6,7 +6,7 @@ import type { WebsiteSnapshot } from '../domain/website-automation'
 
 let snapshot: WebsiteSnapshot | null
 const fake = {
-  runtime: { sendMessage: vi.fn(async (_input: unknown) => ({ ok: true, data: snapshot })) },
+  runtime: { sendMessage: vi.fn(async (_input: unknown) => ({ ok: true, data: snapshot })), getManifest: () => ({ version: '0.2.2' }) },
   tabs: { query: vi.fn(async () => [] as Array<{ id: number; url: string; windowId: number }>), create: vi.fn(async (_input: unknown) => ({ id: 10 })), update: vi.fn(async (_id: number, _input: unknown) => ({})), get: vi.fn(async (_id: number) => ({ url: 'https://example.com/apply' })) },
   windows: { update: vi.fn(async (_id: number, _input: unknown) => ({})) },
   permissions: { request: vi.fn(async (_input: unknown) => true), contains: vi.fn(async (_input: unknown) => false) },

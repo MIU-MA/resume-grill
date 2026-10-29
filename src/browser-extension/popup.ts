@@ -107,6 +107,7 @@ async function refresh() {
   }))
   if (!(document.activeElement instanceof HTMLInputElement)) render()
 }
+document.getElementById('extension-version')!.textContent = `v${chrome.runtime.getManifest().version}`
 mountDirectPopup(document.getElementById('direct')!)
 mountWorkbenchPopup(document.getElementById('workbench-connection')!)
 navigation.append(button('刷新任务', async () => undefined))

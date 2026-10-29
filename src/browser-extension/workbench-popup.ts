@@ -47,7 +47,7 @@ export function mountWorkbenchPopup(root: HTMLElement) {
     progress('正在查找工作台…')
     await findWorkbench()
     if (!tab?.url) { progress('单个官网可以直接填写；批量任务需要连接工作台。'); return }
-    const origins = [`${new URL(tab.url).origin}/*`]
+    const origins = [`http://${new URL(tab.url).hostname}/*`]
     if (!await chrome.permissions.contains({ origins })) { progress('点击“连接工作台”允许访问这个本机地址。'); return }
     // Reattach to an already-authorized tab, including after an extension update.
     progress(await connectWorkbench(tab, { requestAccess: false, onProgress: progress }))

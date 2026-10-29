@@ -65,6 +65,30 @@ describe('工作台与官网填写交接', () => {
     expect(post).toHaveBeenCalledOnce()
     expect(vi.getTimerCount()).toBe(0)
   })
+  it('扩展重载后旧脚本先报失效，仍接收新脚本的有效回应且只发送一次任务', async () => {
+    vi.useFakeTimers()
+    const post = vi.spyOn(window, 'postMessage').mockImplementation(() => undefined)
+    const pending = extensionRequest('stage', { id: 'demo' })
+    const request = post.mock.calls[0][0] as { requestId: string }
+    const respond = (response: object) => window.dispatchEvent(new MessageEvent('message', { source: window, origin: location.origin, data: { channel: 'resume-grill.website.response', requestId: request.requestId, response } }))
+    respond({ ok: false, error: '扩展连接已失效。请刷新工作台。' })
+    await vi.advanceTimersByTimeAsync(50)
+    respond({ ok: true, data: { running: false } })
+    expect(await pending).toEqual({ running: false })
+    expect(post).toHaveBeenCalledOnce()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+  it('只有旧脚本失效时仍按时结束，不误报已连接', async () => {
+    vi.useFakeTimers()
+    const post = vi.spyOn(window, 'postMessage').mockImplementation(() => undefined)
+    const pending = extensionRequest('ping')
+    const failure = expect(pending).rejects.toThrow('连接已失效')
+    const request = post.mock.calls[0][0] as { requestId: string }
+    window.dispatchEvent(new MessageEvent('message', { source: window, origin: location.origin, data: { channel: 'resume-grill.website.response', requestId: request.requestId, response: { ok: false, staleBridge: true, error: '扩展连接已失效' } } }))
+    await vi.advanceTimersByTimeAsync(10000)
+    await failure
+    expect(vi.getTimerCount()).toBe(0)
+  })
   it('所有工作台页面都可连接，远程来源、API 和其他端口不放行', () => {
     for (const path of ['/', '/audit', '/diagnosis', '/review', '/report', '/interview', '/knowledge', '/careers', '/applications', '/application-history']) expect(isWorkbenchUrl(`http://localhost:3000${path}`)).toBe(true)
     for (const url of ['https://example.com/audit', 'http://localhost:3000/api/status', 'http://localhost:8000/applications', 'http://localhost.evil.test:3000/applications']) expect(isWorkbenchUrl(url)).toBe(false)

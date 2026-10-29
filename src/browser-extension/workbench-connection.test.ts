@@ -16,7 +16,7 @@ beforeEach(() => {
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers() })
 it('点击时先申请当前本机来源，再注入通信脚本并从网页环境检查完整往返', async () => {
   const pending = connectWorkbench(tab)
-  expect(fake.permissions.request).toHaveBeenCalledWith({ origins: ['http://localhost:3000/*'] })
+  expect(fake.permissions.request).toHaveBeenCalledWith({ origins: ['http://localhost/*'] })
   expect(fake.tabs.get).not.toHaveBeenCalled()
   expect(await pending).toContain('已连接')
   expect(fake.scripting.executeScript).toHaveBeenNthCalledWith(1, { target: { tabId: 7, frameIds: [0] }, files: ['bridge.js'] })
@@ -26,7 +26,7 @@ it('恢复已有权限时不弹授权框，并明确报告连接阶段', async (
   const onProgress = vi.fn()
   expect(await connectWorkbench(tab, { requestAccess: false, onProgress })).toContain('已连接')
   expect(fake.permissions.request).not.toHaveBeenCalled()
-  expect(fake.permissions.contains).toHaveBeenCalledWith({ origins: ['http://localhost:3000/*'] })
+  expect(fake.permissions.contains).toHaveBeenCalledWith({ origins: ['http://localhost/*'] })
   expect(onProgress.mock.calls.flat()).toEqual(['正在检查工作台访问权限…', '正在加载网页通信脚本…', '正在等待工作台与扩展互相回应…'])
 })
 it('未授权或页面跳转时不注入，不接触其他网站', async () => {
@@ -61,5 +61,17 @@ it('检查超时明确指出脚本已注入但消息没有往返', async () => {
   const pending = probeWorkbench(location.href)
   await vi.advanceTimersByTimeAsync(10000)
   expect(await pending).toMatchObject({ ok: false, error: expect.stringContaining('通信脚本已加载') })
+  expect(vi.getTimerCount()).toBe(0)
+})
+it('完整握手不会被重载前遗留的失效脚本抢先判为失败', async () => {
+  vi.useFakeTimers()
+  const post = vi.spyOn(window, 'postMessage').mockImplementation(() => {})
+  const pending = probeWorkbench(location.href)
+  const request = post.mock.calls[0][0] as { requestId: string }
+  const respond = (response: object) => window.dispatchEvent(new MessageEvent('message', { source: window, origin: location.origin, data: { channel: 'resume-grill.website.response', requestId: request.requestId, response } }))
+  respond({ ok: false, error: '扩展连接已失效。请刷新工作台。' })
+  await vi.advanceTimersByTimeAsync(50)
+  respond({ ok: true })
+  expect(await pending).toEqual({ ok: true })
   expect(vi.getTimerCount()).toBe(0)
 })

@@ -12,7 +12,7 @@ const fake = {
   scripting: { executeScript: vi.fn(async () => []) },
   tabs: { create: vi.fn(async ({ url }) => { const id = ++nextTab; tabs.set(id, { id, url: redirected ? 'https://redirect.example/form' : url, status: 'complete' }); return { id } }), get: vi.fn(async id => { const tab = tabs.get(id); if (!tab) throw new Error('closed'); return tab }), update: vi.fn(async id => tabs.get(id)), sendMessage: vi.fn(async () => ({ result: { filled: ['姓名'], uploaded: true, missing: [], message: '请核对' } })) },
   windows: { update: vi.fn() },
-  runtime: { id: 'test-extension', getURL: (file: string) => `chrome-extension://test-extension/${file}`, onMessage: { addListener: vi.fn(fn => { listener = fn }) } },
+  runtime: { id: 'test-extension', getURL: (file: string) => `chrome-extension://test-extension/${file}`, getManifest: () => ({ version: '0.2.2' }), onMessage: { addListener: vi.fn(fn => { listener = fn }) }, onInstalled: { addListener: vi.fn() }, onStartup: { addListener: vi.fn() } },
 }
 const popup = { id: 'test-extension', url: 'chrome-extension://test-extension/popup.html' }
 const workbench = { id: 'test-extension', url: 'http://localhost:3000/applications', tab: { id: 1 } }
@@ -22,6 +22,11 @@ const send = (message: object, sender = popup) => new Promise<{ ok: boolean; dat
 beforeEach(async () => { stored = null; redirected = false; nextTab = 100; tabs.clear(); vi.resetModules(); vi.clearAllMocks(); vi.stubGlobal('chrome', fake); await import('./background') })
 afterEach(async () => { if (stored) await vi.waitFor(() => expect(stored?.running).toBe(false)); vi.unstubAllGlobals() })
 describe('扩展权限与任务交接', () => {
+  it('安装更新和浏览器启动时注册恢复，连接回应包含实际扩展版本', async () => {
+    expect(fake.runtime.onInstalled.addListener).toHaveBeenCalledOnce()
+    expect(fake.runtime.onStartup.addListener).toHaveBeenCalledOnce()
+    expect((await send({ type: 'ping' }, workbench)).data).toEqual({ version: 1, extensionVersion: '0.2.2' })
+  })
   it('独立填写资料只允许扩展面板读取，工作台不能直接执行', async () => {
     expect((await send({ type: 'direct-state' })).ok).toBe(true)
     expect((await send({ type: 'direct-state' }, workbench)).ok).toBe(false)

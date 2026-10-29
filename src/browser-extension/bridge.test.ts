@@ -48,7 +48,10 @@ it('扩展重新加载使旧页面的运行时失效时，返回刷新提示而�
   await import('./bridge')
   runtime.sendMessage.mockImplementationOnce(() => { throw new Error('Extension context invalidated.') })
   request()
-  expect(window.postMessage).toHaveBeenCalledWith(expect.objectContaining({ response: { ok: false, error: expect.stringContaining('连接已失效') } }), location.origin)
+  expect(window.postMessage).toHaveBeenCalledWith(expect.objectContaining({ response: { ok: false, staleBridge: true, error: expect.stringContaining('连接已失效') } }), location.origin)
+  runtime.sendMessage.mockClear()
+  request()
+  expect(runtime.sendMessage).not.toHaveBeenCalled()
 })
 it('后台通信错误保留具体原因', async () => {
   await import('./bridge')

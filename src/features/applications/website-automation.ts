@@ -48,14 +48,21 @@ export function extensionRequest<T>(type: 'ping' | 'snapshot' | 'stage', batch?:
   if (!isWorkbenchUrl(location.href)) return Promise.reject(new Error(`当前地址 ${location.origin}${location.pathname} 不支持扩展连接，请使用 http://localhost:3000 或 http://127.0.0.1:3107 等本机工作台地址（支持 3000 / 3107 端口）。`))
   return new Promise((resolve, reject) => {
     const requestId = crypto.randomUUID()
+    let staleError = ''
     const clear = () => { window.removeEventListener('message', listener); clearTimeout(timer) }
     const listener = (event: MessageEvent) => {
       if (event.source !== window || event.origin !== location.origin || event.data?.channel !== 'resume-grill.website.response' || event.data.requestId !== requestId) return
+      // Reloaded extensions can leave a listener in an invalidated isolated
+      // world. Its failure must not win the race against the current bridge.
+      if (!event.data.response?.ok && (event.data.response?.staleBridge || /连接已失效|Extension context invalidated/i.test(event.data.response?.error ?? ''))) {
+        staleError = event.data.response?.error || '扩展连接已失效，请重新加载扩展后重试。'
+        return
+      }
       clear()
       if (!event.data.response?.ok) reject(new Error(event.data.response?.error || '扩展未能响应。'))
       else resolve(event.data.response.data)
     }
-    const timer = setTimeout(() => { clear(); reject(new Error('未收到扩展回应。请在同一个 Chrome / Edge 中打开工具栏的 Resume Grill，查看顶部的工作台连接状态；点击“连接工作台”后会显示具体结果。扩展需更新至 0.2.1。')) }, 10000)
+    const timer = setTimeout(() => { clear(); reject(new Error(staleError || '未收到扩展回应。请确认当前 Chrome / Edge 已加载 0.2.2 或更新版本的 Resume Grill；打开扩展查看工作台连接状态。下载 ZIP 安装的扩展需要替换原目录文件后再重新加载，仅刷新网页不会更新扩展。')) }, 10000)
     window.addEventListener('message', listener)
     window.postMessage({ channel: 'resume-grill.website.request', requestId, type, ...(type === 'stage' ? { batch } : {}) }, location.origin)
   })
