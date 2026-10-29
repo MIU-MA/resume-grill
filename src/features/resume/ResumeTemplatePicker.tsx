@@ -46,7 +46,7 @@ export function ResumeTemplatePicker({ value, disabled, onChange, canUseOriginal
 
     <Dialog open={open} onClose={close} label="选择简历模板" panelClassName="resume-template-dialog">
       <header className="resume-template-dialog-header">
-        <div><h2>选择模板</h2><p>点选查看效果，确认后应用。</p></div>
+        <div><h2>选择模板</h2><p>点选查看效果，自动适配一页。</p></div>
         <Button variant="ghost" className="size-8 p-0" aria-label="关闭模板选择" onClick={close}><X size={17} /></Button>
       </header>
       <div className="resume-template-dialog-body">

@@ -68,15 +68,17 @@ describe('可投递 PDF', () => {
     }
   }, 15000) // Real glyph rendering competes with other font/PDF tests in CI.
 
-  it.each(RESUME_TEMPLATES)('$name：长简历跨页后仍保留全部文字和可点击位置', async template => {
+  it.each(RESUME_TEMPLATES)('$name：较长简历自适应一页，仍保留全部文字和可点击位置', async template => {
     const text = '林沐\nlin@example.com\n\n项目经历\n订单管理系统\n' + '使用 React 开发页面，参与接口联调与测试。'.repeat(120) + '\n\n专业技能\nReact、TypeScript、CSS'
     const pdf = await createResumePdf(text, '简历.pdf', font, template.id)
     expect(pdf.template).toBe(template.id)
-    expect(pdf.pageCount).toBeGreaterThan(1)
+    expect(pdf.pageCount).toBe(1)
+    expect((await inspect(pdf.file)).count).toBe(1)
     expect(compact((await inspect(pdf.file)).text)).toBe(compact(text))
     for (const page of pdf.pages) for (const block of page.blocks) {
       expect(block.top).toBeGreaterThanOrEqual(RESUME_PAGE.margin)
       expect(block.height).toBeGreaterThan(0)
+      if (block.fontSize !== undefined) expect(block.fontSize).toBeGreaterThanOrEqual(8)
       expect(block.top + block.height).toBeLessThanOrEqual(RESUME_PAGE.height - RESUME_PAGE.margin)
       if (block.left !== undefined && block.width !== undefined) {
         expect(block.left).toBeGreaterThanOrEqual(RESUME_PAGE.margin)
@@ -125,10 +127,10 @@ describe('可投递 PDF', () => {
     }
   }, 15000)
 
-  it.each(RESUME_TEMPLATES.filter(template => ['meowth', 'brilliant', 'persian', 'typst'].includes(template.id)))('$name：长经历标题分页时不重叠、不截断，日期仍能定位原文', async template => {
-    const text = '林沐\n项目经历\n' + Array.from({ length: 18 }, (_, index) => `第 ${index + 1} 个跨部门协作运营管理系统 | 前端开发与测试负责人\n2023.01 — 2024.06\n- ${'使用 React 开发业务组件并完成测试。'.repeat(3)}\n`).join('\n')
+  it.each(RESUME_TEMPLATES.filter(template => ['meowth', 'brilliant', 'persian', 'typst'].includes(template.id)))('$name：长经历标题自适应时不重叠、不截断，日期仍能定位原文', async template => {
+    const text = '林沐\n项目经历\n' + Array.from({ length: 5 }, (_, index) => `第 ${index + 1} 个跨部门协作运营管理系统 | 前端开发与测试负责人\n2023.01 — 2024.06\n- ${'使用 React 开发业务组件并完成测试。'.repeat(3)}\n`).join('\n')
     const pdf = await createResumePdf(text, '简历.pdf', font, template.id)
-    expect(pdf.pageCount).toBeGreaterThan(1)
+    expect(pdf.pageCount).toBe(1)
     expect(compact((await inspect(pdf.file)).text)).toBe(compact(text))
     for (const page of pdf.pages) {
       const dates = page.blocks.filter(block => text.slice(block.start, block.end) === '2023.01 — 2024.06')
@@ -140,11 +142,11 @@ describe('可投递 PDF', () => {
     }
   }, 15000)
 
-  it('长段落自动换行并跨页，页面不溢出、没有遗漏或重复文本', async () => {
-    const text = '李四\n项目经历\n' + '负责 React 组件开发与性能优化，记录接口耗时与问题定位过程。'.repeat(100)
+  it('长段落自动换行并缩进一页，页面不溢出、没有遗漏或重复文本', async () => {
+    const text = '李四\n项目经历\n' + '负责 React 组件开发与性能优化，记录接口耗时与问题定位过程。'.repeat(70)
     const pdf = await createResumePdf(text, '简历.pdf', font)
     const result = await inspect(pdf.file)
-    expect(pdf.pageCount).toBeGreaterThan(1)
+    expect(pdf.pageCount).toBe(1)
     expect(compact(result.text)).toBe(compact(text))
     expect(result.count).toBe(pdf.pages.length)
     for (const page of pdf.pages) for (const block of page.blocks) {
@@ -153,6 +155,27 @@ describe('可投递 PDF', () => {
       expect(block.height).toBeGreaterThan(0)
     }
   })
+
+  it.each(RESUME_TEMPLATES)('$name：带照片的完整经历自动适配一页，页数与实际文件一致', async template => {
+    const photo = createCanvas(90, 120)
+    photo.getContext('2d').fillStyle = '#e32120'
+    photo.getContext('2d').fillRect(0, 0, 90, 120)
+    const text = readFileSync('examples/resume-templates.txt', 'utf8').trim() + '\n\n其他信息\n' + '参与项目维护，整理接口文档，补充页面测试与组件使用说明。'.repeat(27)
+    const pdf = await createResumePdf(text, '简历.pdf', font, template.id, { dataUrl: photo.toDataURL('image/png'), position: 'right' })
+    expect(pdf.pageCount).toBe(1)
+    const result = await inspect(pdf.file)
+    expect(result.count).toBe(1)
+    expect(compact(result.text)).toBe(compact(text))
+    for (const block of pdf.pages[0].blocks) {
+      expect(block.top + block.height).toBeLessThanOrEqual(RESUME_PAGE.height - RESUME_PAGE.margin)
+      if (block.fontSize !== undefined) expect(block.fontSize).toBeGreaterThanOrEqual(8)
+    }
+  }, 15000)
+
+  it.each(RESUME_TEMPLATES)('$name：内容过多时明确提示精简，不截断内容或生成第二页', async template => {
+    const text = '林沐\n项目经历\n' + '负责 React 组件开发与性能优化，记录接口耗时与问题定位过程。'.repeat(160)
+    await expect(createResumePdf(text, '简历.pdf', font, template.id)).rejects.toThrow('内容仍超出一页')
+  }, 15000)
 
   it('在换行规范化和控制符清理之后仍能定位到原始编辑范围', async () => {
     const input = '\n\u0000 张三\r\n项目经历\r\n  使用 React & TypeScript\n'
