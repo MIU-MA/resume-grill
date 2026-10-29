@@ -23,7 +23,7 @@ const onApply = vi.fn(); const onClose = vi.fn()
 beforeEach(() => {
   vi.clearAllMocks(); vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   HTMLDialogElement.prototype.showModal = vi.fn()
-  vi.mocked(useResumePdf).mockReturnValue({ artifact: null, previous: null, loading: false, error: null, retry: vi.fn() })
+  vi.mocked(useResumePdf).mockImplementation((text, sourceFile, enabled, template) => ({ artifact: enabled && template !== 'original' ? { file: pdf, sourceFile, text, inputText: text, pageCount: 1, pages: [], template } : null, previous: null, loading: false, error: null, retry: vi.fn() }))
   vi.mocked(generateJobResume).mockResolvedValue(session)
   vi.mocked(previewJobResume).mockImplementation(async (_session, text, _company, _role, template) => ({ file: pdf, text, inputText: text, sourceFile: file.name, pageCount: 1, pages: [], template }))
   vi.mocked(saveJobResume).mockImplementation(async (_session, text, artifact) => ({ id: 'revision', sourceFile: artifact.file.name, originalFile: artifact.file, extracted: { text, charCount: text.length, pageCount: 1 }, demo: false, updatedAt: 10 }))
@@ -36,12 +36,12 @@ async function mount(adopt = true, attachment = file) {
   await act(async () => root.render(createElement(JobResumeDialog, { draft, file: attachment, person: '林同学', onApply, onClose })))
   if (adopt) await act(async () => host.querySelector<HTMLInputElement>('input[aria-label="采用第 1 处修改"]')!.click())
 }
-it('上传 PDF 后默认展示原文件和未勾选的修改建议，模板是折叠的可选功能', async () => {
+it('上传 PDF 后默认展示原文件和未勾选的修改建议，主动打开后才浏览模板', async () => {
   const original = new File(['%PDF-demo'], '带照片的原简历.pdf', { type: 'application/pdf' })
   await mount(false, original)
   expect(host.querySelector('button[aria-pressed="true"]')!.textContent).toBe('原简历')
   expect(host.querySelector<HTMLInputElement>('input[aria-label="采用第 1 处修改"]')!.checked).toBe(false)
-  expect(host.querySelector<HTMLDetailsElement>('.resume-template-details')!.open).toBe(false)
+  expect(host.querySelector('[aria-label="选择简历模板"]')).toBeNull()
   expect(host.querySelector('.tailoring-source-note')!.textContent).toContain('点击原文直接修改')
   expect(previewJobResume).not.toHaveBeenCalled()
   await act(async () => button('保存并用于这封邮件').click())
@@ -131,9 +131,12 @@ it('邮件正文尚未补全时仍可预览 PDF，更新简历后不沿用旧预
 })
 it('切换模板直接更新 PDF，保存和邮件附件复用所选模板，不再次请求模型', async () => {
   await mount()
-  const template = host.querySelector<HTMLButtonElement>('button[aria-label="使用侧栏标题模板"]')!
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="更换简历模板"]')!.click())
+  const template = host.querySelector<HTMLButtonElement>('button[aria-label="预览侧栏标题模板"]')!
   await act(async () => template.click())
   expect(template.getAttribute('aria-pressed')).toBe('true')
+  expect(previewJobResume).not.toHaveBeenCalled()
+  await act(async () => button('使用侧栏标题模板').click())
   expect(vi.mocked(previewJobResume).mock.calls[0][4]).toBe('sidebar')
   expect(host.textContent).toContain('实际PDF预览')
   await act(async () => button('保存并用于这封邮件').click())
@@ -147,12 +150,17 @@ it('新增中文模板可直接用于邮件，切回原模板时正文与修改�
   await mount()
   const checkbox = host.querySelector<HTMLInputElement>('input[aria-label="采用第 1 处修改"]')!
   await act(async () => checkbox.click())
-  await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="使用中文 Typst模板"]')!.click())
+  const choose = async (name: string) => {
+    await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="更换简历模板"]')!.click())
+    await act(async () => host.querySelector<HTMLButtonElement>(`button[aria-label="预览${name}模板"]`)!.click())
+    await act(async () => button(`使用${name}模板`).click())
+  }
+  await choose('中文 Typst')
   expect(vi.mocked(previewJobResume).mock.calls.at(-1)?.[4]).toBe('typst')
   expect(vi.mocked(previewJobResume).mock.calls.at(-1)?.[1]).toContain('参与页面开发')
-  await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="使用经典居中模板"]')!.click())
+  await choose('经典居中')
   expect(vi.mocked(previewJobResume).mock.calls.at(-1)?.[4]).toBe('classic')
-  await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="使用Meowth模板"]')!.click())
+  await choose('Meowth')
   await act(async () => button('保存并用于这封邮件').click())
   expect(vi.mocked(saveJobResume).mock.calls[0][2].template).toBe('meowth')
   expect(onApply.mock.calls[0][1].tailoredResume.template).toBe('meowth')

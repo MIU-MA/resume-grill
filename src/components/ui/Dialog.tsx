@@ -19,13 +19,25 @@ export function Dialog({
   panelClassName = '',
 }: DialogProps) {
   const panelRef = useRef<HTMLDivElement>(null)
-  useClickOutside(panelRef, onClose, open)
+  const isTopmost = () => {
+    const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]')
+    return dialogs.item(dialogs.length - 1) === panelRef.current?.parentElement
+  }
+  useClickOutside(panelRef, () => { if (isTopmost()) onClose() }, open)
 
   useEffect(() => {
     if (!open) return
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (!isTopmost()) return
+      if (event.key === 'Escape') { event.preventDefault(); onClose() }
+      if (event.key === 'Tab') {
+        const fields = panelRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled):not([type="hidden"]), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]')
+        if (!fields?.length) return
+        const first = fields[0], last = fields[fields.length - 1]
+        if (event.shiftKey && (document.activeElement === first || !panelRef.current?.contains(document.activeElement))) { event.preventDefault(); last.focus() }
+        else if (!event.shiftKey && (document.activeElement === last || !panelRef.current?.contains(document.activeElement))) { event.preventDefault(); first.focus() }
+      }
     }
 
     document.addEventListener('keydown', handleKeyDown)

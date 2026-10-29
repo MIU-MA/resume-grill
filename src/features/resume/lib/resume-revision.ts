@@ -28,7 +28,7 @@ export async function createResumeRevision(sourceId: string, text: string, baseT
   const resumeVersion = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', await file.arrayBuffer())), byte => byte.toString(16).padStart(2, '0')).join('')
   const now = Date.now()
   const document: ResumeDocument = {
-    id: revisionId, revisionId, revisionOf: sourceId, sourceFile: file.name, pdfTemplate: template, photo: photo ?? undefined,
+    id: revisionId, revisionId, revisionOf: sourceId, sourceFile: file.name, pdfTemplate: template, photo: pdf.photo ?? undefined,
     extracted: { text: rawText, charCount: rawText.length, pageCount: pdf.pageCount },
     originalFile: file, originalFileUpdatedAt: now, demo: source.demo,
     jobContext: source.jobContext ? { ...source.jobContext, resumeVersion, resumeDocumentId: revisionId, resumeUpdatedAt: now } : undefined,

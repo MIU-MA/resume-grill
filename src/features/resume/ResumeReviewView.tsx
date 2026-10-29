@@ -38,6 +38,8 @@ import { useResumeDiagnosis } from '@/features/resume/hooks/use-resume-diagnosis
 import { ResumeRevisionPreview, ResumeRevisionToolbar } from './ResumeRevisionPanel'
 import type { ResumeRevisionDraft } from './resume-revision'
 import { ResumeTemplatePicker } from './ResumeTemplatePicker'
+import { useSourceResumePhotos } from './hooks/use-source-resume-photos'
+import { SourceResumePhotos } from './SourceResumePhotos'
 import { ResumePhotoPicker } from './ResumePhotoPicker'
 import { sameResumePhoto, type ResumePhoto } from '@/domain/resume-photo'
 import { resumeTemplateId, type ResumeTemplateId } from '@/domain/resume-template'
@@ -107,9 +109,12 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
   const [originalError, setOriginalError] = useState('')
   const [originalAttempt, setOriginalAttempt] = useState(0)
   const template = resumeTemplateId(revisionDraft?.template ?? (canUseOriginal ? 'original' : initialPdfTemplate))
-  const photo = template === 'original' ? initialPhoto : revisionDraft?.photo === undefined ? initialPhoto : revisionDraft.photo
+  const sourcePhotos = useSourceResumePhotos(original, initialPhoto)
+  const inheritedPhoto = initialPhoto ?? (sourcePhotos.photos.length === 1 ? sourcePhotos.photos[0] : undefined)
+  const photo = template === 'original' ? inheritedPhoto : revisionDraft?.photo === undefined ? inheritedPhoto : revisionDraft.photo
+  const photoUnresolved = template !== 'original' && (sourcePhotos.loading || ((!initialPhoto && (sourcePhotos.photos.length > 1 || !!sourcePhotos.error)) && revisionDraft?.photo === undefined))
   useEffect(() => {
-    if (!canUseOriginal || !onLoadOriginal) return
+    if (!onLoadOriginal) return
     let active = true
     setOriginalError('')
     void onLoadOriginal().then(file => { if (active) { setOriginal(file); if (!file) setOriginalError('原文件未找到，请重新上传简历。') } })
@@ -118,7 +123,7 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
     // Load once for this opened document, rather than refetching on each edit.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sourceFile, canUseOriginal, originalAttempt])
-  const pdf = useResumePdf(editingText, sourceFile, !!editingText.trim() && (tab !== 'structure' || revisionDraft !== null) && (template !== 'original' || !!original), template, original, text, photo)
+  const pdf = useResumePdf(editingText, sourceFile, !!editingText.trim() && (tab !== 'structure' || revisionDraft !== null) && (!onLoadOriginal || !!original), template, original, text, template === 'original' ? photo : photo ?? null)
   const paragraphSections = useMemo(() => tailoringSections(editingText), [editingText])
   const paragraphRanges = useMemo(() => tailoringSourceRanges(editingText, paragraphSections), [editingText, paragraphSections])
   const originalParagraphs = useMemo(() => {
@@ -179,9 +184,8 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
   const changeTemplate = (value: ResumeTemplateId) => {
     if (analyzing || revisionAction.current || leaving || revisionConflict) return
     diagnosis.cancel()
-    const draft = { baseText: text, text: editingText, template: value, photo: value === 'original' ? initialPhoto : photo }
+    const draft = { baseText: text, text: editingText, template: value, photo: value === 'original' ? inheritedPhoto : photo }
     setRevisionDraft(draft); setRevisionError(null)
-    setPreviewOpen(true)
     void persistRevisionDraft(draft)
   }
   const changeParagraph = (key: string, replacement: string) => {
@@ -197,7 +201,7 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
   const resetParagraph = (key: string) => { const value = originalParagraphs?.[key]; if (value !== undefined) changeParagraph(key, value) }
 
   const saveRevision = async () => {
-    if (!revisionDraft || revisionConflict || revisionAction.current || analyzing || photoReading) return
+    if (!revisionDraft || revisionConflict || revisionAction.current || analyzing || photoReading || photoUnresolved) return
     if (!pdf.artifact) { setRevisionError(pdf.error ?? 'PDF 还在更新，请稍后保存。'); return }
     revisionAction.current = true
     setRevisionBusy(true)
@@ -356,10 +360,16 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
         <ReviewTab active={tab === 'raw'} onClick={() => setTab('raw')}>修改全文</ReviewTab>
       </div>
 
-      {(tab === 'raw' || revisionDraft) && <ResumeTemplatePicker value={template} initiallyCollapsed={embedded} canUseOriginal={canUseOriginal} disabled={analyzing || revisionBusy || leaving || revisionConflict} onChange={changeTemplate} />}
-      {(tab === 'raw' || revisionDraft) && template !== 'original' && <div className="border-b border-line px-5 py-2"><ResumePhotoPicker photo={photo} disabled={analyzing || revisionBusy || leaving || revisionConflict} onChange={changePhoto} onReadingChange={setPhotoReading} />{canUseOriginal && !initialPhoto && <p className="mt-1 text-[12px] text-text-tertiary">重新排版需要上传照片；在原文件上修改会保留原有照片。</p>}</div>}
-      {tab === 'raw' && <div className="flex flex-none gap-4 border-b border-line px-6 py-2 text-[12px]"><button type="button" aria-pressed={writingMode === 'paragraphs'} onClick={() => setWritingMode('paragraphs')}>逐条修改</button><button type="button" aria-pressed={writingMode === 'full'} onClick={() => setWritingMode('full')}>全文重写</button></div>}
-      {revisionDraft && <ResumeRevisionToolbar text={revisionDraft.text} conflict={revisionConflict} saving={revisionBusy || leaving || analyzing || photoReading} draftStatus={draftSaveState} pdfReady={!!pdf.artifact} error={revisionError} onPreview={() => setPreviewOpen(true)} onSave={() => { void saveRevision() }} onDiscard={() => { void discardRevision() }} />}
+      {(tab === 'raw' || revisionDraft) && <div className="resume-edit-layout-row">
+        <ResumeTemplatePicker value={template} canUseOriginal={canUseOriginal} preview={{ text: editingText, sourceFile, photo }} disabled={analyzing || revisionBusy || leaving || revisionConflict} onChange={changeTemplate} />
+        {template !== 'original' && <details className="resume-photo-settings" open={photoUnresolved && !sourcePhotos.loading ? true : undefined}>
+          <summary>{photo ? '照片 · 已保留' : '照片设置'}</summary>
+          <div className="space-y-3"><SourceResumePhotos {...sourcePhotos} chosen={photo} disabled={revisionBusy || analyzing} onChange={changePhoto} /><ResumePhotoPicker photo={photo} disabled={analyzing || revisionBusy || leaving || revisionConflict || sourcePhotos.loading} onChange={changePhoto} onReadingChange={setPhotoReading} />{photoUnresolved && !sourcePhotos.loading && <button type="button" className="underline" onClick={() => changePhoto(null)}>确认不放照片</button>}</div>
+        </details>}
+        {photoUnresolved && <p role="status" className="resume-photo-warning">{sourcePhotos.loading ? '正在读取原文件图片，可先预览排版。' : '请在照片设置中确认要保留的照片，再保存新稿。'}</p>}
+      </div>}
+      {tab === 'raw' && <div className="flex flex-none items-center gap-4 border-b border-line px-6 py-2 text-[12px]"><span className="mr-auto text-text-tertiary max-sm:hidden">选择段落修改，右侧预览同步更新</span><button type="button" aria-pressed={writingMode === 'paragraphs'} onClick={() => setWritingMode('paragraphs')}>逐条修改</button><button type="button" aria-pressed={writingMode === 'full'} onClick={() => setWritingMode('full')}>全文重写</button></div>}
+      {revisionDraft && <ResumeRevisionToolbar text={revisionDraft.text} conflict={revisionConflict} saving={revisionBusy || leaving || analyzing || photoReading} draftStatus={draftSaveState} pdfReady={!!pdf.artifact && !photoUnresolved} error={revisionError} onPreview={() => setPreviewOpen(true)} onSave={() => { void saveRevision() }} onDiscard={() => { void discardRevision() }} />}
 
       <div className="relative flex min-h-0 flex-1">
         {tab === 'structure' && <>
@@ -384,7 +394,7 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
                   : writingMode === 'full' || !paragraphSections.length ? <ResumeTextEditor text={revisionConflict ? text : editingText} analyzing={analyzing || revisionBusy || leaving || revisionConflict || diagnosis.loading} onTextChange={updateText} /> : <div className="min-h-0 flex-1 overflow-y-auto bg-surface-soft p-4"><ResumeParagraphEditor sections={paragraphSections} originals={originalParagraphs} selected={editingParagraph} disabled={analyzing || revisionBusy || leaving || revisionConflict || diagnosis.loading} onSelect={setEditingParagraph} onChange={changeParagraph} onReset={resetParagraph} /></div>}
               </div>
               <div className={`min-h-0 min-w-0 flex-col ${mobileDocument ? 'flex' : 'hidden min-[1100px]:flex'}`}>
-                <ResumeDocumentEditor baseText={text} text={editingText} artifact={pdf.artifact} previous={pdf.previous} loading={pdf.loading || (template === 'original' && !original && !originalError)} error={(template === 'original' ? originalError : '') || pdf.error} disabled={analyzing || revisionBusy || leaving || revisionConflict || diagnosis.loading} request={editRequest} onChange={updateText} onRetry={() => { if (template === 'original' && !original) setOriginalAttempt(value => value + 1); else pdf.retry() }} onLoadOriginal={onLoadOriginal} layout={template} />
+                <ResumeDocumentEditor baseText={text} text={editingText} artifact={pdf.artifact} previous={pdf.previous} loading={pdf.loading || (!!onLoadOriginal && !original && !originalError)} error={originalError || pdf.error} disabled={analyzing || revisionBusy || leaving || revisionConflict || diagnosis.loading} request={editRequest} onChange={updateText} onRetry={() => { if (onLoadOriginal && !original) setOriginalAttempt(value => value + 1); else pdf.retry() }} onLoadOriginal={onLoadOriginal} layout={template} />
               </div>
             </div>
           </> : <>
@@ -426,14 +436,14 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
       <footer className="flex min-h-14 flex-none flex-wrap items-center justify-between gap-2 border-t border-line bg-surface-soft px-4 py-2.5 sm:px-6">
         <span className="flex flex-col gap-1 text-[12px] text-text-tertiary" role="status">
           <span className={saveState === 'error' ? 'text-danger' : ''}>{saveState === 'saving' ? '正在保存到本地…' : saveState === 'saved' ? '已保存到此浏览器' : '本地保存失败，请导出检查结果备份。'}</span>
-          {revisionPending ? '保存新稿后可以重新检查或练习。' : selectedCandidates.length > 0 ? `已选 ${selectedCandidates.length} 条练习内容` : '到「练习内容」中选几条经历。'}
+          {revisionPending ? '保存新稿后可以重新检查或练习。' : tab === 'raw' ? '原文件保留，修改另存为新稿。' : selectedCandidates.length > 0 ? `已选 ${selectedCandidates.length} 条练习内容` : '到「练习内容」中选几条经历。'}
         </span>
-        <div className="flex items-center gap-2">
+        {tab !== 'raw' && <div className="flex items-center gap-2">
           <Button variant="primary" className="h-9 whitespace-nowrap px-4 text-[13px]" disabled={workflowBlocked || selectedCandidates.length === 0} onClick={submit}>
             {analyzing ? <Loader2 size={14} className="animate-spin" /> : null}
             {analyzing ? '正在准备练习' : diagnosis.loading ? '跳过检查，进入练习' : '进入面试练习'}{!analyzing && <ArrowRight size={14} />}
           </Button>
-        </div>
+        </div>}
       </footer>
 
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} envConfigured={envConfigured} clientConfigured={clientConfigured} onClientChanged={onClientChanged} />

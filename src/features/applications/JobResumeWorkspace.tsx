@@ -67,7 +67,7 @@ export function JobResumeWorkspace(props: Props) {
           </nav>
           {session && props.template !== 'original' && <label className="tailoring-order"><input type="checkbox" checked={originalOrder} disabled={busy} onChange={event => props.onOrder(event.target.checked)} />保留原章节顺序</label>}
         </div>
-        <ResumeTemplatePicker value={props.template ?? DEFAULT_RESUME_TEMPLATE} canUseOriginal={!!props.originalFile} disabled={!session || busy} onChange={props.onTemplate ?? (() => {})} />
+        <ResumeTemplatePicker value={props.template ?? DEFAULT_RESUME_TEMPLATE} canUseOriginal={!!props.originalFile} disabled={!session || busy} preview={{ text, sourceFile: fileName, photo: artifact?.photo ?? session?.photo }} onChange={props.onTemplate ?? (() => {})} />
         <div className={`tailoring-review-scroll ${view !== 'compare' && session ? 'tailoring-canvas' : ''}`}>
           {!session ? <div className="tailoring-empty" role="status">
             {props.generating ? <Loader2 size={24} strokeWidth={1.5} className="animate-spin text-text-tertiary" /> : <FileText size={28} strokeWidth={1.3} className="text-text-tertiary" />}

@@ -2,7 +2,7 @@ import { usableTailoringSchema, tailoringSections, type TailoringPlan } from '@/
 import { getLlmSettings } from '@/lib/settings'
 import { prepareJobResume } from '@/features/resume/lib/job-preparation'
 import { createResumeRevision } from '@/features/resume/lib/resume-revision'
-import { createResumePdf, type ResumePdfArtifact } from '@/features/resume/lib/resume-pdf'
+import type { ResumePdfArtifact } from '@/features/resume/lib/resume-pdf'
 import { updateResumeDocument } from '@/features/resume/lib/resume-library'
 import type { AttachmentSource } from './mail-draft-storage'
 import type { Draft, SavedJobPreparation } from './draft-state'
@@ -45,7 +45,7 @@ export function tailoringIsCurrent(draft: Draft, saved: SavedJobPreparation | un
   return !!tailored && validResumeAttachment(saved?.attachment) && tailored.jobDescription === (draft.jobDescription ?? '').trim() && tailored.company === draft.company && tailored.role === draft.role
 }
 export async function previewJobResume(session: TailoringSession, text: string, company: string, role: string, template: ResumeTemplateId = DEFAULT_RESUME_TEMPLATE) {
-  const artifact = template === 'original' ? await createResumePdfRevision(text, session.sourceFile, template, session.originalFile, session.rawText, session.photo) : await createResumePdf(text, session.sourceFile, undefined, template, session.photo)
+  const artifact = await createResumePdfRevision(text, session.sourceFile, template, session.originalFile, session.rawText, session.photo)
   const filenamePart = (value: string, length: number) => Array.from(value).filter(character => character.codePointAt(0)! >= 32).join('').replace(/[<>:"/\\|?*]/g, '').slice(0, length)
   const suffix = filenamePart([company, role].filter(Boolean).join('-'), 70)
   const basename = filenamePart(session.sourceFile.replace(/\.[^.]*$/, ''), 60) || '简历'

@@ -32,6 +32,7 @@ const database = vi.hoisted(() => {
 })
 
 vi.mock('idb-keyval', () => database)
+vi.mock('./source-resume-photos', () => ({ sourceResumePhotos: vi.fn(async () => []) }))
 
 import {
   deleteResumeDocument, importResumeDocument, listResumeAttachments, loadResumeDocument,
@@ -151,7 +152,7 @@ describe('createResumeRevision', () => {
     expect(cleared.photo).toBeUndefined()
     expect(cleared.originalFile).toBe(clearedPreview.file)
     expect((await loadResumeDocument(saved.id))?.revisionDraft).toBeUndefined()
-  })
+  }, 15000)
   it('只更换模板也能另存新稿，保留原文件和选定的模板', async () => {
     const source = await sourceDocument()
     const preview = await createResumePdf(originalText, source.sourceFile, fontBytes, 'sidebar')

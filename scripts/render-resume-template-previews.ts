@@ -28,6 +28,9 @@ for (const template of RESUME_TEMPLATES) {
     const thumbnail = createCanvas(180, 255)
     thumbnail.getContext('2d').drawImage(canvas, 0, 0, 180, 255)
     writeFileSync(new URL(`${template.id}.webp`, previews), thumbnail.toBuffer('image/webp', 85))
+    const full = createCanvas(900, 1273)
+    full.getContext('2d').drawImage(canvas, 0, 0, 900, 1273)
+    writeFileSync(new URL(`${template.id}.preview.webp`, previews), full.toBuffer('image/webp', 90))
     console.log(`${template.name}: ${pdf.pageCount} 页 — ${fileURLToPath(new URL(`${template.id}.pdf`, qa))}`)
   } finally { await task.destroy() }
 }

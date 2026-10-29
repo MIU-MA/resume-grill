@@ -6,8 +6,8 @@ import { ResumeReviewView } from './ResumeReviewView'
 import type { ResumeTemplateId } from '@/domain/resume-template'
 
 const calls = vi.hoisted(() => ({ onSave: vi.fn(), onDraft: vi.fn(), onReview: vi.fn(), pdf: vi.fn(), cancel: vi.fn() }))
-vi.mock('./hooks/use-resume-pdf', () => ({ useResumePdf: (text: string, sourceFile: string, _enabled: boolean, template: ResumeTemplateId, original?: File, baseText?: string) => {
-  calls.pdf(template, original, baseText)
+vi.mock('./hooks/use-resume-pdf', () => ({ useResumePdf: (text: string, sourceFile: string, enabled: boolean, template: ResumeTemplateId, original?: File, baseText?: string) => {
+  if (enabled) calls.pdf(template, original, baseText)
   return { artifact: { inputText: text, text, sourceFile, file: new File(['pdf'], `${template}.pdf`), pageCount: 1, pages: [], template }, previous: null, loading: false, error: null, retry: vi.fn() }
 } }))
 vi.mock('./hooks/use-resume-diagnosis', () => ({ useResumeDiagnosis: () => ({ report: null, loading: false, error: null, cancel: calls.cancel }) }))
@@ -31,16 +31,19 @@ it('普通简历只换模板也能预览、暂存并保存，原文不变', asyn
   })))
   const button = (label: string) => [...host.querySelectorAll('button')].find(item => item.textContent === label)!
   await act(async () => button('修改全文').click())
-  expect(host.querySelector('button[aria-label="使用侧栏标题模板"]')!.getAttribute('aria-pressed')).toBe('true')
-  await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="使用蓝色线条模板"]')!.click())
-  expect(host.querySelector('[aria-label="新稿预览"]')!.textContent).toContain('modern.pdf')
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="更换简历模板"]')!.click())
+  expect(host.querySelector('button[aria-label="预览侧栏标题模板"]')!.getAttribute('aria-pressed')).toBe('true')
+  await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="预览蓝色线条模板"]')!.click())
+  expect(calls.onDraft).not.toHaveBeenCalled()
+  expect(host.querySelector('[aria-label="模板排版预览"]')!.textContent).toContain('modern.pdf')
+  await act(async () => button('使用蓝色线条模板').click())
+  expect(host.querySelector('[aria-label="新稿预览"]')).toBeNull()
   expect(calls.onDraft).toHaveBeenLastCalledWith({ baseText: text, text, template: 'modern' })
-  await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="关闭预览"]')!.click())
   await act(async () => button('保存 PDF 并下载').click())
   expect(calls.onSave).toHaveBeenCalledWith(text, expect.objectContaining({ template: 'modern' }))
   await act(async () => button('放弃修改').click())
   expect(calls.onDraft).toHaveBeenLastCalledWith(null)
-  expect(host.querySelector('button[aria-label="使用侧栏标题模板"]')!.getAttribute('aria-pressed')).toBe('true')
+  expect(host.querySelector('[aria-label="更换简历模板"]')!.textContent).toContain('侧栏标题')
 })
 it('已有原 PDF 时默认原位编辑并加载上传文件，只有主动选择模板才重新排版', async () => {
   const file = new File(['%PDF-original'], '原简历.pdf', { type: 'application/pdf' })
@@ -55,9 +58,11 @@ it('已有原 PDF 时默认原位编辑并加载上传文件，只有主动选�
   expect(calls.pdf).toHaveBeenLastCalledWith('original', file, text)
   const button = (label: string) => [...host.querySelectorAll('button')].find(item => item.textContent === label)!
   await act(async () => button('修改全文').click())
-  expect(host.querySelector<HTMLDetailsElement>('.resume-template-details')!.open).toBe(false)
+  expect(host.querySelector('[aria-label="选择简历模板"]')).toBeNull()
   expect(button('原文件上修改').getAttribute('aria-pressed')).toBe('true')
-  await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="使用Meowth模板"]')!.click())
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="更换简历模板"]')!.click())
+  await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="预览Meowth模板"]')!.click())
+  await act(async () => button('使用Meowth模板').click())
   expect(calls.pdf).toHaveBeenLastCalledWith('meowth', file, text)
   await act(async () => button('原文件上修改').click())
   expect(calls.onDraft).toHaveBeenLastCalledWith({ baseText: text, text, template: 'original' })

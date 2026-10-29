@@ -6,7 +6,7 @@ import { embedResumeFont } from './resume-pdf-font'
 import type { ResumePdfArtifact } from './resume-pdf'
 
 let engineRequest: Promise<WrappedPdfiumModule> | undefined
-async function getEngine(wasmBinary?: Uint8Array) {
+export async function getEngine(wasmBinary?: Uint8Array) {
   if (wasmBinary) {
     const { init } = await import('@embedpdf/pdfium')
     const engine = await init({ wasmBinary }); engine.PDFiumExt_Init(); return engine
