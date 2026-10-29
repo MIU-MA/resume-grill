@@ -1,0 +1,475 @@
+{
+  "reviewedAt": "2026-10-29",
+  "method": "Public recruitment entry and official referring link; HTTP GET. No application or form filling performed.",
+  "sites": [
+    {
+      "company": "网易",
+      "url": "https://hr.163.com/",
+      "sourceUrl": "https://hr.163.com/",
+      "status": 200,
+      "finalUrl": "https://hr.163.com/",
+      "title": "网易社会招聘",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "蚂蚁集团",
+      "url": "https://talent.antgroup.com/",
+      "sourceUrl": "https://talent.antgroup.com/",
+      "status": 200,
+      "finalUrl": "https://talent.antgroup.com/",
+      "title": "",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "豆瓣",
+      "url": "https://jobs.douban.com/",
+      "sourceUrl": "https://jobs.douban.com/",
+      "status": 200,
+      "finalUrl": "https://jobs.douban.com/",
+      "title": "在豆瓣工作",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "贝壳",
+      "url": "https://join.ke.com/",
+      "sourceUrl": "https://join.ke.com/",
+      "status": 200,
+      "finalUrl": "https://join.ke.com/",
+      "title": "贝壳_招聘官网",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "同程旅行",
+      "url": "https://join.ly.com/",
+      "sourceUrl": "https://join.ly.com/",
+      "status": 200,
+      "finalUrl": "https://mhr.ly.com/recruit/schoolPortal/",
+      "title": "同程旅行校园招聘",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "用友",
+      "url": "https://career.yonyou.com/",
+      "sourceUrl": "https://career.yonyou.com/",
+      "status": 200,
+      "finalUrl": "https://career.yonyou.com/SU67ac41886202cc7916ae3029/pb/index.html",
+      "title": "",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "帆软",
+      "url": "https://join.fanruan.com/",
+      "sourceUrl": "https://join.fanruan.com/",
+      "status": 200,
+      "finalUrl": "https://join.fanruan.com/",
+      "title": "首页 | 帆软招聘官网",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "纷享销客",
+      "url": "https://www.fxiaoke.com/crm/about-join/",
+      "sourceUrl": "https://www.fxiaoke.com/crm/about-join/",
+      "status": 200,
+      "finalUrl": "https://www.fxiaoke.com/crm/about-join/",
+      "title": "加入我们,招聘信息-纷享销客CRM",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "思特沃克",
+      "url": "https://www.thoughtworks.com/zh-cn/careers",
+      "sourceUrl": "https://www.thoughtworks.com/zh-cn/careers",
+      "status": 200,
+      "finalUrl": "https://www.thoughtworks.com/zh-cn/careers",
+      "title": "Careers | Thoughtworks China",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "智谱",
+      "url": "https://www.zhipuai.cn/zh/joinus",
+      "sourceUrl": "https://www.zhipuai.cn/zh/joinus",
+      "status": 200,
+      "finalUrl": "https://www.zhipuai.cn/zh/joinus",
+      "title": "Z.ai - Inspiring AGI to Benefit Humanity",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "月之暗面",
+      "url": "https://careers.kimi.com/",
+      "sourceUrl": "https://careers.kimi.com/",
+      "status": 200,
+      "finalUrl": "https://careers.kimi.com/",
+      "title": "Moonshot · Kimi 招聘官网 | 月之暗面求职",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "MiniMax",
+      "url": "https://minimax.cn/careers",
+      "sourceUrl": "https://minimax.cn/careers",
+      "status": 200,
+      "finalUrl": "https://minimax.cn/careers",
+      "title": "加入我们，构建 AI 的未来 | MiniMax",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "商汤科技",
+      "url": "https://hr.sensetime.com/",
+      "sourceUrl": "https://hr.sensetime.com/",
+      "status": 200,
+      "finalUrl": "https://hr.sensetime.com/",
+      "title": "商汤科技招聘 | 坚持原创，让 AI 引领人类进步",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "依图科技",
+      "url": "https://www.yitutech.com/cn/career",
+      "sourceUrl": "https://www.yitutech.com/cn/career",
+      "status": 200,
+      "finalUrl": "https://www.yitutech.com/cn/career",
+      "title": "招聘职位 | 依图科技",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "EMQ 映云科技",
+      "url": "https://careers.emqx.com/zh/job",
+      "sourceUrl": "https://careers.emqx.com/zh/job",
+      "status": 200,
+      "finalUrl": "https://careers.emqx.com/zh/job",
+      "title": "招聘详情 | EMQ",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "涛思数据",
+      "url": "https://www.taosdata.com/careers",
+      "sourceUrl": "https://www.taosdata.com/careers",
+      "status": 200,
+      "finalUrl": "https://www.taosdata.com/careers",
+      "title": "招贤纳士 - TDengine | 涛思数据",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "Zilliz",
+      "url": "https://zilliz.com.cn/careers",
+      "sourceUrl": "https://zilliz.com.cn/careers",
+      "status": 200,
+      "finalUrl": "https://zilliz.com.cn/careers",
+      "title": "加入我们",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "米哈游",
+      "url": "https://jobs.mihoyo.com/",
+      "sourceUrl": "https://jobs.mihoyo.com/",
+      "status": 200,
+      "finalUrl": "https://jobs.mihoyo.com/",
+      "title": "miHoYo招聘官网",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "莉莉丝",
+      "url": "https://jobs.lilith.com/",
+      "sourceUrl": "https://jobs.lilith.com/",
+      "status": 200,
+      "finalUrl": "https://jobs.lilith.com/",
+      "title": "莉莉丝游戏招聘官网",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "叠纸游戏",
+      "url": "https://career.papegames.com/",
+      "sourceUrl": "https://career.papegames.com/",
+      "status": 200,
+      "finalUrl": "https://career.papegames.com/",
+      "title": "加入Papergames",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "吉比特",
+      "url": "https://join.g-bits.com/",
+      "sourceUrl": "https://join.g-bits.com/",
+      "status": 200,
+      "finalUrl": "https://join.g-bits.com/",
+      "title": "吉比特&雷霆游戏社会招聘",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "多益网络",
+      "url": "https://hr.duoyi.com/",
+      "sourceUrl": "https://hr.duoyi.com/",
+      "status": 200,
+      "finalUrl": "https://sz.duoyi.com/v40/sz-index.html",
+      "title": "多益网络 招聘官网",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "乐元素",
+      "url": "https://leyuansu.com/recruit",
+      "sourceUrl": "https://www.happyelements.com/recruit",
+      "status": 200,
+      "finalUrl": "https://leyuansu.com/recruit",
+      "title": "乐元素",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "华为",
+      "url": "https://career.huawei.com/",
+      "sourceUrl": "https://career.huawei.com/",
+      "status": 200,
+      "finalUrl": "https://career.huawei.com/cn",
+      "title": "华为招聘官网首页",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "中兴通讯",
+      "url": "https://job.zte.com.cn/",
+      "sourceUrl": "https://job.zte.com.cn/",
+      "status": 200,
+      "finalUrl": "https://job.zte.com.cn/cn/",
+      "title": "中兴通讯招聘",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "OPPO",
+      "url": "https://careers.oppo.com/",
+      "sourceUrl": "https://careers.oppo.com/",
+      "status": 200,
+      "finalUrl": "https://careers.oppo.com/",
+      "title": "OPPO招聘 - 加入我们 join us",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "vivo",
+      "url": "https://career.vivo.com/",
+      "sourceUrl": "https://career.vivo.com/",
+      "status": 200,
+      "finalUrl": "https://career.vivo.com/",
+      "title": "vivo招聘官方网站",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "联想",
+      "url": "https://jobs.lenovo.com/",
+      "sourceUrl": "https://jobs.lenovo.com/",
+      "status": 200,
+      "finalUrl": "https://jobs.lenovo.com/en_US/careers",
+      "title": "Jobs at Lenovo",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "大疆",
+      "url": "https://careers.dji.com/zh-CN/",
+      "sourceUrl": "https://careers.dji.com/zh-CN/",
+      "status": 200,
+      "finalUrl": "https://careers.dji.com/zh-CN/",
+      "title": "首页 - DJI 大疆招聘",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "宇树科技",
+      "url": "https://www.unitree.com/cn/careers",
+      "sourceUrl": "https://www.unitree.com/cn/careers",
+      "status": 200,
+      "finalUrl": "https://www.unitree.com/position/",
+      "title": "Join Us - Unitree Robotics",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "蔚来",
+      "url": "https://nio.jobs.feishu.cn/",
+      "sourceUrl": "https://nio.jobs.feishu.cn/",
+      "status": 200,
+      "finalUrl": "https://nio.jobs.feishu.cn/",
+      "title": "NIO蔚来-社会招聘",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "特斯拉",
+      "url": "https://www.tesla.cn/careers/",
+      "sourceUrl": "https://www.tesla.cn/careers/",
+      "status": 200,
+      "finalUrl": "https://www.tesla.cn/careers",
+      "title": "工作机会 | 特斯拉中国Cybertruck Foundation LogoCybertruck Foundation LogoCybertruck Logo",
+      "reviewedAt": "2026-10-29",
+      "previousChecks": [
+        {
+          "error": "The operation was aborted due to timeout"
+        }
+      ]
+    },
+    {
+      "company": "比亚迪",
+      "url": "https://job.byd.com/",
+      "sourceUrl": "https://job.byd.com/",
+      "status": 200,
+      "finalUrl": "https://job.byd.com/",
+      "title": "比亚迪人力资源服务平台",
+      "reviewedAt": "2026-10-29",
+      "previousChecks": [
+        {
+          "error": "fetch failed"
+        }
+      ]
+    },
+    {
+      "company": "深信服",
+      "url": "https://hr.sangfor.com/",
+      "sourceUrl": "https://hr.sangfor.com/",
+      "status": 200,
+      "finalUrl": "https://hr.sangfor.com/",
+      "title": "深信服招聘官网-深信服招聘",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "TP-LINK",
+      "url": "https://hr.tp-link.com.cn/",
+      "sourceUrl": "https://hr.tp-link.com.cn/",
+      "status": 200,
+      "finalUrl": "https://hr.tp-link.com.cn/",
+      "title": "TP-LINK 招聘",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "同花顺",
+      "url": "https://job.10jqka.com.cn/",
+      "sourceUrl": "https://job.10jqka.com.cn/",
+      "status": 200,
+      "finalUrl": "https://job.10jqka.com.cn/",
+      "title": "同花顺招聘",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "富途",
+      "url": "https://join.futunn.com/",
+      "sourceUrl": "https://join.futunn.com/",
+      "status": 200,
+      "finalUrl": "https://join.futunn.com/",
+      "title": "Futu Careers",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "恒生电子",
+      "url": "https://job.hundsun.com/",
+      "sourceUrl": "https://job.hundsun.com/",
+      "status": 200,
+      "finalUrl": "https://job.hundsun.com/",
+      "title": "",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "得物",
+      "url": "https://poizon.jobs.feishu.cn/",
+      "sourceUrl": "https://poizon.jobs.feishu.cn/index/m/position/application",
+      "status": 200,
+      "finalUrl": "https://poizon.jobs.feishu.cn/",
+      "title": "加入得物App",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "销售易",
+      "url": "https://www.xiaoshouyi.com/about-us/join-us",
+      "sourceUrl": "https://www.xiaoshouyi.com/about-us/join-us",
+      "status": 200,
+      "finalUrl": "https://www.xiaoshouyi.com/about-us/join-us",
+      "title": "销售易联系方式,客户服务,咨询热线,办公地址,分公司信息,产品演示,技术咨询,销售咨询,支持服务",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "北森",
+      "url": "https://beisen.zhiye.com/",
+      "sourceUrl": "https://www.beisen.com/",
+      "status": 200,
+      "finalUrl": "https://beisen.zhiye.com/",
+      "title": "北森招聘",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "金数据",
+      "url": "https://jinshuju.net/f/t7TIWA",
+      "sourceUrl": "https://jinshuju.net/about",
+      "status": 200,
+      "finalUrl": "https://im.jinshuju.com/f/t7TIWA",
+      "title": "风里雨里❤️小金等你",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "ProcessOn",
+      "url": "https://www.processon.com/jobs",
+      "sourceUrl": "https://www.processon.com/jobs",
+      "status": 200,
+      "finalUrl": "https://www.processon.com/jobs",
+      "title": "ProcessOn - 加入我们 ProcessOn",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "影石",
+      "url": "https://www.insta360.com/cn/jobs",
+      "sourceUrl": "https://www.insta360.com/cn/jobs",
+      "status": 200,
+      "finalUrl": "https://www.insta360.com/cn/jobs",
+      "title": "影石Insta360招聘",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "理想汽车",
+      "url": "https://www.lixiang.com/employ.html",
+      "sourceUrl": "https://www.lixiang.com/",
+      "status": 200,
+      "finalUrl": "https://www.lixiang.com/employ.html",
+      "title": "理想汽车 移动的家丨理想生活",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "小鹏汽车",
+      "url": "https://xiaopeng.jobs.feishu.cn/index",
+      "sourceUrl": "https://www.xiaopeng.com/",
+      "status": 200,
+      "finalUrl": "https://xiaopeng.jobs.feishu.cn/index",
+      "title": "加入小鹏集团",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "荣耀",
+      "url": "https://www.hihonor.com/cn/career/",
+      "sourceUrl": "https://www.hihonor.com/cn/",
+      "status": 200,
+      "finalUrl": "https://www.honor.com/cn/career/",
+      "title": "荣耀最新招聘信息 | 荣耀招聘官网网站",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "安克创新",
+      "url": "https://career.anker-in.com/",
+      "sourceUrl": "https://www.anker-in.com/",
+      "status": 200,
+      "finalUrl": "https://career.anker-in.com/",
+      "title": "Anker Innovations Careers | Campus Recruitment at Anker Innovations | Join Our Global Team | Anker Careers",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "鹰角网络",
+      "url": "https://career.hypergryph.com/",
+      "sourceUrl": "https://career.hypergryph.com/",
+      "status": 200,
+      "finalUrl": "https://career.hypergryph.com/",
+      "title": "鹰角网络招聘官网",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "SmartX",
+      "url": "https://www.smartx.com/jobs/",
+      "sourceUrl": "https://www.smartx.com/jobs/",
+      "status": 200,
+      "finalUrl": "https://www.smartx.com/jobs/",
+      "title": "工作机会 - SmartX 超融合",
+      "reviewedAt": "2026-10-29"
+    },
+    {
+      "company": "七牛云",
+      "url": "https://jobs.qiniu.com/",
+      "sourceUrl": "https://jobs.qiniu.com/",
+      "status": 200,
+      "finalUrl": "https://jobs.qiniu.com/",
+      "title": "七牛云社会招聘",
+      "reviewedAt": "2026-10-29"
+    }
+  ]
+}
