@@ -22,10 +22,18 @@ function dpapi(operation: 'Protect' | 'Unprotect', value: Buffer): Promise<Buffe
   const script = `$ErrorActionPreference='Stop'; Add-Type -AssemblyName System.Security; $bytes=[Convert]::FromBase64String([Console]::In.ReadToEnd()); $entropy=[Text.Encoding]::UTF8.GetBytes('resume-grill:smtp:v1'); $result=[Security.Cryptography.ProtectedData]::${operation}($bytes,$entropy,[Security.Cryptography.DataProtectionScope]::CurrentUser); [Console]::Out.Write([Convert]::ToBase64String($result))`
   return new Promise((resolve, reject) => {
     const powershell = join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
-    const child = spawn(powershell, ['-NoLogo', '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', script], { windowsHide: true, timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] })
+    const child = spawn(powershell, ['-NoLogo', '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', script], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] })
     let output = ''
     let tooLarge = false
-    const fail = () => reject(new Error('本机授权码加密处理失败，请检查 Windows 账户权限'))
+    let timedOut = false
+    // Cold PowerShell startup can exceed 10 seconds on a busy Windows runner.
+    // Report our deadline explicitly instead of blaming account permissions.
+    const timer = setTimeout(() => {
+      timedOut = true
+      reject(new Error('本机授权码加密处理超时（30 秒），请稍后重试'))
+      child.kill()
+    }, 30000)
+    const fail = () => { clearTimeout(timer); reject(new Error('本机授权码加密处理失败，请检查 Windows 账户权限')) }
     child.on('error', fail)
     child.stdin.on('error', fail)
     child.stdout.on('data', chunk => {
@@ -34,6 +42,8 @@ function dpapi(operation: 'Protect' | 'Unprotect', value: Buffer): Promise<Buffe
     })
     child.stderr.resume()
     child.on('close', code => {
+      clearTimeout(timer)
+      if (timedOut) return
       if (code !== 0 || tooLarge || !output || !/^[A-Za-z0-9+/]+={0,2}$/.test(output)) { fail(); return }
       resolve(Buffer.from(output, 'base64'))
     })

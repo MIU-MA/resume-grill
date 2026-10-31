@@ -80,5 +80,5 @@ describe('local encrypted SMTP credentials', () => {
     expect(await new LocalCredentialStore(dir).load()).toEqual(config)
     await store.clear()
     expect(await store.load()).toBeNull()
-  }, 20000)
+  }, 75000)
 })
