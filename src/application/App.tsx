@@ -152,7 +152,10 @@ function App() {
 
   if (workspace.recovering) return <div className="min-h-screen bg-bg" />
 
-  if (mode === 'applications' || mode === 'careers' || mode === 'application-history') return <MailWorkbench mode={mode} badges={sidebarBadges} renderAssistant={tools => <JobAssistant tools={tools} envConfigured={workspace.envConfigured} />} onNavigate={tab => workspace.analysis || ['diagnosis', 'applications', 'careers', 'application-history'].includes(tab) ? handleTabChange(tab) : push('upload')} onHome={() => push('upload')} onPrepare={async (request, intent) => {
+  if (mode === 'applications' || mode === 'careers' || mode === 'application-history') return <MailWorkbench mode={mode} badges={sidebarBadges} renderAssistant={tools => <JobAssistant tools={tools} envConfigured={workspace.envConfigured} />} onNavigate={tab => workspace.analysis || ['diagnosis', 'applications', 'careers', 'application-history'].includes(tab) ? handleTabChange(tab) : push('upload')} onHome={() => push('upload')} onOpenRecord={record => {
+    if (interview.loading || interview.regeneratingId) { workspace.showToast('当前回答还在处理中，完成后可切换岗位。'); return }
+    interview.reset(); restoredRef.current = false; analysis.openSavedRecord(record)
+  }} onPrepare={async (request, intent) => {
     if (interview.loading || interview.regeneratingId) throw new Error('当前回答还在处理中，完成后可切换岗位。')
     await analysis.openJobPreparation(request, intent, () => {
       interview.reset()

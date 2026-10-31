@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/Button'
 import { sourceUrlSchema } from '@/domain/mail-schema'
 import { draftIssues, websiteLinks, type Draft } from './draft-state'
 
-export function DraftTable({ drafts, selectedIds, disabled, onSelection, onUpdate, onOpen, onRemove, onAdd, resumeLabels = {} }: {
+export function DraftTable({ drafts, selectedIds, disabled, onSelection, onUpdate, onOpen, onDetails, onRemove, onAdd, resumeLabels = {} }: {
   drafts: Draft[]; selectedIds: string[]; disabled: boolean
   onSelection: (ids: string[]) => void; onUpdate: (id: string, change: Partial<Draft>) => void
   onOpen: (id: string) => void; onRemove: (id: string) => void; onAdd: () => void
+  onDetails?: (id: string) => void
   resumeLabels?: Record<string, { name: string; outdated: boolean }>
 }) {
   const checked = new Set(selectedIds)
@@ -49,7 +50,7 @@ export function DraftTable({ drafts, selectedIds, disabled, onSelection, onUpdat
               </select>}
             </>}</td>
             <td className="px-3 py-3 align-top"><span className="workbench-status leading-relaxed" data-tone={website ? 'info' : issues.length || resumeLabels[draft.id]?.outdated ? 'warning' : 'success'}>{website ? '原站填写' : resumeLabels[draft.id]?.outdated ? '岗位版待更新' : issues.length ? issues.map(issue => issue.label).join(' · ') : '可发送'}</span>{resumeLabels[draft.id] && <span className="mt-1 block truncate text-[11px] text-text-secondary" title={resumeLabels[draft.id].name}>{resumeLabels[draft.id].name}</span>}{sourceUrlSchema.safeParse(draft.sourceUrl).success && <a href={draft.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-1 block truncate text-[11px] text-text-tertiary underline">查看来源</a>}</td>
-            <td className="px-3 py-3 align-top"><div className="flex items-center gap-3"><button type="button" disabled={disabled} onClick={() => onOpen(draft.id)} className="text-accent underline">{website ? '打开' : '查看'}</button><button type="button" disabled={disabled} title="移除岗位" aria-label={`移除 ${draft.company || '岗位'}`} className="text-text-tertiary hover:text-danger" onClick={() => onRemove(draft.id)}><Trash2 size={13} /></button></div></td>
+            <td className="px-3 py-3 align-top"><div className="flex flex-wrap items-center gap-3"><button type="button" disabled={disabled} onClick={() => onOpen(draft.id)} className="text-accent underline">{website ? '打开' : '查看'}</button>{onDetails && <button type="button" disabled={disabled} onClick={() => onDetails(draft.id)} className="text-text-secondary underline">资料</button>}<button type="button" disabled={disabled} title="移除岗位" aria-label={`移除 ${draft.company || '岗位'}`} className="text-text-tertiary hover:text-danger" onClick={() => onRemove(draft.id)}><Trash2 size={13} /></button></div></td>
           </tr>
         })}</tbody>
       </table>

@@ -9,6 +9,13 @@ import type { ComponentProps } from 'react'
 import type { JobResumeDialog } from './JobResumeDialog'
 
 const mocks = vi.hoisted(() => ({ persist: vi.fn(), command: vi.fn(), tailoringError: '' }))
+const localData = vi.hoisted(() => new Map<string, unknown>())
+vi.mock('idb-keyval', () => ({
+  get: async (key: string) => localData.get(key),
+  set: async (key: string, value: unknown) => { localData.set(key, value) },
+  update: async (key: string, change: (value: unknown) => unknown) => { localData.set(key, change(localData.get(key))) },
+  keys: async () => [...localData.keys()], del: async (key: string) => { localData.delete(key) },
+}))
 vi.mock('./hooks/use-mail-agent', () => ({ useMailAgent: () => ({
   snapshot: { sender: { name: '张三', address: 'candidate@qq.com' }, jobs: [] },
   connectionError: '', request: vi.fn(), command: mocks.command,
@@ -39,6 +46,7 @@ let root: Root
 let host: HTMLDivElement
 beforeEach(() => {
   vi.clearAllMocks()
+  localData.clear()
   mocks.tailoringError = ''
   mocks.persist.mockResolvedValue(undefined); mocks.command.mockResolvedValue(undefined)
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
