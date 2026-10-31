@@ -2,6 +2,8 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
 const runtime = {
+  id: 'test-extension',
+  getManifest: () => ({ version: '0.2.3' }),
   lastError: undefined as { message: string } | undefined,
   sendMessage: vi.fn((_request: unknown, callback: (response: unknown) => void) => callback({ ok: true, data: null })),
 }
@@ -65,4 +67,10 @@ it('重复注入会替换旧监听器，不重复交接同一批任务', async (
   await import('./bridge')
   request('stage')
   expect(runtime.sendMessage).toHaveBeenCalledOnce()
+})
+it('后台尚未返回时先确认脚本收到请求，并报告实际版本和扩展 ID', async () => {
+  runtime.sendMessage.mockImplementationOnce(() => undefined)
+  await import('./bridge')
+  request('ping')
+  expect(window.postMessage).toHaveBeenLastCalledWith({ channel: 'resume-grill.website.progress', requestId: 'request-1', step: 'bridge', extensionId: 'test-extension', extensionVersion: '0.2.3' }, location.origin)
 })

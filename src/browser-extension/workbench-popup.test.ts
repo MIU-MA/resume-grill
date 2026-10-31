@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { mountWorkbenchPopup } from './workbench-popup'
 import { connectWorkbench } from './workbench-connection'
 
-vi.mock('./workbench-connection', () => ({ connectWorkbench: vi.fn() }))
+vi.mock('./workbench-connection', async importOriginal => ({ ...await importOriginal<typeof import('./workbench-connection')>(), connectWorkbench: vi.fn() }))
 const current = { id: 3, url: 'http://localhost:3000/applications', windowId: 1, lastAccessed: 2 } as chrome.tabs.Tab
 const other = { id: 7, url: 'http://127.0.0.1:3107/applications', windowId: 2, lastAccessed: 5 } as chrome.tabs.Tab
 const fake = {
@@ -19,7 +19,7 @@ beforeEach(() => {
   vi.mocked(connectWorkbench).mockResolvedValue('已连接 http://localhost:3000，网页与扩展通信正常。')
   host = document.createElement('section'); document.body.append(host)
 })
-afterEach(() => { host.remove(); vi.unstubAllGlobals() })
+afterEach(() => { host.remove(); vi.unstubAllGlobals(); vi.useRealTimers() })
 async function mount() { mountWorkbenchPopup(host); await vi.waitFor(() => expect(button().disabled).toBe(false)) }
 it('连接当前窗口的工作台，持续展示结果，不受其他窗口最近访问影响', async () => {
   await mount()
@@ -49,4 +49,13 @@ it('连接中明确显示当前阶段；失败提示保持可见，允许重试'
   expect(host.querySelector('[role=status]')!.textContent).toBe('没有注入权限')
   button().click()
   await vi.waitFor(() => expect(host.textContent).toContain('已连接'))
+})
+it('标签页查询不返回时也会显示断点、展开记录并恢复按钮', async () => {
+  vi.useFakeTimers()
+  fake.tabs.query.mockImplementationOnce(() => new Promise(() => {}))
+  mountWorkbenchPopup(host)
+  await vi.advanceTimersByTimeAsync(6000)
+  expect(host.textContent).toContain('工作台标签页查找超过 6 秒')
+  expect(host.querySelector<HTMLDetailsElement>('details')!.open).toBe(true)
+  expect(button().disabled).toBe(false)
 })

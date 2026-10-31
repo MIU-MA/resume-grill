@@ -75,3 +75,21 @@ it('完整握手不会被重载前遗留的失效脚本抢先判为失败', asyn
   expect(await pending).toEqual({ ok: true })
   expect(vi.getTimerCount()).toBe(0)
 })
+it('权限 API 一直不返回时结束等待，并指出卡在权限检查', async () => {
+  vi.useFakeTimers()
+  fake.permissions.request.mockImplementationOnce(() => new Promise(() => {}))
+  const pending = connectWorkbench(tab)
+  const failed = expect(pending).rejects.toThrow('工作台访问权限检查超过 20 秒')
+  await vi.advanceTimersByTimeAsync(20000); await failed
+  expect(fake.scripting.executeScript).not.toHaveBeenCalled()
+  expect(vi.getTimerCount()).toBe(0)
+})
+it('脚本接收确认与后台回应分别检查，后台超时时保留明确断点', async () => {
+  vi.useFakeTimers()
+  const post = vi.spyOn(window, 'postMessage').mockImplementation(() => {})
+  const pending = probeWorkbench(location.href)
+  const request = post.mock.calls[0][0] as { requestId: string }
+  window.dispatchEvent(new MessageEvent('message', { source: window, origin: location.origin, data: { channel: 'resume-grill.website.progress', requestId: request.requestId, step: 'bridge' } }))
+  await vi.advanceTimersByTimeAsync(10000)
+  expect(await pending).toMatchObject({ ok: false, error: expect.stringContaining('[RG-BACKGROUND]') })
+})

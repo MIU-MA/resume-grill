@@ -10,6 +10,7 @@ const receive = (event: MessageEvent) => {
   const origin = location.origin
   const reply = (response: unknown) => window.postMessage({ channel: 'resume-grill.website.response', requestId, response }, origin)
   try {
+    window.postMessage({ channel: 'resume-grill.website.progress', requestId, step: 'bridge', extensionId: chrome.runtime.id, extensionVersion: chrome.runtime.getManifest().version }, origin)
     chrome.runtime.sendMessage({ type, ...(type === 'stage' ? { batch } : {}) }, response => {
       const error = chrome.runtime.lastError
       reply(error ? { ok: false, error: `扩展通信中断，请刷新工作台后重试。${error.message ?? ''}` } : response ?? { ok: false, error: '扩展没有返回结果，请重新加载扩展，再刷新工作台。' })
