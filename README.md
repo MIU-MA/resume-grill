@@ -1,7 +1,19 @@
 <p align="center"><img src="public/favicon.svg" width="56" height="56" alt="Resume Grill"></p>
 <h1 align="center">Resume Grill</h1>
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&amp;logoColor=white" alt="Next.js 16">
+  <img src="https://img.shields.io/badge/React-19-149eca?logo=react&amp;logoColor=white" alt="React 19">
+  <img src="https://img.shields.io/badge/TypeScript-6-3178c6?logo=typescript&amp;logoColor=white" alt="TypeScript 6">
+  <img src="https://img.shields.io/badge/Tailwind_CSS-4-06b6d4?logo=tailwindcss&amp;logoColor=white" alt="Tailwind CSS 4">
+  <img src="https://img.shields.io/badge/Node.js-%E2%89%A522.13-339933?logo=nodedotjs&amp;logoColor=white" alt="Node.js ≥ 22.13">
+  <img src="https://img.shields.io/badge/Vitest-4-729b1b?logo=vitest&amp;logoColor=white" alt="Vitest 4">
+   <a href="https://linux.do/"><img src="https://img.shields.io/badge/LINUX%20DO-社区-f5c76b?labelColor=555" alt="LINUX DO 社区"></a>
+</p>
+
 本地优先的求职工作台：改简历、找岗位、准备投递、练习面试。各功能可以独立使用。
+
+文档处理：PDF.js / pdf-lib / mammoth · 本地存储：IndexedDB · 邮件：Nodemailer。
 
 ## 功能
 
@@ -57,6 +69,6 @@ npm run dev
 
 [使用与配置](docs/getting-started.md) · [邮箱投递](docs/email-applications.md) · [官网扩展](docs/website-automation.md) · [招聘目录](docs/career-directory.md) · [参与开发](CONTRIBUTING.md)
 
-Next.js / React / TypeScript / Tailwind CSS；PDF.js、mammoth、IndexedDB、Nodemailer。目录约定见 [AGENTS.md](AGENTS.md)。
+目录约定见 [AGENTS.md](AGENTS.md)。
 
 [MIT License](LICENSE)
