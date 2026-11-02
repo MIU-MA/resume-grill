@@ -21,9 +21,9 @@ describe('entering an interview', () => {
     })).toEqual({ action: 'continue' })
   })
 
-  it('restores the newest unfinished version without changing the history order', () => {
+  it('a completed newer version cannot revive an older unfinished interview', () => {
     const history = [session(2), session(1), session(3, 'done')]
-    expect(getInterviewEntry('claim', history, idle)).toEqual({ action: 'restore', session: history[0] })
+    expect(getInterviewEntry('claim', history, idle)).toEqual({ action: 'start', version: 4 })
     expect(history.map(item => item.version)).toEqual([2, 1, 3])
   })
 

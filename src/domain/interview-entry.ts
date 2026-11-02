@@ -21,11 +21,10 @@ export function getInterviewEntry(
     return { action: 'continue' }
   }
 
-  const unfinished = sessions.reduce<InterviewSession | undefined>((latest, session) => {
-    if (session.status !== 'in_progress') return latest
+  const latest = sessions.reduce<InterviewSession | undefined>((latest, session) => {
     return !latest || session.version > latest.version ? session : latest
   }, undefined)
-  if (unfinished) return { action: 'restore', session: unfinished }
+  if (latest?.status === 'in_progress') return { action: 'restore', session: latest }
 
   return {
     action: 'start',

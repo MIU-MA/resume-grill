@@ -49,10 +49,10 @@ export function CareerFinder({ connected, disabled, onConnect, discover, onChoos
   const sites = filterCareerSites(directoryQuery)
   return <div className="career-finder">
     <details className="career-directory-disclosure" open={expanded || undefined}>
-    <summary className="cursor-pointer text-[13px] font-medium">浏览招聘官网 <span className="ml-2 text-[12px] font-normal text-text-tertiary">{careerSites.length} 家</span></summary>
+    <summary className="cursor-pointer text-label font-medium">浏览招聘官网 <span className="ml-2 text-label font-normal text-text-tertiary">{careerSites.length} 家</span></summary>
     <div className="mt-4">
     <div className="career-directory-heading"><h2>招聘官网</h2><p>去官网选职位，也可以直接读取岗位。</p></div>
-    <div className="career-directory-search mb-3 flex flex-wrap items-center gap-3 text-[12px]">
+    <div className="career-directory-search mb-3 flex flex-wrap items-center gap-3 text-body">
       <input className="mail-input min-w-0 flex-1" aria-label="搜索招聘官网" placeholder="搜索公司名称 / 官网" value={directoryQuery} onChange={event => setDirectoryQuery(event.target.value)} />
       <span className="text-text-tertiary">{sites.length} / {careerSites.length} 家</span>
     </div>
@@ -61,30 +61,30 @@ export function CareerFinder({ connected, disabled, onConnect, discover, onChoos
         <span className="career-monogram" aria-hidden="true">{site.company.slice(0, 1)}</span><span className="career-company">{site.company}</span><span className="career-arrow" aria-hidden="true">↗</span>
       </a><button type="button" className="career-read" aria-label={`读取${site.company}招聘岗位`} disabled={busy || disabled} onClick={() => void search(site.url)}>读取</button></div>)}
     </div>
-    {!sites.length && <p className="my-2 text-[12px] text-text-tertiary">没有匹配的官网，可以换个关键词，或在下方粘贴公司招聘链接。</p>}
+    {!sites.length && <p className="my-2 text-meta text-text-tertiary">没有匹配的官网，可以换个关键词，或在下方粘贴公司招聘链接。</p>}
     </div>
     </details>
-    <details open={open} onToggle={event => setOpen(event.currentTarget.open)} className="mt-3 text-[12px]">
+    <details open={open} onToggle={event => setOpen(event.currentTarget.open)} className="mt-3 text-body">
       <summary className="w-fit cursor-pointer text-text-secondary">查找其他官网或岗位链接</summary>
     <div className="mt-3 flex flex-wrap items-end gap-2">
-      <label className="min-w-0 flex-1 text-[12px] text-text-secondary">公司官网或招聘页<input className="mail-input mt-1 w-full" type="url" placeholder="https://公司官网" value={url} disabled={busy || disabled} onChange={e => setUrl(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && url.trim() && !busy && !disabled) void search() }} /></label>
+      <label className="min-w-0 flex-1 text-label text-text-secondary">公司官网或招聘页<input className="mail-input mt-1 w-full" type="url" placeholder="https://公司官网" value={url} disabled={busy || disabled} onChange={e => setUrl(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && url.trim() && !busy && !disabled) void search() }} /></label>
       <Button loading={busy} disabled={disabled || !url.trim()} onClick={() => void search()}>{connected ? '查找链接' : '连接后查找'}</Button>
     </div>
-    {busy && <p role="status" className="my-2 text-[12px] text-text-secondary">正在查找招聘页面…</p>}
-    {error && <p role="alert" className="my-2 text-[12px] text-danger">{error}</p>}
+    {busy && <p role="status" className="my-2 text-body text-text-secondary">正在查找招聘页面…</p>}
+    {error && <p role="alert" className="my-2 text-body text-danger">{error}</p>}
     {result && <>
-      <div className="my-2 flex flex-wrap items-center gap-3 text-[12px]"><span>已读取 {result.pagesRead} 页</span><input aria-label="筛选岗位链接" className="mail-input min-w-0 flex-1" placeholder="筛选岗位，如前端" value={filter} onChange={e => setFilter(e.target.value)} />{!!selected.length && <Button disabled={disabled || slots < selected.length} onClick={() => onChoose(selected)}>加入所选链接（{selected.length}）</Button>}</div>
+      <div className="my-2 flex flex-wrap items-center gap-3 text-body"><span>已读取 {result.pagesRead} 页</span><input aria-label="筛选岗位链接" className="mail-input min-w-0 flex-1" placeholder="筛选岗位，如前端" value={filter} onChange={e => setFilter(e.target.value)} />{!!selected.length && <Button disabled={disabled || slots < selected.length} onClick={() => onChoose(selected)}>加入所选链接（{selected.length}）</Button>}</div>
       {!!result.pages?.length && <CareerPagePicker pages={result.pages} existing={existingJobs} disabled={disabled || slots <= 0} filter={filter} onChoose={onPage} />}
       {!!result.links.length && <div className="max-h-[240px] overflow-auto border border-line divide-y divide-line" aria-label="官网招聘链接">
-        {links.map(link => <div key={link.url} className="flex items-start gap-2 px-3 py-2 text-[12px]">
+        {links.map(link => <div key={link.url} className="flex items-start gap-2 px-3 py-2 text-body">
           {link.kind === 'job' ? <input className="mt-1" type="checkbox" aria-label={`选择 ${link.label}`} disabled={disabled} checked={selected.includes(link.url)} onChange={e => setSelected(values => e.target.checked ? [...values, link.url] : values.filter(value => value !== link.url))} /> : <span className="mt-1 w-[13px] shrink-0" />}
           <div className="min-w-0 flex-1"><a href={link.url} target="_blank" rel="noopener noreferrer" className="font-medium text-accent hover:underline">{link.label}</a><div className="break-all text-text-tertiary">{link.url}</div><div className="text-text-tertiary">来源：<a className="underline" href={link.sourceUrl} target="_blank" rel="noopener noreferrer">{new URL(link.sourceUrl).hostname}</a></div></div>
           <span className="workbench-status shrink-0" data-tone={link.kind === 'entry' ? 'neutral' : 'info'}>{labels[link.kind]}</span>
         </div>)}
-        {!links.length && <p className="px-3 text-[12px] text-text-secondary">{result.links.length ? '没有匹配的链接。' : '暂无结果。'}</p>}
+        {!links.length && <p className="px-3 text-body text-text-secondary">{result.links.length ? '没有匹配的链接。' : '暂无结果。'}</p>}
       </div>}
-      <p className="my-2 text-[12px] text-text-secondary">加入清单时带入公司、岗位和招聘邮箱；同页多个职位按所选岗位整理。</p>
-      {result.notes.map(note => <p key={note} className="my-1 break-all text-[12px] text-text-tertiary">{note}</p>)}
+      <p className="my-2 text-body text-text-secondary">加入清单时带入公司、岗位和招聘邮箱；同页多个职位按所选岗位整理。</p>
+      {result.notes.map(note => <p key={note} className="my-1 break-all text-meta text-text-tertiary">{note}</p>)}
     </>}
     </details>
   </div>

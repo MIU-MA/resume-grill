@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, type SetStateAction } from 'react'
+import { interviewInputKey, readInterviewInput, writeInterviewInput } from '../lib/interview-input-draft'
 import type { ResumeClaim } from '@/domain/resume-schema'
 import type { ClaimAnalysis, InterviewAction, InterviewRound, InterviewSession, InterviewContinueResult, FinalResult } from '@/domain/interview-schema'
 import type { InterviewContext } from '@/domain/interview-context'
@@ -17,7 +18,7 @@ type StartOptions = {
   claimContent?: string
 }
 
-export function useInterview(envConfigured: boolean, { onError, onToast, onSessionSaved }: Callbacks, getContext?: (claimId: string) => InterviewContext) {
+export function useInterview(envConfigured: boolean, { onError, onToast, onSessionSaved }: Callbacks, getContext?: (claimId: string) => InterviewContext, scope = 'local') {
   const [rounds, setRounds] = useState<InterviewRound[]>([])
   const [currentQuestion, setCurrentQuestion] = useState('')
   const [currentIntent, setCurrentIntent] = useState('')
@@ -27,6 +28,9 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
   const [done, setDone] = useState(false)
   const [activeClaimSnapshot, setActiveClaimSnapshot] = useState<ResumeClaim | null>(null)
   const [version, setVersion] = useState(1)
+  const [draftSaved, setDraftSaved] = useState(true)
+  const inputs = useRef({ answer, annotation })
+  inputs.current = { answer, annotation }
 
   const contextRef = useRef<InterviewContext | undefined>(undefined)
   const cache = useRef<Map<string, ClaimAnalysis>>(new Map())
@@ -35,7 +39,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
   const reset = useCallback(() => {
     cache.current.clear(); contextRef.current = undefined
     setRounds([]); setCurrentQuestion(''); setCurrentIntent(''); setAnswer(''); setAnnotation('')
-    setDone(false); setActiveClaimSnapshot(null); setVersion(1)
+    setDone(false); setActiveClaimSnapshot(null); setVersion(1); setDraftSaved(true)
   }, [])
 
   const restore = useCallback((claim: ResumeClaim, session: InterviewSession): boolean => {
@@ -48,13 +52,14 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
     setRounds(session.rounds)
     setCurrentQuestion(session.pendingQuestion ?? snapshot.initialQuestion)
     setCurrentIntent(session.pendingIntent ?? snapshot.initialIntent ?? '')
-    setAnswer(''); setAnnotation(''); setDone(false)
+    const draft = readInterviewInput(interviewInputKey(scope, snapshot, session.version, session.rounds.length, session.pendingQuestion ?? snapshot.initialQuestion))
+    setAnswer(draft.answer); setAnnotation(draft.annotation); setDone(false)
     setVersion(session.version)
     if (session.claimAnalysis) {
       cache.current.set(cacheKey(snapshot), session.claimAnalysis)
     }
     return true
-  }, [getContext])
+  }, [getContext, scope])
 
   const start = useCallback(async (claim: ResumeClaim, opts?: StartOptions) => {
     if (!getLlmSettings() && !envConfigured) {
@@ -88,6 +93,8 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       }
 
       setCurrentQuestion(effectiveClaim.initialQuestion)
+      const draft = readInterviewInput(interviewInputKey(scope, effectiveClaim, resolvedVersion, 0, effectiveClaim.initialQuestion))
+      setAnswer(draft.answer); setAnnotation(draft.annotation)
       setCurrentIntent(effectiveClaim.initialIntent || '先讲清这件事里你做了什么')
 
       if (typeof window !== 'undefined') {
@@ -108,7 +115,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       })
     } catch (e) { onError(e instanceof Error ? e.message : '启动面试失败') }
     finally { setLoading(false) }
-  }, [envConfigured, onError, onSessionSaved, getContext])
+  }, [envConfigured, onError, onSessionSaved, getContext, scope])
 
   const finalizeSession = useCallback(async (claim: ResumeClaim, finalRounds: InterviewRound[]) => {
     const snapshot = activeClaimSnapshot ?? claim
@@ -201,6 +208,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
         evaluation: data.evaluation, nextReason: data.nextReason,
       }
       const newRounds = [...rounds, round]; setRounds(newRounds)
+      writeInterviewInput(interviewInputKey(scope, snapshot, version, rounds.length, currentQuestion), { answer: '', annotation: '' })
       setCurrentQuestion(data.nextQuestion); setCurrentIntent(data.nextReason)
       setAnswer(''); setAnnotation('')
       if (data.isFinal) {
@@ -211,7 +219,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       }
     } catch (e) { onError(e instanceof Error ? e.message : '追问失败') }
     finally { setLoading(false) }
-  }, [currentQuestion, currentIntent, loading, done, answer, annotation, rounds, activeClaimSnapshot, finalizeSession, saveInProgress, onError])
+  }, [currentQuestion, currentIntent, loading, done, answer, annotation, rounds, activeClaimSnapshot, finalizeSession, saveInProgress, onError, scope, version])
 
   const submit = useCallback((claim: ResumeClaim) => (
     continueInterview(claim, answer.trim() ? 'answer' : 'clarify')
@@ -258,10 +266,20 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
   }, [onError, onToast, onSessionSaved, getContext])
 
   const covered = rounds[rounds.length - 1]?.evaluation?.coveredPoints ?? []
+  const updateInput = (field: 'answer' | 'annotation', action: SetStateAction<string>) => {
+    const value = typeof action === 'function' ? action(inputs.current[field]) : action
+    inputs.current = { ...inputs.current, [field]: value }
+    if (activeClaimSnapshot && currentQuestion && !done) {
+      const saved = writeInterviewInput(interviewInputKey(scope, activeClaimSnapshot, version, rounds.length, currentQuestion), inputs.current)
+      setDraftSaved(saved)
+      if (!saved) onError('回答草稿无法暂存，请复制内容备份后再切换。')
+    }
+    if (field === 'answer') setAnswer(value); else setAnnotation(value)
+  }
 
   return {
-    rounds, currentQuestion, currentIntent, answer, setAnswer, annotation, setAnnotation, loading, done,
-    activeClaimSnapshot, version, covered,
+    rounds, currentQuestion, currentIntent, answer, setAnswer: (value: SetStateAction<string>) => updateInput('answer', value), annotation, setAnnotation: (value: string) => updateInput('annotation', value), loading, done,
+    activeClaimSnapshot, version, covered, draftSaved,
     reset, start, restore, submit, skip, regenerateSummary, regeneratingId,
   }
 }

@@ -161,8 +161,8 @@ export function InterviewReportView({
             <div className="grid place-items-center px-6 py-20 text-center">
               <div>
                 <Target size={26} className="mx-auto mb-3 text-text-tertiary" />
-                <p className="m-0 text-[14px] font-semibold text-text-primary">{activeReport?.hasInProgress ? '正在练习' : '这个要点还没练过'}</p>
-                <p className="mt-2 text-[12px] text-text-tertiary">练完后，这里会显示本轮表现、回答记录和改写建议。</p>
+                <p className="m-0 text-body font-semibold text-text-primary">{activeReport?.hasInProgress ? '正在练习' : '这个要点还没练过'}</p>
+                <p className="mt-2 text-meta text-text-tertiary">练完后，这里会显示本轮表现、回答记录和改写建议。</p>
                 {activeReport && (
                   <Button variant="primary" className="mt-4" onClick={() => onRetest(activeReport.claim)}>
                     <ArrowRight size={14} />开始练习

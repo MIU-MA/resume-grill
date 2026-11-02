@@ -21,7 +21,7 @@ export function ApplicationProgressEditor({ value, disabled, onSave }: { value?:
       <label className="mail-label">备注（选填）<textarea className="mail-input min-h-24" maxLength={12000} value={draft.note} onChange={e => { setDraft(current => ({ ...current, note: e.target.value })); setMessage('') }} placeholder="例如：HR 已回复，等部门确认面试时间。" /></label>
       <Button type="submit" variant="secondary">{saving ? '保存中…' : '保存进展'}</Button>
     </fieldset>
-    {message && <p role="status" className="text-[12px] text-text-secondary">{message}</p>}
-    {!!value?.events.length && <details className="border-t border-line pt-4"><summary className="cursor-pointer text-[12px] text-text-secondary">进展记录</summary><ol className="space-y-2 pl-5 text-[12px] text-text-secondary">{[...value.events].reverse().map((item, index) => <li key={index}>{new Date(item.at).toLocaleString('zh-CN')} · {APPLICATION_STAGES[item.stage]}</li>)}</ol></details>}
+    {message && <p role="status" className="text-body text-text-secondary">{message}</p>}
+    {!!value?.events.length && <details className="border-t border-line pt-4"><summary className="cursor-pointer text-label text-text-secondary">进展记录</summary><ol className="space-y-2 pl-5 text-body text-text-secondary">{[...value.events].reverse().map((item, index) => <li key={index}>{new Date(item.at).toLocaleString('zh-CN')} · {APPLICATION_STAGES[item.stage]}</li>)}</ol></details>}
   </form>
 }

@@ -40,13 +40,13 @@ export function ReportBlindSpots({
         <div className="flex items-center gap-2.5">
           <BookOpen size={17} className="text-brand" />
           <div>
-            <h2 className="m-0 text-[15px] font-bold">需要复习的内容</h2>
-            <p className="mt-1 text-[12px] text-text-tertiary">
+            <h2 className="m-0 text-section font-bold">需要复习的内容</h2>
+            <p className="mt-1 text-meta text-text-tertiary">
               这里收集了模拟面试时记下的「没听懂」，也保留了当时的问题。
             </p>
           </div>
         </div>
-        <span className="text-[12px] font-semibold text-warning">
+        <span className="text-meta font-semibold text-warning">
           {openCount} 项待复习
         </span>
       </div>
@@ -62,29 +62,29 @@ export function ReportBlindSpots({
             >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <strong className="text-[13px] text-text-primary">
+                  <strong className="text-label text-text-primary">
                     {spot.annotation}
                   </strong>
-                  <span className="rounded bg-surface-hover px-2 py-0.5 text-[10px] font-semibold text-text-tertiary">
+                  <span className="rounded bg-surface-hover px-2 py-0.5 text-aux font-semibold text-text-tertiary">
                     {spot.claim.title}
                   </span>
                   {learned && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-success">
+                    <span className="inline-flex items-center gap-1 text-meta font-semibold text-success">
                       <Check size={12} />已学会
                     </span>
                   )}
                 </div>
-                <p className="mt-2 text-[12px] leading-relaxed text-text-tertiary">
+                <p className="mt-2 text-meta leading-relaxed text-text-tertiary">
                   当时问题：{spot.question}
                 </p>
-                <p className="mt-1 text-[13px] leading-relaxed text-text-secondary">
+                <p className="mt-1 text-body leading-relaxed text-text-secondary">
                   {spot.explanation || '当时没有留下说明，可以再练一次。'}
                 </p>
               </div>
               <div className="flex items-center gap-2 self-center max-[720px]:justify-end">
                 <Button
                   variant="ghost"
-                  className="text-[12px]"
+                  className="text-label"
                   onClick={() => onToggle(spot.id)}
                 >
                   <Check size={13} />
@@ -92,7 +92,7 @@ export function ReportBlindSpots({
                 </Button>
                 <Button
                   variant="secondary"
-                  className="text-[12px]"
+                  className="text-label"
                   onClick={() => onRetest(spot.claim)}
                 >
                   <RefreshCw size={13} />再练一次

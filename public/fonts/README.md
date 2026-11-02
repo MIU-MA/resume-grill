@@ -1,4 +1,14 @@
-# 简历 PDF 中文字体
+# 字体资源
+
+## 工作台界面
+
+`InterVariable-latin.woff2` 为 Inter 可变正体的 Latin 子集，保留 `wght`（100–900）、`opsz`（14–32）、数字等宽与排版特性，约 103 KiB。由官方 [InterVariable.woff2](https://rsms.me/inter/font-files/InterVariable.woff2) 使用 FontTools 子集化，只包含 Latin、西文标点与常用符号，不包含中文字形。
+
+`app/globals.css` 的 `@font-face` 从本站加载字体，`app/layout.tsx` 预加载同一文件；运行时不请求第三方字体服务。中文使用 PingFang SC／Microsoft YaHei 等系统字体。授权为 SIL Open Font License 1.1，见 [Inter-OFL.txt](Inter-OFL.txt)。
+
+界面六档字号定义在 `@theme`：aux 11、meta 12、label 13、body 14、section 16、title 20–24，均使用 rem，随浏览器默认字号缩放。数字采用 `tabular-nums`，中文标题字距为 0。
+
+## 简历 PDF 中文字体
 
 `NotoSansSC-Regular.ttf` 来自 Noto CJK 官方仓库的简体中文 TrueType 可变字体，使用 FontTools 4.66.1 将 `wght` 实例化为 `400`，得到静态常规字体：
 

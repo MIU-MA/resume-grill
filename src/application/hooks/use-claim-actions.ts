@@ -131,11 +131,12 @@ export function useClaimActions(
     try {
       iv.reset()
       await iv.start(ws.selected, { version: entry.version })
+      togglePreparedMany([ws.selected.id])
       replace('workspace', 'interview')
     } finally {
       startingRef.current = false
     }
-  }, [ws, replace, iv])
+  }, [ws, replace, iv, togglePreparedMany])
 
   const startRewriteInterview = useCallback(
     (claim: ResumeClaim, rewrittenContent: string) => {

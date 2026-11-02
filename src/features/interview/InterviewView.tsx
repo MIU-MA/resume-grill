@@ -5,6 +5,7 @@ import { CurrentQuestion } from '@/features/interview/CurrentQuestion'
 import { InterviewComposer } from '@/features/interview/InterviewComposer'
 import { InterviewHeader } from '@/features/interview/InterviewHeader'
 import { InterviewHistory } from '@/features/interview/InterviewHistory'
+import { resumeContentKey } from '@/lib/storage'
 
 type InterviewViewProps = {
   selected: ResumeClaim
@@ -89,10 +90,10 @@ export function InterviewView({
         <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
           <div className="mx-auto max-w-[clamp(720px,44vw,940px)]">
             {error && (
-              <div className="rounded-lg border border-danger/20 bg-danger-soft px-4 py-3 mb-6 text-[14px] text-danger">{error}</div>
+              <div className="rounded-lg border border-danger/20 bg-danger-soft px-4 py-3 mb-6 text-body text-danger">{error}</div>
             )}
 
-            <InterviewHistory turns={turns} strictMode={strictMode} />
+            <InterviewHistory turns={turns} strictMode={strictMode} scope={`${selected.id}:${version}:${resumeContentKey(selected.content)}`} />
 
             <CurrentQuestion
               question={currentQuestion}

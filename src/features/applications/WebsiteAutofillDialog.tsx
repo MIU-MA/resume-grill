@@ -84,8 +84,8 @@ export function WebsiteAutofillDialog({ drafts, attachment, resumeId, sender, in
     finally { setBusy(false) }
   }
   return <dialog ref={dialog} onCancel={event => { if (busy) event.preventDefault(); else onClose() }} aria-label="官网批量填写" className="mail-dialog resume-workbench w-[760px] max-w-[calc(100vw-24px)] border border-line-strong bg-surface p-0 text-text-primary backdrop:bg-black/30">
-    <header className="flex items-center justify-between border-b border-line px-5 py-4"><h2 className="m-0 text-[16px] font-semibold">官网批量填写</h2><Button variant="ghost" className="size-8 p-0" aria-label="关闭官网填写" disabled={busy} onClick={onClose}><X size={17} /></Button></header>
-    <div className="max-h-[72vh] space-y-4 overflow-y-auto p-5 text-[12px]">
+    <header className="flex items-center justify-between border-b border-line px-5 py-4"><h2 className="m-0 text-section font-semibold">官网批量填写</h2><Button variant="ghost" className="size-8 p-0" aria-label="关闭官网填写" disabled={busy} onClick={onClose}><X size={17} /></Button></header>
+    <div className="max-h-[72vh] space-y-4 overflow-y-auto p-5 text-body">
       <p className="m-0 leading-relaxed text-text-secondary">在这里选择简历和岗位，发送到扩展后，再点击浏览器工具栏中的 Resume Grill → 开始填写。扩展不会自动点击官网的最终提交。</p>
       <details className="text-text-tertiary"><summary className="cursor-pointer">哪些内容可以自动填写</summary><p>可尝试填写基础资料、明确编号的经历，以及能精确匹配选项的单选下拉框。已补充常见表单组件和 B站经历分组规则；国内官网尚未完成登录后实测。日期选择、多级城市、远程搜索和新增经历行仍可能需要手动处理。上传结果以官网提示为准。</p></details>
       {!connected && <section className="border border-line bg-surface-soft p-3"><strong className="font-medium">首次使用：安装 Chrome / Edge 扩展</strong><ol className="my-2 space-y-1 pl-5"><li><a href="/generated/website-extension.zip" download className="text-accent underline">下载官网填写扩展</a>，解压到固定目录。</li><li>打开浏览器的扩展管理页，开启开发者模式，加载解压后的 <code>website-extension</code> 目录。</li><li>刷新工作台，再打开此面板。扩展固定到工具栏后，可随时查看进度。</li></ol><p className="mb-0 text-text-tertiary">只需安装一次；首次填写某个官网时，由扩展申请该站点的访问权限。</p></section>}
@@ -110,7 +110,7 @@ export function WebsiteAutofillDialog({ drafts, attachment, resumeId, sender, in
       </div>)}</div></section>}
       {error && <p role="alert" className="m-0 text-danger">{error}</p>}{message && <p role="status" className="m-0 text-success">{message}</p>}
     </div>
-    <footer className="border-t border-line bg-surface-soft px-5 py-3"><p id="website-blocker" role="status" className={`mb-3 mt-0 text-[12px] ${blocker ? 'text-warning' : 'text-text-secondary'}`}>{blocker || '发送后，请到浏览器工具栏中的 Resume Grill 点击“开始填写”。'}</p><div className="flex justify-end gap-2"><Button variant="secondary" disabled={busy} onClick={onClose}>关闭</Button><Button loading={busy} disabled={!!blocker} aria-describedby="website-blocker" onClick={() => {
+    <footer className="border-t border-line bg-surface-soft px-5 py-3"><p id="website-blocker" role="status" className={`mb-3 mt-0 text-body ${blocker ? 'text-warning' : 'text-text-secondary'}`}>{blocker || '发送后，请到浏览器工具栏中的 Resume Grill 点击“开始填写”。'}</p><div className="flex justify-end gap-2"><Button variant="secondary" disabled={busy} onClick={onClose}>关闭</Button><Button loading={busy} disabled={!!blocker} aria-describedby="website-blocker" onClick={() => {
       setBusy(true); setError(''); setMessage('')
       void (async () => { await saveWebsiteProfile(profile); await saveExperiences(experienceSource, experienceDraft); const batch = await makeWebsiteBatch(drafts, urls, profile, selectedAttachment, experienceDraft.confirmed ? experienceDraft.items : []); const snapshot = await extensionRequest<WebsiteSnapshot>('stage', batch); setQueue(snapshot); setMessage('已发送到扩展。下一步：点击浏览器工具栏中的 Resume Grill → 开始填写，并允许访问本批招聘网站。') })().catch(cause => setError(cause instanceof Error ? cause.message : '同步失败，请重试。')).finally(() => setBusy(false))
     }}>发送到扩展</Button></div></footer>

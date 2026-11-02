@@ -33,10 +33,10 @@ export function CurrentQuestion({
   if (done) {
     return (
       <div className="mb-6 rounded-lg border border-success/20 bg-success-soft px-5 py-4">
-        <div className="mb-1 flex items-center gap-2 text-[14px] font-medium text-success">
+        <div className="mb-1 flex items-center gap-2 text-body font-medium text-success">
           <Check size={16} />这轮练习结束了
         </div>
-        <p className="text-[14px] text-text-secondary">
+        <p className="text-body text-text-secondary">
           聊到 {coveredCount}/{totalCount} 个要点 ({coveragePercent}%)
         </p>
       </div>
@@ -48,26 +48,26 @@ export function CurrentQuestion({
   return (
     <div ref={sectionRef} className="mb-6 scroll-mt-4">
       <div className="rounded-lg border-2 border-brand bg-white px-5 py-4 shadow-[0_1px_6px_rgba(16,24,40,0.06)]">
-        <div className="mb-1.5 flex items-center gap-2 text-[12px] font-bold text-brand">
+        <div className="mb-1.5 flex items-center gap-2 text-body font-bold text-brand">
           <MessageSquareText size={14} />当前问题
         </div>
-        <p className="text-[15px] font-semibold leading-relaxed text-text-primary">{question}</p>
+        <p className="text-body font-semibold leading-relaxed text-text-primary">{question}</p>
         {intent && !strictMode && (
-          <p className="mt-1 text-[13px] leading-relaxed text-text-secondary">{intent}</p>
+          <p className="mt-1 text-body leading-relaxed text-text-secondary">{intent}</p>
         )}
         {intent && strictMode && (
           <>
             <button
               type="button"
               onClick={() => setIntentOpen((open) => !open)}
-              className="mt-1.5 inline-flex items-center gap-1 bg-transparent text-[12px] font-medium text-text-tertiary hover:text-text-secondary"
+              className="mt-1.5 inline-flex items-center gap-1 bg-transparent text-label font-medium text-text-tertiary hover:text-text-secondary"
               aria-expanded={intentOpen}
             >
               <ChevronDown size={12} className={`transition-transform ${intentOpen ? 'rotate-180' : ''}`} />
               为什么问这个
             </button>
             {intentOpen && (
-              <p className="mt-1 text-[13px] leading-relaxed text-text-secondary">{intent}</p>
+              <p className="mt-1 text-body leading-relaxed text-text-secondary">{intent}</p>
             )}
           </>
         )}

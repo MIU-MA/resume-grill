@@ -12,6 +12,7 @@ import { KnowledgeView } from '@/features/knowledge/KnowledgeView'
 import type { KnowledgeItem, KnowledgeItemInput, KnowledgeItemPatch } from '@/domain/knowledge'
 import type { ClaimProgress } from '@/domain/risk'
 import { getInterviewEntry } from '@/domain/interview-entry'
+import { practiceState } from '@/domain/practice-state'
 
 export type InterviewViewData = {
   rounds: Array<{
@@ -98,7 +99,7 @@ export function WorkspaceContent(props: WorkspaceContentProps) {
     {isPractice && <header className="practice-header">
       <h1>面试练习</h1>
       <nav aria-label="面试练习阶段" className="practice-stages">
-        {([{ mode: 'audit', label: '准备内容' }, { mode: 'interview', label: '开始面试' }, { mode: 'report', label: '面试复盘' }] as const).map((item, index) => <button key={item.mode} onClick={() => props.onNavigate(item.mode)} aria-current={props.mode === item.mode ? 'page' : undefined}><span aria-hidden="true">0{index + 1}</span>{item.label}</button>)}
+        {([{ mode: 'audit', label: '准备内容' }, { mode: 'interview', label: '面试问答' }, { mode: 'report', label: '面试复盘' }] as const).map((item, index) => <button key={item.mode} onClick={() => props.onNavigate(item.mode)} aria-current={props.mode === item.mode ? 'page' : undefined}><span aria-hidden="true">0{index + 1}</span>{item.label}</button>)}
       </nav>
     </header>}
     <div className="min-h-0 flex-1"><WorkspaceBody {...props} /></div>
@@ -143,6 +144,7 @@ function WorkspaceBody({
 
   if (mode === 'audit') {
     const entry = getInterviewEntry(interview.selected.id, sessions[interview.selected.id] ?? [], interview.view)
+    const stage = practiceState(interview.selected.id, sessions[interview.selected.id] ?? [], interview.view)
     return (
       <div className="h-full min-h-0 max-[760px]:overflow-y-auto">
         <ClaimAuditView
@@ -152,7 +154,8 @@ function WorkspaceBody({
           error={error}
           onSelect={audit.onSelect}
           onTogglePrepared={audit.onTogglePrepared}
-          onStartInterview={audit.onStartInterview}
+          onStartInterview={stage.state === 'completed' ? audit.onReport : audit.onStartInterview}
+          interviewActionLabel={stage.label}
           canContinueInterview={entry.action !== 'start'}
           interviewLoading={interview.view.loading}
           onReport={audit.onReport}
@@ -187,11 +190,11 @@ function WorkspaceBody({
   if (!interview.view.currentQuestion && !interview.view.loading && !interview.view.done && interview.view.rounds.length === 0) {
     return <section className="h-full overflow-auto p-5 sm:p-8" aria-label="面试开始前">
       <div className="max-w-[900px]">
-        <h2 className="mb-2 mt-0 text-[20px] font-semibold">本次练习</h2>
-        <p className="mb-6 text-[13px] text-text-secondary">围绕所选经历进行问答，提交回答后继续追问，结束后查看复盘。</p>
-        <div className="border-y border-line py-5"><p className="mb-2 mt-0 text-[12px] text-text-tertiary">已选内容</p><h3 className="my-2 text-[16px] font-semibold">{interview.selected.title}</h3><p className="mb-0 text-[14px] leading-relaxed text-text-secondary">{interview.selected.content}</p></div>
-        {error && <p role="alert" className="text-[13px] text-danger">{error}</p>}
-        <div className="mt-6 flex gap-3"><button className="border border-brand bg-brand px-5 py-2 text-[13px] text-white" onClick={audit.onStartInterview}>开始练习</button><button className="border border-line px-5 py-2 text-[13px]" onClick={interview.onBackToAudit}>更换练习内容</button></div>
+        <h2 className="mb-2 mt-0 text-title font-semibold">本次练习</h2>
+        <p className="mb-6 text-body text-text-secondary">围绕所选经历进行问答，提交回答后继续追问，结束后查看复盘。</p>
+        <div className="border-y border-line py-5"><p className="mb-2 mt-0 text-meta text-text-tertiary">已选内容</p><h3 className="my-2 text-section font-semibold">{interview.selected.title}</h3><p className="mb-0 text-body leading-relaxed text-text-secondary">{interview.selected.content}</p></div>
+        {error && <p role="alert" className="text-body text-danger">{error}</p>}
+        <div className="mt-6 flex gap-3"><button className="border border-brand bg-brand px-5 py-2 text-label text-white" onClick={practiceState(interview.selected.id, sessions[interview.selected.id] ?? [], interview.view).state === 'completed' ? audit.onReport : audit.onStartInterview}>{practiceState(interview.selected.id, sessions[interview.selected.id] ?? [], interview.view).label}</button><button className="border border-line px-5 py-2 text-label" onClick={interview.onBackToAudit}>更换练习内容</button></div>
       </div>
     </section>
   }

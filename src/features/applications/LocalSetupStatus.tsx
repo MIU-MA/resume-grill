@@ -39,8 +39,11 @@ export function LocalSetupStatus({ connected, connectionError, readerWarning, on
   }, [check])
   const agentLabel = connected ? '已连接' : connectionError ? '连接中断' : '未连接'
   const extensionLabel = { checking: '检测中', connected: '已连接', missing: '未连接', unsupported: '当前地址不支持' }[extension]
-  return <details open={extension === 'missing' || !!readerWarning || undefined} className="border-b border-line px-4 py-3 text-[12px] sm:px-7">
-    <summary className="cursor-pointer text-text-secondary">运行状态 <span className="ml-3 text-text-tertiary">执行器{agentLabel} · 扩展{extensionLabel}</span></summary>
+  return <section className="border-b border-line px-4 py-3 text-body sm:px-7">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-label" role="status"><span>执行器{agentLabel}</span><span>扩展{extensionLabel}</span>{!connected && <button className="underline" onClick={onConnect}>连接本机</button>}</div>
+    {(connectionError || readerWarning || extensionError) && <p className="my-2 truncate text-meta text-warning" title={connectionError || readerWarning || extensionError}>最近错误：{connectionError || readerWarning || extensionError}</p>}
+    <details>
+    <summary className="mt-1 cursor-pointer text-label text-text-tertiary">连接诊断</summary>
     <dl className="mb-0 mt-4 grid gap-3 sm:grid-cols-3">
       <div><dt className="font-medium">网页 · 已打开</dt><dd className="ml-0 mt-1 text-text-secondary">简历和清单保存在当前浏览器。</dd></div>
       <div><dt className="font-medium">本机执行器 · {agentLabel}</dt><dd className="ml-0 mt-1 text-text-secondary">读取官网、发送邮件时使用。<button type="button" className="ml-1 text-accent underline" onClick={onConnect}>{connected ? '连接设置' : '连接本机'}</button></dd></div>
@@ -60,5 +63,5 @@ export function LocalSetupStatus({ connected, connectionError, readerWarning, on
     </dl>
     {readerWarning && <p role="alert" className="mb-0 mt-4 text-warning">{readerWarning}</p>}
     {!connected && <p className="mb-0 mt-4 text-text-secondary">启动网页和执行器：<code>npm run dev:local</code>。将终端连接码填入“连接本机”；只检查简历时无需连接。</p>}
-  </details>
+  </details></section>
 }

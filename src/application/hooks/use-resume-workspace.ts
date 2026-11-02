@@ -20,6 +20,7 @@ import {
 import { deriveKnowledgeItems, mergeKnowledgeItems, filterDismissedKnowledgeItems, type KnowledgeItem } from '@/domain/knowledge'
 import type { Phase } from '@/application/hooks/use-app-navigation'
 import { useLlmStatus } from '@/features/settings/hooks/use-llm-status'
+import { useToastQueue } from '@/hooks/use-toast-queue'
 
 export function useResumeWorkspace(phase: Phase) {
   const { envConfigured, clientConfigured, mode: llmMode, refresh: refreshClientLlm } =
@@ -37,17 +38,14 @@ export function useResumeWorkspace(phase: Phase) {
   const [knowledgeHydrationStatus, setKnowledgeHydrationStatus] = useState<'pending' | 'hydrated' | 'error'>('pending')
   const [recordId, setRecordId] = useState<string | null>(null)
   const [recovering, setRecovering] = useState(false)
+  const [workspaceLoaded, setWorkspaceLoaded] = useState(false)
   const [recoveredFromStorage, setRecoveredFromStorage] = useState(false)
   const [savedDocuments, setSavedDocuments] = useState<ResumeDocument[]>([])
   const [savedRecords, setSavedRecords] = useState<SavedRecord[]>([])
   const [loadingRecords, setLoadingRecords] = useState(true)
-  const [toast, setToast] = useState('')
+  const { toast, toastTone, setToast, showToast } = useToastQueue()
   const [error, setError] = useState<string | null>(null)
 
-  const showToast = useCallback((m: string, d = 3200) => {
-    setToast(m)
-    window.setTimeout(() => setToast(''), d)
-  }, [])
 
   const refreshSavedRecords = useCallback(() => {
     setLoadingRecords(true)
@@ -90,6 +88,11 @@ export function useResumeWorkspace(phase: Phase) {
   )
 
   const selected = analysis?.claims[selectedIndex] ?? null
+  useEffect(() => {
+    if (!recordId || !selected) return
+    window.sessionStorage.setItem(`resume-grill:last-claim:${recordId}`, selected.id)
+    window.sessionStorage.setItem('resume-grill:active-claim', selected.id)
+  }, [recordId, selected])
   const stats = analysis ? computeStats(analysis.claims) : null
   const completedClaimCount = analysis
     ? analysis.claims.filter((c) =>
@@ -113,9 +116,9 @@ export function useResumeWorkspace(phase: Phase) {
   }, [])
 
   useEffect(() => {
-    if (phase !== 'workspace' || analysis) return
+    if (phase !== 'workspace' || analysis) { setWorkspaceLoaded(true); return }
     const sid = window.sessionStorage.getItem('resume-grill:active')
-    if (!sid) return
+    if (!sid) { setWorkspaceLoaded(true); return }
     setRecovering(true)
     loadRecord(sid)
       .then((record) => {
@@ -135,7 +138,7 @@ export function useResumeWorkspace(phase: Phase) {
         }
       })
       .catch(() => {})
-      .finally(() => setRecovering(false))
+      .finally(() => { setRecovering(false); setWorkspaceLoaded(true) })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -218,6 +221,7 @@ export function useResumeWorkspace(phase: Phase) {
     recordId,
     setRecordId,
     recovering,
+    workspaceLoaded,
     recoveredFromStorage,
     setRecoveredFromStorage,
     savedDocuments,
@@ -226,6 +230,7 @@ export function useResumeWorkspace(phase: Phase) {
     setSavedRecords,
     loadingRecords,
     toast,
+    toastTone,
     setToast,
     showToast,
     error,

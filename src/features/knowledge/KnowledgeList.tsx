@@ -16,16 +16,16 @@ export function KnowledgeList({
   return (
     <div className="overflow-hidden rounded-lg bg-white shadow-card ring-1 ring-black/[0.03]">
       <div className="flex items-center justify-between border-b border-line px-4 py-3">
-        <div className="text-[13px] font-bold">条目列表</div>
-        <div className="text-[12px] text-text-tertiary">{items.length} 条</div>
+        <div className="text-body font-bold">条目列表</div>
+        <div className="text-meta text-text-tertiary">{items.length} 条</div>
       </div>
       {items.length === 0 ? (
         <div className="px-6 py-14 text-center">
           <Lightbulb size={22} className="mx-auto mb-3 text-text-tertiary" />
-          <p className="m-0 text-[13px] font-semibold text-text-primary">
+          <p className="m-0 text-body font-semibold text-text-primary">
             没有匹配的条目
           </p>
-          <p className="mt-1.5 text-[12px] text-text-tertiary">
+          <p className="mt-1.5 text-meta text-text-tertiary">
             调整筛选条件，或完成一次模拟面试后再来看看。
           </p>
         </div>
@@ -47,7 +47,7 @@ export function KnowledgeList({
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span
-                      className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                      className={`rounded px-1.5 py-0.5 text-label font-semibold ${
                         active
                           ? 'bg-white/60 text-brand'
                           : meta.className
@@ -56,16 +56,16 @@ export function KnowledgeList({
                       {meta.label}
                     </span>
                     {learned && (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-success">
+                      <span className="inline-flex items-center gap-0.5 text-label font-semibold text-success">
                         <Check size={10} />已学会
                       </span>
                     )}
                   </div>
-                  <p className="mt-1 truncate text-[13px] font-medium text-text-primary">
+                  <p className="mt-1 truncate text-label font-medium text-text-primary">
                     {item.title}
                   </p>
                 </div>
-                <span className="flex-none text-[11px] text-text-tertiary">
+                <span className="flex-none text-label text-text-tertiary">
                   {formatUpdatedAt(item.updatedAt)}
                 </span>
               </button>

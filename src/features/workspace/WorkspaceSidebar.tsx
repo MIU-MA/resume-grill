@@ -53,7 +53,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
 ]
 
 type WorkspaceSidebarProps = {
-  mode: Mode
+  mode: Mode | 'library'
   collapsed: boolean
   onToggleCollapsed: () => void
   onNavigate: (tab: Mode) => void
@@ -80,7 +80,6 @@ export function WorkspaceSidebar({
   const isDock = variant === 'dock'
   const compact = useSyncExternalStore(subscribeCompact, getCompactSnapshot, () => false)
   const iconOnly = isDock && (collapsed || compact)
-  const mailMode = ['applications', 'careers', 'application-history'].includes(mode)
 
   const handleNavigate = (tab: Mode) => {
     onNavigate(tab)
@@ -92,7 +91,7 @@ export function WorkspaceSidebar({
       <button type="button" onClick={onOpenHistory} className="flex size-7 flex-none items-center justify-center" aria-label="打开简历库">
         <img src="/favicon.svg" alt="" className="size-6" />
       </button>
-      {!iconOnly && <div className="workspace-nav-label flex min-w-0 flex-col"><strong className="truncate text-[14px] font-bold">Resume Grill</strong><span className="truncate text-[11px] text-text-tertiary">求职工作台</span></div>}
+      {!iconOnly && <div className="workspace-nav-label flex min-w-0 flex-col"><strong className="truncate text-body font-bold">Resume Grill</strong><span className="truncate text-meta text-text-tertiary">求职工作台</span></div>}
     </div>
     <nav className="min-h-0 flex-1 overflow-y-auto px-2 py-3" aria-label="工作区页面">
       {NAV_GROUPS.map(group => <section key={group.label} className="workspace-nav-group" aria-label={group.label}>
@@ -115,9 +114,9 @@ export function WorkspaceSidebar({
       </section>)}
     </nav>
     <div className="flex-none space-y-0.5 border-t border-line px-2 py-2">
-      <SidebarButton label={mailMode ? '邮箱设置' : '模型设置'} iconOnly={iconOnly} onClick={onOpenSettings}>
+      <SidebarButton label="设置" iconOnly={iconOnly} onClick={onOpenSettings}>
         <Settings size={16} className="flex-none" aria-hidden="true" />
-        {!iconOnly && <span className="workspace-nav-label">{mailMode ? '邮箱设置' : '模型设置'}</span>}
+        {!iconOnly && <span className="workspace-nav-label">设置</span>}
       </SidebarButton>
       <SidebarButton label={collapsed ? '展开导航' : '收起导航'} iconOnly={iconOnly} onClick={onToggleCollapsed} className="hidden min-[1200px]:flex">
         {collapsed ? <PanelLeftOpen size={16} className="flex-none" aria-hidden="true" /> : <PanelLeftClose size={16} className="flex-none" aria-hidden="true" />}
@@ -213,7 +212,7 @@ function SidebarButton({ label, iconOnly, active = false, onClick, className = '
     }
   }, [position])
   return <>
-    <button type="button" className={`workspace-nav-row relative flex min-h-9 w-full items-center py-2 text-[13px] font-medium ${iconOnly ? 'justify-center px-0' : 'gap-2.5 px-2.5'} ${className}`}
+    <button type="button" className={`workspace-nav-row relative flex min-h-9 w-full items-center py-2 text-label font-medium ${iconOnly ? 'justify-center px-0' : 'gap-2.5 px-2.5'} ${className}`}
       aria-label={label} aria-current={active ? 'page' : undefined} aria-describedby={iconOnly && position ? tooltipId : undefined}
       onMouseEnter={event => show(event.currentTarget)} onMouseLeave={() => setPosition(null)}
       onFocus={event => show(event.currentTarget)} onBlur={() => setPosition(null)}

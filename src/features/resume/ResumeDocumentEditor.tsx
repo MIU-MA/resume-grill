@@ -85,27 +85,27 @@ export function ResumeDocumentEditor({ baseText, text, artifact, previous, loadi
 
   return <section className="resume-document-editor flex h-full min-h-0 min-w-0 flex-col border-l border-line bg-surface-soft" aria-label="简历 PDF 编辑与预览">
     <header className="flex min-h-14 flex-none flex-wrap items-center gap-3 border-b border-line bg-surface px-4 py-3">
-      <strong className="mr-auto text-[13px] font-medium">简历预览</strong>
-      <button type="button" aria-pressed={view === 'draft'} onClick={() => setView('draft')} className={`text-[12px] ${view === 'draft' ? 'font-semibold text-text-primary' : 'text-text-tertiary'}`}>新稿</button>
-      {onLoadOriginal && <button type="button" aria-pressed={view === 'original'} onClick={() => { void showOriginal() }} className={`text-[12px] ${view === 'original' ? 'font-semibold text-text-primary' : 'text-text-tertiary'}`}>原文件</button>}
-      {view === 'draft' && <span role="status" className="flex items-center gap-1 text-[11px] text-text-tertiary">{loading ? <><Loader2 size={12} className="animate-spin" />更新中</> : artifact ? `${artifact.pageCount} 页` : ''}</span>}
+      <strong className="mr-auto text-label font-medium">简历预览</strong>
+      <button type="button" aria-pressed={view === 'draft'} onClick={() => setView('draft')} className={`text-label ${view === 'draft' ? 'font-semibold text-text-primary' : 'text-text-tertiary'}`}>新稿</button>
+      {onLoadOriginal && <button type="button" aria-pressed={view === 'original'} onClick={() => { void showOriginal() }} className={`text-label ${view === 'original' ? 'font-semibold text-text-primary' : 'text-text-tertiary'}`}>原文件</button>}
+      {view === 'draft' && <span role="status" className="flex items-center gap-1 text-meta text-text-tertiary">{loading ? <><Loader2 size={12} className="animate-spin" />更新中</> : artifact ? `${artifact.pageCount} 页` : ''}</span>}
     </header>
     {view === 'draft' && <>
-      <p className="m-0 flex-none border-b border-line px-4 py-2 text-[11px] leading-relaxed text-text-secondary">{layout === 'original' ? '点击原简历中的文字修改。照片和原有排版保留，保存为独立新稿。' : '点击段落修改。当前已选择重新排版，保存为独立新稿。'}</p>
-      {notice && <p role="status" className="m-0 px-4 py-2 text-[12px] text-text-secondary">{notice}</p>}
-      {matches.length > 0 && <div className="max-h-40 flex-none overflow-y-auto border-b border-line p-3 text-[12px]"><p className="mt-0">有多处相同原文，请选择：</p>{matches.map(target => <button key={target.start} type="button" disabled={disabled} className="mb-2 block w-full border border-line bg-surface p-2 text-left" onClick={() => select(target)}>第 {target.line} 行 · {target.text}</button>)}</div>}
+      <p className="m-0 flex-none border-b border-line px-4 py-2 text-body leading-relaxed text-text-secondary">{layout === 'original' ? '点击原简历中的文字修改。照片和原有排版保留，保存为独立新稿。' : '点击段落修改。当前已选择重新排版，保存为独立新稿。'}</p>
+      {notice && <p role="status" className="m-0 px-4 py-2 text-body text-text-secondary">{notice}</p>}
+      {matches.length > 0 && <div className="max-h-40 flex-none overflow-y-auto border-b border-line p-3 text-body"><p className="mt-0">有多处相同原文，请选择：</p>{matches.map(target => <button key={target.start} type="button" disabled={disabled} className="mb-2 block w-full border border-line bg-surface p-2 text-left" onClick={() => select(target)}>第 {target.line} 行 · {target.text}</button>)}</div>}
       {active && <div className="flex-none border-b border-line bg-surface p-3">
-        <div className="mb-2 flex items-center justify-between"><span className="text-[12px] font-medium">修改这段</span><Button variant="ghost" className="h-7 px-2 text-[12px]" onClick={() => setSelection(null)}><Check size={12} />完成</Button></div>
-        <textarea ref={editor} aria-label="修改选中段落" disabled={disabled} value={text.slice(active.start, active.end)} onChange={event => change(event.target.value)} className="block max-h-52 min-h-24 w-full resize-y border border-line-strong bg-white p-3 text-[13px] leading-relaxed focus:border-brand focus:outline-brand" />
-        <button type="button" disabled={disabled || text.slice(active.start, active.end) === active.original} className="mt-2 flex items-center gap-1 text-[11px] text-text-secondary disabled:opacity-40" onClick={() => change(active.original)}><RotateCcw size={12} />撤销本次修改</button>
+        <div className="mb-2 flex items-center justify-between"><span className="text-meta font-medium">修改这段</span><Button variant="ghost" className="h-7 px-2 text-label" onClick={() => setSelection(null)}><Check size={12} />完成</Button></div>
+        <textarea ref={editor} aria-label="修改选中段落" disabled={disabled} value={text.slice(active.start, active.end)} onChange={event => change(event.target.value)} className="block max-h-52 min-h-24 w-full resize-y border border-line-strong bg-white p-3 text-label leading-relaxed focus:border-brand focus:outline-brand" />
+        <button type="button" disabled={disabled || text.slice(active.start, active.end) === active.original} className="mt-2 flex items-center gap-1 text-label text-text-secondary disabled:opacity-40" onClick={() => change(active.original)}><RotateCcw size={12} />撤销本次修改</button>
       </div>}
     </>}
     <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">
       {view === 'draft' ? <>
-        {error && <p role="alert" className="border border-danger bg-danger-soft p-3 text-[12px] text-danger">{error}<button type="button" className="ml-2 underline" onClick={onRetry}>重试预览</button></p>}
-        {shown ? <PdfPages file={shown.file} artifact={shown} disabled={disabled || !artifact} selectedStart={active?.start} changedRanges={artifact ? changedRanges : undefined} onSelect={select} /> : !error && <p role="status" className="text-[12px] text-text-tertiary">{text.trim() ? '正在生成 PDF 预览…' : '填写简历内容后显示预览。'}</p>}
-      </> : original ? original.name.toLowerCase().endsWith('.pdf') ? <PdfPages file={original} /> : <div className="border border-line bg-surface p-4 text-[12px] leading-relaxed"><FileText size={18} /><p>{original.name}</p><p>原文件是 Word 或文本文件。请下载后打开核对；新版 PDF 可在「新稿」中查看。</p><Button variant="secondary" className="text-[12px]" onClick={() => downloadResumeFile(original)}>下载原文件</Button></div>
-        : <p role={originalError ? 'alert' : 'status'} className={`text-[12px] ${originalError ? 'text-danger' : 'text-text-secondary'}`}>{originalLoading ? '正在读取原文件…' : originalError || '暂无原文件。'}{originalError && <button className="ml-2 underline" onClick={() => { void showOriginal() }}>重试</button>}</p>}
+        {error && <p role="alert" className="border border-danger bg-danger-soft p-3 text-body text-danger">{error}<button type="button" className="ml-2 underline" onClick={onRetry}>重试预览</button></p>}
+        {shown ? <PdfPages file={shown.file} artifact={shown} disabled={disabled || !artifact} selectedStart={active?.start} changedRanges={artifact ? changedRanges : undefined} onSelect={select} /> : !error && <p role="status" className="text-meta text-text-tertiary">{text.trim() ? '正在生成 PDF 预览…' : '填写简历内容后显示预览。'}</p>}
+      </> : original ? original.name.toLowerCase().endsWith('.pdf') ? <PdfPages file={original} /> : <div className="border border-line bg-surface p-4 text-body leading-relaxed"><FileText size={18} /><p>{original.name}</p><p>原文件是 Word 或文本文件。请下载后打开核对；新版 PDF 可在「新稿」中查看。</p><Button variant="secondary" className="text-label" onClick={() => downloadResumeFile(original)}>下载原文件</Button></div>
+        : <p role={originalError ? 'alert' : 'status'} className={`text-body ${originalError ? 'text-danger' : 'text-text-secondary'}`}>{originalLoading ? '正在读取原文件…' : originalError || '暂无原文件。'}{originalError && <button className="ml-2 underline" onClick={() => { void showOriginal() }}>重试</button>}</p>}
     </div>
   </section>
 }

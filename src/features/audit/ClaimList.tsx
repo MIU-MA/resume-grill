@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import { useSessionState } from '@/hooks/use-session-state'
+import { newRecordId } from '@/lib/storage'
 import { Bookmark, Check } from 'lucide-react'
 import {
   CLAIM_CATEGORY_LABELS,
@@ -24,7 +26,7 @@ type Props = {
 
 const STATUS_LABEL = {
   done: '已练习',
-  prepared: '已准备',
+  prepared: '清单中',
   todo: '未练习',
 } as const
 
@@ -39,7 +41,7 @@ export function ClaimList({
   onBatchTogglePrepared,
   onSetClaimsPriority,
 }: Props) {
-  const [filter, setFilter] = useState<ClaimFilter>('all')
+  const [filter, setFilter] = useSessionState<ClaimFilter>(`claims:${newRecordId(analysis)}`, 'all', (value): value is ClaimFilter => typeof value === 'string' && ['all', 'high', 'untested', 'weak'].includes(value))
   const [multi, setMulti] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
 
@@ -126,7 +128,7 @@ export function ClaimList({
                 className="min-w-0 flex-1 text-left"
               >
                 <span className="flex items-center gap-2">
-                  <span className="line-clamp-2 text-[13px] leading-relaxed font-medium">
+                  <span className="line-clamp-2 text-label leading-relaxed font-medium">
                     {claim.content}
                   </span>
                   {progress.status === 'done' ? (
@@ -138,7 +140,7 @@ export function ClaimList({
                     />
                   ) : null}
                 </span>
-                <span className="mt-1 block truncate text-[11px] text-text-tertiary">
+                <span className="mt-1 block truncate text-label text-text-tertiary">
                   {CLAIM_CATEGORY_LABELS[claim.category]}{priority === 'high' ? ' · 重点' : ''} ·{' '}
                   {progress.status === 'done'
                     ? `${progress.covered}/${progress.total} · 得分 ${progress.latestScore}/5`
@@ -149,7 +151,7 @@ export function ClaimList({
                 <button
                   type="button"
                   onClick={() => onTogglePrepared(claim.id)}
-                  className="text-[11px] text-text-tertiary hover:text-text-primary"
+                  className="text-label text-text-tertiary hover:text-text-primary"
                 >
                   取消
                 </button>
@@ -158,7 +160,7 @@ export function ClaimList({
                 <button
                   type="button"
                   onClick={onReport}
-                  className="text-[11px] text-brand"
+                  className="text-label text-brand"
                 >
                   复盘
                 </button>
@@ -167,7 +169,7 @@ export function ClaimList({
           )
         })}
         {visible.length === 0 && (
-          <p className="px-3 py-8 text-center text-[12px] text-text-tertiary">
+          <p className="px-3 py-8 text-center text-meta text-text-tertiary">
             没有符合当前筛选的简历要点
           </p>
         )}

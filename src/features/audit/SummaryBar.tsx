@@ -28,7 +28,7 @@ export function SummaryBar({ claims, progress, overrides }: Props) {
   )
 
   return (
-    <div className="flex h-11 flex-none items-center gap-3 overflow-x-auto border-b border-line bg-white px-3 text-[12px] text-text-secondary sm:px-4 md:px-5">
+    <div className="flex h-11 flex-none items-center gap-3 overflow-x-auto border-b border-line bg-white px-3 text-body text-text-secondary sm:px-4 md:px-5">
       <span className="whitespace-nowrap">
         <i className="mr-1 inline-block size-1.5 rounded-full bg-danger" />
         重点 {priorityCount(claims, overrides, 'high')}

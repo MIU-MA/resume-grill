@@ -25,17 +25,17 @@ export function WorkspaceTopBar({
     <>
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex min-w-0 flex-col">
-          <strong className="truncate text-[14px] font-bold">
+          <strong className="truncate text-body font-bold">
             {analysis.jobContext ? `${analysis.jobContext.company} / ${analysis.jobContext.role}` : `${analysis.candidate} · ${analysis.role}`}
           </strong>
-          <span className="mt-0.5 truncate text-[11px] text-text-tertiary max-[520px]:hidden">
+          <span className="mt-0.5 truncate text-meta text-text-tertiary max-[520px]:hidden">
             {analysis.sourceFile}{analysis.jobContext ? ` · 版本 ${analysis.jobContext.resumeVersion.slice(0, 8)}` : ''}
           </span>
         </div>
       </div>
       <div className="flex flex-none items-center gap-2">
         {llmMode && (
-          <span className="hidden items-center gap-1.5 text-[11px] text-text-tertiary md:inline-flex">
+          <span className="hidden items-center gap-1.5 text-meta text-text-tertiary md:inline-flex">
             <i
               className={`size-1.5 rounded-full ${
                 llmMode.testResult === 'ok'
@@ -69,7 +69,7 @@ export function WorkspaceTopBar({
                   onExport()
                   exportMenu.close()
                 }}
-                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[12px] hover:bg-surface-hover"
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-label hover:bg-surface-hover"
               >
                 <FileText size={14} />
                 导出 Markdown
@@ -80,7 +80,7 @@ export function WorkspaceTopBar({
                   onExportJson()
                   exportMenu.close()
                 }}
-                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[12px] hover:bg-surface-hover"
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-label hover:bg-surface-hover"
               >
                 <FileJson size={14} />
                 导出 JSON

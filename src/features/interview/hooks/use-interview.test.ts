@@ -18,7 +18,7 @@ const callbacks = { onError: vi.fn(), onToast: vi.fn(), onSessionSaved: vi.fn() 
 const fetchMock = vi.fn()
 function Harness() { hook = useInterview(true, callbacks, () => context); return null }
 beforeEach(async () => {
-  vi.clearAllMocks(); vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true); vi.stubGlobal('fetch', fetchMock)
+  window.sessionStorage.clear(); vi.clearAllMocks(); vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true); vi.stubGlobal('fetch', fetchMock)
   context = { jobDescription: '支付接口开发', reviewProgress: [{ topic: '幂等键', status: 'open', note: '待练习' }] }
   fetchMock.mockImplementation(async (url: string) => Response.json(url === '/api/summarize' ? result : { evaluation: { score: 70, coveredPoints: ['说明方案'], missingPoints: [], answerSuggestion: '', evidenceQuotes: [] }, nextReason: '', isFinal: true, nextQuestion: '' }))
   host = document.createElement('div'); document.body.append(host); root = createRoot(host)
@@ -44,4 +44,22 @@ it('恢复和重新生成使用旧会话自己的背景，不被当前岗位覆�
   expect(JSON.parse(fetchMock.mock.calls[0][1].body).context).toEqual(saved.context)
   await act(async () => hook.regenerateSummary(claim, { ...saved, status: 'done' }))
   expect(JSON.parse(fetchMock.mock.calls.at(-1)![1].body).context).toEqual(saved.context)
+})
+
+it('未提交回答按简历与轮次保存，重载可恢复，提交成功才清除', async () => {
+  await act(async () => hook.start(claim))
+  const saved = callbacks.onSessionSaved.mock.calls.at(-1)![1] as InterviewSession
+  await act(async () => { hook.setAnswer('尚未提交的回答'); hook.setAnnotation('术语需要解释') })
+  await act(async () => root.unmount()); root = createRoot(host)
+  await act(async () => root.render(createElement(Harness)))
+  await act(async () => hook.restore(claim, { ...saved, version: 2 }))
+  expect(hook.answer).toBe('')
+  await act(async () => hook.restore(claim, saved))
+  expect(hook.answer).toBe('尚未提交的回答'); expect(hook.annotation).toBe('术语需要解释')
+  fetchMock.mockRejectedValueOnce(new Error('offline'))
+  await act(async () => hook.submit(claim))
+  expect(hook.answer).toBe('尚未提交的回答')
+  await act(async () => hook.submit(claim))
+  await act(async () => hook.restore(claim, saved))
+  expect(hook.answer).toBe(''); expect(hook.annotation).toBe('')
 })

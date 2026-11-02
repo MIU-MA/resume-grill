@@ -166,7 +166,7 @@ describe('useResumeAnalysis job handoff', () => {
     expect(ws.setMasteredBlindSpotIds).toHaveBeenCalledWith(oldRecord.masteredBlindSpotIds)
     expect(ws.setClaimPriorityOverrides).toHaveBeenCalledWith(oldRecord.claimPriorityOverrides)
     expect(library.updateResumeDocument).toHaveBeenCalledWith(document().id, { recordId: oldRecord.id, review: submission })
-    expect(nav.push).toHaveBeenCalledWith('workspace', 'audit')
+    expect(nav.push).toHaveBeenCalledWith('workspace', 'interview')
   })
 
   it('uses an explicit job document during immediate handoff even before workspace state rerenders', async () => {

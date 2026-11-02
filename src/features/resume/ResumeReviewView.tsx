@@ -336,19 +336,19 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
   return (
     <Frame className={embedded ? 'resume-workbench flex h-full min-h-0 flex-col' : 'flex flex-col'}>
       <header className="flex h-14 flex-none items-center gap-4 border-b border-line px-4 sm:px-6">
-        <strong className="flex-none text-[14px] font-semibold">{embedded ? '简历检查' : 'Resume Grill'}</strong>
+        <strong className="flex-none text-body font-semibold">{embedded ? '简历检查' : 'Resume Grill'}</strong>
         <span className="h-4 w-px flex-none bg-line" />
-        <span className="flex min-w-0 flex-1 items-center gap-2 text-[12px] text-text-secondary">{documentPicker ?? <><FileText size={14} className="flex-none max-sm:hidden" /><span className="truncate">{sourceFile}</span></>}</span>
-        <span className="flex-none text-[12px] text-text-tertiary max-md:hidden">{editingText.length} 字 · {pdf.artifact?.pageCount ?? extracted.pageCount} 页</span>
+        <span className="flex min-w-0 flex-1 items-center gap-2 text-meta text-text-secondary">{documentPicker ?? <><FileText size={14} className="flex-none max-sm:hidden" /><span className="truncate">{sourceFile}</span></>}</span>
+        <span className="flex-none text-meta text-text-tertiary max-md:hidden">{editingText.length} 字 · {pdf.artifact?.pageCount ?? extracted.pageCount} 页</span>
         <div className="flex flex-none items-center gap-1">
-          {onDownloadResume && <Button aria-label="下载简历" title={revisionPending ? '请先保存新稿或放弃修改' : '下载当前简历附件'} className="h-8 px-2.5 text-[12px]" variant="ghost" disabled={workflowBlocked || downloading} onClick={() => { void downloadResume() }}>{downloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}<span className="max-sm:hidden">下载简历</span></Button>}
-          <Button aria-label="邮箱投递" className="h-8 px-2.5 text-[12px]" variant="ghost" disabled={analyzing || revisionBusy || leaving} onClick={() => { void leaveReview(onApplications) }}><Mail size={15} /><span className="max-sm:hidden">邮箱投递</span></Button>
-          <Button aria-label="模型设置" className="h-8 px-2.5 text-[12px]" variant="ghost" disabled={analyzing || revisionBusy || leaving} onClick={() => setSettingsOpen(true)}><Settings size={15} /><span className="max-sm:hidden">模型设置</span></Button>
-          <Button aria-label="返回简历库" className="h-8 px-2.5 text-[12px]" variant="ghost" onClick={() => { void leaveReview(onBack) }} disabled={analyzing || revisionBusy || leaving}><ArrowLeft size={15} /><span className="max-sm:hidden">简历库</span></Button>
+          {onDownloadResume && <Button aria-label="下载简历" title={revisionPending ? '请先保存新稿或放弃修改' : '下载当前简历附件'} className="h-8 px-2.5 text-label" variant="ghost" disabled={workflowBlocked || downloading} onClick={() => { void downloadResume() }}>{downloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}<span className="max-sm:hidden">下载简历</span></Button>}
+          <Button aria-label="邮箱投递" className="h-8 px-2.5 text-label" variant="ghost" disabled={analyzing || revisionBusy || leaving} onClick={() => { void leaveReview(onApplications) }}><Mail size={15} /><span className="max-sm:hidden">邮箱投递</span></Button>
+          <Button aria-label="模型设置" className="h-8 px-2.5 text-label" variant="ghost" disabled={analyzing || revisionBusy || leaving} onClick={() => setSettingsOpen(true)}><Settings size={15} /><span className="max-sm:hidden">模型设置</span></Button>
+          <Button aria-label="返回简历库" className="h-8 px-2.5 text-label" variant="ghost" onClick={() => { void leaveReview(onBack) }} disabled={analyzing || revisionBusy || leaving}><ArrowLeft size={15} /><span className="max-sm:hidden">简历库</span></Button>
         </div>
       </header>
 
-      {jobContext && <div className="flex flex-none flex-wrap items-center gap-x-4 gap-y-1 border-b border-line bg-brand-soft px-4 py-2 text-[12px] sm:px-6">
+      {jobContext && <div className="flex flex-none flex-wrap items-center gap-x-4 gap-y-1 border-b border-line bg-brand-soft px-4 py-2 text-body sm:px-6">
         <strong className="font-medium">{jobContext.company} / {jobContext.role}</strong>
         <span className="text-text-secondary">{sourceFile} · 版本 {jobContext.resumeVersion.slice(0, 8)}</span>
         <button type="button" className="ml-auto text-text-secondary underline underline-offset-4" disabled={analyzing || revisionBusy || leaving} onClick={() => { void leaveReview(onApplications) }}>返回投递清单</button>
@@ -368,14 +368,14 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
         </details>}
         {photoUnresolved && <p role="status" className="resume-photo-warning">{sourcePhotos.loading ? '正在读取原文件图片，可先预览排版。' : '请在照片设置中确认要保留的照片，再保存新稿。'}</p>}
       </div>}
-      {tab === 'raw' && <div className="flex flex-none items-center gap-4 border-b border-line px-6 py-2 text-[12px]"><span className="mr-auto text-text-tertiary max-sm:hidden">选择段落修改，右侧预览同步更新</span><button type="button" aria-pressed={writingMode === 'paragraphs'} onClick={() => setWritingMode('paragraphs')}>逐条修改</button><button type="button" aria-pressed={writingMode === 'full'} onClick={() => setWritingMode('full')}>全文重写</button></div>}
+      {tab === 'raw' && <div className="flex flex-none items-center gap-4 border-b border-line px-6 py-2 text-body"><span className="mr-auto text-text-tertiary max-sm:hidden">选择段落修改，右侧预览同步更新</span><button type="button" aria-pressed={writingMode === 'paragraphs'} onClick={() => setWritingMode('paragraphs')}>逐条修改</button><button type="button" aria-pressed={writingMode === 'full'} onClick={() => setWritingMode('full')}>全文重写</button></div>}
       {revisionDraft && <ResumeRevisionToolbar text={revisionDraft.text} conflict={revisionConflict} saving={revisionBusy || leaving || analyzing || photoReading} draftStatus={draftSaveState} pdfReady={!!pdf.artifact && !photoUnresolved} error={revisionError} onPreview={() => setPreviewOpen(true)} onSave={() => { void saveRevision() }} onDiscard={() => { void discardRevision() }} />}
 
       <div className="relative flex min-h-0 flex-1">
         {tab === 'structure' && <>
           {sidebarOpen && <button type="button" className="absolute inset-0 z-30 bg-black/15 min-[900px]:hidden" aria-label="关闭目录" onClick={() => setSidebarOpen(false)} />}
           <div className={['min-h-0 flex-none flex-col border-r border-line bg-surface-soft min-[900px]:flex min-[900px]:w-52', sidebarOpen ? 'absolute inset-y-0 left-0 z-40 flex w-[260px] min-[900px]:static' : 'hidden'].join(' ')}>
-            <div className="flex h-12 flex-none items-center justify-between border-b border-line px-5 text-[13px] min-[900px]:hidden">
+            <div className="flex h-12 flex-none items-center justify-between border-b border-line px-5 text-body min-[900px]:hidden">
               文档目录<button type="button" aria-label="收起目录" onClick={() => setSidebarOpen(false)}><X size={16} /></button>
             </div>
             <ResumeReviewSidebar sections={sections} sectionTitles={groupedCandidates.map(([title]) => title)} onSectionClick={scrollToSection} />
@@ -384,13 +384,13 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
 
         <main className="flex min-h-0 min-w-0 flex-1 flex-col">
           {tab !== 'structure' ? <>
-            <div className="flex flex-none items-center gap-4 border-b border-line px-4 py-2 text-[12px] min-[1100px]:hidden">
+            <div className="flex flex-none items-center gap-4 border-b border-line px-4 py-2 text-body min-[1100px]:hidden">
               <button type="button" aria-pressed={!mobileDocument} className={!mobileDocument ? 'font-semibold' : 'text-text-tertiary'} onClick={() => setMobileDocument(false)}>{tab === 'raw' ? '全文编辑' : '修改建议'}</button>
               <button type="button" aria-pressed={mobileDocument} className={mobileDocument ? 'font-semibold' : 'text-text-tertiary'} onClick={() => setMobileDocument(true)}>简历预览</button>
             </div>
             <div className="grid min-h-0 flex-1 grid-cols-1 min-[1100px]:grid-cols-[minmax(360px,0.9fr)_minmax(0,1.1fr)]">
               <div className={`min-h-0 min-w-0 flex-col ${mobileDocument ? 'hidden min-[1100px]:flex' : 'flex'}`}>
-                {tab === 'diagnosis' ? <ResumeDiagnosisStep diagnosis={diagnosis} configured={envConfigured || clientConfigured} demo={demo} analyzing={analyzing || revisionBusy || leaving} jobDescription={jobDescription} onJobDescriptionChange={setJobDescription} onConfigure={() => setSettingsOpen(true)} revisionPending={revisionPending || draftSaveState !== 'saved'} onIssueSelect={evidence => setEditRequest({ evidence, time: Date.now() })} renderIssueEditor={evidence => <div className="mt-4"><Button variant="secondary" className="h-8 px-3 text-[12px]" disabled={analyzing || revisionBusy || leaving || revisionConflict || diagnosis.loading} onClick={() => { setEditRequest({ evidence, time: Date.now() }); setMobileDocument(true) }}>定位并修改</Button></div>} />
+                {tab === 'diagnosis' ? <ResumeDiagnosisStep diagnosis={diagnosis} configured={envConfigured || clientConfigured} demo={demo} analyzing={analyzing || revisionBusy || leaving} jobDescription={jobDescription} onJobDescriptionChange={setJobDescription} onConfigure={() => setSettingsOpen(true)} revisionPending={revisionPending || draftSaveState !== 'saved'} onIssueSelect={evidence => setEditRequest({ evidence, time: Date.now() })} renderIssueEditor={evidence => <div className="mt-4"><Button variant="secondary" className="h-8 px-3 text-label" disabled={analyzing || revisionBusy || leaving || revisionConflict || diagnosis.loading} onClick={() => { setEditRequest({ evidence, time: Date.now() }); setMobileDocument(true) }}>定位并修改</Button></div>} />
                   : writingMode === 'full' || !paragraphSections.length ? <ResumeTextEditor text={revisionConflict ? text : editingText} analyzing={analyzing || revisionBusy || leaving || revisionConflict || diagnosis.loading} onTextChange={updateText} /> : <div className="min-h-0 flex-1 overflow-y-auto bg-surface-soft p-4"><ResumeParagraphEditor sections={paragraphSections} originals={originalParagraphs} selected={editingParagraph} disabled={analyzing || revisionBusy || leaving || revisionConflict || diagnosis.loading} onSelect={setEditingParagraph} onChange={changeParagraph} onReset={resetParagraph} /></div>}
               </div>
               <div className={`min-h-0 min-w-0 flex-col ${mobileDocument ? 'flex' : 'hidden min-[1100px]:flex'}`}>
@@ -401,13 +401,13 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
             <div className="flex min-h-16 flex-none flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-6">
               <div className="flex items-center gap-3">
                 <button type="button" className="grid size-8 place-items-center text-text-secondary hover:bg-surface-hover min-[900px]:hidden" aria-label="打开文档目录" onClick={() => setSidebarOpen(true)}><Menu size={16} /></button>
-                <strong className="text-[14px] font-semibold">练习内容</strong>
-                <span className="text-[12px] text-text-tertiary">{selectedCandidates.length} / {candidates.length} 条</span>
+                <strong className="text-body font-semibold">练习内容</strong>
+                <span className="text-meta text-text-tertiary">{selectedCandidates.length} / {candidates.length} 条</span>
               </div>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" className="h-8 px-2.5 text-[12px]" disabled={workflowBlocked} onClick={selectAll}>全选</Button>
-                <Button variant="ghost" className="h-8 px-2.5 text-[12px]" disabled={workflowBlocked} onClick={clearAll}>清空</Button>
-                <Button variant="ghost" className="h-8 px-2.5 text-[12px]" disabled={workflowBlocked} onClick={keepProjects}>仅项目</Button>
+                <Button variant="ghost" className="h-8 px-2.5 text-label" disabled={workflowBlocked} onClick={selectAll}>全选</Button>
+                <Button variant="ghost" className="h-8 px-2.5 text-label" disabled={workflowBlocked} onClick={clearAll}>清空</Button>
+                <Button variant="ghost" className="h-8 px-2.5 text-label" disabled={workflowBlocked} onClick={keepProjects}>仅项目</Button>
               </div>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
@@ -430,18 +430,18 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
         </main>
       </div>
 
-      {error && <p role="alert" className="m-0 flex-none border-t border-line px-6 py-2 text-[12px] text-danger">{error}</p>}
-      {!revisionDraft && revisionError && <p role="alert" className="m-0 flex-none border-t border-line px-6 py-2 text-[12px] text-danger">{revisionError}</p>}
-      {!revisionDraft && draftSaveState === 'error' && <div role="alert" className="flex flex-none items-center gap-3 border-t border-line px-6 py-2 text-[12px] text-danger"><span>已恢复原文，但旧暂存稿未能清除。</span><button type="button" disabled={revisionBusy || leaving || analyzing} className="underline underline-offset-4" onClick={() => { void discardRevision() }}>重试清除</button></div>}
+      {error && <p role="alert" className="m-0 flex-none border-t border-line px-6 py-2 text-body text-danger">{error}</p>}
+      {!revisionDraft && revisionError && <p role="alert" className="m-0 flex-none border-t border-line px-6 py-2 text-body text-danger">{revisionError}</p>}
+      {!revisionDraft && draftSaveState === 'error' && <div role="alert" className="flex flex-none items-center gap-3 border-t border-line px-6 py-2 text-body text-danger"><span>已恢复原文，但旧暂存稿未能清除。</span><button type="button" disabled={revisionBusy || leaving || analyzing} className="underline underline-offset-4" onClick={() => { void discardRevision() }}>重试清除</button></div>}
       <footer className="flex min-h-14 flex-none flex-wrap items-center justify-between gap-2 border-t border-line bg-surface-soft px-4 py-2.5 sm:px-6">
-        <span className="flex flex-col gap-1 text-[12px] text-text-tertiary" role="status">
+        <span className="flex flex-col gap-1 text-meta text-text-tertiary" role="status">
           <span className={saveState === 'error' ? 'text-danger' : ''}>{saveState === 'saving' ? '正在保存到本地…' : saveState === 'saved' ? '已保存到此浏览器' : '本地保存失败，请导出检查结果备份。'}</span>
           {revisionPending ? '保存新稿后可以重新检查或练习。' : tab === 'raw' ? '原文件保留，修改另存为新稿。' : selectedCandidates.length > 0 ? `已选 ${selectedCandidates.length} 条练习内容` : '到「练习内容」中选几条经历。'}
         </span>
         {tab !== 'raw' && <div className="flex items-center gap-2">
-          <Button variant="primary" className="h-9 whitespace-nowrap px-4 text-[13px]" disabled={workflowBlocked || selectedCandidates.length === 0} onClick={submit}>
+          <Button variant="primary" className="h-9 whitespace-nowrap px-4 text-label" disabled={workflowBlocked || selectedCandidates.length === 0} onClick={submit}>
             {analyzing ? <Loader2 size={14} className="animate-spin" /> : null}
-            {analyzing ? '正在准备练习' : diagnosis.loading ? '跳过检查，进入练习' : '进入面试练习'}{!analyzing && <ArrowRight size={14} />}
+            {analyzing ? '正在准备练习' : diagnosis.loading ? '跳过检查，准备面试' : '准备面试内容'}{!analyzing && <ArrowRight size={14} />}
           </Button>
         </div>}
       </footer>
@@ -449,8 +449,8 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} envConfigured={envConfigured} clientConfigured={clientConfigured} onClientChanged={onClientChanged} />
       {revisionDraft && <ResumeRevisionPreview open={previewOpen} baseText={revisionDraft.baseText} text={revisionDraft.text} artifact={pdf.artifact} error={pdf.error} onClose={() => setPreviewOpen(false)} />}
       {lastDeleted && <div className="fixed bottom-16 left-1/2 z-50 flex max-w-[calc(100%-32px)] -translate-x-1/2 items-center gap-3 border border-line-strong bg-white px-4 py-2.5">
-        <span className="truncate text-[12px] text-text-secondary">已删除：{lastDeleted.candidate.content.slice(0, 24)}</span>
-        <button type="button" disabled={workflowBlocked} onClick={undoDelete} className="text-[12px] text-brand disabled:opacity-40">撤销</button>
+        <span className="truncate text-meta text-text-secondary">已删除：{lastDeleted.candidate.content.slice(0, 24)}</span>
+        <button type="button" disabled={workflowBlocked} onClick={undoDelete} className="text-label text-brand disabled:opacity-40">撤销</button>
         <button type="button" onClick={() => setLastDeleted(null)} aria-label="关闭"><X size={14} /></button>
       </div>}
     </Frame>
@@ -459,7 +459,7 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
 
 function ReviewTab({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
   return (
-    <button type="button" role="tab" aria-selected={active} onClick={onClick} className={['border-b-2 px-3 text-[13px] font-medium', active ? 'border-brand text-text-primary' : 'border-transparent text-text-tertiary hover:text-text-secondary'].join(' ')}>
+    <button type="button" role="tab" aria-selected={active} onClick={onClick} className={['border-b-2 px-3 text-label font-medium', active ? 'border-brand text-text-primary' : 'border-transparent text-text-tertiary hover:text-text-secondary'].join(' ')}>
       {children}
     </button>
   )

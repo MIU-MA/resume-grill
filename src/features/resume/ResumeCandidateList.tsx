@@ -30,10 +30,10 @@ export function ResumeCandidateList({
       {groupedCandidates.length === 0 ? (
         <div className="px-6 py-16 text-center">
           <Target size={24} className="mx-auto mb-3 text-text-tertiary" />
-          <p className="m-0 text-[14px] font-semibold">
+          <p className="m-0 text-body font-semibold">
             没有识别到可练习的内容
           </p>
-          <p className="mt-2 text-[12px] text-text-tertiary">
+          <p className="mt-2 text-meta text-text-tertiary">
             切换到原始文本检查章节标题和列表内容。
           </p>
         </div>
@@ -46,10 +46,10 @@ export function ResumeCandidateList({
               )}`}
               className="flex scroll-mt-20 items-center justify-between bg-surface-soft px-5 py-2.5"
             >
-              <h2 className="m-0 text-[12px] font-bold text-text-secondary">
+              <h2 className="m-0 text-section font-bold text-text-secondary">
                 {section}
               </h2>
-              <span className="text-[11px] text-text-tertiary">
+              <span className="text-meta text-text-tertiary">
                 {items.length} 条
               </span>
             </div>
@@ -94,7 +94,7 @@ export function ResumeCandidateList({
                         2,
                         Math.ceil(candidate.content.length / 48),
                       )}
-                      className="min-h-[58px] min-w-0 flex-1 resize-y rounded-lg border border-brand bg-white px-3 py-2 text-[13px] leading-relaxed text-text-primary focus:border-brand focus:ring-[3px] focus:ring-brand/10"
+                      className="min-h-[58px] min-w-0 flex-1 resize-y rounded-lg border border-brand bg-white px-3 py-2 text-label leading-relaxed text-text-primary focus:border-brand focus:ring-[3px] focus:ring-brand/10"
                       aria-label={`${section}要点内容`}
                     />
                   ) : (
@@ -102,7 +102,7 @@ export function ResumeCandidateList({
                       type="button"
                       onClick={() => onSetEditing(candidate.id)}
                       disabled={analyzing}
-                      className="min-h-10 min-w-0 flex-1 cursor-pointer border border-transparent px-2 py-2 text-left text-[13px] leading-[1.75] text-text-primary transition-colors hover:border-line hover:bg-surface-soft disabled:cursor-default disabled:opacity-60"
+                      className="min-h-10 min-w-0 flex-1 cursor-pointer border border-transparent px-2 py-2 text-left text-label leading-[1.75] text-text-primary transition-colors hover:border-line hover:bg-surface-soft disabled:cursor-default disabled:opacity-60"
                       aria-label={`编辑要点：${candidate.content}`}
                     >
                       {candidate.content.trim() || (

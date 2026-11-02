@@ -15,6 +15,7 @@ type Props = {
   onStartInterview: () => void
   canContinueInterview: boolean
   interviewLoading: boolean
+  interviewActionLabel?: string
   onReport: () => void
   onSetClaimsPriority: (ids: string[], priority: TestPriority) => void
   onBatchTogglePrepared: (ids: string[]) => void
@@ -32,6 +33,7 @@ export function ClaimAuditView({
   onStartInterview,
   canContinueInterview,
   interviewLoading,
+  interviewActionLabel,
   onReport,
   onSetClaimsPriority,
   onBatchTogglePrepared,
@@ -40,9 +42,9 @@ export function ClaimAuditView({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex-none border-b border-line px-5 py-3 text-[12px] text-text-secondary">选一段经历开始练习。共 {analysis.claims.length} 项。</div>
+      <div className="flex-none border-b border-line px-5 py-3 text-body text-text-secondary">选一段经历开始练习。共 {analysis.claims.length} 项。</div>
       {error && (
-        <div role="alert" className="mx-4 mt-3 bg-danger-soft px-4 py-2 text-[13px] text-danger">
+        <div role="alert" className="mx-4 mt-3 bg-danger-soft px-4 py-2 text-body text-danger">
           {error}
         </div>
       )}
@@ -74,6 +76,7 @@ export function ClaimAuditView({
             onStartInterview={onStartInterview}
             canContinueInterview={canContinueInterview}
             interviewLoading={interviewLoading}
+            interviewActionLabel={interviewActionLabel}
             onSetPriority={(priority) =>
               onSetClaimsPriority([selected.id], priority)
             }

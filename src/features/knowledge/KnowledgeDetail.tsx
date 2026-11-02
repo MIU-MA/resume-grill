@@ -42,19 +42,19 @@ export function KnowledgeDetail({
   if (editing) {
     return (
       <div className="space-y-3 p-5">
-        <div className="text-[13px] font-bold">编辑笔记</div>
+        <div className="text-body font-bold">编辑笔记</div>
         <input
           autoFocus
           value={draft.title}
           onChange={(e) => onDraftChange({ ...draft, title: e.target.value })}
-          className="w-full rounded-lg border border-brand bg-white px-3 py-2 text-[13px] font-medium text-text-primary focus:outline-none"
+          className="w-full rounded-lg border border-brand bg-white px-3 py-2 text-label font-medium text-text-primary focus:outline-none"
         />
         <textarea
           value={draft.note}
           onChange={(e) => onDraftChange({ ...draft, note: e.target.value })}
           rows={4}
           placeholder="备注（可选）…"
-          className="w-full resize-y rounded-lg border border-line-strong bg-white px-3 py-2 text-[12px] text-text-primary placeholder:text-text-tertiary focus:border-brand focus:outline-none"
+          className="w-full resize-y rounded-lg border border-line-strong bg-white px-3 py-2 text-label text-text-primary placeholder:text-text-tertiary focus:border-brand focus:outline-none"
         />
         <div className="flex items-center justify-end gap-2">
           <Button variant="ghost" onClick={onCancelEdit}><X size={14} />取消</Button>
@@ -69,15 +69,15 @@ export function KnowledgeDetail({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className={`rounded px-2 py-0.5 text-[10px] font-semibold ${meta.className}`}>{meta.label}</span>
+            <span className={`rounded px-2 py-0.5 text-aux font-semibold ${meta.className}`}>{meta.label}</span>
             {claim && (
-              <span className="rounded bg-surface-hover px-2 py-0.5 text-[10px] font-semibold text-text-tertiary">{claim.title}</span>
+              <span className="rounded bg-surface-hover px-2 py-0.5 text-aux font-semibold text-text-tertiary">{claim.title}</span>
             )}
             {mastered && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-success"><Check size={12} />已学会</span>
+              <span className="inline-flex items-center gap-1 text-meta font-semibold text-success"><Check size={12} />已学会</span>
             )}
           </div>
-          <h3 className="mt-2.5 m-0 text-[15px] font-bold leading-snug text-text-primary">{item.title}</h3>
+          <h3 className="mt-2.5 m-0 text-section font-bold leading-snug text-text-primary">{item.title}</h3>
         </div>
         <div ref={ref} className="relative flex-none">
           <button
@@ -102,11 +102,11 @@ export function KnowledgeDetail({
 
       <div className="mt-4 flex-1 space-y-1.5 overflow-y-auto">
         {(item.detail || item.note) ? (
-          <p className="text-[13px] leading-relaxed text-text-secondary whitespace-pre-wrap">
+          <p className="text-body leading-relaxed text-text-secondary whitespace-pre-wrap">
             {item.detail || item.note}
           </p>
         ) : (
-          <p className="text-[12px] text-text-tertiary">还没有写笔记。</p>
+          <p className="text-meta text-text-tertiary">还没有写笔记。</p>
         )}
       </div>
 
@@ -115,7 +115,7 @@ export function KnowledgeDetail({
           <Check size={15} />{mastered ? '标为待复习' : '标为已学会'}
         </Button>
         {!claim && (
-          <p className="mt-2 text-center text-[11px] text-text-tertiary">手动添加的内容不关联简历要点。</p>
+          <p className="mt-2 text-center text-meta text-text-tertiary">手动添加的内容不关联简历要点。</p>
         )}
       </div>
     </div>
@@ -127,7 +127,7 @@ function MenuItem({ onClick, danger, children }: { onClick: () => void; danger?:
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-2 px-3.5 py-2.5 text-[13px] transition-colors hover:bg-surface-hover ${danger ? 'text-danger' : 'text-text-primary'}`}
+      className={`flex w-full items-center gap-2 px-3.5 py-2.5 text-label transition-colors hover:bg-surface-hover ${danger ? 'text-danger' : 'text-text-primary'}`}
     >
       {children}
     </button>

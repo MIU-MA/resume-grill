@@ -21,8 +21,8 @@ const VARIANTS: Record<Variant, string> = {
 }
 
 const SIZES: Record<Size, string> = {
-  normal: 'h-9 px-4 text-[13px]',
-  large: 'h-10 px-5 text-[14px]',
+  normal: 'h-9 px-4 text-label',
+  large: 'h-10 px-5 text-label',
 }
 
 export function Button({ variant = 'primary', size = 'normal', loading, className, children, disabled, ...props }: ButtonProps) {

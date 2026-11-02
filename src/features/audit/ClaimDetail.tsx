@@ -13,11 +13,12 @@ type ClaimDetailProps = {
   onStartInterview: () => void
   canContinueInterview: boolean
   interviewLoading: boolean
+  interviewActionLabel?: string
   progress?: ClaimProgress
   onSetPriority?: (priority: TestPriority) => void
 }
 
-export function ClaimDetail({ claim, priority, prepared, mastery, onReport, onTogglePrepared, onStartInterview, canContinueInterview, interviewLoading, progress, onSetPriority }: ClaimDetailProps) {
+export function ClaimDetail({ claim, priority, prepared, mastery, onReport, onTogglePrepared, onStartInterview, canContinueInterview, interviewLoading, interviewActionLabel, progress, onSetPriority }: ClaimDetailProps) {
   return <div className="preparation-detail">
     <div className="preparation-scroll">
       <header className="preparation-heading">
@@ -48,7 +49,7 @@ export function ClaimDetail({ claim, priority, prepared, mastery, onReport, onTo
     </div>
     <footer className="preparation-actions">
       <span className="preparation-state"><span className={prepared ? 'is-ready' : ''} />{canContinueInterview ? '这项内容有未完成的练习' : '开始后直接进入第一题'}</span>
-      <div><Button variant="secondary" onClick={onTogglePrepared} aria-pressed={prepared}>{prepared && <Check size={14} />}{prepared ? '已准备' : '标记已准备'}</Button><Button onClick={onStartInterview} disabled={interviewLoading} aria-busy={interviewLoading}>{interviewLoading ? '正在处理…' : canContinueInterview ? '继续练习' : '开始练习'}<ArrowRight size={14} /></Button></div>
+      <div><Button variant="ghost" onClick={onTogglePrepared} aria-pressed={prepared}>{prepared && <Check size={14} />}{prepared ? '已加入练习清单' : '加入练习清单'}</Button><Button onClick={onStartInterview} disabled={interviewLoading} aria-busy={interviewLoading}>{interviewLoading ? '正在处理…' : interviewActionLabel ?? (canContinueInterview ? '继续面试' : '开始面试')}<ArrowRight size={14} /></Button></div>
     </footer>
   </div>
 }

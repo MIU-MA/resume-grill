@@ -12,7 +12,7 @@ export function QuickMail({ disabled, onPreview }: { disabled: boolean; onPrevie
       <input id="quick-mail-recipient" className="mail-input min-w-0 flex-1 basis-[240px]" type="email" required maxLength={254} placeholder="jobs@example.com" value={recipient} disabled={disabled} onChange={event => setRecipient(event.target.value)} />
       <Button type="submit" disabled={disabled || !recipient.trim()}>{jobDescription.trim() ? '按 JD 修改简历' : '预览邮件'}</Button>
     </div>
-    <details className="mt-3 text-[12px]"><summary className="cursor-pointer text-text-secondary">附上 JD，针对这个岗位修改简历（选填）</summary><label className="mail-label mt-3">岗位职责与要求<textarea className="mail-input min-h-[120px] resize-y leading-[1.8]" maxLength={12000} value={jobDescription} disabled={disabled} placeholder="粘贴 JD，生成修改稿后逐段核对。" onChange={event => setJobDescription(event.target.value)} /></label></details>
-    <p className="mb-0 mt-2 text-[12px] text-text-tertiary">使用上方简历。公司、岗位不用填；有 JD 时可生成单独的投递版 PDF。</p>
+    <details className="mt-3 text-body"><summary className="cursor-pointer text-text-secondary">附上 JD，针对这个岗位修改简历（选填）</summary><label className="mail-label mt-3">岗位职责与要求<textarea className="mail-input min-h-[120px] resize-y leading-[1.8]" maxLength={12000} value={jobDescription} disabled={disabled} placeholder="粘贴 JD，生成修改稿后逐段核对。" onChange={event => setJobDescription(event.target.value)} /></label></details>
+    <p className="mb-0 mt-2 text-meta text-text-tertiary">使用上方简历。公司、岗位不用填；有 JD 时可生成单独的投递版 PDF。</p>
   </form>
 }

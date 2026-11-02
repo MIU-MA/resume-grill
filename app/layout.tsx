@@ -11,6 +11,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="zh-CN" suppressHydrationWarning>
+      <head><link rel="preload" href="/fonts/InterVariable-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" /></head>
       <body suppressHydrationWarning>{children}</body>
     </html>
   )

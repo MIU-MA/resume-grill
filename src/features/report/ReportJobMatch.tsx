@@ -13,13 +13,13 @@ export function ReportJobMatch({ jobMatch }: ReportJobMatchProps) {
         <div className="flex items-center gap-2">
           <Target size={16} className="text-brand" />
           <div>
-            <h2 className="m-0 text-[15px] font-bold">对照岗位要求</h2>
-            <p className="mt-1 text-[12px] text-text-tertiary">
+            <h2 className="m-0 text-section font-bold">对照岗位要求</h2>
+            <p className="mt-1 text-meta text-text-tertiary">
               看看哪些要求在简历里有对应经历，哪些还没写清。
             </p>
           </div>
         </div>
-        <span className="text-[12px] text-text-tertiary">
+        <span className="text-meta text-text-tertiary">
           {jobMatch.requirements.length} 项要求
         </span>
       </div>
@@ -30,7 +30,7 @@ export function ReportJobMatch({ jobMatch }: ReportJobMatchProps) {
             className="grid grid-cols-[92px_minmax(0,1fr)_minmax(0,1.2fr)] gap-4 px-5 py-3.5 max-[720px]:grid-cols-1 max-[720px]:gap-1.5"
           >
             <div
-              className={`flex items-center gap-1.5 text-[12px] font-semibold ${
+              className={`flex items-center gap-1.5 text-body font-semibold ${
                 item.match === 'strong'
                   ? 'text-success'
                   : item.match === 'partial'
@@ -49,10 +49,10 @@ export function ReportJobMatch({ jobMatch }: ReportJobMatchProps) {
                   ? '还需补充'
                   : '简历没写'}
             </div>
-            <p className="m-0 text-[13px] leading-relaxed text-text-primary">
+            <p className="m-0 text-body leading-relaxed text-text-primary">
               {item.requirement}
             </p>
-            <div className="text-[12px] leading-relaxed text-text-tertiary">
+            <div className="text-body leading-relaxed text-text-tertiary">
               <p className="m-0">{item.note}</p>
               {item.evidence.length > 0 && (
                 <p className="mt-1 text-text-secondary">

@@ -47,14 +47,18 @@ export function useResumeAnalysis(
       ws.setMasteredBlindSpotIds(record.masteredBlindSpotIds)
       ws.setClaimPriorityOverrides(record.claimPriorityOverrides ?? {})
       ws.setRecordId(record.id)
-      ws.setSelectedIndex(0)
+      const unfinished = Object.entries(record.sessions).flatMap(([claimId, sessions]) => { const session = [...sessions].sort((a, b) => b.version - a.version)[0]; return session?.status === 'in_progress' ? [{ claimId, session }] : [] }).sort((a, b) => b.session.version - a.session.version)[0]
+      const lastClaim = window.sessionStorage.getItem(`resume-grill:last-claim:${record.id}`)
+      const index = record.analysis.claims.findIndex(claim => claim.id === (unfinished?.claimId ?? lastClaim))
+      ws.setSelectedIndex(index >= 0 ? index : 0)
+      ws.setRecoveredFromStorage(true)
       ws.setPendingExtracted(null)
       ws.setError(null)
       window.sessionStorage.setItem('resume-grill:active', record.id)
       const pending = ws.pendingExtracted
       const pendingMatches = pending?.initialReview && newRecordId({ ...pending.initialReview, jobContext: pending.jobContext, revisionId: pending.revisionId }) === newRecordId(record.analysis)
       void setCurrentResumeDocument(document?.id ?? (pendingMatches ? pending.documentId : undefined) ?? record.analysis.jobContext?.resumeDocumentId ?? null).catch(() => undefined)
-      push('workspace', 'audit')
+      push('workspace', unfinished ? 'interview' : 'audit')
     },
     [ws, push],
   )

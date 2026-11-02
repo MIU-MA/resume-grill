@@ -74,8 +74,8 @@ export function ResumeCheckWorkspace(props: Props) {
     <WorkspaceSidebar mode="diagnosis" collapsed={false} onToggleCollapsed={() => {}} onNavigate={props.onNavigate} badges={props.badges} onOpenHistory={props.onHome} onOpenSettings={() => setSettingsOpen(true)} variant="drawer" open={navOpen} onClose={() => setNavOpen(false)} />
     <main className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label="独立简历检查">
       <input ref={input} type="file" accept=".pdf,.docx,.txt,.md" className="hidden" aria-label="上传要检查的简历" onChange={event => void upload(event.target.files?.[0])} />
-      {!document && <header className="flex h-14 flex-none items-center gap-3 border-b border-line px-5"><button type="button" aria-label="打开导航" onClick={() => setNavOpen(true)} className="min-[900px]:hidden"><Menu size={16} /></button><strong className="text-[14px]">简历检查</strong></header>}
-      {loading ? <p role="status" className="p-6 text-[13px] text-text-tertiary">正在读取简历…</p> : document ? <ResumeReviewView
+      {!document && <header className="flex h-14 flex-none items-center gap-3 border-b border-line px-5"><button type="button" aria-label="打开导航" onClick={() => setNavOpen(true)} className="min-[900px]:hidden"><Menu size={16} /></button><strong className="text-body">简历检查</strong></header>}
+      {loading ? <p role="status" className="p-6 text-body text-text-tertiary">正在读取简历…</p> : document ? <ResumeReviewView
         key={document.id} embedded documentPicker={picker} initialTab={!document.extracted.text.trim() ? 'raw' : 'diagnosis'}
         sourceFile={document.sourceFile} demo={document.demo} extracted={document.extracted}
         initialReview={document.review} initialRevisionDraft={document.revisionDraft} initialPdfTemplate={document.pdfTemplate} initialPhoto={document.photo}
@@ -99,7 +99,7 @@ export function ResumeCheckWorkspace(props: Props) {
           void updateResumeDocument(snapshot.id, { review }).then(() => props.onPractice({ ...snapshot, review }, review))
             .catch(cause => setError(cause instanceof Error ? cause.message : '练习准备失败。')).finally(() => setBusy(false))
         }}
-      /> : <div className="m-auto max-w-md px-6 py-12 text-center"><h1 className="text-xl font-semibold">简历检查与修改</h1><p className="my-4 text-[13px] leading-relaxed text-text-secondary">导入简历直接修改，或使用已有的个人资料和经历生成一份新简历。</p><div className="flex justify-center gap-3"><Button disabled={busy} onClick={() => input.current?.click()}>导入简历</Button><Button variant="secondary" disabled={busy} onClick={create}>新建简历</Button></div>{error && <p role="alert" className="text-[12px] text-danger">{error}</p>}</div>}
+      /> : <div className="m-auto max-w-md px-6 py-12 text-center"><h1 className="text-title font-semibold">简历检查与修改</h1><p className="my-4 text-body leading-relaxed text-text-secondary">导入简历直接修改，或使用已有的个人资料和经历生成一份新简历。</p><div className="flex justify-center gap-3"><Button disabled={busy} onClick={() => input.current?.click()}>导入简历</Button><Button variant="secondary" disabled={busy} onClick={create}>新建简历</Button></div>{error && <p role="alert" className="text-body text-danger">{error}</p>}</div>}
     </main>
     <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} envConfigured={props.envConfigured} clientConfigured={props.clientConfigured} onClientChanged={props.onClientChanged} />
     {creating && <CreateResumeDialog source={document} onClose={() => setCreating(false)} onCreated={async (value, warning) => { await remember(value); setCreating(false); if (warning) setError(warning) }} />}

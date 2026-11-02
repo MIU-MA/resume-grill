@@ -16,14 +16,14 @@ export function ClaimBatchActions({
   if (selectedIds.length === 0) return null
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-t border-line bg-surface-soft px-3 py-2 text-[11px]">
+    <div className="flex flex-wrap items-center gap-2 border-t border-line bg-surface-soft px-3 py-2 text-meta">
       <span>已选 {selectedIds.length}</span>
       <button
         type="button"
         onClick={onMarkPrepared}
         className="rounded-md bg-white px-2 py-1 text-text-secondary hover:bg-surface-hover"
       >
-        标记已准备
+        加入练习清单
       </button>
       <select
         className="h-6 rounded-md border border-line bg-white px-1 text-text-secondary"

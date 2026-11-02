@@ -32,21 +32,21 @@ export function InterviewHeader({
       <div className="grid h-12 flex-none grid-cols-[minmax(32px,1fr)_auto_minmax(32px,1fr)] items-center gap-3 border-b border-line px-4 sm:px-5 md:px-6">
         <button
           type="button"
-          className="flex min-w-0 items-center gap-2 justify-self-start bg-transparent text-[13px] text-text-tertiary hover:text-text-secondary"
+          className="flex min-w-0 items-center gap-2 justify-self-start bg-transparent text-label text-text-tertiary hover:text-text-secondary"
           onClick={onBack}
         >
           <ArrowLeft size={15} />
           <span className="max-[720px]:hidden">返回准备内容</span>
         </button>
         <div className="min-w-0 text-center">
-          <span className="text-[14px] font-semibold text-text-primary">
+          <span className="text-body font-semibold text-text-primary">
             第 {roundNumber} 轮追问
           </span>
-          <span className="ml-2 text-[13px] text-text-tertiary max-[640px]:hidden">
+          <span className="ml-2 text-label text-text-tertiary max-[640px]:hidden">
             {title}
           </span>
           {version > 1 && (
-            <span className="ml-2 rounded bg-brand-soft px-1.5 py-0.5 text-[11px] font-medium text-brand">
+            <span className="ml-2 rounded bg-brand-soft px-1.5 py-0.5 text-meta font-medium text-brand">
               v{version}
             </span>
           )}
@@ -55,13 +55,13 @@ export function InterviewHeader({
           <button
             type="button"
             onClick={onToggleStatus}
-            className="inline-flex h-[28px] items-center gap-1.5 rounded-lg border border-line bg-white px-2.5 text-[12px] font-medium text-text-secondary"
+            className="inline-flex h-[28px] items-center gap-1.5 rounded-lg border border-line bg-white px-2.5 text-label font-medium text-text-secondary"
             aria-pressed={statusOpen}
             title="展开回答要点"
           >
             <List size={14} /><span className="max-[520px]:hidden">要点</span>
           </button>
-          <div className="inline-flex items-center rounded-lg bg-surface-soft p-0.5 text-[12px] font-medium max-[430px]:hidden">
+          <div className="inline-flex items-center rounded-lg bg-surface-soft p-0.5 text-body font-medium max-[430px]:hidden">
             <button
               type="button"
               onClick={() => {
@@ -93,7 +93,7 @@ export function InterviewHeader({
               显示提示
             </button>
           </div>
-          <span className="text-[12px] text-text-tertiary max-[900px]:hidden">
+          <span className="text-meta text-text-tertiary max-[900px]:hidden">
             已聊到 {coveredCount}/{totalCount}
           </span>
         </div>

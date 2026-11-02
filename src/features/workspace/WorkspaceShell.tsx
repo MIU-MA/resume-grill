@@ -6,13 +6,10 @@ import { Menu } from 'lucide-react'
 import type { ResumeAnalysis } from '@/domain/resume-schema'
 import type { Mode } from '@/application/types'
 import type { LlmMode } from '@/features/settings/hooks/use-llm-status'
-import type { SavedRecord } from '@/lib/storage'
 import type { SidebarBadges } from './WorkspaceSidebar'
 import { WorkspaceSidebar } from './WorkspaceSidebar'
 import { WorkspaceTopBar } from './WorkspaceTopBar'
-import { HistoryDialog } from '@/features/resume/HistoryDialog'
 import { SettingsDialog } from '@/features/settings/SettingsDialog'
-import { Toast } from '@/components/ui/Toast'
 import { WorkbenchFrame } from '@/components/layout/WorkbenchFrame'
 
 type Props = {
@@ -20,7 +17,6 @@ type Props = {
   llmMode: LlmMode | null
   envConfigured: boolean
   clientConfigured: boolean
-  toast: string
   children: ReactNode
   mode: Mode
   badges: SidebarBadges
@@ -28,29 +24,20 @@ type Props = {
   onClientChanged: () => void
   onExport: () => void
   onExportJson: () => void
-  onOpenSaved: (record: SavedRecord) => boolean
-  onDeleteSaved: (id: string) => Promise<void>
-  onNewResume: () => boolean
-  savedRecords: SavedRecord[]
-  loadingRecords: boolean
-  refreshSavedRecords: () => void
-  onDismissToast: () => void
+  onHome: () => void
 }
 
 export function WorkspaceShell(props: Props) {
   const [navOpen, setNavOpen] = useState(false)
-  const [historyOpen, setHistoryOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [navCollapsed, toggleCollapsed] = useSidebarCollapsed()
 
   const openHistory = () => {
-    props.refreshSavedRecords()
-    setHistoryOpen(true)
+    props.onHome()
   }
 
   return (
     <WorkbenchFrame className="flex">
-      <Toast message={props.toast} onDismiss={props.onDismissToast} />
       <WorkspaceSidebar
         variant="dock"
         mode={props.mode}
@@ -101,19 +88,6 @@ export function WorkspaceShell(props: Props) {
         </header>
         <main className="min-h-0 flex-1 overflow-hidden">{props.children}</main>
       </div>
-      <HistoryDialog
-        open={historyOpen}
-        records={props.savedRecords}
-        loading={props.loadingRecords}
-        onClose={() => setHistoryOpen(false)}
-        onOpenRecord={(record) => {
-          if (props.onOpenSaved(record)) setHistoryOpen(false)
-        }}
-        onDeleteRecord={props.onDeleteSaved}
-        onNewResume={() => {
-          if (props.onNewResume()) setHistoryOpen(false)
-        }}
-      />
       <SettingsDialog
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}

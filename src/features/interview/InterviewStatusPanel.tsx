@@ -23,7 +23,7 @@ export function InterviewStatusPanel({ selected, roundCount, covered, strictMode
         }`}
       >
         <div className="flex items-center justify-between border-b border-line px-5 py-3 min-[1200px]:hidden">
-          <span className="text-[13px] font-semibold text-text-primary">本轮进度</span>
+          <span className="text-label font-semibold text-text-primary">本轮进度</span>
           <button type="button" onClick={onClose} className="grid size-7 place-items-center rounded-lg bg-transparent text-text-tertiary hover:bg-surface-hover" aria-label="关闭">
             <X size={16} />
           </button>
@@ -33,10 +33,10 @@ export function InterviewStatusPanel({ selected, roundCount, covered, strictMode
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Target size={14} className="text-text-tertiary" />
-              <span className="text-[13px] font-semibold text-text-primary">本轮进度</span>
+              <span className="text-label font-semibold text-text-primary">本轮进度</span>
             </div>
             {strictMode ? (
-              <div className="rounded-lg border border-line bg-surface-soft px-3.5 py-3 text-[12px] leading-relaxed text-text-tertiary">
+              <div className="rounded-lg border border-line bg-surface-soft px-3.5 py-3 text-meta leading-relaxed text-text-tertiary">
                 提示已隐藏。切换到「显示提示」可查看回答要点和参考回答。
               </div>
             ) : (
@@ -44,8 +44,8 @@ export function InterviewStatusPanel({ selected, roundCount, covered, strictMode
                 {allPoints.map((point, i) => {
                   const done = coveredSet.has(point)
                   return (
-                    <li key={point} className="flex items-start gap-2 text-[13px]">
-                      <span className={`size-5 flex-none rounded-full grid place-items-center ${done ? 'bg-success-soft text-success' : 'bg-line text-text-tertiary'} text-[11px] font-medium`}>
+                    <li key={point} className="flex items-start gap-2 text-body">
+                      <span className={`size-5 flex-none rounded-full grid place-items-center ${done ? 'bg-success-soft text-success' : 'bg-line text-text-tertiary'} text-meta font-medium`}>
                         {done ? <Check size={11} /> : i + 1}
                       </span>
                       <span className={done ? 'text-text-secondary' : 'text-text-tertiary'}>{point}</span>
@@ -58,8 +58,8 @@ export function InterviewStatusPanel({ selected, roundCount, covered, strictMode
 
           {/* 当前进度 */}
           <div>
-            <span className="text-[13px] font-semibold text-text-primary">当前进度</span>
-            <p className="mt-2 text-[13px] text-text-secondary leading-relaxed">
+            <span className="text-label font-semibold text-text-primary">当前进度</span>
+            <p className="mt-2 text-body text-text-secondary leading-relaxed">
               {roundCount === 0
                 ? '还没有开始回答。'
                 : covered.length === 0

@@ -54,12 +54,12 @@ export function ResumeAnalysisOptions({
           aria-expanded={goalOpen}
         >
           <div>
-            <h2 className="m-0 text-[14px] font-bold">这次重点练什么</h2>
-            <p className="mt-1 text-[12px] text-text-tertiary">
+            <h2 className="m-0 text-label font-bold">这次重点练什么</h2>
+            <p className="mt-1 text-label text-text-tertiary">
               从选中的内容里，优先挑这类问题。
             </p>
           </div>
-          <span className="flex flex-none items-center gap-2 text-[12px] text-text-tertiary">
+          <span className="flex flex-none items-center gap-2 text-label text-text-tertiary">
             {ANALYSIS_GOALS.find((goal) => goal.value === analysisGoal)?.label}
             <ChevronDown
               size={14}
@@ -93,14 +93,14 @@ export function ResumeAnalysisOptions({
                     onChange={() => onGoalChange(goal.value)}
                     className="sr-only"
                   />
-                  <span className="flex items-center gap-2 text-[12px] font-bold text-text-primary">
+                  <span className="flex items-center gap-2 text-label font-bold text-text-primary">
                     <Icon
                       size={14}
                       className={active ? 'text-brand' : 'text-text-tertiary'}
                     />
                     {goal.label}
                     <span
-                      className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                      className={`rounded px-1.5 py-0.5 text-label font-semibold ${
                         active
                           ? 'bg-brand/10 text-brand'
                           : 'bg-surface-soft text-text-tertiary'
@@ -110,7 +110,7 @@ export function ResumeAnalysisOptions({
                     </span>
                     {active && <Check size={13} className="ml-auto text-brand" />}
                   </span>
-                  <span className="mt-1.5 block text-[11px] leading-relaxed text-text-tertiary">
+                  <span className="mt-1.5 block text-label leading-relaxed text-text-tertiary">
                     {goal.description}
                   </span>
                 </label>
@@ -128,15 +128,15 @@ export function ResumeAnalysisOptions({
           aria-expanded={jobDescriptionOpen}
         >
           <div>
-            <h2 className="m-0 text-[14px] font-bold">
+            <h2 className="m-0 text-label font-bold">
               目标岗位描述{' '}
               <span className="font-normal text-text-tertiary">可选</span>
             </h2>
-            <p className="mt-1 text-[12px] text-text-tertiary">
+            <p className="mt-1 text-label text-text-tertiary">
               贴上招聘要求，看看哪些经历需要补写、哪些问题值得先练。
             </p>
           </div>
-          <span className="flex flex-none items-center gap-2 text-[12px] text-text-tertiary">
+          <span className="flex flex-none items-center gap-2 text-label text-text-tertiary">
             {jobDescription.trim() && (
               <span className="font-semibold text-brand">
                 {jobDescription.trim().length} 字
@@ -152,7 +152,7 @@ export function ResumeAnalysisOptions({
         </button>
         {jobDescriptionOpen && (
           <textarea
-            className="mt-3 min-h-[120px] w-full resize-y rounded-lg border border-line-strong bg-white p-4 text-[13px] leading-[1.75] text-text-primary placeholder:text-text-tertiary focus:border-brand focus:ring-[3px] focus:ring-brand/10"
+            className="mt-3 min-h-[120px] w-full resize-y rounded-lg border border-line-strong bg-white p-4 text-label leading-[1.75] text-text-primary placeholder:text-text-tertiary focus:border-brand focus:ring-[3px] focus:ring-brand/10"
             value={jobDescription}
             onChange={(event) => onJobDescriptionChange(event.target.value)}
             disabled={analyzing}

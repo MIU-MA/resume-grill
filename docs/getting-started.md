@@ -76,6 +76,8 @@ npm run build:extension
 
 ## 模型配置
 
+所有设置入口都打开同一面板，分为「模型」「邮箱」「本机」。切换分类保留输入；保存后显示“已保存”，关闭未保存的表单会先确认。
+
 在「模型设置」填写 `Base URL`、`API Key`、`Model`，使用兼容 **OpenAI Chat Completions 协议及 JSON 输出**的服务。测试连接会实际请求模型，可能产生费用。
 
 可选择 OpenAI、DeepSeek、通义千问、智谱、MiniMax、Kimi、Gemini、硅基流动或 OpenRouter。填写 Key 后点击「读取可用模型」，从服务返回的列表选择型号，也可手动输入；读取列表不生成内容。预设更新不替换已保存的型号。切换供应商会清空表单中的旧 Key，需要填写对应平台的 Key，再保存。
@@ -136,3 +138,7 @@ npm run build
 - [参与开发](../CONTRIBUTING.md) · [安全报告](../SECURITY.md) · [发布验收](releasing.md)
 
 运行 `npx tsx scripts/crawl-careers.ts` 可刷新已配置来源的 `data/career-leads/latest.md` 和 `latest.json`；不会提交申请，也不更新人工核对日期。
+
+## 页面状态与回答草稿
+
+筛选、面试历史展开项和添加投递方式在当前标签页内保留。未提交回答与备注按简历、练习版本、轮次和问题暂存，刷新或切回原练习可恢复；提交失败保留草稿，成功后清理。已提交记录继续保存在简历库。关闭标签页会结束这份临时草稿。

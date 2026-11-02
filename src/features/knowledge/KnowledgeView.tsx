@@ -135,11 +135,11 @@ export function KnowledgeView({
       {/* 顶部概览 */}
       <div className="flex items-start justify-between gap-5 rounded-lg bg-white p-5 shadow-card max-[620px]:flex-col max-[620px]:p-4">
         <div>
-          <h2 className="m-0 text-[18px] font-bold tracking-[-0.025em]">复习笔记</h2>
-          <p className="mt-1.5 text-[13px] text-text-tertiary leading-relaxed">
+          <h2 className="m-0 text-title font-bold tracking-normal">复习笔记</h2>
+          <p className="mt-1.5 text-body text-text-tertiary leading-relaxed">
             面试里没懂的问题会记在这里，也可以自己添加笔记。
           </p>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px]">
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-body">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-warning-soft px-2.5 py-1 font-semibold text-warning">
               <CircleHelp size={12} />待复习 {openCount}
             </span>
@@ -192,7 +192,7 @@ export function KnowledgeView({
           {!selected ? (
             <div className="px-5 py-16 text-center">
               <Lightbulb size={22} className="mx-auto mb-3 text-text-tertiary" />
-              <p className="m-0 text-[13px] font-semibold">选择一条查看详情</p>
+              <p className="m-0 text-body font-semibold">选择一条查看详情</p>
             </div>
           ) : (
             <KnowledgeDetail
@@ -215,10 +215,10 @@ export function KnowledgeView({
       {/* 删除撤销条 */}
       {pendingDelete && (
         <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-line bg-white px-4 py-2.5 shadow-[0_8px_24px_rgba(16,24,40,0.12)]">
-          <span className="max-w-[260px] truncate text-[13px] text-text-secondary">
+          <span className="max-w-[260px] truncate text-label text-text-secondary">
             已删除「{pendingDelete.title}」
           </span>
-          <button type="button" onClick={undoDelete} className="bg-transparent text-[13px] font-semibold text-brand hover:underline">
+          <button type="button" onClick={undoDelete} className="bg-transparent text-label font-semibold text-brand hover:underline">
             撤销
           </button>
           <button type="button" onClick={() => setPendingDelete(null)} className="grid size-6 place-items-center rounded-md bg-transparent text-text-tertiary hover:bg-surface-hover" aria-label="关闭">

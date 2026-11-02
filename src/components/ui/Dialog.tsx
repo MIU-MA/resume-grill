@@ -9,6 +9,7 @@ type DialogProps = {
   label: string
   children: ReactNode
   panelClassName?: string
+  dismissOnBackdrop?: boolean
 }
 
 export function Dialog({
@@ -17,13 +18,14 @@ export function Dialog({
   label,
   children,
   panelClassName = '',
+  dismissOnBackdrop = false,
 }: DialogProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const isTopmost = () => {
     const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]')
     return dialogs.item(dialogs.length - 1) === panelRef.current?.parentElement
   }
-  useClickOutside(panelRef, () => { if (isTopmost()) onClose() }, open)
+  useClickOutside(panelRef, () => { if (dismissOnBackdrop && isTopmost()) onClose() }, open)
 
   useEffect(() => {
     if (!open) return

@@ -67,7 +67,7 @@ export function InterviewComposer({
           <div className="flex flex-col gap-3">
             <textarea
               ref={answerRef}
-              className="min-h-[64px] max-h-[200px] w-full resize-none overflow-y-auto rounded-lg border border-line-strong bg-white px-4 py-3 text-[14px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-brand focus:ring-[3px] focus:ring-brand/10"
+              className="min-h-[64px] max-h-[200px] w-full resize-none overflow-y-auto rounded-lg border border-line-strong bg-white px-4 py-3 text-label leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-brand focus:ring-[3px] focus:ring-brand/10"
               value={answer}
               onChange={(event) => onAnswerChange(event.target.value)}
               disabled={loading}
@@ -80,20 +80,20 @@ export function InterviewComposer({
               }}
             />
             {speech.listening && (
-              <div className="flex items-center gap-2 text-[12px] text-brand">
+              <div className="flex items-center gap-2 text-body text-brand">
                 <span className="size-2 animate-pulse rounded-full bg-danger" />
                 {speech.interimText ? `正在识别：${speech.interimText}` : '正在听，请开始说话…'}
               </div>
             )}
             {speechError && !speech.listening && (
-              <div className="flex items-center gap-2 text-[12px] text-danger">
+              <div className="flex items-center gap-2 text-body text-danger">
                 <CircleHelp size={13} className="flex-none" />{speechError}
               </div>
             )}
             <div>
               <button
                 type="button"
-                className={`inline-flex items-center gap-1.5 bg-transparent text-[12px] font-semibold ${annotationOpen || annotation ? 'text-warning' : 'text-text-tertiary hover:text-text-secondary'}`}
+                className={`inline-flex items-center gap-1.5 bg-transparent text-label font-semibold ${annotationOpen || annotation ? 'text-warning' : 'text-text-tertiary hover:text-text-secondary'}`}
                 onClick={() => setAnnotationOpen((open) => !open)}
                 aria-expanded={annotationOpen}
               >
@@ -101,7 +101,7 @@ export function InterviewComposer({
               </button>
               {(annotationOpen || annotation) && (
                 <textarea
-                  className="mt-2 min-h-[72px] w-full resize-y rounded-lg border border-warning/30 bg-warning-soft px-3.5 py-2.5 text-[13px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-warning focus:outline-none"
+                  className="mt-2 min-h-[72px] w-full resize-y rounded-lg border border-warning/30 bg-warning-soft px-3.5 py-2.5 text-label leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-warning focus:outline-none"
                   value={annotation}
                   onChange={(event) => onAnnotationChange(event.target.value)}
                   disabled={loading}
@@ -111,7 +111,7 @@ export function InterviewComposer({
               )}
             </div>
             <div className="flex items-center justify-between gap-3 max-[640px]:items-end">
-              <span className="text-[12px] text-text-tertiary max-[640px]:hidden">Enter 发送 · Shift + Enter 换行</span>
+              <span className="text-meta text-text-tertiary max-[640px]:hidden">Enter 发送 · Shift + Enter 换行</span>
               <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
                 {speech.supported && (
                   <Button
@@ -140,7 +140,7 @@ export function InterviewComposer({
                       <button
                         type="button"
                         onClick={() => { skipMenu.close(); onSkip() }}
-                        className="w-full rounded-md px-3 py-2 text-left text-[12px] text-text-secondary hover:bg-surface-hover"
+                        className="w-full rounded-md px-3 py-2 text-left text-label text-text-secondary hover:bg-surface-hover"
                       >
                         跳过此题
                       </button>

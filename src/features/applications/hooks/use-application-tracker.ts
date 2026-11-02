@@ -38,5 +38,11 @@ export function useApplicationTracker(snapshot: AgentSnapshot | null, onError: (
   }, [snapshot, loaded, save, onError])
   const saveProgress = (id: string, changes: Partial<Omit<ApplicationProgress, 'events' | 'updatedAt'>>) => save(current => ({ ...current, progress: { ...current.progress, [id]: changeApplicationProgress(current.progress[id], changes, Date.now()) } }))
   const capture = (values: Record<string, SubmissionSnapshot>) => save(current => ({ ...current, submissions: { ...current.submissions, ...values } }))
-  return { tracker, loaded, saveProgress, capture }
+  const restoreSubmission = (id: string, expectedAt: number, previous?: SubmissionSnapshot) => save(current => {
+    if (current.submissions[id]?.at !== expectedAt || current.submissions[id]?.channel !== 'website') return current
+    const submissions = { ...current.submissions }
+    if (previous) submissions[id] = previous; else delete submissions[id]
+    return { ...current, submissions }
+  })
+  return { tracker, loaded, saveProgress, capture, restoreSubmission }
 }

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, FileText, Loader2, Settings, Upload } from 'lucide-react'
+import { ArrowRight, FileText, Loader2, Menu, Settings, Upload } from 'lucide-react'
 import { SettingsDialog } from '@/features/settings/SettingsDialog'
 import { WorkbenchFrame } from '@/components/layout/WorkbenchFrame'
 import { extractTextFromFile, type ExtractedText } from '@/features/resume/lib/pdf'
@@ -11,6 +11,9 @@ import type { SavedRecord } from '@/lib/storage'
 import type { ResumeDocument } from '@/features/resume/lib/resume-library'
 import { ResumeLibraryList } from './ResumeLibraryList'
 import { resumeLibraryEntries } from './resume-library-entries'
+import { WorkspaceSidebar, type SidebarBadges } from '@/features/workspace/WorkspaceSidebar'
+import { useSidebarCollapsed } from '@/features/workspace/hooks/use-sidebar-collapsed'
+import type { Mode } from '@/application/types'
 
 const SAMPLE_RESUME = `酒寄彩叶
 全栈工程师 | 4 年 Web 开发经验
@@ -41,6 +44,8 @@ AI 网页生成平台 2023.06 - 2024.03
 type Tab = 'file' | 'paste'
 
 type ResumeImportViewProps = {
+  onNavigate?: (mode: Mode) => void
+  badges?: SidebarBadges
   analyzing: boolean
   error: string | null
   onExtracted: (extracted: ExtractedText, sourceFile: string, demo?: boolean, originalFile?: File) => Promise<void>
@@ -56,7 +61,9 @@ type ResumeImportViewProps = {
   onDeleteSaved: (id: string) => Promise<void>
 }
 
-export function ResumeImportView({ analyzing, error, onExtracted, envConfigured, clientConfigured, onClientChanged, savedRecords, savedDocuments, onOpenDocument, onDeleteDocument, loadingRecords, onOpenSaved, onDeleteSaved }: ResumeImportViewProps) {
+export function ResumeImportView({ onNavigate, badges, analyzing, error, onExtracted, envConfigured, clientConfigured, onClientChanged, savedRecords, savedDocuments, onOpenDocument, onDeleteDocument, loadingRecords, onOpenSaved, onDeleteSaved }: ResumeImportViewProps) {
+  const [collapsed, toggleCollapsed] = useSidebarCollapsed()
+  const [navOpen, setNavOpen] = useState(false)
   const [tab, setTab] = useState<Tab>('file')
   const [paste, setPaste] = useState('')
   const [fileName, setFileName] = useState<string | null>(null)
@@ -92,13 +99,17 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
   const entryCount = resumeLibraryEntries(savedRecords, savedDocuments).length
 
   return (
-    <WorkbenchFrame className="workbench-library flex flex-col">
+    <WorkbenchFrame className="library-workbench flex">
+      {onNavigate && <WorkspaceSidebar mode="library" collapsed={collapsed} onToggleCollapsed={toggleCollapsed} onNavigate={onNavigate} badges={badges ?? { claimTotal: 0, highUntested: 0, testingActive: 0, testedDone: 0, knowledgeOpen: 0 }} onOpenHistory={() => undefined} onOpenSettings={() => setSettingsOpen(true)} variant="dock" />}
+      {onNavigate && <WorkspaceSidebar mode="library" collapsed={false} onToggleCollapsed={toggleCollapsed} onNavigate={onNavigate} badges={badges ?? { claimTotal: 0, highUntested: 0, testingActive: 0, testedDone: 0, knowledgeOpen: 0 }} onOpenHistory={() => setNavOpen(false)} onOpenSettings={() => { setNavOpen(false); setSettingsOpen(true) }} variant="drawer" open={navOpen} onClose={() => setNavOpen(false)} />}
+      <div className="workbench-library flex min-w-0 flex-1 flex-col">
       <header className="flex h-14 flex-none items-center gap-3 border-b border-line px-5 sm:px-7">
+        {onNavigate && <button className="grid size-8 place-items-center md:hidden" aria-label="打开导航" onClick={() => setNavOpen(true)}><Menu size={18} /></button>}
         <img src="/favicon.svg" alt="" className="size-6" />
-        <strong className="text-[14px] font-semibold">Resume Grill</strong>
-        <span className="ml-2 border-l border-line pl-5 text-[12px] text-text-tertiary max-sm:hidden">求职工作台</span>
-        <Link href="/applications" className="ml-auto border border-line px-3 py-1.5 text-[12px] hover:bg-surface-soft">邮箱投递</Link>
-        <Button variant="ghost" className="h-8 px-2 text-[12px]" onClick={() => setSettingsOpen(true)}><Settings size={15} />模型设置</Button>
+        <strong className="text-body font-semibold">Resume Grill</strong>
+        <span className="ml-2 border-l border-line pl-5 text-meta text-text-tertiary max-sm:hidden">求职工作台</span>
+        <Link href="/applications" className="ml-auto border border-line px-3 py-1.5 text-label hover:bg-surface-soft">邮箱投递</Link>
+        <Button variant="ghost" className="h-8 px-2 text-label" onClick={() => setSettingsOpen(true)}><Settings size={15} />设置</Button>
       </header>
 
       <main className="library-content">
@@ -106,35 +117,35 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
         <section className="library-collection order-2 min-w-0 px-5 py-6 sm:p-7 min-[900px]:order-1" aria-labelledby="saved-resumes-title">
           <div className="mb-6">
             <div className="flex items-baseline gap-3">
-              <h1 id="saved-resumes-title" className="m-0 text-[24px] font-semibold tracking-tight">简历库</h1>
-              <span className="text-[13px] text-text-tertiary">{entryCount} 份</span>
+              <h1 id="saved-resumes-title" className="m-0 text-title font-semibold tracking-normal">简历库</h1>
+              <span className="text-label text-text-tertiary">{entryCount} 份</span>
             </div>
-            <p className="mb-0 mt-2 text-[14px] leading-relaxed text-text-secondary">改简历、练面试，也可以直接投递。</p>
+            <p className="mb-0 mt-2 text-body leading-relaxed text-text-secondary">改简历、练面试，也可以直接投递。</p>
           </div>
 
           <div className="library-files border-y border-line">
-            <div className="flex items-center justify-between bg-surface-soft px-3 py-2.5 text-[12px] text-text-tertiary">
+            <div className="flex items-center justify-between bg-surface-soft px-3 py-2.5 text-meta text-text-tertiary">
               <span>简历 / 最近更新</span><span>操作</span>
             </div>
-            {loadingRecords ? <p className="px-3 py-7 text-[13px] text-text-tertiary">正在读取本地记录…</p>
+            {loadingRecords ? <p className="px-3 py-7 text-body text-text-tertiary">正在读取本地记录…</p>
               : entryCount === 0 ? <div className="px-3 py-8">
-                <p className="m-0 text-[14px] font-medium">还没有保存的简历</p>
-                <p className="mb-0 mt-2 text-[13px] leading-relaxed text-text-tertiary">上传文件或粘贴文字，简历会自动保存在这里。</p>
+                <p className="m-0 text-body font-medium">还没有保存的简历</p>
+                <p className="mb-0 mt-2 text-body leading-relaxed text-text-tertiary">上传文件或粘贴文字，简历会自动保存在这里。</p>
               </div> : <ResumeLibraryList records={savedRecords} documents={savedDocuments} onOpenRecord={onOpenSaved} onOpenDocument={onOpenDocument} onDeleteRecord={onDeleteSaved} onDeleteDocument={onDeleteDocument} />}
 
           </div>
 
           <Link href="/applications" className="library-mail-link mt-6 flex items-center gap-4 border-y px-4 py-4">
-            <div className="min-w-0 flex-1"><strong className="text-[14px] font-medium">投递简历</strong><p className="mb-0 mt-1 text-[12px] leading-relaxed text-text-secondary">找招聘官网、准备邮件、查看投递记录。</p></div>
+            <div className="min-w-0 flex-1"><strong className="text-label font-medium">投递简历</strong><p className="mb-0 mt-1 text-label leading-relaxed text-text-secondary">找招聘官网、准备邮件、查看投递记录。</p></div>
             <ArrowRight size={17} className="shrink-0 text-text-secondary" />
           </Link>
         </section>
 
         <section className="library-import order-1 min-w-0 border-b border-line bg-surface-soft px-5 py-6 sm:p-7 min-[900px]:order-2 min-[900px]:border-b-0 min-[900px]:border-l" aria-label="导入简历">
-          <h2 className="m-0 text-[18px] font-semibold">导入简历</h2>
-          <p className="mb-5 mt-2 text-[13px] text-text-tertiary">选择文件，或直接粘贴文本。</p>
+          <h2 className="m-0 text-title font-semibold">导入简历</h2>
+          <p className="mb-5 mt-2 text-body text-text-tertiary">选择文件，或直接粘贴文本。</p>
           <div className="mb-4 flex border-b border-line" role="tablist" aria-label="导入方式">
-            {(['file', 'paste'] as Tab[]).map((t) => <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={['border-b-2 px-3 py-2.5 text-[13px] font-medium', tab === t ? 'border-brand text-text-primary' : 'border-transparent text-text-tertiary hover:text-text-secondary'].join(' ')}>{t === 'file' ? '上传文件' : '粘贴文本'}</button>)}
+            {(['file', 'paste'] as Tab[]).map((t) => <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={['border-b-2 px-3 py-2.5 text-label font-medium', tab === t ? 'border-brand text-text-primary' : 'border-transparent text-text-tertiary hover:text-text-secondary'].join(' ')}>{t === 'file' ? '上传文件' : '粘贴文本'}</button>)}
           </div>
 
           {tab === 'file' ? <div
@@ -146,27 +157,28 @@ export function ResumeImportView({ analyzing, error, onExtracted, envConfigured,
           >
             <input ref={fileInput} type="file" accept=".pdf,.txt,.md,.docx" hidden disabled={parsing || analyzing} onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleFile(file) }} />
             {parsing ? <Loader2 size={24} className="animate-spin text-brand" /> : <Upload size={24} className="text-brand" />}
-            <p className="m-0 text-[14px]">{parsing ? '正在解析文件…' : '拖拽文件到这里'}</p>
-            <Button variant="primary" className="h-8 text-[12px]" disabled={parsing || analyzing} onClick={() => fileInput.current?.click()}>选择文件</Button>
-            <span className="text-[11px] text-text-tertiary">PDF / DOCX / TXT / Markdown</span>
-            {fileName && !parsing && <span className="max-w-full truncate text-[12px] text-text-tertiary">{fileName}</span>}
+            <p className="m-0 text-body">{parsing ? '正在解析文件…' : '拖拽文件到这里'}</p>
+            <Button variant="primary" className="h-8 text-label" disabled={parsing || analyzing} onClick={() => fileInput.current?.click()}>选择文件</Button>
+            <span className="text-meta text-text-tertiary">PDF / DOCX / TXT / Markdown</span>
+            {fileName && !parsing && <span className="max-w-full truncate text-meta text-text-tertiary">{fileName}</span>}
           </div> : <>
-            <textarea aria-label="粘贴简历文本" className="block h-[180px] w-full resize-y border border-line-strong bg-white p-4 text-[14px] leading-[1.8] focus:border-brand" placeholder="直接粘贴简历文本…" value={paste} onChange={(event) => setPaste(event.target.value)} disabled={analyzing} />
+            <textarea aria-label="粘贴简历文本" className="block h-[180px] w-full resize-y border border-line-strong bg-white p-4 text-label leading-[1.8] focus:border-brand" placeholder="直接粘贴简历文本…" value={paste} onChange={(event) => setPaste(event.target.value)} disabled={analyzing} />
             <Button variant="primary" className="mt-3 w-full" disabled={parsing || analyzing || paste.trim().length === 0} onClick={handlePaste}>导入文本<ArrowRight size={14} /></Button>
           </>}
 
-          {parseError && <p role="alert" className="mt-3 text-[13px] leading-relaxed text-danger">解析失败：{parseError}<button type="button" className="ml-2 underline" onClick={() => setParseError(null)}>关闭</button></p>}
-          {error && <p role="alert" className="mt-3 text-[13px] leading-relaxed text-danger">{error}</p>}
-          <Button variant="ghost" className="mt-4 w-full text-[13px]" disabled={parsing || analyzing} onClick={async () => { setParsing(true); try { await onExtracted({ text: SAMPLE_RESUME, pageCount: 1, charCount: SAMPLE_RESUME.length }, '示例简历.txt', true) } finally { setParsing(false) } }}><FileText size={14} />试用示例简历</Button>
-          <p className="mb-0 mt-5 border-t border-line pt-4 text-[12px] leading-[1.8] text-text-tertiary">简历保存在此浏览器。设置模型后，导入时会自动检查；正文会发送给所选模型，费用按服务商规则计算。</p>
+          {parseError && <p role="alert" className="mt-3 text-body leading-relaxed text-danger">解析失败：{parseError}<button type="button" className="ml-2 underline" onClick={() => setParseError(null)}>关闭</button></p>}
+          {error && <p role="alert" className="mt-3 text-body leading-relaxed text-danger">{error}</p>}
+          <Button variant="ghost" className="mt-4 w-full text-label" disabled={parsing || analyzing} onClick={async () => { setParsing(true); try { await onExtracted({ text: SAMPLE_RESUME, pageCount: 1, charCount: SAMPLE_RESUME.length }, '示例简历.txt', true) } finally { setParsing(false) } }}><FileText size={14} />试用示例简历</Button>
+          <p className="mb-0 mt-5 border-t border-line pt-4 text-meta leading-[1.8] text-text-tertiary">简历保存在此浏览器。设置模型后，导入时会自动检查；正文会发送给所选模型，费用按服务商规则计算。</p>
         </section>
       </div>
       </main>
-      <footer className="flex flex-none flex-wrap items-center justify-between gap-2 border-t border-line px-5 py-3 text-[12px] text-text-tertiary sm:px-7">
+      <footer className="flex flex-none flex-wrap items-center justify-between gap-2 border-t border-line px-5 py-3 text-meta text-text-tertiary sm:px-7">
         <span>简历和练习记录保存在当前浏览器</span>
         <button type="button" onClick={() => setSettingsOpen(true)} className="text-text-secondary hover:text-brand">{clientConfigured || envConfigured ? '模型已配置' : '配置模型'}<span aria-hidden="true"> ↗</span></button>
       </footer>
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} envConfigured={envConfigured} clientConfigured={clientConfigured} onClientChanged={onClientChanged} />
+      </div>
     </WorkbenchFrame>
   )
 }

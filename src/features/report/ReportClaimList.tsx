@@ -16,8 +16,8 @@ export function ReportClaimList({
   return (
     <aside className="overflow-hidden rounded-lg bg-white shadow-card ring-1 ring-black/[0.03]">
       <div className="border-b border-line px-4 py-3">
-        <div className="text-[14px] font-bold">练习记录</div>
-        <div className="mt-0.5 text-[12px] text-text-tertiary">
+        <div className="text-body font-bold">练习记录</div>
+        <div className="mt-0.5 text-meta text-text-tertiary">
           已练习 {doneCount} 个要点 · 点击查看详情
         </div>
       </div>
@@ -43,14 +43,14 @@ export function ReportClaimList({
               }`}
             >
               <span
-                className={`min-w-0 truncate text-[13px] font-medium ${
+                className={`min-w-0 truncate text-label font-medium ${
                   active ? 'text-brand' : 'text-text-primary'
                 }`}
               >
                 {report.claim.title}
               </span>
               <span
-                className={`flex-none text-[12px] font-semibold ${
+                className={`flex-none text-label font-semibold ${
                   report.score !== null
                     ? 'text-text-primary'
                     : report.hasInProgress
