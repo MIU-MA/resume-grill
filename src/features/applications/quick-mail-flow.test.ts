@@ -3,10 +3,10 @@ import { act, createElement, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { MailWorkbench } from './MailWorkbench'
-import { initialMailDefaults } from './mail-defaults'
-import type { Draft, SavedJobPreparation } from './draft-state'
+import { initialMailDefaults } from './mail/lib/mail-defaults'
+import type { Draft, SavedJobPreparation } from './mail/lib/draft-state'
 import type { ComponentProps } from 'react'
-import type { JobResumeDialog } from './JobResumeDialog'
+import type { JobResumeDialog } from './jobs/JobResumeDialog'
 
 const mocks = vi.hoisted(() => ({ persist: vi.fn(), command: vi.fn(), tailoringError: '' }))
 const localData = vi.hoisted(() => new Map<string, unknown>())
@@ -20,15 +20,15 @@ vi.mock('./hooks/use-mail-agent', () => ({ useMailAgent: () => ({
   snapshot: { sender: { name: '张三', address: 'candidate@qq.com' }, jobs: [] },
   connectionError: '', request: vi.fn(), command: mocks.command,
 }) }))
-vi.mock('./LocalSetupStatus', () => ({ LocalSetupStatus: () => null }))
-vi.mock('./JobResumeDialog', () => ({ JobResumeDialog: (props: ComponentProps<typeof JobResumeDialog>) => createElement('button', {
+vi.mock('../settings/LocalSetupStatus', () => ({ LocalSetupStatus: () => null }))
+vi.mock('./jobs/JobResumeDialog', () => ({ JobResumeDialog: (props: ComponentProps<typeof JobResumeDialog>) => createElement('button', {
   'data-testid': 'apply-tailoring', onClick: () => void props.onApply({ company: '示例公司', role: '前端', subject: '岗位求职信', body: '参与页面开发，附件为岗位版。', automatic: false }, {
     jobDescription: props.draft.jobDescription!, attachment: new File(['pdf'], '岗位版.pdf'),
     tailoredResume: { jobDescription: props.draft.jobDescription!, company: '示例公司', role: '前端', sourceFile: props.file, documentId: 'revision', text: '参与页面开发' },
   }).catch(error => { mocks.tailoringError = String(error) }),
 }, '确认岗位版') }))
-vi.mock('./mail-attachment', () => ({ encodeAttachment: async () => 'cmVzdW1l' }))
-vi.mock('./hooks/use-mail-drafts', () => ({ useMailDrafts: () => {
+vi.mock('./mail/lib/mail-attachment', () => ({ encodeAttachment: async () => 'cmVzdW1l' }))
+vi.mock('./mail/hooks/use-mail-drafts', () => ({ useMailDrafts: () => {
   const [drafts, setDrafts] = useState<Draft[]>([])
   const [selectedDraftIds, setSelectedDraftIds] = useState<string[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -61,11 +61,15 @@ async function input(element: HTMLInputElement | HTMLTextAreaElement, value: str
     element.dispatchEvent(new Event('input', { bubbles: true }))
   })
 }
-async function openPreview() {
+async function renderWorkbench() {
   await act(async () => root.render(createElement(MailWorkbench, {
     badges: { claimTotal: 0, highUntested: 0, testingActive: 0, testedDone: 0, knowledgeOpen: 0 },
     onNavigate: vi.fn(), onHome: vi.fn(), onPrepare: vi.fn(),
   })))
+  await act(async () => [...host.querySelectorAll('button')].find(button => button.textContent?.includes('添加岗位'))!.click())
+}
+async function openPreview() {
+  await renderWorkbench()
   const email = host.querySelector<HTMLInputElement>('#quick-mail-recipient')!
   expect(email.closest('[hidden]')).toBeNull()
   await input(email, 'hr@example.com')
@@ -105,7 +109,7 @@ it('存储失败显示错误，不继续预览或发送', async () => {
   expect(mocks.command).not.toHaveBeenCalled()
 })
 it('邮箱加 JD 经核对后直接预览，发送使用岗位版 PDF，仍需最后确认', async () => {
-  await act(async () => root.render(createElement(MailWorkbench, { badges: { claimTotal: 0, highUntested: 0, testingActive: 0, testedDone: 0, knowledgeOpen: 0 }, onNavigate: vi.fn(), onHome: vi.fn(), onPrepare: vi.fn() })))
+  await renderWorkbench()
   const email = host.querySelector<HTMLInputElement>('#quick-mail-recipient')!
   await input(email, 'hr@example.com')
   await input(email.form!.querySelector('textarea')!, '前端岗位，负责页面开发')
@@ -124,7 +128,7 @@ it('邮箱加 JD 经核对后直接预览，发送使用岗位版 PDF，仍需�
   expect(mocks.persist.mock.calls.at(-1)![0].preparationByJob).toMatchObject({ [mocks.command.mock.calls[0][1].jobs[0].id]: { attachmentUse: 'mail', tailoredResume: { role: '前端' } } })
 })
 it('岗位版保存失败后不改写当前岗位，可原地重试并进入预览', async () => {
-  await act(async () => root.render(createElement(MailWorkbench, { badges: { claimTotal: 0, highUntested: 0, testingActive: 0, testedDone: 0, knowledgeOpen: 0 }, onNavigate: vi.fn(), onHome: vi.fn(), onPrepare: vi.fn() })))
+  await renderWorkbench()
   const email = host.querySelector<HTMLInputElement>('#quick-mail-recipient')!
   await input(email, 'hr@example.com')
   await input(email.form!.querySelector('textarea')!, '前端岗位，负责页面开发')

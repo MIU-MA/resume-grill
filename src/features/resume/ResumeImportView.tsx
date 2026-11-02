@@ -1,18 +1,18 @@
 'use client'
 
+import { useSettingsDialog } from '@/features/settings/hooks/use-settings-dialog'
+
 import { useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, FileText, Loader2, Menu, Settings, Upload } from 'lucide-react'
-import { SettingsDialog } from '@/features/settings/SettingsDialog'
-import { WorkbenchFrame } from '@/components/layout/WorkbenchFrame'
+import { ArrowRight, FileText, Loader2, Upload } from 'lucide-react'
 import { extractTextFromFile, type ExtractedText } from '@/features/resume/lib/pdf'
 import { Button } from '@/components/ui/Button'
 import type { SavedRecord } from '@/lib/storage'
 import type { ResumeDocument } from '@/features/resume/lib/resume-library'
 import { ResumeLibraryList } from './ResumeLibraryList'
 import { resumeLibraryEntries } from './resume-library-entries'
-import { WorkspaceSidebar, type SidebarBadges } from '@/features/workspace/WorkspaceSidebar'
-import { useSidebarCollapsed } from '@/features/workspace/hooks/use-sidebar-collapsed'
+import type { SidebarBadges } from '@/features/workspace/WorkspaceSidebar'
+import { AppShell } from '@/features/workspace/AppShell'
 import type { Mode } from '@/application/types'
 
 const SAMPLE_RESUME = `酒寄彩叶
@@ -62,13 +62,12 @@ type ResumeImportViewProps = {
 }
 
 export function ResumeImportView({ onNavigate, badges, analyzing, error, onExtracted, envConfigured, clientConfigured, onClientChanged, savedRecords, savedDocuments, onOpenDocument, onDeleteDocument, loadingRecords, onOpenSaved, onDeleteSaved }: ResumeImportViewProps) {
-  const [collapsed, toggleCollapsed] = useSidebarCollapsed()
-  const [navOpen, setNavOpen] = useState(false)
   const [tab, setTab] = useState<Tab>('file')
   const [paste, setPaste] = useState('')
   const [fileName, setFileName] = useState<string | null>(null)
   const [parsing, setParsing] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
+  const settingsDialog = useSettingsDialog()
+  const openSettings = settingsDialog.onOpenSettings
   const [parseError, setParseError] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
@@ -99,20 +98,22 @@ export function ResumeImportView({ onNavigate, badges, analyzing, error, onExtra
   const entryCount = resumeLibraryEntries(savedRecords, savedDocuments).length
 
   return (
-    <WorkbenchFrame className="library-workbench flex">
-      {onNavigate && <WorkspaceSidebar mode="library" collapsed={collapsed} onToggleCollapsed={toggleCollapsed} onNavigate={onNavigate} badges={badges ?? { claimTotal: 0, highUntested: 0, testingActive: 0, testedDone: 0, knowledgeOpen: 0 }} onOpenHistory={() => undefined} onOpenSettings={() => setSettingsOpen(true)} variant="dock" />}
-      {onNavigate && <WorkspaceSidebar mode="library" collapsed={false} onToggleCollapsed={toggleCollapsed} onNavigate={onNavigate} badges={badges ?? { claimTotal: 0, highUntested: 0, testingActive: 0, testedDone: 0, knowledgeOpen: 0 }} onOpenHistory={() => setNavOpen(false)} onOpenSettings={() => { setNavOpen(false); setSettingsOpen(true) }} variant="drawer" open={navOpen} onClose={() => setNavOpen(false)} />}
-      <div className="workbench-library flex min-w-0 flex-1 flex-col">
-      <header className="flex h-14 flex-none items-center gap-3 border-b border-line px-5 sm:px-7">
-        {onNavigate && <button className="grid size-8 place-items-center md:hidden" aria-label="打开导航" onClick={() => setNavOpen(true)}><Menu size={18} /></button>}
+    <AppShell
+      mode="library"
+      badges={badges ?? { claimTotal: 0, highUntested: 0, testingActive: 0, testedDone: 0, knowledgeOpen: 0 }}
+      onNavigate={onNavigate ?? (() => undefined)}
+      onOpenHistory={() => undefined}
+    {...settingsDialog}
+      settings={{ envConfigured, clientConfigured, onClientChanged }}
+      contentClassName="min-h-0 flex-1 overflow-y-auto"
+      header={<div className="flex min-w-0 flex-1 items-center gap-3">
         <img src="/favicon.svg" alt="" className="size-6" />
         <strong className="text-body font-semibold">Resume Grill</strong>
         <span className="ml-2 border-l border-line pl-5 text-meta text-text-tertiary max-sm:hidden">求职工作台</span>
-        <Link href="/applications" className="ml-auto border border-line px-3 py-1.5 text-label hover:bg-surface-soft">邮箱投递</Link>
-        <Button variant="ghost" className="h-8 px-2 text-label" onClick={() => setSettingsOpen(true)}><Settings size={15} />设置</Button>
-      </header>
-
-      <main className="library-content">
+      </div>}
+    >
+      <div className="workbench-library flex min-w-0 flex-1 flex-col">
+      <div className="library-content">
       <div className="library-body grid min-h-0 w-full">
         <section className="library-collection order-2 min-w-0 px-5 py-6 sm:p-7 min-[900px]:order-1" aria-labelledby="saved-resumes-title">
           <div className="mb-6">
@@ -172,13 +173,12 @@ export function ResumeImportView({ onNavigate, badges, analyzing, error, onExtra
           <p className="mb-0 mt-5 border-t border-line pt-4 text-meta leading-[1.8] text-text-tertiary">简历保存在此浏览器。设置模型后，导入时会自动检查；正文会发送给所选模型，费用按服务商规则计算。</p>
         </section>
       </div>
-      </main>
+      </div>
       <footer className="flex flex-none flex-wrap items-center justify-between gap-2 border-t border-line px-5 py-3 text-meta text-text-tertiary sm:px-7">
         <span>简历和练习记录保存在当前浏览器</span>
-        <button type="button" onClick={() => setSettingsOpen(true)} className="text-text-secondary hover:text-brand">{clientConfigured || envConfigured ? '模型已配置' : '配置模型'}<span aria-hidden="true"> ↗</span></button>
+        <button type="button" onClick={() => openSettings('model')} className="text-text-secondary hover:text-brand">{clientConfigured || envConfigured ? '模型已配置' : '配置模型'}<span aria-hidden="true"> ↗</span></button>
       </footer>
-      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} envConfigured={envConfigured} clientConfigured={clientConfigured} onClientChanged={onClientChanged} />
       </div>
-    </WorkbenchFrame>
+    </AppShell>
   )
 }

@@ -1,8 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Check, CircleHelp, Lightbulb, Plus, X } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Check, CircleHelp, Lightbulb, Plus } from 'lucide-react'
 import type { ResumeAnalysis, ResumeClaim } from '@/domain/resume-schema'
+import { useUndoQueue } from '@/hooks/use-undo-queue'
+import { UndoNotice } from '@/components/ui/UndoNotice'
 import { Button } from '@/components/ui/Button'
 import type { KnowledgeItem, KnowledgeItemInput, KnowledgeItemPatch } from '@/domain/knowledge'
 
@@ -44,8 +46,7 @@ export function KnowledgeView({
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState({ title: '', note: '' })
-  const [pendingDelete, setPendingDelete] = useState<KnowledgeItem | null>(null)
-  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const undo = useUndoQueue(6000)
 
   const openCount = knowledgeItems.filter((i) => i.status === 'open').length
   const masteredCount = knowledgeItems.length - openCount
@@ -84,11 +85,6 @@ export function KnowledgeView({
     if (!selectedId || !selected) setSelectedId(visible[0].id)
   }, [visible, selectedId, selected])
 
-  useEffect(() => {
-    return () => {
-      if (undoTimer.current) clearTimeout(undoTimer.current)
-    }
-  }, [])
 
   const startAdd = () => {
     setAdding(true)
@@ -117,17 +113,8 @@ export function KnowledgeView({
 
   const handleDelete = (item: KnowledgeItem) => {
     onDelete(item.id)
-    setPendingDelete(item)
     setSelectedId(null)
-    if (undoTimer.current) clearTimeout(undoTimer.current)
-    undoTimer.current = setTimeout(() => setPendingDelete(null), 6000)
-  }
-
-  const undoDelete = () => {
-    if (!pendingDelete) return
-    onRestore(pendingDelete)
-    setPendingDelete(null)
-    setSelectedId(pendingDelete.id)
+    undo.add(`已删除「${item.title}」`, () => { onRestore(item); setSelectedId(item.id) })
   }
 
   return (
@@ -212,20 +199,7 @@ export function KnowledgeView({
         </div>
       </div>
 
-      {/* 删除撤销条 */}
-      {pendingDelete && (
-        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-line bg-white px-4 py-2.5 shadow-[0_8px_24px_rgba(16,24,40,0.12)]">
-          <span className="max-w-[260px] truncate text-label text-text-secondary">
-            已删除「{pendingDelete.title}」
-          </span>
-          <button type="button" onClick={undoDelete} className="bg-transparent text-label font-semibold text-brand hover:underline">
-            撤销
-          </button>
-          <button type="button" onClick={() => setPendingDelete(null)} className="grid size-6 place-items-center rounded-md bg-transparent text-text-tertiary hover:bg-surface-hover" aria-label="关闭">
-            <X size={14} />
-          </button>
-        </div>
-      )}
+      <UndoNotice queue={undo} />
     </div>
   )
 }

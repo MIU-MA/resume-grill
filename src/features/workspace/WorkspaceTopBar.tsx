@@ -1,4 +1,4 @@
-import { Download, FileJson, FileText, Settings } from 'lucide-react'
+import { Download, FileJson, FileText } from 'lucide-react'
 import type { ResumeAnalysis } from '@/domain/resume-schema'
 import { Button } from '@/components/ui/Button'
 import { useDropdown } from '@/hooks/use-dropdown'
@@ -9,7 +9,6 @@ type Props = {
   llmMode: LlmMode | null
   onExport: () => void
   onExportJson: () => void
-  onOpenSettings: () => void
 }
 
 export function WorkspaceTopBar({
@@ -17,7 +16,6 @@ export function WorkspaceTopBar({
   llmMode,
   onExport,
   onExportJson,
-  onOpenSettings,
 }: Props) {
   const exportMenu = useDropdown()
 
@@ -48,14 +46,6 @@ export function WorkspaceTopBar({
             {llmMode.testResult === 'ok' ? '已连接' : llmMode.label}
           </span>
         )}
-        <button
-          type="button"
-          onClick={onOpenSettings}
-          className="grid size-8 place-items-center rounded-md text-text-tertiary hover:bg-surface-hover"
-          aria-label="模型设置"
-        >
-          <Settings size={16} />
-        </button>
         <div ref={exportMenu.ref} className="relative">
           <Button variant="secondary" onClick={exportMenu.toggle}>
             <Download size={15} />

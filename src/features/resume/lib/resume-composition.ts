@@ -5,8 +5,8 @@ import { parseResumeStructure, extractResumeClaimCandidates } from '@/domain/res
 import type { ResumeTemplateId } from '@/domain/resume-template'
 import type { ResumePhoto } from '@/domain/resume-photo'
 import { PROFILE_LABELS, type WebsiteProfile } from '@/domain/website-automation'
-import { loadWebsiteProfile, saveWebsiteProfile, seedWebsiteProfile } from '@/features/applications/website-automation'
-import { loadExperiences, saveExperiences } from '@/features/applications/website-experience-storage'
+import { loadWebsiteProfile, saveWebsiteProfile, seedWebsiteProfile } from '@/features/applications/website/lib/website-automation'
+import { loadExperiences, saveExperiences } from '@/features/applications/website/lib/website-experience-storage'
 import { createResumePdf } from './resume-pdf'
 import type { ResumeDocument } from './resume-library'
 

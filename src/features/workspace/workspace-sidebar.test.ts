@@ -22,8 +22,8 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi
 it('分组入口分别到达对应页面，当前页只高亮一项', async () => {
   await act(async () => root.render(createElement(WorkspaceSidebar, props)))
   expect([...host.querySelectorAll('nav section')].map(node => node.getAttribute('aria-label'))).toEqual(['简历', '投递', '面试'])
-  expect([...host.querySelectorAll('[aria-current="page"]')].map(node => node.getAttribute('aria-label'))).toEqual(['面试复盘'])
-  const destinations = { 招聘官网: 'careers', 投递清单: 'applications', 投递记录: 'application-history', 简历检查: 'diagnosis', 面试准备: 'audit', 模拟面试: 'interview', 面试复盘: 'report', 待复习: 'knowledge' }
+  expect([...host.querySelectorAll('[aria-current="page"]')].map(node => node.getAttribute('aria-label'))).toEqual(['面试练习'])
+  const destinations = { 职位清单: 'jobs', 'AI 找岗位': 'careers', 投递清单: 'applications', 投递记录: 'application-history', 简历检查: 'diagnosis', 面试练习: 'audit', 待复习: 'knowledge' }
   for (const [label, mode] of Object.entries(destinations)) {
     await act(async () => host.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!.click())
     expect(props.onNavigate).toHaveBeenLastCalledWith(mode)
@@ -34,10 +34,10 @@ it('分组入口分别到达对应页面，当前页只高亮一项', async () =
 
 it('收起后键盘聚焦的提示仍通过 portal 显示，离开后消失', async () => {
   await act(async () => root.render(createElement(WorkspaceSidebar, { ...props, collapsed: true })))
-  const button = host.querySelector<HTMLButtonElement>('button[aria-label="招聘官网"]')!
+  const button = host.querySelector<HTMLButtonElement>('button[aria-label="AI 找岗位"]')!
   await act(async () => button.focus())
   const tooltip = document.querySelector('[role="tooltip"]')!
-  expect(tooltip.textContent).toBe('招聘官网')
+  expect(tooltip.textContent).toBe('AI 找岗位')
   expect(host.contains(tooltip)).toBe(false)
   expect(button.getAttribute('aria-describedby')).toBe(tooltip.id)
   await act(async () => button.blur())

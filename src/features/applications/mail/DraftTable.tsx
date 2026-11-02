@@ -1,0 +1,61 @@
+'use client'
+
+import { ExternalLink, ListPlus, Plus, Trash2 } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
+import { sourceUrlSchema } from '@/domain/mail-schema'
+import { draftIssues, websiteLinks, type Draft } from './lib/draft-state'
+
+export function DraftTable({ drafts, selectedIds, disabled, onSelection, onUpdate, onOpen, onDetails, onRemove, onAdd, resumeLabels = {} }: {
+  drafts: Draft[]; selectedIds: string[]; disabled: boolean
+  onSelection: (ids: string[]) => void; onUpdate: (id: string, change: Partial<Draft>) => void
+  onOpen: (id: string) => void; onRemove: (id: string) => void; onAdd: () => void
+  onDetails?: (id: string) => void
+  resumeLabels?: Record<string, { name: string; outdated: boolean }>
+}) {
+  const checked = new Set(selectedIds)
+  const all = drafts.length > 0 && drafts.every(draft => checked.has(draft.id))
+  const ready = drafts.filter(draft => !draftIssues(draft).length && !resumeLabels[draft.id]?.outdated)
+  const needsAttention = drafts.filter(draft => (draftIssues(draft).length || resumeLabels[draft.id]?.outdated) && !websiteLinks(draft).length)
+  if (!drafts.length) return <div className="mail-empty text-body">
+    <ListPlus size={24} strokeWidth={1.5} aria-hidden="true" />
+    <div><h2 className="mb-2 mt-0 text-section font-semibold">还没有待投递的条目</h2>
+    <p className="mb-4 leading-relaxed text-text-secondary">在上方填写收件邮箱即可预览邮件，也可以从官网导入岗位。</p>
+    <Button variant="secondary" disabled={disabled} onClick={onAdd}>添加邮件</Button></div>
+  </div>
+  return <section className="mail-draft-table flex min-h-0 flex-1 flex-col" aria-label="批量核对投递名单">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line px-5 py-2.5 text-body">
+      <span className="font-medium">待投递 {drafts.length}</span>
+      <span>{selectedIds.filter(id => drafts.some(draft => draft.id === id)).length} 个选中 · {ready.length} 个可发送</span>
+      {!!needsAttention.length && <span className="workbench-status" data-tone="warning">{needsAttention.length} 个待补充</span>}
+      <Button variant="link" className="text-label text-text-secondary" disabled={disabled || !ready.length} onClick={() => onSelection(ready.map(draft => draft.id))}>只选可发送</Button>
+      <span className="ml-auto text-meta text-text-tertiary">点击公司、岗位或邮箱可修改</span>
+      <button type="button" className="flex items-center gap-1 px-1 py-1 text-label text-text-secondary hover:bg-surface-hover" disabled={disabled} onClick={onAdd}><Plus size={13} />手动添加</button>
+    </div>
+    <div className="min-h-0 flex-1 overflow-auto">
+      <table className="w-full min-w-[700px] table-fixed border-collapse text-left text-body">
+        <thead className="sticky top-0 z-10 bg-surface-soft text-text-secondary"><tr>
+          <th className="w-12 border-b border-line px-4 py-3 font-normal"><input type="checkbox" aria-label="选择全部岗位" disabled={disabled} checked={all} ref={node => { if (node) node.indeterminate = !all && drafts.some(draft => checked.has(draft.id)) }} onChange={event => onSelection(event.target.checked ? drafts.map(draft => draft.id) : [])} /></th>
+          <th className="w-[34%] border-b border-line px-3 py-3 font-normal">公司 / 岗位</th><th className="w-[28%] border-b border-line px-3 py-3 font-normal">投递方式</th><th className="border-b border-line px-3 py-3 font-normal">状态</th><th className="w-[100px] border-b border-line px-3 py-3 font-normal">操作</th>
+        </tr></thead>
+        <tbody>{drafts.map(draft => {
+          const issues = draftIssues(draft)
+          const website = websiteLinks(draft).length > 0
+          const candidates = draft.extraction?.url === draft.sourceUrl ? draft.extraction.emails : []
+          return <tr key={draft.id} data-selected={checked.has(draft.id)} className="border-b border-line hover:bg-surface-soft">
+            <td className="px-4 py-3 align-top"><input type="checkbox" aria-label={`选择 ${draft.company || '未填公司'} ${draft.role || '未填岗位'}`} disabled={disabled} checked={checked.has(draft.id)} onChange={event => onSelection(event.target.checked ? [...selectedIds, draft.id] : selectedIds.filter(id => id !== draft.id))} /></td>
+            <td className="mail-draft-identity px-3 py-2 align-top"><input className="mail-input !border-transparent !bg-transparent !px-0 focus:!border-brand" aria-label={`公司 ${draft.id}`} value={draft.company} maxLength={120} disabled={disabled} placeholder={website ? '补充公司' : '公司（选填）'} onChange={event => onUpdate(draft.id, { company: event.target.value })} />
+              <input className="mail-input !border-transparent !bg-transparent !px-0 focus:!border-brand" aria-label={`岗位 ${draft.id}`} value={draft.role} maxLength={120} disabled={disabled} placeholder={website ? '补充岗位' : '岗位（选填）'} onChange={event => onUpdate(draft.id, { role: event.target.value })} /></td>
+            <td className="px-3 py-2 align-top">{website ? <button type="button" disabled={disabled} onClick={() => onOpen(draft.id)} className="flex h-9 items-center gap-1 text-accent underline">官网申请<ExternalLink size={12} /></button> : <>
+              <input className="mail-input !border-transparent !bg-transparent !px-0 focus:!border-brand" aria-label={`招聘邮箱 ${draft.id}`} type="email" value={draft.recipient} disabled={disabled} placeholder={candidates.length ? '在下方选择邮箱' : '补充招聘邮箱'} onChange={event => onUpdate(draft.id, { recipient: event.target.value })} />
+              {!draft.recipient && !!candidates.length && <select className="mail-input w-full text-label" aria-label={`选择 ${draft.company} ${draft.role} 的官网邮箱`} value="" disabled={disabled} onChange={event => { if (event.target.value) onUpdate(draft.id, { recipient: event.target.value }) }}>
+                <option value="">选择页面中的邮箱</option>{candidates.map(candidate => <option key={candidate.email} value={candidate.email}>{candidate.email} · {candidate.context.slice(0, 60)}</option>)}
+              </select>}
+            </>}</td>
+            <td className="px-3 py-3 align-top"><span className="workbench-status leading-relaxed" data-tone={website ? 'info' : issues.length || resumeLabels[draft.id]?.outdated ? 'warning' : 'success'}>{website ? '原站填写' : resumeLabels[draft.id]?.outdated ? '岗位版待更新' : issues.length ? issues.map(issue => issue.label).join(' · ') : '可发送'}</span>{resumeLabels[draft.id] && <span className="mt-1 block truncate text-meta text-text-secondary" title={resumeLabels[draft.id].name}>{resumeLabels[draft.id].name}</span>}{sourceUrlSchema.safeParse(draft.sourceUrl).success && <a href={draft.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-1 block truncate text-label text-text-tertiary underline">查看来源</a>}</td>
+            <td className="px-3 py-3 align-top"><div className="flex flex-wrap items-center gap-3"><button type="button" disabled={disabled} onClick={() => onOpen(draft.id)} className="text-accent underline">{website ? '打开' : '查看'}</button>{onDetails && <button type="button" disabled={disabled} onClick={() => onDetails(draft.id)} className="text-text-secondary underline">资料</button>}<button type="button" disabled={disabled} title="移除岗位" aria-label={`移除 ${draft.company || '岗位'}`} className="text-text-tertiary hover:text-danger" onClick={() => onRemove(draft.id)}><Trash2 size={13} /></button></div></td>
+          </tr>
+        })}</tbody>
+      </table>
+    </div>
+  </section>
+}

@@ -18,8 +18,8 @@
   --color-canvas: #edf0f2;
 
   --color-text-primary: #282d33;
-  --color-text-secondary: #535b64;
-  --color-text-tertiary: #626c76;
+  --color-text-secondary: #474f58;
+  --color-text-tertiary: #6b7480;
   --color-text-muted: #78818a;
   --shadow-card: 0 1px 3px rgba(48, 44, 37, 0.05);
 
@@ -29,8 +29,8 @@
   --color-brand: #343b45;
   --color-brand-hover: #242b34;
   --color-brand-soft: #e9edf2;
-  --color-accent: #a5512d;
-  --color-accent-soft: #fff2e9;
+  --color-accent: #5a6570;
+  --color-accent-soft: #eef1f3;
   --color-info: #315f88;
   --color-info-soft: #edf4fc;
 
@@ -80,6 +80,25 @@ html, body { min-width: 320px; min-height: 100%; margin: 0; }
 body { min-height: 100vh; background: var(--color-bg); }
 button { cursor: pointer; }
 
+/* Native selects share the workbench shape; component classes can override size. */
+select {
+  height: 32px;
+  padding: 0 28px 0 10px;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 0;
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 30px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='m3 4.5 3 3 3-3' fill='none' stroke='%236b7480' stroke-width='1.2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+select.mail-input { padding-right: 28px; }
+select:disabled { opacity: .5; cursor: not-allowed; }
+
 @layer base {
   body { font-size: var(--text-body); line-height: var(--text-body--line-height); }
   :is(button, input, textarea, select, label, summary) { font-size: var(--text-label); line-height: var(--text-label--line-height); }
@@ -110,7 +129,7 @@ button { cursor: pointer; }
   overflow: hidden;
   background: var(--color-surface);
 }
-.workbench-library { height: auto; min-height: 100dvh; overflow: visible; background: var(--color-bg); }
+.workbench-library { height: auto; min-height: 100%; overflow: visible; background: var(--color-bg); }
 .library-workbench { height: auto; min-height: 100dvh; overflow: visible; }
 .library-workbench > .workspace-dock { position: sticky; top: 0; align-self: flex-start; height: 100dvh; }
 .workbench-library > header { min-height: 64px; background: var(--color-surface); }

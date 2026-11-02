@@ -8,14 +8,15 @@ vi.mock('./hooks/use-app-navigation', () => ({ useAppNavigation: () => ({ phase:
 vi.mock('./hooks/use-resume-workspace', () => ({ useResumeWorkspace: () => ({ analysis: state.analysis, knowledgeItems: [], sessions: {}, masteredBlindSpotIds: [], preparedClaimIds: [], claimPriorityOverrides: {}, selected: null, stats: null, recovering: state.mode === 'diagnosis', workspaceLoaded: state.loaded, recoveredFromStorage: true, envConfigured: false, clientConfigured: false, refreshClientLlm: vi.fn() }) }))
 vi.mock('./hooks/use-resume-analysis', () => ({ useResumeAnalysis: () => ({ handleConfirmText: state.confirm }) }))
 vi.mock('./hooks/use-claim-actions', () => ({ useClaimActions: () => ({}) }))
-vi.mock('./hooks/use-knowledge-actions', () => ({ useKnowledgeActions: () => ({}) }))
+vi.mock('../features/knowledge/hooks/use-knowledge-actions', () => ({ useKnowledgeActions: () => ({}) }))
 vi.mock('@/features/interview/hooks/use-interview', () => ({ useInterview: () => ({ activeClaimSnapshot: null, answer: '', annotation: '', rounds: [], loading: false, reset: vi.fn() }) }))
-vi.mock('./ResumeCheckWorkspace', () => ({ ResumeCheckWorkspace: (props: unknown) => { state.check(props); return createElement('p', {}, '独立简历检查') } }))
+vi.mock('../features/resume/ResumeCheckWorkspace', () => ({ ResumeCheckWorkspace: (props: unknown) => { state.check(props); return createElement('p', {}, '独立简历检查') } }))
 vi.mock('@/features/applications/MailWorkbench', () => ({ MailWorkbench: ({ onNavigate }: { onNavigate: (mode: string) => void }) => createElement('button', { onClick: () => onNavigate('diagnosis') }, '打开简历检查') }))
 vi.mock('@/features/resume/ResumeImportView', () => ({ ResumeImportView: () => createElement('p', {}, '简历库') }))
 let host: HTMLDivElement, root: Root
 beforeEach(() => {
   vi.clearAllMocks(); vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true); vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+  vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
   state.loaded = true; state.mode = 'diagnosis'; state.analysis = { jobDescription: '投递岗位的 JD', jobContext: { applicationId: 'job' }, claims: [] }
   host = document.createElement('div'); document.body.append(host); root = createRoot(host)
 })
@@ -34,11 +35,12 @@ it('尚未建立面试记录时，从投递侧也能直接进入独立检查入�
   expect(state.push).not.toHaveBeenCalledWith('upload')
 })
 
-it('没有简历的面试地址恢复完成后跳回简历库，恢复期间不提前跳走', async () => {
+it('没有简历时进入面试地址显示空状态，不静默跳回简历库', async () => {
   state.mode = 'interview'; state.analysis = null; state.loaded = false
   await act(async () => root.render(createElement(App)))
   expect(state.replace).not.toHaveBeenCalled()
   state.loaded = true
   await act(async () => root.render(createElement(App)))
-  expect(state.replace).toHaveBeenCalledWith('upload')
+  expect(host.textContent).toContain('先选一份简历开始练习')
+  expect(state.replace).not.toHaveBeenCalledWith('upload')
 })

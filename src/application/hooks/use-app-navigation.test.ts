@@ -6,6 +6,7 @@ describe('app navigation paths', () => {
     expect(buildAppPath('upload')).toBe('/')
     expect(buildAppPath('review')).toBe('/review')
     expect(buildAppPath('workspace', 'diagnosis')).toBe('/diagnosis')
+    expect(buildAppPath('workspace', 'jobs')).toBe('/jobs')
     expect(buildAppPath('workspace', 'applications')).toBe('/applications')
     expect(buildAppPath('workspace', 'careers')).toBe('/careers')
     expect(buildAppPath('workspace', 'application-history')).toBe('/application-history')
@@ -17,6 +18,7 @@ describe('app navigation paths', () => {
 
   it('derives application state from routes', () => {
     expect(parseAppPath('/review')).toEqual({ phase: 'review', mode: 'audit' })
+    expect(parseAppPath('/jobs')).toEqual({ phase: 'workspace', mode: 'jobs' })
     expect(parseAppPath('/applications')).toEqual({ phase: 'workspace', mode: 'applications' })
     expect(parseAppPath('/careers')).toEqual({ phase: 'workspace', mode: 'careers' })
     expect(parseAppPath('/application-history')).toEqual({ phase: 'workspace', mode: 'application-history' })

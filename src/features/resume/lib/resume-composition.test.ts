@@ -4,8 +4,8 @@ import type { ResumeComposition } from '@/domain/resume-composition'
 const values = vi.hoisted(() => new Map<string, unknown>())
 vi.mock('idb-keyval', () => ({ get: async (key: string) => values.get(key), set: async (key: string, value: unknown) => { values.set(key, value) }, update: vi.fn(), keys: vi.fn(), del: vi.fn() }))
 import { loadResumeComposition, createComposedResume } from './resume-composition'
-import { saveExperiences, loadExperiences } from '@/features/applications/website-experience-storage'
-import { saveWebsiteProfile, loadWebsiteProfile } from '@/features/applications/website-automation'
+import { saveExperiences, loadExperiences } from '@/features/applications/website/lib/website-experience-storage'
+import { saveWebsiteProfile, loadWebsiteProfile } from '@/features/applications/website/lib/website-automation'
 import { resumeContentKey } from '@/lib/storage'
 import { readFileSync } from 'node:fs'
 beforeEach(() => { values.clear(); vi.stubGlobal('fetch', vi.fn(async () => new Response(readFileSync('public/fonts/NotoSansSC-Regular.ttf')))) })
