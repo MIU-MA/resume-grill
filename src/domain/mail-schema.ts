@@ -85,11 +85,12 @@ export type AgentSnapshot = {
   jobs: MailJob[]
   fatalError?: string
   credentials?: { supported: boolean; saved: boolean; restoring: boolean; error?: string }
+  capabilities?: { careerReader: 'dynamic-v1' }
 }
 export type EmailCandidate = { email: string; context: string }
 export type CareerLink = { url: string; label: string; kind: 'entry' | 'job' | 'apply'; sourceUrl: string }
 export type CareerJob = { id: string; role: string; company?: string; emails: EmailCandidate[]; recommendedEmail: string; emailAmbiguous?: boolean; jobDescription?: string }
-export type CareerDiscovery = { links: CareerLink[]; pagesRead: number; notes: string[]; pages?: CareerPage[] }
+export type CareerDiscovery = { links: CareerLink[]; pagesRead: number; notes: string[]; pages?: CareerPage[]; listingRead?: boolean }
 export type CareerPage = { url: string; title: string; emails: EmailCandidate[]; company: string; role: string; recommendedEmail: string; notes: string[]; links?: CareerLink[]; jobDescription?: string; jobs?: CareerJob[] }
 
 export function applicationTemplate(name: string, company: string, role: string) {

@@ -5,7 +5,8 @@ export function normalizeCareerUrl(value: string, base?: string) {
   try {
     const url = new URL(value, base)
     if (!sourceUrlSchema.safeParse(url.href).success) return null
-    url.hash = ''
+    if (!/^#[!/]/.test(url.hash) && !/[?=/]/.test(url.hash)) url.hash = ''
+    url.pathname = url.pathname.replace(/;jsessionid=[^/;]+/gi, '')
     for (const key of [...url.searchParams.keys()]) {
       if (/^(utm_|fbclid$|gclid$)/i.test(key)) url.searchParams.delete(key)
     }
@@ -29,7 +30,7 @@ export function extractCareerLinks(html: string, sourceUrl: string): CareerLink[
     let kind: CareerLink['kind']
     if (/立即申请|申请职位|申请岗位|立即投递|投递简历|在线申请|在线应聘|apply(?:\b|[_/-])|application[-_/]form/i.test(hint)) kind = 'apply'
     else if (!knownJob && /(?:jobs?|positions?|vacancies)\/(?:search|list|all|index)(?:[/?]|$)/i.test(path)) kind = 'entry'
-    else if (knownJob || /工程师|开发|设计师|经理|专员|分析师|研究员|实习|助理|总监|顾问|engineer\b|developer\b|designer\b|analyst\b|scientist\b|(?:job|position|vacanc)[-_/]?(?:detail|view)|(?:jobs?|positions?|vacancies)\/[\w-]+|[?&](?:job_?id|position_?id)=/i.test(hint)) kind = 'job'
+    else if (knownJob || /工程师|开发|设计师|经理|专员|分析师|研究员|实习|助理|总监|顾问|销售|会计|财务|出纳|人事|行政|客服|采购|测试|运维|编辑|策划|engineer\b|developer\b|designer\b|analyst\b|scientist\b|accountant\b|recruiter\b|sales\b|operations\b|(?:job|position|vacanc)[-_/]?(?:detail|view)|(?:jobs?|positions?|vacancies)\/[\w-]+|[?&](?:job_?id|position_?id)=/i.test(hint)) kind = 'job'
     else if (/招聘|加入我们|招贤纳士|人才招募|岗位|职位|careers?|recruit|\bjobs?\b|vacancies|join[-_ ]?us|opportunities/i.test(`${hint} ${parsed.hostname}`)) kind = 'entry'
     else return
     const previous = found.get(url)
@@ -47,6 +48,6 @@ export function extractCareerLinks(html: string, sourceUrl: string): CareerLink[
     try { visit(JSON.parse($(el).text())) } catch { /* Ignore invalid metadata. */ }
   })
   $('script,style,noscript,template').remove()
-  $('a[href]').each((_, el) => add($(el).attr('href') ?? '', $(el).text() || $(el).attr('aria-label') || $(el).attr('title') || ''))
+  $('a[href]').each((_, el) => add($(el).attr('href') ?? '', $(el).find('h1,h2,h3,h4,[class*="title"],[class*="Title"]').first().text() || $(el).attr('aria-label') || $(el).attr('title') || $(el).text() || ''))
   return [...found.values()]
 }

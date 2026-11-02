@@ -25,7 +25,7 @@ export function JobAssistant({ tools, envConfigured }: { tools: JobAssistantTool
   const locked = running || importing || tools.disabled
   const jobs = task?.jobs.filter(job => filter === 'all' || job.assessment?.verdict === filter) ?? []
   return <section className="border-b border-line bg-surface px-5 py-4" aria-label="求职助手">
-    <label className="mail-label">这次想找什么工作？<textarea className="mail-input min-h-20 resize-y leading-relaxed" maxLength={2000} disabled={locked || !hydrated} value={assistant.goal} onChange={event => assistant.setGoal(event.target.value)} onBlur={() => void assistant.saveGoal()} placeholder="例如：杭州的前端实习，主要用 React，优先中小公司。也可以在这里附上招聘官网链接。" /></label>
+    <label className="mail-label">这次想找什么工作？<textarea className="mail-input min-h-20 resize-y leading-relaxed" maxLength={2000} disabled={locked || !hydrated} value={assistant.goal} onChange={event => assistant.setGoal(event.target.value)} onBlur={() => void assistant.saveGoal()} placeholder="例如：杭州的后端开发、上海的财务或远程运营。写明你的求职方向，也可以附上招聘官网链接。" /></label>
     <div className="mt-3 flex flex-wrap items-center gap-3">
       <label className="flex min-w-0 flex-1 items-center gap-2 text-[12px] text-text-secondary">使用简历<select aria-label="求职助手使用的简历" className="mail-input min-w-0 flex-1" value={assistant.resumeId} disabled={locked || !hydrated} onChange={event => assistant.setResumeId(event.target.value)}><option value="" disabled>选择简历</option>{assistant.documents.map(doc => <option key={doc.id} value={doc.id}>{doc.sourceFile}</option>)}</select></label>
       {running ? <Button variant="secondary" disabled={assistant.pausing} onClick={assistant.pause}>{assistant.pausing ? '当前步骤结束后暂停' : '暂停'}</Button> : <>
@@ -34,12 +34,13 @@ export function JobAssistant({ tools, envConfigured }: { tools: JobAssistantTool
       </>}
       <button className="text-[12px] text-text-secondary underline" onClick={() => { setClientConfigured(!!getLlmSettings()); setSettingsOpen(true) }}>模型设置</button>
     </div>
-    <p className="mb-0 mt-2 text-[11px] leading-relaxed text-text-tertiary">从收录的官网和你提供的链接查找，每次最多读取 8 个来源、整理 30 个岗位。会将所选简历文字和岗位要求发送给配置的模型，可能产生调用费用。条件和最近一次任务保存在本机浏览器。</p>
+    <p className="mb-0 mt-2 text-[11px] leading-relaxed text-text-tertiary">从收录的官网和你提供的链接查找，先读取最多 8 个来源，未找到岗位时自动补充最多 4 个来源，共整理最多 30 个岗位。会将所选简历文字和岗位要求发送给配置的模型，可能产生调用费用。条件和最近一次任务保存在本机浏览器。</p>
     {hydrated && !assistant.documents.length && <p className="text-[12px] text-warning">先到简历库导入一份简历，就可以开始。</p>}
     {assistant.error && <p role="alert" className="text-[12px] text-danger">{assistant.error}</p>}
     {task && <div className="mt-4 border-t border-line pt-3">
       <p role="status" className="m-0 text-[12px] text-text-secondary">{task.message || '任务已保存，可以继续。'}</p>
       <p className="mb-2 mt-1 text-[11px] text-text-tertiary">本次目标：{task.goal} · 简历：{task.resume.name}（{new Date(task.resume.updatedAt).toLocaleString('zh-CN')} 保存）</p>
+      {task.plan && <p className="my-1 text-[11px] text-text-tertiary">岗位关键词：{task.plan.keywords.join(' / ')}</p>}
       {!!task.sources.length && <details className="text-[12px] text-text-secondary"><summary className="cursor-pointer">查看查找范围 · {task.sources.filter(source => source.status !== 'pending').length}/{task.sources.length} 个官网已处理</summary><div className="mt-2 space-y-1">{task.sources.map(source => <div key={source.url}><a href={source.url} target="_blank" rel="noopener noreferrer" className="underline">{source.company}</a><span className="ml-2">{source.status === 'done' ? '已读取' : source.status === 'failed' ? source.error : '待读取'}</span></div>)}</div></details>}
       {!running && task.sources.some(source => source.status === 'failed') && task.jobs.length < 30 && <button className="mt-2 text-[12px] text-accent underline" disabled={locked} onClick={() => void assistant.execute('retry')}>重试未读到的官网</button>}
       {!!task.jobs.length && <>

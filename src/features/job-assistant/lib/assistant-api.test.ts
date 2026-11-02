@@ -16,9 +16,25 @@ function modelReply(value: unknown) {
 beforeEach(() => { vi.clearAllMocks(); vi.mocked(resolveLlmConfig).mockReturnValue(config); vi.mocked(rateLimit).mockReturnValue({ ok: true }) })
 
 describe('求职助手接口', () => {
+  it('全栈规划补充中英文名称，不改成普通前端和后端', async () => {
+    modelReply({ ...plan, keywords: ['全栈'] })
+    const response = await handleAssistantRequest(request({ goal: '全栈', resume: '全栈项目经历' }))
+    expect(response.status).toBe(200)
+    expect((await response.json()).plan.keywords).toEqual(['全栈', '全端', 'Full Stack'])
+  })
+  it('明确的非前端目标优先于简历技术栈，并保留该方向规划', async () => {
+    modelReply({ ...plan, keywords: ['会计', '财务', 'Accountant'] })
+    const response = await handleAssistantRequest(request({ goal: '财务会计工作', resume: '曾参与 React 项目，也有税务申报实习' }))
+    expect(response.status).toBe(200)
+    expect((await response.json()).plan.keywords).toEqual(['会计', '财务', 'Accountant'])
+    const userInput = JSON.parse(String(vi.mocked(llmStructured).mock.calls[0][1]))
+    expect(userInput.goal).toBe('财务会计工作')
+    expect(userInput.sources.every((source: Record<string, unknown>) => !('frontendRoles' in source))).toBe(true)
+  })
   it('扩充后的官网同样可被助手选择，不仅在页面目录中展示', async () => {
     const source = careerSites.find(site => site.company === '优码云')!
-    expect(assistantSources('前端 React')).toContainEqual(source)
+    expect(assistantSources('前端 React')).toContainEqual(expect.objectContaining({ company: source.company, url: source.url }))
+    expect(assistantSources('财务 会计').some(item => 'frontendRoles' in item)).toBe(false)
     modelReply({ ...plan, sourceUrls: [source.url] })
     const response = await handleAssistantRequest(request())
     expect(response.status).toBe(200)

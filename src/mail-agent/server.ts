@@ -6,6 +6,7 @@ import type { MailQueue } from './queue.ts'
 import { readCareerPage } from './public-page.ts'
 import { verifySmtpConfig, type MailAccount } from './account.ts'
 import { discoverCareers } from './career-discovery.ts'
+import { discoverRecruitingPage, readRecruitingDetail } from './career-reader.ts'
 
 export function allowedOrigins(extra?: string) {
   const origins = new Set(['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3107', 'http://127.0.0.1:3107'])
@@ -65,7 +66,7 @@ export function createAgentHandler(options: { token: string; origins: Set<string
     try {
       const queue = options.queue()
       const account = options.account?.()
-      const snapshot = () => account?.snapshot() ?? queue.snapshot()
+      const snapshot = () => ({ ...(account?.snapshot() ?? queue.snapshot()), capabilities: { careerReader: 'dynamic-v1' as const } })
       if (req.method === 'GET' && req.url === '/status') { respond(200, snapshot()); return }
       if (req.method !== 'POST') { respond(404, { error: '未找到接口' }); return }
       const body = await readJson(req)
@@ -93,9 +94,11 @@ export function createAgentHandler(options: { token: string; origins: Set<string
         case '/discover':
         case '/extract': {
           if (readingPage) throw new Error('正在读取招聘页，请稍后再试')
-          const { url } = z.object({ url: sourceUrlSchema }).strict().parse(body)
+          const { url, keywords } = z.object({ url: sourceUrlSchema, keywords: z.array(z.string().trim().min(1).max(100)).max(12).optional() }).strict().parse(body)
           readingPage = true
-          try { respond(200, req.url === '/discover' ? await discoverCareers(url, options.readPage) : await (options.readPage ?? readCareerPage)(url)) }
+          try {
+            respond(200, req.url === '/discover' ? options.readPage ? await discoverCareers(url, options.readPage) : await discoverRecruitingPage(url, keywords) : options.readPage ? await options.readPage(url) : await readRecruitingDetail(url))
+          }
           finally { readingPage = false }
           return
         }

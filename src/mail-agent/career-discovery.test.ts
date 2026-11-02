@@ -75,4 +75,19 @@ describe('official recruiting link discovery', () => {
     const html = Array.from({ length: 300 }, (_, i) => `<a href="/jobs/${i}">工程师 ${i}</a>`).join('')
     expect(extractCareerLinks(html, 'https://example.com')).toHaveLength(100)
   })
+  it('通用岗位名称也能识别，不要求名称里有开发或工程师', async () => {
+    const html = '<article><h3>财务会计</h3><h4>任职要求</h4><p>熟悉税务申报。</p></article><article><h3>客户运营</h3><h4>岗位职责</h4><p>负责用户活动。</p></article><a href="/opening/service">客服</a><a href="/opening/accounting">Accountant</a>'
+    const result = await discoverCareers('https://example.com', async url => extractCareerEmails(html, url))
+    expect(result.pages?.[0].jobs?.map(job => job.role)).toEqual(['财务会计', '客户运营'])
+    expect(result.links.filter(link => link.kind === 'job').map(link => link.label)).toEqual(['客服', 'Accountant'])
+  })
+  it('入口与后续页面使用有限的单页预算，不能每个页面各等完整的总预算', async () => {
+    const budgets: number[] = []
+    await discoverCareers('https://example.com', async (url, _redirects, deadline) => {
+      budgets.push(deadline! - Date.now())
+      return extractCareerEmails(url.endsWith('/careers') ? '' : '<a href="/careers">招聘</a>', url)
+    })
+    expect(budgets[0]).toBeLessThanOrEqual(12000)
+    expect(budgets[1]).toBeLessThanOrEqual(6000)
+  })
 })

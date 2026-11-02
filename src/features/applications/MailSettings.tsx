@@ -44,7 +44,9 @@ export function MailSettings({ agent, purpose = 'sender', rememberedSender, onVe
         <code className="block border border-line bg-surface-soft px-3 py-2.5 select-all">npm run mail-agent</code>
         <div className="mt-3 flex items-end gap-2"><label className="mail-label min-w-0 flex-1">终端中的连接码<input className="mail-input font-mono" type="password" autoComplete="off" value={connection} onChange={e => setConnection(e.target.value)} /></label><Button variant="secondary" loading={busy} disabled={!connection.trim()} onClick={() => void run(async () => { await agent.connect(connection); if (purpose === 'agent') onClose() })}>{agent.snapshot ? '重新连接' : '连接本机'}</Button></div>
         {agent.snapshot && <p className="mb-0 mt-2 text-success" role="status">本机服务已连接</p>}
-        {agent.token && <button className="mt-2 text-[12px] text-text-tertiary underline" disabled={busy} onClick={() => { agent.forgetConnection(); setConnection('') }}>忘记连接码</button>}
+        {!agent.snapshot && agent.connectionError && <p role="alert" className="mb-0 mt-2 text-[12px] text-danger">{agent.connectionError}</p>}
+        <p className="mb-0 mt-2 text-[12px] leading-relaxed text-text-tertiary">连接码是每次启动更新的临时配对码，不是邮箱授权码。填写新的连接码后，已保存在本机的邮箱会显示恢复状态，无需重填授权码。</p>
+        {agent.token && <button className="mt-2 text-[12px] text-text-tertiary underline" disabled={busy} onClick={() => { agent.forgetConnection(); setConnection('') }}>断开本机连接</button>}
       </details>
       {purpose === 'sender' && <section className="border-t border-line pt-4">
         <h3 className="mb-3 mt-0 text-[13px] font-semibold">设置发件邮箱</h3>
@@ -60,7 +62,7 @@ export function MailSettings({ agent, purpose = 'sender', rememberedSender, onVe
           <label className="mail-label">邮箱授权码<input type="password" autoComplete="off" className="mail-input" placeholder={credentials?.saved ? '更新授权码时填写' : '邮箱的客户端授权码'} value={password} onChange={e => setPassword(e.target.value)} /></label>
         </div>
         <p className="my-3 text-[12px] leading-relaxed text-text-tertiary">输入邮箱后自动识别类型。{provider === '163' ? '网易 163：在邮箱设置的 POP3/SMTP/IMAP 中开启 SMTP，填写客户端授权码。' : 'QQ 邮箱：先在邮箱设置中开启 SMTP，并生成授权码。'}</p>
-        {credentials?.supported ? <label className="mb-3 flex items-start gap-2 text-[12px] leading-relaxed"><input type="checkbox" className="mt-0.5" checked={remember} disabled={busy || credentials.restoring} onChange={event => setRemember(event.target.checked)} /><span>记住授权码，下次自动连接。授权码使用当前 Windows 账户加密；不勾选则只用于本次运行。</span></label> : <p className="my-3 text-[12px] text-text-tertiary">{!agent.snapshot ? '连接本机后可查看授权码保存选项。' : '当前设备无法加密保存授权码，重启后需要重新填写。'}</p>}
+        {credentials?.supported ? <label className="mb-3 flex items-start gap-2 text-[12px] leading-relaxed"><input type="checkbox" className="mt-0.5" checked={remember} disabled={busy || credentials.restoring} onChange={event => setRemember(event.target.checked)} /><span>保存邮箱授权码到本机。下次启动执行器会自动恢复邮箱；授权码使用当前 Windows 账户加密，不勾选则只用于本次运行。</span></label> : <p className="my-3 text-[12px] text-text-tertiary">{!agent.snapshot ? '连接本机后可查看授权码保存选项。' : '当前设备无法加密保存授权码，重启后需要重新填写。'}</p>}
         {credentials?.restoring && <p role="status" className="text-[12px] text-text-secondary">正在恢复已保存的邮箱…</p>}
         {credentials?.error && <p role="alert" className="text-[12px] text-danger">{credentials.error}</p>}
         {agent.snapshot?.sender && <p role="status" className="text-[12px] text-success">已连接 {agent.snapshot.sender.address}{credentials?.saved ? ' · 已记住本机' : ''}</p>}

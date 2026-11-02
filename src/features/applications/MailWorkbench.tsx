@@ -243,7 +243,7 @@ export function MailWorkbench({ mode = 'applications', badges, onNavigate, onHom
         <h1 className="m-0 whitespace-nowrap text-[16px] font-semibold">{isCareers ? '招聘官网' : tab === 'history' ? '投递记录' : '投递清单'}</h1>
         <span className="ml-auto min-w-0 truncate text-[12px] text-text-tertiary max-sm:hidden">{drafts.length} 个待处理 · {history.length} 条记录</span>
       </header>
-      <LocalSetupStatus connected={!!snapshot} connectionError={agent.connectionError} onConnect={() => setSettingsOpen('agent')} />
+      <LocalSetupStatus connected={!!snapshot} connectionError={agent.connectionError} readerWarning={agent.readerWarning} onConnect={() => setSettingsOpen('agent')} />
       <div className="mail-toolbar" hidden={isCareers || tab === 'history'}>
         <input ref={fileInput} hidden type="file" accept=".pdf,.docx,.txt" onChange={event => {
           const file = event.target.files?.[0]
@@ -292,7 +292,7 @@ export function MailWorkbench({ mode = 'applications', badges, onNavigate, onHom
           connected: !!snapshot, disabled: busy || !!preview, slots: 20 - drafts.length,
           existingJobs: drafts.map(({ sourceUrl, role }) => ({ sourceUrl, role })), preferredResumeId: attachmentSource?.id,
           onConnect: () => setSettingsOpen('agent'), onBusy: setBusy,
-          discover: url => agent.request<CareerDiscovery>('/discover', { url }), read: url => agent.request<CareerPage>('/extract', { url }),
+            discover: (url, keywords) => agent.request<CareerDiscovery>('/discover', { url, ...(keywords?.length ? { keywords } : {}) }), read: url => agent.request<CareerPage>('/extract', { url }),
           onImport: async (pages, resume) => {
             if (busy || preview) throw new Error('当前操作尚未完成，请稍后再加入清单。')
             const additions = prepareAssistantDrafts(pages, drafts, defaults, snapshot?.sender)

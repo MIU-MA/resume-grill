@@ -29,6 +29,7 @@ export type AssistantTask = {
   version: 1; id: string; goal: string; createdAt: number; updatedAt: number
   resume: { id: string; name: string; text: string; updatedAt: number; attachment?: File; attachmentUpdatedAt?: number }
   plan?: AssistantPlan; status: 'paused' | 'running' | 'complete'; message: string
+  reserveSources?: Array<{ company: string; url: string }>
   sources: Array<{ company: string; url: string; status: 'pending' | 'done' | 'failed'; error?: string }>
   jobs: AssistantJob[]
 }
@@ -37,7 +38,7 @@ export type JobAssistantTools = {
   existingJobs: Array<{ sourceUrl: string; role: string }>
   preferredResumeId?: string
   onConnect: () => void; onBusy: (busy: boolean) => void
-  discover: (url: string) => Promise<CareerDiscovery>; read: (url: string) => Promise<CareerPage>
+  discover: (url: string, keywords?: string[]) => Promise<CareerDiscovery>; read: (url: string) => Promise<CareerPage>
   onImport: (pages: CareerPage[], resume: AssistantTask['resume']) => Promise<void>
 }
 

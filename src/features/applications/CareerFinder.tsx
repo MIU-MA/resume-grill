@@ -53,7 +53,7 @@ export function CareerFinder({ connected, disabled, onConnect, discover, onChoos
     <div className="mt-4">
     <div className="career-directory-heading"><h2>招聘官网</h2><p>去官网选职位，也可以直接读取岗位。</p></div>
     <div className="career-directory-search mb-3 flex flex-wrap items-center gap-3 text-[12px]">
-      <input className="mail-input min-w-0 flex-1" aria-label="搜索招聘官网" placeholder="搜索公司 / 技术方向" value={directoryQuery} onChange={event => setDirectoryQuery(event.target.value)} />
+      <input className="mail-input min-w-0 flex-1" aria-label="搜索招聘官网" placeholder="搜索公司名称 / 官网" value={directoryQuery} onChange={event => setDirectoryQuery(event.target.value)} />
       <span className="text-text-tertiary">{sites.length} / {careerSites.length} 家</span>
     </div>
     <div className="career-directory max-h-[280px] overflow-y-auto pr-1" aria-label="招聘官网">

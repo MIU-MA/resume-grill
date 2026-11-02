@@ -5,7 +5,7 @@ import { isWorkbenchUrl } from '@/domain/website-automation'
 import { extensionRequest } from './website-automation'
 import { extensionConnectionReport, type ExtensionConnectionProgress } from './website-extension-connection'
 
-export function LocalSetupStatus({ connected, connectionError, onConnect }: { connected: boolean; connectionError: string; onConnect: () => void }) {
+export function LocalSetupStatus({ connected, connectionError, readerWarning, onConnect }: { connected: boolean; connectionError: string; readerWarning?: string; onConnect: () => void }) {
   const [extension, setExtension] = useState<'checking' | 'connected' | 'missing' | 'unsupported'>('checking')
   const [check, setCheck] = useState(0)
   const [extensionError, setExtensionError] = useState('')
@@ -39,7 +39,7 @@ export function LocalSetupStatus({ connected, connectionError, onConnect }: { co
   }, [check])
   const agentLabel = connected ? '已连接' : connectionError ? '连接中断' : '未连接'
   const extensionLabel = { checking: '检测中', connected: '已连接', missing: '未连接', unsupported: '当前地址不支持' }[extension]
-  return <details open={extension === 'missing' || undefined} className="border-b border-line px-4 py-3 text-[12px] sm:px-7">
+  return <details open={extension === 'missing' || !!readerWarning || undefined} className="border-b border-line px-4 py-3 text-[12px] sm:px-7">
     <summary className="cursor-pointer text-text-secondary">运行状态 <span className="ml-3 text-text-tertiary">执行器{agentLabel} · 扩展{extensionLabel}</span></summary>
     <dl className="mb-0 mt-4 grid gap-3 sm:grid-cols-3">
       <div><dt className="font-medium">网页 · 已打开</dt><dd className="ml-0 mt-1 text-text-secondary">简历和清单保存在当前浏览器。</dd></div>
@@ -58,6 +58,7 @@ export function LocalSetupStatus({ connected, connectionError, onConnect }: { co
         {copyResult.startsWith('无法') && <textarea readOnly aria-label="扩展连接诊断信息" className="mt-2 h-40 w-full border border-line p-2" value={extensionConnectionReport(address, trace)} />}
       </dd></div>
     </dl>
+    {readerWarning && <p role="alert" className="mb-0 mt-4 text-warning">{readerWarning}</p>}
     {!connected && <p className="mb-0 mt-4 text-text-secondary">启动网页和执行器：<code>npm run dev:local</code>。将终端连接码填入“连接本机”；只检查简历时无需连接。</p>}
   </details>
 }

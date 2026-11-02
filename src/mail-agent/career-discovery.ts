@@ -19,7 +19,7 @@ export async function discoverCareers(input: string, read = readCareerPage): Pro
     if (visited.has(current.url)) continue
     visited.add(current.url)
     try {
-      const page = await read(current.url, 0, deadline, inScope)
+      const page = await read(current.url, 0, Math.min(deadline, Date.now() + (current.depth === 0 ? 12000 : 6000)), inScope)
       pagesRead++
       if (page.role || page.jobs?.length) pages.push(page)
       if (page.role && found.size < 100) found.set(page.url, { url: page.url, label: page.role, kind: 'job', sourceUrl: current.url })

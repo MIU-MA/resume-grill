@@ -6,8 +6,8 @@ import { extractCareerLinks } from './career-links.ts'
 import { emailSchema, sourceUrlSchema, type CareerJob, type CareerPage } from '../domain/mail-schema.ts'
 import { companyFromCareerUrl } from '../data/career-sites.ts'
 
-const ROLE_PATTERN = /工程师|开发|设计师|产品经理|运营|专员|分析师|研究员|实习生|助理|总监|顾问|销售|会计|engineer|developer|designer|analyst|manager|intern|scientist/i
-const DESCRIPTION_SECTION = /^(?:(?:[一二三四五六七八九十\d]+)[、.．）)]\s*)?(?:岗位职责|工作职责|职位职责|职责描述|主要职责|工作内容|任职要求|职位要求|岗位要求|任职资格|应聘要求|技能要求|职责要求|job responsibilities|responsibilities|qualifications|requirements)(?:\s*[:：]|\s*$)/i
+const ROLE_PATTERN = /工程师|开发|设计师|经理|运营|专员|分析师|研究员|实习生|助理|总监|顾问|销售|会计|财务|出纳|人事|行政|客服|采购|测试|运维|编辑|策划|engineer|developer|designer|analyst|manager|intern|scientist|accountant|recruiter|support|sales|operations/i
+const DESCRIPTION_SECTION = /^(?:(?:[一二三四五六七八九十\d]+)[、.．）)]\s*)?(?:岗位职责|工作职责|职位职责|职位描述|岗位描述|工作描述|职责描述|主要职责|工作内容|任职要求|职位要求|岗位要求|任职资格|应聘要求|技能要求|职责要求|job responsibilities|responsibilities|qualifications|requirements)(?:\s*[:：]|\s*$)/i
 const DESCRIPTION_END = /^(?:公司简介|公司介绍|关于我们|薪资待遇|福利待遇|工作地点|投递方式|应聘方式|联系方式|招聘邮箱|申请职位|立即申请|相关职位|推荐职位|about us|benefits|how to apply|apply now|related jobs)(?:\s*[:：]|\s*$)/i
 const NON_JOB_HEADING = /职位列表|岗位列表|招聘岗位|招聘职位|加入我们|加入团队|关于我们|热招岗位|careers|vacancies|join our|open positions/i
 const MAX_DESCRIPTION_LENGTH = 12000
@@ -72,11 +72,12 @@ export function isPublicAddress(address: string): boolean {
   return parsed.range() === 'unicast'
 }
 
-export async function resolvePublicHost(hostname: string) {
+export async function resolvePublicHost(hostname: string, deadline = Date.now() + 6000) {
+  if (Date.now() >= deadline) throw new Error('读取招聘页超时，请稍后重试或粘贴岗位正文')
   let timer: ReturnType<typeof setTimeout> | undefined
   const addresses = await Promise.race([
     lookup(hostname.replace(/^\[|\]$/g, ''), { all: true, verbatim: true }),
-    new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('招聘网站域名解析超时，请稍后再试')), 6000) }),
+    new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('招聘网站域名解析超时，请稍后再试')), Math.min(6000, deadline - Date.now())) }),
   ]).finally(() => clearTimeout(timer))
   if (!addresses.length || addresses.some(item => !isPublicAddress(item.address))) {
     throw new Error('招聘页必须使用公网地址，不能访问本机或内网')
@@ -245,13 +246,13 @@ function extractPageJobs(html: string, url: string, postings: Array<Record<strin
 }
 
 const MAX_PAGE_BYTES = 2 * 1024 * 1024
-export async function readCareerPage(input: string, redirects = 0, deadline = Date.now() + 20000, allowUrl?: (url: string) => boolean): Promise<CareerPage> {
+export async function readCareerResource(input: string, redirects = 0, deadline = Date.now() + 20000, allowUrl?: (url: string) => boolean, json = false): Promise<{ text: string; url: string }> {
   const parsed = sourceUrlSchema.safeParse(input)
   if (!parsed.success) throw new Error('请填写官网招聘页面的 HTTPS 地址（443 端口）')
   if (redirects > 4) throw new Error('招聘页面跳转次数过多，请复制最终页面地址')
   const url = new URL(parsed.data)
   if (allowUrl && !allowUrl(url.href)) throw new Error('链接跳转到其他网站，请从原站入口打开或复制最终地址重新查找')
-  const address = await resolvePublicHost(url.hostname)
+  const address = await resolvePublicHost(url.hostname, deadline)
   if (Date.now() >= deadline) throw new Error('读取招聘页超时，请手动填写邮箱')
   const result = await new Promise<{ redirect?: string; html?: string }>((resolve, reject) => {
     // Pin the validated DNS result; validate every redirect separately.
@@ -259,7 +260,7 @@ export async function readCareerPage(input: string, redirects = 0, deadline = Da
       agent: false,
       lookup: (_hostname, _options, callback) => callback(null, address.address, address.family),
       family: address.family,
-      headers: { 'User-Agent': 'ResumeGrill-CareerReader/1.0', Accept: 'text/html', 'Accept-Encoding': 'identity' },
+      headers: { 'User-Agent': 'ResumeGrill-CareerReader/1.0', Accept: json ? 'application/json' : 'text/html', 'Accept-Encoding': 'identity' },
     }, res => {
       if ([301, 302, 303, 307, 308].includes(res.statusCode ?? 0)) {
         res.resume()
@@ -273,7 +274,7 @@ export async function readCareerPage(input: string, redirects = 0, deadline = Da
         return
       }
       const type = res.headers['content-type'] ?? ''
-      if (!/text\/html|application\/xhtml\+xml/i.test(type) || (res.headers['content-encoding'] && res.headers['content-encoding'] !== 'identity')) {
+      if (!(json ? /application\/json/i : /text\/html|application\/xhtml\+xml/i).test(type) || (res.headers['content-encoding'] && res.headers['content-encoding'] !== 'identity')) {
         res.resume()
         reject(new Error('该地址不是可读取的网页，请使用官网招聘详情页'))
         return
@@ -297,6 +298,17 @@ export async function readCareerPage(input: string, redirects = 0, deadline = Da
     req.once('error', reject)
     req.end()
   })
-  if (result.redirect) return readCareerPage(result.redirect, redirects + 1, deadline, allowUrl)
-  return extractCareerEmails(result.html ?? '', url.href)
+  if (result.redirect) return readCareerResource(result.redirect, redirects + 1, deadline, allowUrl, json)
+  return { text: result.html ?? '', url: url.href }
+}
+
+export async function readCareerPage(input: string, redirects = 0, deadline = Date.now() + 20000, allowUrl?: (url: string) => boolean): Promise<CareerPage> {
+  const resource = await readCareerResource(input, redirects, deadline, allowUrl)
+  return extractCareerEmails(resource.text, resource.url)
+}
+
+export async function readCareerJson(input: string, deadline: number, allowUrl: (url: string) => boolean): Promise<unknown> {
+  const resource = await readCareerResource(input, 0, deadline, allowUrl, true)
+  try { return JSON.parse(resource.text) }
+  catch { throw new Error('官网岗位接口没有返回有效 JSON，请稍后重试') }
 }
