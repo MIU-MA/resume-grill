@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useSettingsDialog } from '@/features/settings/hooks/use-settings-dialog'
+
 import { Button } from '@/components/ui/Button'
 import type { Mode } from '@/application/types'
 import type { SidebarBadges } from './WorkspaceSidebar'
-import { AppShell, type SettingsTab } from './AppShell'
+import { AppShell } from './AppShell'
 
 /** Entering practice without an active resume should explain itself, not bounce to upload. */
 export function NoResumeWorkspace({ mode, badges, onNavigate, onHome }: {
@@ -13,18 +14,13 @@ export function NoResumeWorkspace({ mode, badges, onNavigate, onHome }: {
   onNavigate: (mode: Mode) => void
   onHome: () => void
 }) {
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [settingsTab, setSettingsTab] = useState<SettingsTab>('model')
-  const openSettings = (tab: SettingsTab) => { setSettingsTab(tab); setSettingsOpen(true) }
+  const settingsDialog = useSettingsDialog()
   return <AppShell
     mode={mode}
     badges={badges}
     onNavigate={onNavigate}
     onOpenHistory={onHome}
-    settingsOpen={settingsOpen}
-    settingsTab={settingsTab}
-    onOpenSettings={openSettings}
-    onCloseSettings={() => setSettingsOpen(false)}
+    {...settingsDialog}
     header={<h1 className="m-0 text-title font-semibold">{mode === 'knowledge' ? '待复习' : '面试练习'}</h1>}
   >
     <div className="grid h-full place-items-center overflow-y-auto px-6 py-12">

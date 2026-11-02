@@ -1,13 +1,15 @@
 'use client'
+
+import { useSettingsDialog } from '@/features/settings/hooks/use-settings-dialog'
 import { useEffect, useRef, useState } from 'react'
 import type { Mode } from '@/application/types'
-import type { SettingsTab } from '@/features/workspace/AppShell'
 import type { CareerDiscovery, CareerPage, MailBatch, MailJob } from '@/domain/mail-schema'
 import type { JobPreparationIntent, JobPreparationRequest } from '@/domain/job-preparation'
 import type { JobAssistantTools } from '@/domain/job-assistant'
 import { prepareAssistantDrafts } from '../mail/lib/assistant-drafts'
 import { useMailAgent } from './use-mail-agent'
 import { useSessionState } from '@/hooks/use-session-state'
+import { useUndoQueue } from '@/hooks/use-undo-queue'
 import { useConfirmation } from '@/hooks/use-confirmation'
 import { useMailDrafts } from '../mail/hooks/use-mail-drafts'
 import { createMailPreviewBatch } from '../mail/lib/mail-preview-batch'
@@ -16,11 +18,12 @@ import type { ResumeTemplateId } from '@/domain/resume-template'
 import { savedDate } from '../mail/lib/mail-presentation'
 import { useApplicationTracker } from '../history/hooks/use-application-tracker'
 import { prepareQuickMail } from '../mail/lib/quick-mail'
-import { applyMailDefaults } from '../mail/lib/mail-defaults'
+import { applyMailDefaults, type MailDefaults } from '../mail/lib/mail-defaults'
+import { captureMailSubmissions } from '../history/lib/application-tracker-storage'
 import { parseContactList, planContactImports } from '../mail/lib/contact-import'
 import { websiteTargets } from '../website/lib/website-automation'
 import { careerUrlKey } from '../jobs/lib/pasted-career'
-import { draftIssues, markWebsiteApplication, preparationAttachment, selectedMailDrafts, updateDraft, validResumeAttachment, websiteLinks, type Draft, type DraftField, type SavedJobPreparation } from '../mail/lib/draft-state'
+import { applyCareerPage, draftIssues, markWebsiteApplication, preparationAttachment, selectedMailDrafts, updateDraft, validResumeAttachment, websiteLinks, type Draft, type DraftField, type SavedJobPreparation } from '../mail/lib/draft-state'
 import { buildApplicationEntries, type ApplicationEntry } from '../history/lib/application-entry'
 import type { ManualApplication } from '@/domain/application-record'
 import type { ApplicationRecordValues } from '../history/ApplicationRecordDialog'
@@ -64,19 +67,13 @@ export function useMailWorkbench({ mode, onNavigate, onPrepare }: Args) {
   const [showDossier, setShowDossier] = useState(false)
   const [recordDialog, setRecordDialog] = useState<{ mode: 'add' | 'edit'; entry?: ApplicationEntry } | null>(null)
   const confirmation = useConfirmation()
-  const [undo, setUndo] = useState<Array<{ id: string; label: string; restore: () => void | Promise<void>; expires: number }>>([])
-  const undoable = (label: string, restore: () => void | Promise<void>) => setUndo(items => [...items, { id: crypto.randomUUID(), label, restore, expires: Date.now() + 8000 }])
-  useEffect(() => {
-    if (!undo.length) return
-    const timer = window.setTimeout(() => setUndo(items => items.filter(item => item.expires > Date.now())), Math.max(0, Math.min(...undo.map(item => item.expires)) - Date.now()))
-    return () => window.clearTimeout(timer)
-  }, [undo])
+  const undo = useUndoQueue()
+  const undoable = undo.add
   const [previewPreparation, setPreviewPreparation] = useState<Record<string, SavedJobPreparation>>({})
   const [attachmentOpen, setAttachmentOpen] = useState(false)
   const [focusRequest, setFocusRequest] = useState<{ field: DraftField; time: number } | null>(null)
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [settingsTab, setSettingsTab] = useState<SettingsTab>('model')
-  const openSettings = (tab: SettingsTab) => { setSettingsTab(tab); setSettingsOpen(true) }
+  const settingsDialog = useSettingsDialog()
+  const openSettings = settingsDialog.onOpenSettings
   const [preview, setPreview] = useState<MailBatch | null>(null)
   const [busy, setBusy] = useState(false)
   const [websiteIds, setWebsiteIds] = useState<string[] | null>(null)
@@ -98,6 +95,9 @@ export function useMailWorkbench({ mode, onNavigate, onPrepare }: Args) {
   const selectedPreparation = selected ? preparationByJob[selected.id] : undefined
   const selectedAttachment = preparationAttachment(selectedPreparation, attachment, attachmentSource)
   const selectedDescription = selected?.jobDescription ?? ''
+  const persistWorkspace = (changes: Partial<Parameters<typeof persist>[0]>) => persist({
+    drafts, attachment, attachmentSource, websiteApplications, preparationByJob, defaults, selectedIds: selectedDraftIds, ...changes,
+  })
   const startTailoring = (draft: Draft, pickedFile?: File) => {
     if (!draft.jobDescription?.trim()) { setError('先粘贴这个岗位的 JD。'); return }
     const saved = preparationByJob[draft.id]?.tailoredResume
@@ -149,7 +149,7 @@ export function useMailWorkbench({ mode, onNavigate, onPrepare }: Args) {
       attachment: file, attachmentSource: pickedFile ? undefined : selectedAttachment.source,
     }
     const nextPreparation = { ...preparationByJob, [selected.id]: { ...preparationByJob[selected.id], jobDescription: request.job.jobDescription, attachment: request.attachment, attachmentSource: request.attachmentSource, attachmentUse: selectedAttachment.use } }
-    await persist({ drafts, attachment: pickedFile ?? attachment, attachmentSource: pickedFile ? undefined : attachmentSource, websiteApplications, preparationByJob: nextPreparation, defaults, selectedIds: selectedDraftIds })
+    await persistWorkspace({ attachment: pickedFile ?? attachment, attachmentSource: pickedFile ? undefined : attachmentSource, preparationByJob: nextPreparation })
     setPreparationByJob(nextPreparation)
     await onPrepare(request, intent)
   }
@@ -185,13 +185,13 @@ export function useMailWorkbench({ mode, onNavigate, onPrepare }: Args) {
     pendingPreview.current = null
     const { batch, captured } = await createMailPreviewBatch(targets, preparedResumes, previewFile, previewSource, snapshot.sender)
     const nextPreparation = { ...preparedResumes, ...captured }
-    await persist({ drafts: currentDrafts, attachment: previewFile, attachmentSource: previewSource, websiteApplications, preparationByJob: nextPreparation, defaults, selectedIds: currentIds })
+    await persistWorkspace({ drafts: currentDrafts, attachment: previewFile, attachmentSource: previewSource, preparationByJob: nextPreparation, selectedIds: currentIds })
     setPreparationByJob(nextPreparation); setPreviewPreparation(captured); setPreview(batch)
   }
   const previewQuickMail = async (recipient: string, jobDescription = '') => {
     const next = prepareQuickMail(recipient, drafts, defaults, snapshot?.sender, jobDescription)
     const ids = [...new Set([...selectedDraftIds, next.draft.id])]
-    await persist({ drafts: next.drafts, attachment, attachmentSource, websiteApplications, preparationByJob, defaults, selectedIds: ids })
+    await persistWorkspace({ drafts: next.drafts, selectedIds: ids })
     setDrafts(next.drafts); setSelectedDraftIds(ids); setSelectedId(next.draft.id)
     if (jobDescription.trim()) startTailoring(next.draft)
     else await preparePreview([next.draft], next.drafts, ids)
@@ -285,7 +285,7 @@ export function useMailWorkbench({ mode, onNavigate, onPrepare }: Args) {
       const nextSelected = [...selectedDraftIds, ...additions.map(draft => draft.id)]
       setBusy(true)
       try {
-        await persist({ drafts: nextDrafts, attachment: file, attachmentSource: source, websiteApplications, preparationByJob, defaults, selectedIds: nextSelected })
+        await persistWorkspace({ drafts: nextDrafts, attachment: file, attachmentSource: source, selectedIds: nextSelected })
         setDrafts(nextDrafts); setSelectedDraftIds(nextSelected); setAttachment(file); setAttachmentSource(source)
         setTab('drafts'); setError('')
       } finally { setBusy(false) }
@@ -308,19 +308,88 @@ export function useMailWorkbench({ mode, onNavigate, onPrepare }: Args) {
     setTab('drafts')
   }
 
+  const applyTailoring = async (change: Partial<Draft>, saved: SavedJobPreparation) => {
+    if (!tailoring) throw new Error('没有正在修改的岗位。')
+
+    const current = drafts.find(draft => draft.id === tailoring.draft.id)
+    if (!current || current.jobDescription !== tailoring.draft.jobDescription || current.company !== tailoring.draft.company || current.role !== tailoring.draft.role) throw new Error('岗位内容已变化，请重新生成修改稿。')
+    const updated = updateDraft(current, change)
+    const nextDrafts = drafts.map(draft => draft.id === current.id ? updated : draft)
+    const nextPreparation = { ...preparationByJob, [current.id]: saved }
+    const prepared = snapshot?.sender ? await createMailPreviewBatch([updated], nextPreparation, attachment, attachmentSource, snapshot.sender) : null
+    const savedPreparation = prepared ? { ...nextPreparation, ...prepared.captured } : nextPreparation
+    await persistWorkspace({ drafts: nextDrafts, preparationByJob: savedPreparation })
+    setDrafts(nextDrafts); setPreparationByJob(savedPreparation); setSelectedId(current.id)
+    if (prepared) { setPreviewPreparation(prepared.captured); setPreview(prepared.batch) }
+    setTailoring(null)
+  }
+
+  const saveDefaults = async (value: MailDefaults) => {
+    const updated = applyMailDefaults(drafts, value, snapshot?.sender)
+    await persistWorkspace({ drafts: updated, defaults: value })
+    setDefaults(value); setDrafts(updated)
+  }
+
+  const sendPreview = async (batch: MailBatch) => {
+    const sentPreparation = Object.fromEntries(batch.jobs.map(job => [job.id, { ...previewPreparation[job.id], attachmentUse: 'mail' as const }]))
+    const nextPreparation = { ...preparationByJob, ...sentPreparation }
+    await persistWorkspace({ preparationByJob: nextPreparation })
+    setPreparationByJob(nextPreparation)
+    await tracking.capture(captureMailSubmissions(batch, Object.fromEntries(Object.entries(sentPreparation).map(([id, value]) => [id, value.jobDescription ?? ''])), Date.now()))
+    await agent.command('/batches', batch)
+    setDrafts(items => items.filter(item => !batch.jobs.some(job => job.id === item.id)))
+    setPreview(null); setTab('history'); setSelectedId(batch.jobs[0].id); setError('')
+  }
+
+  const editPreview = (id: string, change: { subject?: string; body?: string }) => {
+    setPreview(current => current ? { ...current, jobs: current.jobs.map(job => job.id === id ? { ...job, ...change } : job) } : null)
+    setDrafts(items => items.map(item => item.id === id ? updateDraft(item, change) : item))
+  }
+
+  const extractSelected = async () => {
+    if (!selected) return
+    const id = selected.id; const original = selected.sourceUrl
+    setBusy(true); setError('')
+    try {
+      const result = await agent.request<CareerPage>('/extract', { url: original })
+      setDrafts(items => items.map(item => item.id === id && item.sourceUrl === original ? applyCareerPage(item, result) : item))
+    } finally { setBusy(false) }
+  }
+
+  const chooseFile = (file?: File) => {
+    if (file) {
+      if (!validResumeAttachment(file)) setError('请选择 5 MB 以内的 PDF、DOCX 或 TXT 简历')
+      else {
+        setAttachment(file); setAttachmentSource(undefined); setError(''); setAttachmentOpen(false)
+        const pending = pendingPreparation.current
+        pendingPreparation.current = null
+        if (pending && pending.id === selected?.id) void run(() => prepareJob(pending.intent, file))
+        const tailorId = pendingTailoring.current
+        pendingTailoring.current = null
+        const tailorDraft = drafts.find(draft => draft.id === tailorId)
+        if (tailorDraft) startTailoring(tailorDraft, file)
+        const previewIds = pendingPreview.current
+        pendingPreview.current = null
+        if (previewIds) void run(() => preparePreview(drafts.filter(draft => previewIds.includes(draft.id)), drafts, selectedDraftIds, preparationByJob, file))
+      }
+    }
+
+  }
+
   return {
-    agent, error, setError, drafts, setDrafts, defaults, setDefaults, selectedDraftIds, setSelectedDraftIds,
-    attachment, setAttachment, attachmentSource, setAttachmentSource, libraryAttachments, libraryError, hydrated,
-    websiteApplications, setWebsiteApplications, preparationByJob, setPreparationByJob, selectedId, setSelectedId,
-    setTab, persist, tab, isCareers, isJobs, defaultsOpen, setDefaultsOpen, addOpen, setAddOpen,
-    inputMode, setInputMode, editOpen, setEditOpen, showDossier, setShowDossier, recordDialog, setRecordDialog,
-    confirmation, undo, setUndo, undoable, previewPreparation, setPreviewPreparation, attachmentOpen, setAttachmentOpen,
-    focusRequest, setFocusRequest, settingsOpen, setSettingsOpen, settingsTab, setSettingsTab, openSettings,
-    preview, setPreview, busy, setBusy, websiteIds, setWebsiteIds, websiteChoices, setWebsiteChoices,
-    tailoring, setTailoring, fileInput, pendingTailoring, pendingPreview, snapshot, tracking, jobs, entries,
-    selectedEntry, selected, pending, selectedReadyDrafts, selectedWebsiteCount, selectedPreparation,
-    selectedAttachment, selectedDescription, startTailoring, attachmentLabel, run, updateById, update,
-    prepareJob, addDraft, importContacts, removeDraft, preparePreview, previewQuickMail, jobAction,
-    selectItem, openDraft, markApplied, deleteEntry, saveRecord, assistantTools, addCareerPage, returnWebsiteToDrafts, pendingPreparation,
+    agent, error, setError, drafts, setDrafts, defaults, setDefaults, selectedDraftIds,
+    setSelectedDraftIds, attachment, setAttachment, attachmentSource, setAttachmentSource,
+    libraryAttachments, libraryError, hydrated, preparationByJob, setPreparationByJob,
+    setSelectedId, tab, isCareers, isJobs, defaultsOpen, setDefaultsOpen, addOpen,
+    setAddOpen, inputMode, setInputMode, editOpen, setEditOpen, showDossier, setShowDossier,
+    recordDialog, setRecordDialog, confirmation, undo, attachmentOpen, setAttachmentOpen,
+    focusRequest, settingsDialog, openSettings, preview, setPreview, busy, setBusy,
+    websiteIds, setWebsiteIds, websiteChoices, setWebsiteChoices, tailoring, setTailoring,
+    fileInput, snapshot, tracking, entries, selectedEntry, selected, pending, selectedReadyDrafts,
+    selectedWebsiteCount, selectedPreparation, selectedDescription, startTailoring,
+    attachmentLabel, run, updateById, update, prepareJob, addDraft, importContacts,
+    removeDraft, preparePreview, previewQuickMail, jobAction, openDraft, markApplied,
+    deleteEntry, saveRecord, assistantTools, addCareerPage, returnWebsiteToDrafts,
+    chooseFile, extractSelected, applyTailoring, saveDefaults, sendPreview, editPreview,
   }
 }

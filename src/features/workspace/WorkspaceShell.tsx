@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { useSettingsDialog } from '@/features/settings/hooks/use-settings-dialog'
+
+import type { ReactNode } from 'react'
 import type { ResumeAnalysis } from '@/domain/resume-schema'
 import type { Mode } from '@/application/types'
 import type { LlmMode } from '@/features/settings/hooks/use-llm-status'
 import type { SidebarBadges } from './WorkspaceSidebar'
 import { WorkspaceTopBar } from './WorkspaceTopBar'
-import { AppShell, type SettingsTab } from './AppShell'
+import { AppShell } from './AppShell'
 
 type Props = {
   analysis: ResumeAnalysis
@@ -24,18 +26,13 @@ type Props = {
 }
 
 export function WorkspaceShell(props: Props) {
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [settingsTab, setSettingsTab] = useState<SettingsTab>('model')
-  const openSettings = (tab: SettingsTab) => { setSettingsTab(tab); setSettingsOpen(true) }
+  const settingsDialog = useSettingsDialog()
   return <AppShell
     mode={props.mode}
     badges={props.badges}
     onNavigate={props.onTabChange}
     onOpenHistory={props.onHome}
-    settingsOpen={settingsOpen}
-    settingsTab={settingsTab}
-    onOpenSettings={openSettings}
-    onCloseSettings={() => setSettingsOpen(false)}
+    {...settingsDialog}
     settings={{ envConfigured: props.envConfigured, clientConfigured: props.clientConfigured, onClientChanged: props.onClientChanged }}
     header={<div className="flex min-w-0 flex-1 items-center justify-between gap-4"><WorkspaceTopBar analysis={props.analysis} llmMode={props.llmMode} onExport={props.onExport} onExportJson={props.onExportJson} /></div>}
   >

@@ -1,10 +1,12 @@
 'use client'
 
+import { useSettingsDialog } from '@/features/settings/hooks/use-settings-dialog'
+
 import { useEffect, useRef, useState } from 'react'
 import { Plus, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import type { SidebarBadges } from '@/features/workspace/WorkspaceSidebar'
-import { AppShell, type SettingsTab } from '@/features/workspace/AppShell'
+import { AppShell } from '@/features/workspace/AppShell'
 import { ResumeReviewView } from '@/features/resume/ResumeReviewView'
 import { CreateResumeDialog } from '@/features/resume/CreateResumeDialog'
 import { extractTextFromFile } from '@/features/resume/lib/pdf'
@@ -27,10 +29,8 @@ export function ResumeCheckWorkspace(props: Props) {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [settingsTab, setSettingsTab] = useState<SettingsTab>('model')
   const [creating, setCreating] = useState(false)
-  const openSettings = (tab: SettingsTab) => { setSettingsTab(tab); setSettingsOpen(true) }
+  const settingsDialog = useSettingsDialog()
   const currentId = useRef<string | undefined>(undefined)
   const input = useRef<HTMLInputElement>(null)
   currentId.current = document?.id
@@ -71,10 +71,7 @@ export function ResumeCheckWorkspace(props: Props) {
     badges={props.badges}
     onNavigate={props.onNavigate}
     onOpenHistory={props.onHome}
-    settingsOpen={settingsOpen}
-    settingsTab={settingsTab}
-    onOpenSettings={openSettings}
-    onCloseSettings={() => setSettingsOpen(false)}
+    {...settingsDialog}
     settings={{ envConfigured: props.envConfigured, clientConfigured: props.clientConfigured, onClientChanged: props.onClientChanged }}
     headerless={!!document}
     header={<div className="flex min-w-0 flex-1 items-center gap-2"><strong className="text-body">简历检查</strong></div>}

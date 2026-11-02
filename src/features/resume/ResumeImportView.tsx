@@ -1,5 +1,7 @@
 'use client'
 
+import { useSettingsDialog } from '@/features/settings/hooks/use-settings-dialog'
+
 import { useRef, useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, FileText, Loader2, Upload } from 'lucide-react'
@@ -10,7 +12,7 @@ import type { ResumeDocument } from '@/features/resume/lib/resume-library'
 import { ResumeLibraryList } from './ResumeLibraryList'
 import { resumeLibraryEntries } from './resume-library-entries'
 import type { SidebarBadges } from '@/features/workspace/WorkspaceSidebar'
-import { AppShell, type SettingsTab } from '@/features/workspace/AppShell'
+import { AppShell } from '@/features/workspace/AppShell'
 import type { Mode } from '@/application/types'
 
 const SAMPLE_RESUME = `酒寄彩叶
@@ -64,9 +66,8 @@ export function ResumeImportView({ onNavigate, badges, analyzing, error, onExtra
   const [paste, setPaste] = useState('')
   const [fileName, setFileName] = useState<string | null>(null)
   const [parsing, setParsing] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [settingsTab, setSettingsTab] = useState<SettingsTab>('model')
-  const openSettings = (next: SettingsTab) => { setSettingsTab(next); setSettingsOpen(true) }
+  const settingsDialog = useSettingsDialog()
+  const openSettings = settingsDialog.onOpenSettings
   const [parseError, setParseError] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
@@ -102,10 +103,7 @@ export function ResumeImportView({ onNavigate, badges, analyzing, error, onExtra
       badges={badges ?? { claimTotal: 0, highUntested: 0, testingActive: 0, testedDone: 0, knowledgeOpen: 0 }}
       onNavigate={onNavigate ?? (() => undefined)}
       onOpenHistory={() => undefined}
-      settingsOpen={settingsOpen}
-      settingsTab={settingsTab}
-      onOpenSettings={openSettings}
-      onCloseSettings={() => setSettingsOpen(false)}
+    {...settingsDialog}
       settings={{ envConfigured, clientConfigured, onClientChanged }}
       contentClassName="min-h-0 flex-1 overflow-y-auto"
       header={<div className="flex min-w-0 flex-1 items-center gap-3">
