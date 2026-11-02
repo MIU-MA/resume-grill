@@ -3,10 +3,10 @@ import { act, createElement, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { MailWorkbench } from './MailWorkbench'
-import { initialMailDefaults } from './mail-defaults'
-import type { Draft, SavedJobPreparation } from './draft-state'
+import { initialMailDefaults } from './mail/lib/mail-defaults'
+import type { Draft, SavedJobPreparation } from './mail/lib/draft-state'
 import type { ComponentProps } from 'react'
-import type { JobResumeDialog } from './JobResumeDialog'
+import type { JobResumeDialog } from './jobs/JobResumeDialog'
 
 const mocks = vi.hoisted(() => ({ persist: vi.fn(), command: vi.fn(), tailoringError: '' }))
 const localData = vi.hoisted(() => new Map<string, unknown>())
@@ -20,15 +20,15 @@ vi.mock('./hooks/use-mail-agent', () => ({ useMailAgent: () => ({
   snapshot: { sender: { name: '张三', address: 'candidate@qq.com' }, jobs: [] },
   connectionError: '', request: vi.fn(), command: mocks.command,
 }) }))
-vi.mock('./LocalSetupStatus', () => ({ LocalSetupStatus: () => null }))
-vi.mock('./JobResumeDialog', () => ({ JobResumeDialog: (props: ComponentProps<typeof JobResumeDialog>) => createElement('button', {
+vi.mock('../settings/LocalSetupStatus', () => ({ LocalSetupStatus: () => null }))
+vi.mock('./jobs/JobResumeDialog', () => ({ JobResumeDialog: (props: ComponentProps<typeof JobResumeDialog>) => createElement('button', {
   'data-testid': 'apply-tailoring', onClick: () => void props.onApply({ company: '示例公司', role: '前端', subject: '岗位求职信', body: '参与页面开发，附件为岗位版。', automatic: false }, {
     jobDescription: props.draft.jobDescription!, attachment: new File(['pdf'], '岗位版.pdf'),
     tailoredResume: { jobDescription: props.draft.jobDescription!, company: '示例公司', role: '前端', sourceFile: props.file, documentId: 'revision', text: '参与页面开发' },
   }).catch(error => { mocks.tailoringError = String(error) }),
 }, '确认岗位版') }))
-vi.mock('./mail-attachment', () => ({ encodeAttachment: async () => 'cmVzdW1l' }))
-vi.mock('./hooks/use-mail-drafts', () => ({ useMailDrafts: () => {
+vi.mock('./mail/lib/mail-attachment', () => ({ encodeAttachment: async () => 'cmVzdW1l' }))
+vi.mock('./mail/hooks/use-mail-drafts', () => ({ useMailDrafts: () => {
   const [drafts, setDrafts] = useState<Draft[]>([])
   const [selectedDraftIds, setSelectedDraftIds] = useState<string[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)

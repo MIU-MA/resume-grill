@@ -2,11 +2,11 @@
 
 import { Button } from '@/components/ui/Button'
 import type { AgentSnapshot, CareerPage, MailBatch } from '@/domain/mail-schema'
-import type { MailDefaults } from './mail-defaults'
-import type { Draft } from './draft-state'
-import { QuickMail } from './QuickMail'
-import { ContactImporter } from './ContactImporter'
-import { LinkImporter } from './LinkImporter'
+import type { MailDefaults } from './mail/lib/mail-defaults'
+import type { Draft } from './mail/lib/draft-state'
+import { QuickMail } from './mail/QuickMail'
+import { ContactImporter } from './mail/ContactImporter'
+import { LinkImporter } from './jobs/LinkImporter'
 
 export type AddJobsMode = 'email' | 'contacts' | 'links'
 

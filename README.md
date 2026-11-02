@@ -59,7 +59,7 @@ npm ci
 npm run dev
 ```
 
-打开 [localhost:3000](http://localhost:3000)，点击「试用示例简历」体验。模型功能需在「模型设置」填写 Base URL、API Key 和 Model。
+打开 [localhost:3000](http://localhost:3000)，点击「试用示例简历」体验。模型功能需在「设置 → 模型」填写 Base URL、API Key 和 Model。
 
 读取官网或发送邮件时，将启动命令换成 `npm run dev:local`，按页面提示连接本机。扩展安装、模型配置和部署步骤见[使用说明](docs/getting-started.md)。
 
@@ -69,6 +69,6 @@ npm run dev
 
 [使用与配置](docs/getting-started.md) · [邮箱投递](docs/email-applications.md) · [官网扩展](docs/website-automation.md) · [招聘目录](docs/career-directory.md) · [参与开发](CONTRIBUTING.md)
 
-目录约定见 [AGENTS.md](AGENTS.md)。
+代码入口在 `src/application/`，业务按模块放在 `src/features/`。投递模块分为职位 `jobs/`、邮件 `mail/`、官网填写 `website/` 和记录 `history/`；AI 找岗位独立放在 `job-assistant/`。模块职责见 [目录说明](src/features/README.md)，开发约定见 [AGENTS.md](AGENTS.md)。
 
 [MIT License](LICENSE)

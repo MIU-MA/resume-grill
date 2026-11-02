@@ -58,6 +58,17 @@ for (const file of ['app', 'src', 'scripts'].flatMap(folder => files(resolve(roo
   const from = label(file)
   const source = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true)
   const test = /\.test\.[cm]?[jt]sx?$/.test(from)
+  if (!test && /^src\/application\/[^/]+\.tsx$/.test(from) && from !== 'src/application/App.tsx') {
+    issues.push(`${from} 具体业务组件应归入 features，application 仅保留应用入口与编排`)
+  }
+  if (!test && from.startsWith('src/features/applications/')) {
+    const local = from.slice('src/features/applications/'.length)
+    const parts = local.split('/')
+    const entries = ['MailWorkbench.tsx', 'MailWorkbenchHeader.tsx', 'AddJobsDrawer.tsx']
+    if (parts.length === 1 ? !entries.includes(local) : !['jobs', 'mail', 'website', 'history', 'hooks'].includes(parts[0])) {
+      issues.push(`${from} 投递业务应归入 jobs、mail、website、history；跨任务 Hook 放在 hooks`)
+    }
+  }
   graph.set(file, [])
   for (const entry of imports(source)) {
     const target = resolveImport(file, entry.specifier)

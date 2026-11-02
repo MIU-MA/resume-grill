@@ -8,9 +8,9 @@ vi.mock('./hooks/use-app-navigation', () => ({ useAppNavigation: () => ({ phase:
 vi.mock('./hooks/use-resume-workspace', () => ({ useResumeWorkspace: () => ({ analysis: state.analysis, knowledgeItems: [], sessions: {}, masteredBlindSpotIds: [], preparedClaimIds: [], claimPriorityOverrides: {}, selected: null, stats: null, recovering: state.mode === 'diagnosis', workspaceLoaded: state.loaded, recoveredFromStorage: true, envConfigured: false, clientConfigured: false, refreshClientLlm: vi.fn() }) }))
 vi.mock('./hooks/use-resume-analysis', () => ({ useResumeAnalysis: () => ({ handleConfirmText: state.confirm }) }))
 vi.mock('./hooks/use-claim-actions', () => ({ useClaimActions: () => ({}) }))
-vi.mock('./hooks/use-knowledge-actions', () => ({ useKnowledgeActions: () => ({}) }))
+vi.mock('../features/knowledge/hooks/use-knowledge-actions', () => ({ useKnowledgeActions: () => ({}) }))
 vi.mock('@/features/interview/hooks/use-interview', () => ({ useInterview: () => ({ activeClaimSnapshot: null, answer: '', annotation: '', rounds: [], loading: false, reset: vi.fn() }) }))
-vi.mock('./ResumeCheckWorkspace', () => ({ ResumeCheckWorkspace: (props: unknown) => { state.check(props); return createElement('p', {}, '独立简历检查') } }))
+vi.mock('../features/resume/ResumeCheckWorkspace', () => ({ ResumeCheckWorkspace: (props: unknown) => { state.check(props); return createElement('p', {}, '独立简历检查') } }))
 vi.mock('@/features/applications/MailWorkbench', () => ({ MailWorkbench: ({ onNavigate }: { onNavigate: (mode: string) => void }) => createElement('button', { onClick: () => onNavigate('diagnosis') }, '打开简历检查') }))
 vi.mock('@/features/resume/ResumeImportView', () => ({ ResumeImportView: () => createElement('p', {}, '简历库') }))
 let host: HTMLDivElement, root: Root

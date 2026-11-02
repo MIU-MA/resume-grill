@@ -6,7 +6,8 @@
 
 - `app/` 保留 Next.js 路由、API 入口、全局布局和样式；业务实现放到 `src/`。
 - `src/application/` 放应用入口、导航、跨模块状态与流程编排；相关 Hook 放在 `application/hooks/`。
-- `src/features/<模块>/` 放该业务的视图和组件；业务专用 Hook 放在 `hooks/`，解析、存储、请求、提示词和导出逻辑放在 `lib/`。投递模块现有的独立文件保持就近组织，不为一个文件额外套目录。
+- `src/features/<模块>/` 放该业务的视图和组件；业务专用 Hook 放在 `hooks/`，解析、存储、请求、提示词和导出逻辑放在 `lib/`。`applications/` 按 `jobs/`（职位）、`mail/`（邮件）、`website/`（官网填写）、`history/`（投递记录）归属；各组内部沿用 `hooks/`、`lib/`，根目录仅保留跨任务工作台、添加入口与集成测试。
+- 找岗位的界面、任务执行和 Hook 归入 `features/job-assistant/`；独立简历检查归入 `features/resume/`。`application/` 只协调导航和跨模块流程，不承接具体业务组件；业务 Hook 使用最小参数契约，不依赖整个应用状态。
 - `src/domain/` 放共享业务数据、校验和纯规则；不得依赖 React、浏览器存储、Node 服务或上层模块。
 - `src/components/ui/` 和 `src/hooks/` 只放与业务无关的通用控件和交互 Hook。
 - `src/lib/` 只放跨模块基础设施，如共用浏览器存储、模型设置、服务限流与 URL 安全检查；不得依赖应用入口或业务模块。

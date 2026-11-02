@@ -3,16 +3,16 @@ import { act, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { MailWorkbench } from './MailWorkbench'
-import { initialMailDefaults } from './mail-defaults'
+import { initialMailDefaults } from './mail/lib/mail-defaults'
 
-vi.mock('./CareerJobsView', () => ({ CareerJobsView: () => '岗位列表' }))
+vi.mock('./jobs/CareerJobsView', () => ({ CareerJobsView: () => '岗位列表' }))
 vi.mock('./hooks/use-mail-agent', () => ({ useMailAgent: () => ({ snapshot: null, connectionError: '', request: vi.fn(), command: vi.fn() }) }))
-vi.mock('./hooks/use-application-tracker', () => ({ useApplicationTracker: () => ({
+vi.mock('./history/hooks/use-application-tracker', () => ({ useApplicationTracker: () => ({
   loaded: true,
   tracker: { mailJobs: [], submissions: {}, progress: {}, manualApplications: [], hiddenMailJobIds: [] },
   saveProgress: vi.fn(), capture: vi.fn(), restoreSubmission: vi.fn(), saveManual: vi.fn(), removeManual: vi.fn(), restoreManual: vi.fn(), hideJob: vi.fn(), unhideJob: vi.fn(),
 }) }))
-vi.mock('./hooks/use-mail-drafts', () => ({ useMailDrafts: () => ({
+vi.mock('./mail/hooks/use-mail-drafts', () => ({ useMailDrafts: () => ({
   drafts: [], selectedDraftIds: [], attachment: null, libraryAttachments: [], libraryError: false,
   hydrated: true, websiteApplications: [], preparationByJob: {}, selectedId: null,
   tab: 'history', defaults: initialMailDefaults(),

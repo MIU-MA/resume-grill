@@ -3,16 +3,16 @@ import { act, createElement, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { MailWorkbench } from './MailWorkbench'
-import { initialMailDefaults } from './mail-defaults'
-import type { Draft } from './draft-state'
+import { initialMailDefaults } from './mail/lib/mail-defaults'
+import type { Draft } from './mail/lib/draft-state'
 
 const sender = { name: '演示用户', address: 'demo@qq.com' }
 const draft: Draft = { id: 'a034dbde-b56b-4b00-98cc-319633e12ab3', company: '', role: '', recipient: 'hr@example.com', subject: '应聘', body: '附件是我的简历', sourceConfirmed: true, sourceUrl: '' }
 const persist = vi.fn(async () => {})
 vi.mock('./hooks/use-mail-agent', () => ({ useMailAgent: () => ({ snapshot: { sender, jobs: [], running: false }, connectionError: '', token: '', command: vi.fn() }) }))
-vi.mock('./LocalSetupStatus', () => ({ LocalSetupStatus: () => null }))
-vi.mock('./hooks/use-application-tracker', () => ({ useApplicationTracker: () => ({ loaded: true, tracker: { mailJobs: [], submissions: {}, progress: {} }, capture: vi.fn() }) }))
-vi.mock('./hooks/use-mail-drafts', () => ({ useMailDrafts: () => {
+vi.mock('../settings/LocalSetupStatus', () => ({ LocalSetupStatus: () => null }))
+vi.mock('./history/hooks/use-application-tracker', () => ({ useApplicationTracker: () => ({ loaded: true, tracker: { mailJobs: [], submissions: {}, progress: {} }, capture: vi.fn() }) }))
+vi.mock('./mail/hooks/use-mail-drafts', () => ({ useMailDrafts: () => {
   const [attachment, setAttachment] = useState<File | null>(null)
   const [drafts, setDrafts] = useState([draft])
   return { drafts, setDrafts, attachment, setAttachment, attachmentSource: undefined, setAttachmentSource: vi.fn(), defaults: initialMailDefaults(), setDefaults: vi.fn(), selectedDraftIds: [draft.id], setSelectedDraftIds: vi.fn(), libraryAttachments: [], libraryError: false, hydrated: true, websiteApplications: [], setWebsiteApplications: vi.fn(), preparationByJob: {}, setPreparationByJob: vi.fn(), selectedId: draft.id, setSelectedId: vi.fn(), setTab: vi.fn(), persist }
