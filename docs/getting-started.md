@@ -78,6 +78,8 @@ npm run build:extension
 
 在「模型设置」填写 `Base URL`、`API Key`、`Model`，使用兼容 **OpenAI Chat Completions 协议及 JSON 输出**的服务。测试连接会实际请求模型，可能产生费用。
 
+可选择 OpenAI、DeepSeek、通义千问、智谱、MiniMax、Kimi、Gemini、硅基流动或 OpenRouter。填写 Key 后点击「读取可用模型」，从服务返回的列表选择型号，也可手动输入；读取列表不生成内容。预设更新不替换已保存的型号。切换供应商会清空表单中的旧 Key，需要填写对应平台的 Key，再保存。
+
 也可参考 [.env.example](../.env.example)，在根目录的 `.env.local` 配置：
 
 ```dotenv

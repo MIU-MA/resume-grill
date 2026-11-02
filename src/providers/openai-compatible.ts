@@ -49,10 +49,15 @@ export async function llmStructured<T>(
     response_format: { type: 'json_object' },
     temperature: 0.3,
   }
+  // These families use fixed/default sampling; sending temperature can reject the request.
+  const modelId = resolved.model.split('/').at(-1) ?? resolved.model
+  if (/^(?:gpt-[56](?:[.-]|$)|o[134](?:-|$)|kimi-k[23]|MiniMax-M[23])/i.test(modelId)) delete body.temperature
+  // MiniMax's compatible endpoint doesn't document JSON mode. The prompt and Zod still enforce JSON.
+  if (/^MiniMax-M/i.test(modelId)) delete body.response_format
 
   let res: Response
   try {
-    res = await fetch(`${resolved.baseUrl}/chat/completions`, {
+    res = await fetch(`${resolved.baseUrl.replace(/\/+$/, '')}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

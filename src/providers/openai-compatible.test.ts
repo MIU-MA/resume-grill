@@ -8,6 +8,18 @@ afterEach(() => { vi.unstubAllGlobals() })
 
 describe('model output limits', () => {
   const config = { baseUrl: 'https://provider.example/v1', apiKey: 'test-key', model: 'test-model' }
+  it.each(['gpt-6-luna', 'openai/gpt-6.1-sol', 'kimi-k3.1-pro', 'MiniMax-M3.1-Flash'])('新型号 %s 不发送固定采样参数，保留原型号', async model => {
+    const fetchMock = vi.fn(async () => Response.json({ choices: [{ message: { content: '{"ok":true}' } }] }))
+    vi.stubGlobal('fetch', fetchMock)
+    await llmStructured('只输出 JSON', '检查', z.object({ ok: z.boolean() }), { ...config, baseUrl: config.baseUrl + '/', model })
+    const [url, init] = fetchMock.mock.calls[0]
+    const body = JSON.parse(init.body)
+    expect(url).toBe(config.baseUrl + '/chat/completions')
+    expect(body.model).toBe(model)
+    expect(body).not.toHaveProperty('temperature')
+    if (model.startsWith('MiniMax')) expect(body).not.toHaveProperty('response_format')
+    else expect(body.response_format).toEqual({ type: 'json_object' })
+  })
   it('leaves output length to the provider and forwards the complete input', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       choices: [{ finish_reason: 'stop', message: { content: '{"summary":"完整结果"}' } }],
