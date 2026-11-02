@@ -61,11 +61,15 @@ async function input(element: HTMLInputElement | HTMLTextAreaElement, value: str
     element.dispatchEvent(new Event('input', { bubbles: true }))
   })
 }
-async function openPreview() {
+async function renderWorkbench() {
   await act(async () => root.render(createElement(MailWorkbench, {
     badges: { claimTotal: 0, highUntested: 0, testingActive: 0, testedDone: 0, knowledgeOpen: 0 },
     onNavigate: vi.fn(), onHome: vi.fn(), onPrepare: vi.fn(),
   })))
+  await act(async () => [...host.querySelectorAll('button')].find(button => button.textContent?.includes('添加岗位'))!.click())
+}
+async function openPreview() {
+  await renderWorkbench()
   const email = host.querySelector<HTMLInputElement>('#quick-mail-recipient')!
   expect(email.closest('[hidden]')).toBeNull()
   await input(email, 'hr@example.com')
@@ -105,7 +109,7 @@ it('存储失败显示错误，不继续预览或发送', async () => {
   expect(mocks.command).not.toHaveBeenCalled()
 })
 it('邮箱加 JD 经核对后直接预览，发送使用岗位版 PDF，仍需最后确认', async () => {
-  await act(async () => root.render(createElement(MailWorkbench, { badges: { claimTotal: 0, highUntested: 0, testingActive: 0, testedDone: 0, knowledgeOpen: 0 }, onNavigate: vi.fn(), onHome: vi.fn(), onPrepare: vi.fn() })))
+  await renderWorkbench()
   const email = host.querySelector<HTMLInputElement>('#quick-mail-recipient')!
   await input(email, 'hr@example.com')
   await input(email.form!.querySelector('textarea')!, '前端岗位，负责页面开发')
@@ -124,7 +128,7 @@ it('邮箱加 JD 经核对后直接预览，发送使用岗位版 PDF，仍需�
   expect(mocks.persist.mock.calls.at(-1)![0].preparationByJob).toMatchObject({ [mocks.command.mock.calls[0][1].jobs[0].id]: { attachmentUse: 'mail', tailoredResume: { role: '前端' } } })
 })
 it('岗位版保存失败后不改写当前岗位，可原地重试并进入预览', async () => {
-  await act(async () => root.render(createElement(MailWorkbench, { badges: { claimTotal: 0, highUntested: 0, testingActive: 0, testedDone: 0, knowledgeOpen: 0 }, onNavigate: vi.fn(), onHome: vi.fn(), onPrepare: vi.fn() })))
+  await renderWorkbench()
   const email = host.querySelector<HTMLInputElement>('#quick-mail-recipient')!
   await input(email, 'hr@example.com')
   await input(email.form!.querySelector('textarea')!, '前端岗位，负责页面开发')

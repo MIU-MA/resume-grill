@@ -7,6 +7,7 @@ export const MAIL_STATUS_TONES = {
 export function isJob(value: Draft | MailJob | WebsiteApplication): value is MailJob { return 'status' in value }
 export function isWebsite(value: Draft | MailJob | WebsiteApplication): value is WebsiteApplication { return 'channel' in value && value.channel === 'website' }
 export function savedDate(value: number) { return new Date(value).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) }
+export function savedDay(value: number) { return new Date(value).toLocaleDateString('zh-CN') }
 
 export function safeLink(value: string) {
   return sourceUrlSchema.safeParse(value).success ? value : undefined

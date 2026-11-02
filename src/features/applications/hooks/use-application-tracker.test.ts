@@ -6,7 +6,7 @@ import type { AgentSnapshot, MailJob } from '@/domain/mail-schema'
 import { emptyApplicationTracker, loadApplicationTracker, updateApplicationTracker, type ApplicationTracker } from '../application-tracker-storage'
 import { useApplicationTracker } from './use-application-tracker'
 vi.mock('../application-tracker-storage', () => ({
-  emptyApplicationTracker: () => ({ progress: {}, submissions: {}, mailJobs: [] }),
+  emptyApplicationTracker: () => ({ progress: {}, submissions: {}, mailJobs: [], manualApplications: [], hiddenMailJobIds: [] }),
   loadApplicationTracker: vi.fn(), updateApplicationTracker: vi.fn(),
 }))
 let data: ApplicationTracker, root: Root, host: HTMLDivElement, current: ReturnType<typeof useApplicationTracker>
@@ -33,6 +33,23 @@ it('执行器断开和重新打开页面后，已读取的邮件、进展、笔�
   await act(async () => root.render(createElement(Harness, { snapshot: null })))
   expect(current.tracker.progress.a.note).toBe('周五一面')
   expect(current.tracker.mailJobs).toEqual([job])
+})
+it('手动记录可新增、删除和恢复；邮件记录只在本地隐藏', async () => {
+  await act(async () => root.render(createElement(Harness, { snapshot })))
+  const record = { id: 'manual-1', company: '官网公司', role: '前端', channel: 'website' as const, appliedAt: 1, sourceUrl: '', contact: '', note: '', createdAt: 1, updatedAt: 1 }
+  await act(async () => { await current.saveManual(record, 'interview') })
+  expect(current.tracker.manualApplications).toEqual([record])
+  expect(current.tracker.progress['manual-1'].stage).toBe('interview')
+  await act(async () => { await current.hideJob('a') })
+  expect(current.tracker.hiddenMailJobIds).toEqual(['a'])
+  await act(async () => { await current.unhideJob('a') })
+  expect(current.tracker.hiddenMailJobIds).toEqual([])
+  const progress = current.tracker.progress['manual-1']
+  await act(async () => { await current.removeManual('manual-1') })
+  expect(current.tracker.manualApplications).toEqual([])
+  await act(async () => { await current.restoreManual(record, progress) })
+  expect(current.tracker.manualApplications).toEqual([record])
+  expect(current.tracker.progress['manual-1'].stage).toBe('interview')
 })
 it('后台更新发送状态时保留手动进展；不覆盖其他岗位，保存失败可以重试', async () => {
   await act(async () => root.render(createElement(Harness, { snapshot })))

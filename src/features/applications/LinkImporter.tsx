@@ -2,22 +2,18 @@
 
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
-import { sourceUrlSchema, type CareerDiscovery, type CareerPage } from '@/domain/mail-schema'
-import { CareerFinder } from './CareerFinder'
+import { sourceUrlSchema, type CareerPage } from '@/domain/mail-schema'
 import { PastedCareerForm } from './PastedCareerForm'
 import { careerUrlKey, planCareerImports, settleCareerFailure, type CareerFailure } from './pasted-career'
 import { CareerPagePicker } from './CareerPagePicker'
 
-export function LinkImporter({ existingUrls, existingJobs, slots, connected, onConnect, read, discover, onImported, onBusy, expandedDirectory = false }: {
-  expandedDirectory?: boolean
+export function LinkImporter({ existingUrls, existingJobs, slots, connected, onConnect, read, onImported, onBusy }: {
   existingUrls: string[]; slots: number; connected: boolean; onConnect: () => void
   read: (url: string) => Promise<CareerPage>; onImported: (page: CareerPage) => void
-  discover: (url: string) => Promise<CareerDiscovery>
   onBusy: (value: boolean) => void
   existingJobs: Array<{ sourceUrl: string; role: string }>
 }) {
   const [input, setInput] = useState('')
-  const [finding, setFinding] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [failures, setFailures] = useState<CareerFailure[]>([])
@@ -51,7 +47,7 @@ export function LinkImporter({ existingUrls, existingJobs, slots, connected, onC
     } catch (error) { setMessage(error instanceof Error ? error.message : '请检查链接。') }
   }
   const importLinks = async (chosen?: string[]) => {
-    if (busy || finding || slots <= 0) return
+    if (busy || slots <= 0) return
     const values = [...new Set(chosen ?? input.split(/\s+/).filter(Boolean))]
     if (!values.length) return
     let urls: string[]
@@ -82,27 +78,26 @@ export function LinkImporter({ existingUrls, existingJobs, slots, connected, onC
   }
   const resumeImport = useEffectEvent((urls: string[]) => { void importLinks(urls) })
   useEffect(() => {
-    if (connected && !busy && !finding && pending.current) {
+    if (connected && !busy && pending.current) {
       const urls = pending.current; pending.current = null; resumeImport(urls)
     }
-  }, [connected, busy, finding])
+  }, [connected, busy])
   return <section className="mail-link-importer flex-none border-b border-line bg-surface px-4 py-3 sm:px-5" aria-label="导入招聘链接">
     <div className="mail-link-entry">
       <label htmlFor="career-import-links" className="text-label font-medium">添加岗位链接</label>
     <div className="mt-2 flex flex-wrap items-start gap-2">
-      <textarea id="career-import-links" aria-label="招聘链接，每行一个" className="mail-input min-h-9 flex-1 basis-full resize-y text-label sm:basis-0" rows={Math.min(3, input.split('\n').length)} placeholder="粘贴招聘详情链接，多个链接每行一个" disabled={busy || finding} value={input} onChange={e => setInput(e.target.value)} />
-      <Button loading={busy} disabled={finding || !input.trim() || slots <= 0} onClick={() => void importLinks()}>{connected ? '整理到清单' : '连接后整理'}</Button>
-      <Button variant="ghost" className="px-2 text-label" disabled={busy || finding || slots <= 0} onClick={() => openPaste()}>粘贴正文</Button>
+      <textarea id="career-import-links" aria-label="招聘链接，每行一个" className="mail-input min-h-9 flex-1 basis-full resize-y text-label sm:basis-0" rows={Math.min(3, input.split('\n').length)} placeholder="粘贴招聘详情链接，多个链接每行一个" disabled={busy || false} value={input} onChange={e => setInput(e.target.value)} />
+      <Button loading={busy} disabled={!input.trim() || slots <= 0} onClick={() => void importLinks()}>{connected ? '整理到清单' : '连接后整理'}</Button>
+      <Button variant="ghost" className="px-2 text-label" disabled={busy || slots <= 0} onClick={() => openPaste()}>粘贴正文</Button>
     </div>
     </div>
-    <CareerFinder expanded={expandedDirectory} connected={connected} disabled={busy} existingJobs={existingJobs} slots={slots} onPage={page => complete(page.url, page)} onConnect={onConnect} discover={discover} onBusy={value => { setFinding(value); onBusy(value) }} onChoose={urls => { setInput(urls.join('\n')); void importLinks(urls) }} />
     {message && <p role="status" className="mb-0 mt-2 text-body text-text-secondary">{message}</p>}
-    {!!pages.length && <CareerPagePicker pages={pages} existing={existingJobs} disabled={busy || finding || slots <= 0} onChoose={page => complete(page.url, page)} />}
+    {!!pages.length && <CareerPagePicker pages={pages} existing={existingJobs} disabled={busy || slots <= 0} onChoose={page => complete(page.url, page)} />}
     {failures.length > 0 && <div className="mt-2 space-y-2 text-body">{failures.map(failure => <div key={failure.url} className="border-t border-line pt-2">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1"><a href={failure.url} target="_blank" rel="noopener noreferrer" className="min-w-0 flex-1 break-all text-text-secondary underline">{failure.url}</a><button className="shrink-0 text-text-secondary underline disabled:opacity-40" disabled={busy || finding} onClick={() => void importLinks([failure.url])}>{connected ? '重试读取' : '连接后重试'}</button><button className="shrink-0 text-accent underline disabled:opacity-40" disabled={busy || finding || slots <= 0} onClick={() => openPaste(failure.url)}>粘贴正文补充</button></div>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1"><a href={failure.url} target="_blank" rel="noopener noreferrer" className="min-w-0 flex-1 break-all text-text-secondary underline">{failure.url}</a><button className="shrink-0 text-text-secondary underline disabled:opacity-40" disabled={busy || false} onClick={() => void importLinks([failure.url])}>{connected ? '重试读取' : '连接后重试'}</button><button className="shrink-0 text-accent underline disabled:opacity-40" disabled={busy || false || slots <= 0} onClick={() => openPaste(failure.url)}>粘贴正文补充</button></div>
       <p className="mb-0 mt-1 break-words text-text-tertiary">{failure.message}</p>
     </div>)}</div>}
-    {pasteUrl && <PastedCareerForm key={pasteUrl} url={pasteUrl} disabled={busy || finding} onCancel={() => setPasteUrl(null)} onImported={page => {
+    {pasteUrl && <PastedCareerForm key={pasteUrl} url={pasteUrl} disabled={busy} onCancel={() => setPasteUrl(null)} onImported={page => {
       planCareerImports([page.url], existingUrls, slots)
       complete(pasteUrl, page)
       setMessage('已加入清单，请确认公司、岗位和邮箱。')

@@ -6,6 +6,8 @@ import { ResumeReviewView } from '@/features/resume/ResumeReviewView'
 import { ResumeImportView } from '@/features/resume/ResumeImportView'
 import { WorkspaceShell } from '@/features/workspace/WorkspaceShell'
 import { WorkspaceContent } from '@/features/workspace/WorkspaceContent'
+import { NoResumeWorkspace } from '@/features/workspace/NoResumeWorkspace'
+import { ReviewWorkspace } from '@/features/resume/ReviewWorkspace'
 import { useAppNavigation } from '@/application/hooks/use-app-navigation'
 import { useClaimActions } from '@/application/hooks/use-claim-actions'
 import { useInterview } from '@/features/interview/hooks/use-interview'
@@ -47,9 +49,6 @@ function WorkspaceApp({ confirm }: { confirm: (request: { title: string; message
   const actions = useClaimActions(workspace, interview, navigation)
   const knowledgeActions = useKnowledgeActions(workspace)
   const { selected, stats } = workspace
-  useEffect(() => {
-    if (phase === 'workspace' && workspace.workspaceLoaded && !workspace.recovering && (!workspace.analysis || !selected) && !['diagnosis', 'applications', 'careers', 'application-history'].includes(mode)) replace('upload')
-  }, [phase, mode, workspace.workspaceLoaded, workspace.recovering, workspace.analysis, selected, replace])
   const handleToggleBlindSpot = (blindSpotId: string) => {
     actions.toggleBlindSpotMastered(blindSpotId)
     const item = workspace.knowledgeItems.find((i) => i.id === blindSpotId)
@@ -136,7 +135,7 @@ function WorkspaceApp({ confirm }: { confirm: (request: { title: string; message
   }
 
   const renderWorkspace = () => {
-    if (mode === 'diagnosis') return <ResumeCheckWorkspace badges={sidebarBadges} envConfigured={workspace.envConfigured} clientConfigured={workspace.clientConfigured} onClientChanged={workspace.refreshClientLlm} onHome={() => push('upload')} onNavigate={tab => workspace.analysis || ['diagnosis', 'applications', 'careers', 'application-history'].includes(tab) ? handleTabChange(tab) : push('upload')} onPractice={async (document, review) => {
+    if (mode === 'diagnosis') return <ResumeCheckWorkspace badges={sidebarBadges} envConfigured={workspace.envConfigured} clientConfigured={workspace.clientConfigured} onClientChanged={workspace.refreshClientLlm} onHome={() => push('upload')} onNavigate={tab => workspace.analysis || ['diagnosis', 'jobs', 'applications', 'careers', 'application-history'].includes(tab) ? handleTabChange(tab) : push('upload')} onPractice={async (document, review) => {
       if (!await canSwitchResume()) return
       interview.reset(); restoredRef.current = false
       await analysis.handleConfirmText(review, document.sourceFile, document)
@@ -144,7 +143,7 @@ function WorkspaceApp({ confirm }: { confirm: (request: { title: string; message
 
     if (workspace.recovering) return <div className="min-h-screen bg-bg" />
 
-    if (mode === 'applications' || mode === 'careers' || mode === 'application-history') return <MailWorkbench mode={mode} badges={sidebarBadges} renderAssistant={tools => <JobAssistant tools={tools} envConfigured={workspace.envConfigured} />} onNavigate={tab => workspace.analysis || ['diagnosis', 'applications', 'careers', 'application-history'].includes(tab) ? handleTabChange(tab) : push('upload')} onHome={() => push('upload')} onOpenRecord={async record => {
+    if (mode === 'jobs' || mode === 'applications' || mode === 'careers' || mode === 'application-history') return <MailWorkbench mode={mode} badges={sidebarBadges} renderAssistant={tools => <JobAssistant tools={tools} envConfigured={workspace.envConfigured} />} onNavigate={tab => workspace.analysis || ['diagnosis', 'jobs', 'applications', 'careers', 'application-history'].includes(tab) ? handleTabChange(tab) : push('upload')} onHome={() => push('upload')} onOpenRecord={async record => {
       if (!await canSwitchResume()) return
       interview.reset(); restoredRef.current = false; analysis.openSavedRecord(record)
     }} onPrepare={async (request, intent) => {
@@ -155,10 +154,16 @@ function WorkspaceApp({ confirm }: { confirm: (request: { title: string; message
       })
     }} />
 
-    if (phase === 'upload' || phase === 'review' || !workspace.analysis || !selected || !stats) {
+    if (phase === 'workspace' && !workspace.analysis && ['audit', 'interview', 'report', 'knowledge'].includes(mode)) {
+    return <NoResumeWorkspace mode={mode} badges={sidebarBadges} onNavigate={tab => workspace.analysis || ['diagnosis', 'jobs', 'applications', 'careers', 'application-history'].includes(tab) ? handleTabChange(tab) : push('upload')} onHome={() => push('upload')} />
+  }
+
+  if (phase === 'upload' || phase === 'review' || !workspace.analysis || !selected || !stats) {
       if (phase === 'review' && workspace.pendingExtracted) {
         return (
+          <ReviewWorkspace badges={sidebarBadges} onNavigate={handleTabChange} onHome={() => push('upload')} envConfigured={workspace.envConfigured} clientConfigured={workspace.clientConfigured} onClientChanged={workspace.refreshClientLlm}>
           <ResumeReviewView
+            embedded
             key={workspace.pendingExtracted.documentId ?? workspace.pendingExtracted.sourceFile + workspace.pendingExtracted.extracted.text}
             demo={workspace.pendingExtracted.demo ?? false}
             sourceFile={workspace.pendingExtracted.sourceFile}
@@ -188,6 +193,7 @@ function WorkspaceApp({ confirm }: { confirm: (request: { title: string; message
             onApplications={() => push('workspace', 'applications')}
             onBack={analysis.replaceResume}
           />
+          </ReviewWorkspace>
         )
       }
       return (

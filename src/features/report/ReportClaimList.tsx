@@ -43,6 +43,7 @@ export function ReportClaimList({
               }`}
             >
               <span
+                title={report.claim.title}
                 className={`min-w-0 truncate text-label font-medium ${
                   active ? 'text-brand' : 'text-text-primary'
                 }`}

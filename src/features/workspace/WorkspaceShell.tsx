@@ -1,16 +1,12 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
-import { useSidebarCollapsed } from '@/features/workspace/hooks/use-sidebar-collapsed'
-import { Menu } from 'lucide-react'
 import type { ResumeAnalysis } from '@/domain/resume-schema'
 import type { Mode } from '@/application/types'
 import type { LlmMode } from '@/features/settings/hooks/use-llm-status'
 import type { SidebarBadges } from './WorkspaceSidebar'
-import { WorkspaceSidebar } from './WorkspaceSidebar'
 import { WorkspaceTopBar } from './WorkspaceTopBar'
-import { SettingsDialog } from '@/features/settings/SettingsDialog'
-import { WorkbenchFrame } from '@/components/layout/WorkbenchFrame'
+import { AppShell, type SettingsTab } from './AppShell'
 
 type Props = {
   analysis: ResumeAnalysis
@@ -28,73 +24,21 @@ type Props = {
 }
 
 export function WorkspaceShell(props: Props) {
-  const [navOpen, setNavOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [navCollapsed, toggleCollapsed] = useSidebarCollapsed()
-
-  const openHistory = () => {
-    props.onHome()
-  }
-
-  return (
-    <WorkbenchFrame className="flex">
-      <WorkspaceSidebar
-        variant="dock"
-        mode={props.mode}
-        collapsed={navCollapsed}
-        onToggleCollapsed={toggleCollapsed}
-        onNavigate={props.onTabChange}
-        badges={props.badges}
-        onOpenHistory={openHistory}
-        onOpenSettings={() => setSettingsOpen(true)}
-      />
-      <WorkspaceSidebar
-        variant="drawer"
-        open={navOpen}
-        mode={props.mode}
-        collapsed={false}
-        onToggleCollapsed={() => undefined}
-        onNavigate={props.onTabChange}
-        badges={props.badges}
-        onOpenHistory={() => {
-          openHistory()
-          setNavOpen(false)
-        }}
-        onOpenSettings={() => {
-          setSettingsOpen(true)
-          setNavOpen(false)
-        }}
-        onClose={() => setNavOpen(false)}
-      />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-[56px] flex-none items-center gap-3 border-b border-line bg-surface/95 px-4 backdrop-blur-lg md:px-6">
-          <button
-            type="button"
-            className="grid size-8 flex-none place-items-center rounded-md text-text-secondary hover:bg-surface-hover md:hidden"
-            onClick={() => setNavOpen(true)}
-            aria-label="打开导航"
-          >
-            <Menu size={18} />
-          </button>
-          <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
-            <WorkspaceTopBar
-              analysis={props.analysis}
-              llmMode={props.llmMode}
-              onExport={props.onExport}
-              onExportJson={props.onExportJson}
-              onOpenSettings={() => setSettingsOpen(true)}
-            />
-          </div>
-        </header>
-        <main className="min-h-0 flex-1 overflow-hidden">{props.children}</main>
-      </div>
-      <SettingsDialog
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        envConfigured={props.envConfigured}
-        clientConfigured={props.clientConfigured}
-        onClientChanged={props.onClientChanged}
-      />
-    </WorkbenchFrame>
-  )
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>('model')
+  const openSettings = (tab: SettingsTab) => { setSettingsTab(tab); setSettingsOpen(true) }
+  return <AppShell
+    mode={props.mode}
+    badges={props.badges}
+    onNavigate={props.onTabChange}
+    onOpenHistory={props.onHome}
+    settingsOpen={settingsOpen}
+    settingsTab={settingsTab}
+    onOpenSettings={openSettings}
+    onCloseSettings={() => setSettingsOpen(false)}
+    settings={{ envConfigured: props.envConfigured, clientConfigured: props.clientConfigured, onClientChanged: props.onClientChanged }}
+    header={<div className="flex min-w-0 flex-1 items-center justify-between gap-4"><WorkspaceTopBar analysis={props.analysis} llmMode={props.llmMode} onExport={props.onExport} onExportJson={props.onExportJson} /></div>}
+  >
+    {props.children}
+  </AppShell>
 }

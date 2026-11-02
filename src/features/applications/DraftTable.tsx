@@ -1,6 +1,6 @@
 'use client'
 
-import { ExternalLink, ListPlus, Trash2 } from 'lucide-react'
+import { ExternalLink, ListPlus, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { sourceUrlSchema } from '@/domain/mail-schema'
 import { draftIssues, websiteLinks, type Draft } from './draft-state'
@@ -24,10 +24,12 @@ export function DraftTable({ drafts, selectedIds, disabled, onSelection, onUpdat
   </div>
   return <section className="mail-draft-table flex min-h-0 flex-1 flex-col" aria-label="批量核对投递名单">
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line px-5 py-2.5 text-body">
+      <span className="font-medium">待投递 {drafts.length}</span>
       <span>{selectedIds.filter(id => drafts.some(draft => draft.id === id)).length} 个选中 · {ready.length} 个可发送</span>
       {!!needsAttention.length && <span className="workbench-status" data-tone="warning">{needsAttention.length} 个待补充</span>}
-      <button type="button" className="text-text-secondary underline disabled:opacity-40" disabled={disabled || !ready.length} onClick={() => onSelection(ready.map(draft => draft.id))}>只选可发送</button>
+      <Button variant="link" className="text-label text-text-secondary" disabled={disabled || !ready.length} onClick={() => onSelection(ready.map(draft => draft.id))}>只选可发送</Button>
       <span className="ml-auto text-meta text-text-tertiary">点击公司、岗位或邮箱可修改</span>
+      <button type="button" className="flex items-center gap-1 px-1 py-1 text-label text-text-secondary hover:bg-surface-hover" disabled={disabled} onClick={onAdd}><Plus size={13} />手动添加</button>
     </div>
     <div className="min-h-0 flex-1 overflow-auto">
       <table className="w-full min-w-[700px] table-fixed border-collapse text-left text-body">

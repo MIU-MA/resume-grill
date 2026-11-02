@@ -47,7 +47,7 @@ export function CurrentQuestion({
 
   return (
     <div ref={sectionRef} className="mb-6 scroll-mt-4">
-      <div className="rounded-lg border-2 border-brand bg-white px-5 py-4 shadow-[0_1px_6px_rgba(16,24,40,0.06)]">
+      <div className="border border-line border-l-2 border-l-brand bg-white px-5 py-4">
         <div className="mb-1.5 flex items-center gap-2 text-body font-bold text-brand">
           <MessageSquareText size={14} />当前问题
         </div>

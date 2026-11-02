@@ -11,7 +11,7 @@ import type { ResumeReviewSubmission } from '@/domain/resume-review'
 import type { ResumePhoto } from '@/domain/resume-photo'
 import type { ResumeTemplateId } from '@/domain/resume-template'
 
-export type Mode = 'diagnosis' | 'audit' | 'interview' | 'report' | 'knowledge' | 'applications' | 'careers' | 'application-history'
+export type Mode = 'diagnosis' | 'audit' | 'interview' | 'report' | 'knowledge' | 'jobs' | 'applications' | 'careers' | 'application-history'
 
 export type AppNavigation = {
   push: (phase: 'upload' | 'review' | 'workspace', mode?: Mode) => void

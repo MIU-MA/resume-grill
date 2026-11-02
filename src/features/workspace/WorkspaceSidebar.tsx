@@ -13,8 +13,7 @@ import {
   FileSearch,
   Mail,
   Globe,
-  MessagesSquare,
-  ChartNoAxesColumn,
+  BriefcaseBusiness,
   Library,
   type LucideIcon,
 } from 'lucide-react'
@@ -32,6 +31,7 @@ type NavItem = {
   key: Mode | 'library'
   label: string
   icon: LucideIcon
+  activeModes?: Mode[]
 }
 
 const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
@@ -40,14 +40,13 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     { key: 'diagnosis', label: '简历检查', icon: FileSearch },
   ] },
   { label: '投递', items: [
-    { key: 'careers', label: '招聘官网', icon: Globe },
+    { key: 'jobs', label: '职位清单', icon: BriefcaseBusiness },
+    { key: 'careers', label: 'AI 找岗位', icon: Globe },
     { key: 'applications', label: '投递清单', icon: Mail },
     { key: 'application-history', label: '投递记录', icon: History },
   ] },
   { label: '面试', items: [
-    { key: 'audit', label: '面试准备', icon: ListChecks },
-    { key: 'interview', label: '模拟面试', icon: MessagesSquare },
-    { key: 'report', label: '面试复盘', icon: ChartNoAxesColumn },
+    { key: 'audit', label: '面试练习', icon: ListChecks, activeModes: ['audit', 'interview', 'report'] },
     { key: 'knowledge', label: '待复习', icon: Lightbulb },
   ] },
 ]
@@ -97,8 +96,8 @@ export function WorkspaceSidebar({
       {NAV_GROUPS.map(group => <section key={group.label} className="workspace-nav-group" aria-label={group.label}>
         {!iconOnly && <h2 className="workspace-nav-group-title">{group.label}</h2>}
         <div className="workspace-nav-items">
-        {group.items.map(({ key, label, icon: Icon }) => {
-          const active = mode === key
+        {group.items.map(({ key, label, icon: Icon, activeModes }) => {
+          const active = activeModes ? activeModes.includes(mode as Mode) : mode === key
           const badge = key === 'library' ? null : renderBadge(key, badges)
           return <SidebarButton key={key} label={label} iconOnly={iconOnly} active={active} onClick={() => {
             if (key === 'library') { onOpenHistory(); if (!isDock) onClose?.() }

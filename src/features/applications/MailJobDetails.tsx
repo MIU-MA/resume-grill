@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/Button'
 import { MAIL_STATUS_LABELS, type MailJob } from '@/domain/mail-schema'
 import { MAIL_STATUS_TONES, safeLink } from './mail-presentation'
 
-export function MailJobDetails({ job, disabled, onAction, preparation, embedded = false }: { job: MailJob; disabled: boolean; onAction: (action: 'retry' | 'cancel' | 'confirm-sent') => void; preparation: ReactNode; embedded?: boolean }) {
+export function MailJobDetails({ job, disabled, onAction, preparation, embedded = false, heading = true }: { job: MailJob; disabled: boolean; onAction: (action: 'retry' | 'cancel' | 'confirm-sent') => void; preparation: ReactNode; embedded?: boolean; heading?: boolean }) {
   return <article className={embedded ? 'text-body' : 'mx-auto max-w-[860px] p-5 text-body sm:p-6'}>
-    <div className="flex flex-wrap items-baseline gap-3"><h2 className="m-0 text-section font-semibold">{embedded ? '邮件记录' : [job.company, job.role].filter(Boolean).join(' / ') || job.recipient}</h2><span className="workbench-status text-body" data-tone={MAIL_STATUS_TONES[job.status]}>{MAIL_STATUS_LABELS[job.status]}</span></div>
+    {heading && <div className="flex flex-wrap items-baseline gap-3"><h2 className="m-0 text-section font-semibold">{embedded ? '邮件记录' : [job.company, job.role].filter(Boolean).join(' / ') || job.recipient}</h2><span className="workbench-status text-body" data-tone={MAIL_STATUS_TONES[job.status]}>{MAIL_STATUS_LABELS[job.status]}</span></div>}
     <p className="mb-5 text-body leading-relaxed text-text-tertiary">{job.detail ?? '按清单顺序发送。'}<br />更新于 {new Date(job.updatedAt).toLocaleString('zh-CN')}</p>
     {preparation}
     <dl className="mail-record grid grid-cols-[60px_minmax(0,1fr)] gap-x-3 gap-y-3 border-y border-line py-4 text-body">

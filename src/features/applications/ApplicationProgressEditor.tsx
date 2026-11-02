@@ -22,6 +22,6 @@ export function ApplicationProgressEditor({ value, disabled, onSave }: { value?:
       <Button type="submit" variant="secondary">{saving ? '保存中…' : '保存进展'}</Button>
     </fieldset>
     {message && <p role="status" className="text-body text-text-secondary">{message}</p>}
-    {!!value?.events.length && <details className="border-t border-line pt-4"><summary className="cursor-pointer text-label text-text-secondary">进展记录</summary><ol className="space-y-2 pl-5 text-body text-text-secondary">{[...value.events].reverse().map((item, index) => <li key={index}>{new Date(item.at).toLocaleString('zh-CN')} · {APPLICATION_STAGES[item.stage]}</li>)}</ol></details>}
+    {!!value?.events.length && <section className="border-t border-line pt-4"><h3 className="mb-2 mt-0 text-label font-medium">进展记录</h3><ol className="space-y-2 pl-5 text-body text-text-secondary">{[...value.events].reverse().map((item, index) => <li key={index}>{new Date(item.at).toLocaleString('zh-CN')} · {APPLICATION_STAGES[item.stage]}</li>)}</ol></section>}
   </form>
 }

@@ -16,6 +16,7 @@ vi.mock('@/features/resume/ResumeImportView', () => ({ ResumeImportView: () => c
 let host: HTMLDivElement, root: Root
 beforeEach(() => {
   vi.clearAllMocks(); vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true); vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+  vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
   state.loaded = true; state.mode = 'diagnosis'; state.analysis = { jobDescription: '投递岗位的 JD', jobContext: { applicationId: 'job' }, claims: [] }
   host = document.createElement('div'); document.body.append(host); root = createRoot(host)
 })
@@ -34,11 +35,12 @@ it('尚未建立面试记录时，从投递侧也能直接进入独立检查入�
   expect(state.push).not.toHaveBeenCalledWith('upload')
 })
 
-it('没有简历的面试地址恢复完成后跳回简历库，恢复期间不提前跳走', async () => {
+it('没有简历时进入面试地址显示空状态，不静默跳回简历库', async () => {
   state.mode = 'interview'; state.analysis = null; state.loaded = false
   await act(async () => root.render(createElement(App)))
   expect(state.replace).not.toHaveBeenCalled()
   state.loaded = true
   await act(async () => root.render(createElement(App)))
-  expect(state.replace).toHaveBeenCalledWith('upload')
+  expect(host.textContent).toContain('先选一份简历开始练习')
+  expect(state.replace).not.toHaveBeenCalledWith('upload')
 })

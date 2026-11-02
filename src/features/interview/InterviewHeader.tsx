@@ -61,38 +61,19 @@ export function InterviewHeader({
           >
             <List size={14} /><span className="max-[520px]:hidden">要点</span>
           </button>
-          <div className="inline-flex items-center rounded-lg bg-surface-soft p-0.5 text-body font-medium max-[430px]:hidden">
-            <button
-              type="button"
-              onClick={() => {
-                if (!strictMode) onToggleStrict()
-              }}
-              className={`h-[24px] rounded-[6px] px-2.5 transition-colors ${
-                strictMode
-                  ? 'bg-white text-text-primary shadow-[0_1px_2px_rgba(16,24,40,0.08)]'
-                  : 'bg-transparent text-text-tertiary hover:text-text-secondary'
-              }`}
-              aria-pressed={strictMode}
-              title="隐藏提示，按真实面试来回答"
-            >
-              隐藏提示
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (strictMode) onToggleStrict()
-              }}
-              className={`h-[24px] rounded-[6px] px-2.5 transition-colors ${
-                !strictMode
-                  ? 'bg-white text-text-primary shadow-[0_1px_2px_rgba(16,24,40,0.08)]'
-                  : 'bg-transparent text-text-tertiary hover:text-text-secondary'
-              }`}
-              aria-pressed={!strictMode}
-              title="显示提示和参考回答"
-            >
-              显示提示
-            </button>
-          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={!strictMode}
+            onClick={onToggleStrict}
+            className="inline-flex h-7 items-center gap-2 border border-line bg-white px-2.5 text-label text-text-secondary max-[430px]:hidden"
+            title={strictMode ? '显示提示和参考回答' : '隐藏提示，按真实面试来回答'}
+          >
+            <span aria-hidden="true" className={`relative h-3.5 w-6 ${!strictMode ? 'bg-brand' : 'bg-line-strong'}`}>
+              <span className={`absolute top-0.5 size-2.5 bg-white transition-[left] ${!strictMode ? 'left-3' : 'left-0.5'}`} />
+            </span>
+            提示 {strictMode ? '关' : '开'}
+          </button>
           <span className="text-meta text-text-tertiary max-[900px]:hidden">
             已聊到 {coveredCount}/{totalCount}
           </span>

@@ -42,7 +42,7 @@ export function InterviewHistory({
         >
           {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           <span className="font-mono">Q{index + 1}</span>
-          <span className="min-w-0 flex-1 truncate">{turn.question}</span>
+          {expanded ? <span className="flex-1 text-text-tertiary">收起</span> : <span className="min-w-0 flex-1 truncate">{turn.question}</span>}
         </button>
         {expanded && (
           <div className="pt-2">
@@ -61,7 +61,7 @@ export function InterviewHistory({
               {turn.question}
             </p>
             {!strictMode && turn.intent && (
-              <details className="mb-4 text-meta text-text-tertiary"><summary className="cursor-pointer">为什么问这个</summary><p>{turn.intent}</p></details>
+              <p className="mb-4 text-meta leading-relaxed text-text-tertiary">为什么问这个：{turn.intent}</p>
             )}
             {!turn.intent && <div className="mb-4" />}
 

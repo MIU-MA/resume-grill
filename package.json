@@ -18,6 +18,7 @@
     "dev:local": "tsx scripts/workbench.ts",
     "release:assets": "node scripts/release-assets.mjs",
     "mail-agent": "tsx scripts/mail-agent.ts",
+    "build:jobs": "tsx scripts/build-job-catalog.ts --browser=fallback --concurrency=4",
     "build": "next build",
     "start": "next start",
     "lint": "oxlint",

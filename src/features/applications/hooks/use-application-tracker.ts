@@ -1,8 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { ManualApplication } from '@/domain/application-record'
 import type { AgentSnapshot } from '@/domain/mail-schema'
-import { changeApplicationProgress, type ApplicationProgress } from '@/domain/application-progress'
+import { changeApplicationProgress, type ApplicationProgress, type ApplicationStage } from '@/domain/application-progress'
 import { emptyApplicationTracker, loadApplicationTracker, updateApplicationTracker, type ApplicationTracker, type SubmissionSnapshot } from '../application-tracker-storage'
 
 export function useApplicationTracker(snapshot: AgentSnapshot | null, onError: (message: string) => void) {
@@ -44,5 +45,32 @@ export function useApplicationTracker(snapshot: AgentSnapshot | null, onError: (
     if (previous) submissions[id] = previous; else delete submissions[id]
     return { ...current, submissions }
   })
-  return { tracker, loaded, saveProgress, capture, restoreSubmission }
+  /** Add or update a hand-recorded application and its initial progress in one write. */
+  const saveManual = (record: ManualApplication, stage: ApplicationStage) => save(current => {
+    const exists = current.manualApplications.some(item => item.id === record.id)
+    return {
+      ...current,
+      manualApplications: exists
+        ? current.manualApplications.map(item => item.id === record.id ? record : item)
+        : [...current.manualApplications, record],
+      progress: {
+        ...current.progress,
+        [record.id]: changeApplicationProgress(current.progress[record.id], { stage }, Date.now()),
+      },
+    }
+  })
+  const removeManual = (id: string) => save(current => {
+    if (!current.manualApplications.some(item => item.id === id)) return current
+    const progress = { ...current.progress }
+    delete progress[id]
+    return { ...current, manualApplications: current.manualApplications.filter(item => item.id !== id), progress }
+  })
+  const restoreManual = (record: ManualApplication, progress?: ApplicationProgress) => save(current => ({
+    ...current,
+    manualApplications: current.manualApplications.some(item => item.id === record.id) ? current.manualApplications : [...current.manualApplications, record],
+    progress: progress ? { ...current.progress, [record.id]: progress } : current.progress,
+  }))
+  const hideJob = (id: string) => save(current => current.hiddenMailJobIds.includes(id) ? current : ({ ...current, hiddenMailJobIds: [...current.hiddenMailJobIds, id] }))
+  const unhideJob = (id: string) => save(current => ({ ...current, hiddenMailJobIds: current.hiddenMailJobIds.filter(item => item !== id) }))
+  return { tracker, loaded, saveProgress, capture, restoreSubmission, saveManual, removeManual, restoreManual, hideJob, unhideJob }
 }
