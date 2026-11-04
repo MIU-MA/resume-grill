@@ -2,9 +2,9 @@
 
 import { ExternalLink, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { APPLICATION_STAGES, type ApplicationProgress } from '@/domain/application-progress'
+import type { ApplicationProgress } from '@/domain/application-progress'
 import { MAIL_STATUS_LABELS } from '@/domain/mail-schema'
-import { applicationEntryChannel, applicationEntryStage, applicationEntryTitle, type ApplicationEntry } from './lib/application-entry'
+import { applicationEntryChannel, applicationEntryStatus, applicationEntryTitle, type ApplicationEntry } from './lib/application-entry'
 import { ApplicationProgressEditor } from './ApplicationProgressEditor'
 import { MailJobDetails } from '../mail/MailJobDetails'
 import { MAIL_STATUS_TONES, savedDate, savedDay, safeLink } from '../mail/lib/mail-presentation'
@@ -19,8 +19,7 @@ export function ApplicationEntryDetail({ entry, progress, disabled, onEdit, onDe
   onMailAction: (job: NonNullable<ApplicationEntry['mail']>, action: 'retry' | 'cancel' | 'confirm-sent') => void
   onReturnToDrafts?: () => void
 }) {
-  const stage = applicationEntryStage(entry, progress)
-  const tone = stage === 'offer' ? 'success' : stage === 'rejected' || stage === 'withdrawn' ? 'warning' : 'info'
+  const status = applicationEntryStatus(entry, progress)
   const link = entry.sourceUrl ? safeLink(entry.sourceUrl) : undefined
   return <article className="space-y-5 p-5 text-body" aria-label="投递记录详情">
     <header className="space-y-3">
@@ -28,9 +27,9 @@ export function ApplicationEntryDetail({ entry, progress, disabled, onEdit, onDe
         <div className="min-w-0">
           <h2 className="m-0 break-words text-section font-semibold">{applicationEntryTitle(entry)}</h2>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="workbench-status" data-tone={tone}>{stage ? APPLICATION_STAGES[stage] : '尚未记录进展'}</span>
+            <span className="workbench-status" data-tone={status.tone}>{status.label}</span>
             <span className="workbench-status" data-tone="neutral">{applicationEntryChannel(entry)}</span>
-            {entry.kind === 'mail' && entry.mail && <span className="workbench-status" data-tone={MAIL_STATUS_TONES[entry.mail.status]}>{MAIL_STATUS_LABELS[entry.mail.status]}</span>}
+            {entry.kind === 'mail' && entry.mail && status.label !== MAIL_STATUS_LABELS[entry.mail.status] && <span className="workbench-status" data-tone={MAIL_STATUS_TONES[entry.mail.status]}>{MAIL_STATUS_LABELS[entry.mail.status]}</span>}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -38,15 +37,15 @@ export function ApplicationEntryDetail({ entry, progress, disabled, onEdit, onDe
           <Button variant="ghost" className="h-8 px-3 text-label text-text-secondary" disabled={disabled} onClick={onDelete}><Trash2 size={13} />{entry.kind === 'mail' ? '从记录中隐藏' : '删除'}</Button>
         </div>
       </div>
-      <p className="m-0 text-meta leading-relaxed text-text-tertiary">{entry.kind === 'mail' ? '这条记录来自本机执行器；可以隐藏本地记录、补充进展，但不能改已发送邮件的公司、岗位和正文。' : '这条记录由你手动登记，工作台没有发送邮件或提交官网。'}</p>
+      <p className="m-0 text-meta leading-relaxed text-text-tertiary">{entry.kind === 'mail' ? '邮件发送状态来自本机执行器，求职进展由你记录。' : '投递结果由你登记。'}</p>
     </header>
 
     <dl className="grid grid-cols-[72px_minmax(0,1fr)] gap-x-3 gap-y-2.5 border-y border-line py-4">
-      <dt className="text-text-tertiary">投递时间</dt><dd>{savedDay(entry.appliedAt)}</dd>
-      <dt className="text-text-tertiary">最近更新</dt><dd>{savedDate(entry.updatedAt)}</dd>
-      <dt className="text-text-tertiary">联系人</dt><dd className="break-all">{entry.contact || '未填写'}</dd>
-      <dt className="text-text-tertiary">岗位链接</dt><dd className="break-all">{link ? <a href={link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-accent underline">打开岗位<ExternalLink size={12} /></a> : '未填写'}</dd>
-      {entry.kind === 'manual' && entry.manual?.note && <><dt className="text-text-tertiary">备注</dt><dd className="whitespace-pre-wrap break-words leading-relaxed">{entry.manual.note}</dd></>}
+      <dt className="text-text-tertiary">{entry.kind === 'mail' && entry.mail?.status !== 'sent' ? '创建时间' : '投递时间'}</dt><dd className="m-0">{savedDay(entry.appliedAt)}</dd>
+      <dt className="text-text-tertiary">最近更新</dt><dd className="m-0">{savedDate(Math.max(entry.updatedAt, progress?.updatedAt ?? 0))}</dd>
+      <dt className="text-text-tertiary">联系人</dt><dd className="m-0 break-all">{entry.contact || '未填写'}</dd>
+      <dt className="text-text-tertiary">岗位链接</dt><dd className="m-0 break-all">{link ? <a href={link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-accent underline">打开岗位<ExternalLink size={12} /></a> : '未填写'}</dd>
+      {entry.kind === 'manual' && entry.manual?.note && <><dt className="text-text-tertiary">备注</dt><dd className="m-0 whitespace-pre-wrap break-words leading-relaxed">{entry.manual.note}</dd></>}
     </dl>
 
     {entry.kind === 'mail' && entry.mail && <MailJobDetails embedded heading={false} job={entry.mail} disabled={disabled} onAction={action => onMailAction(entry.mail!, action)} preparation={null} />}
@@ -56,6 +55,8 @@ export function ApplicationEntryDetail({ entry, progress, disabled, onEdit, onDe
       {onReturnToDrafts && <Button variant="secondary" className="mt-3" disabled={disabled} onClick={onReturnToDrafts}>移回待投递，重新编辑</Button>}
     </section>}
 
-    <ApplicationProgressEditor key={entry.id} value={progress} disabled={disabled} onSave={onSaveProgress} />
+    {entry.kind !== 'mail' || entry.mail?.status === 'sent' || progress
+      ? <ApplicationProgressEditor key={entry.id} value={progress} disabled={disabled} onSave={onSaveProgress} />
+      : <p className="text-label leading-relaxed text-text-tertiary">邮件发出后，可以在这里记录回复和面试进展。</p>}
   </article>
 }

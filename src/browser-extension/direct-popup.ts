@@ -19,6 +19,7 @@ export function mountDirectPopup(root: HTMLElement) {
     input.oninput = () => { data.profile[key] = input.value }
     fields.set(key, input); label.append(input); (['name', 'email', 'phone'].includes(key) ? grid : moreGrid).append(label)
   }
+  const experiences = document.createElement('p'); experiences.className = 'detail'
   const fileLabel = document.createElement('label'); fileLabel.textContent = '简历附件（选填）'
   const file = document.createElement('input'); file.type = 'file'; file.accept = '.pdf,.docx,.txt'; file.disabled = true; fileLabel.append(file)
   const attachmentName = document.createElement('span'); attachmentName.className = 'detail'
@@ -29,11 +30,12 @@ export function mountDirectPopup(root: HTMLElement) {
   const fill = document.createElement('button'); fill.textContent = '填写当前页面'; fill.className = 'primary'
   const save = document.createElement('button'); save.textContent = '保存资料'
   const actions = document.createElement('div'); actions.className = 'actions'; actions.append(fill, save)
-  root.append(target, hint, grid, more, fileLabel, attachmentRow, actions, status, result)
+  root.append(target, hint, grid, more, experiences, fileLabel, attachmentRow, actions, status, result)
   function controls() {
     for (const input of fields.values()) input.disabled = busy
     file.disabled = save.disabled = busy; removeFile.disabled = busy; removeFile.hidden = !data.attachment
     fill.disabled = busy || !tab?.url || !sourceUrlSchema.safeParse(tab.url).success
+    experiences.textContent = data.experiences?.length ? `同时复用 ${data.experiences.length} 段教育、工作或项目经历。可在工作台核对经历后重新发送到扩展。` : ''
     attachmentName.textContent = data.attachment?.name ?? '未选择附件；仅填资料时不用选。'
   }
   function showRun(state: DirectState) {
@@ -61,7 +63,7 @@ export function mountDirectPopup(root: HTMLElement) {
     if (busy) return
     const profile = profileSchema.safeParse(data.profile)
     if (!profile.success) { fail(new Error(profile.error.issues[0].message)); return }
-    if (shouldFill && !Object.values(profile.data).some(Boolean) && !data.attachment) { fail(new Error('先填写一项个人资料，或选择简历附件。')); return }
+    if (shouldFill && !Object.values(profile.data).some(Boolean) && !data.attachment && !data.experiences?.length) { fail(new Error('先填写一项个人资料，或选择简历附件。')); return }
     if (shouldFill && (!tab?.url || !sourceUrlSchema.safeParse(tab.url).success)) { fail(new Error('先打开 HTTPS 官网申请表，再打开扩展。')); return }
     busy = true; controls(); status.className = 'detail'; status.textContent = shouldFill ? '正在填写…' : '正在保存…'
     try {
@@ -88,7 +90,7 @@ export function mountDirectPopup(root: HTMLElement) {
   }
   controls()
   void Promise.all([request({ type: 'direct-state' }), chrome.tabs.query({ active: true, currentWindow: true })]).then(([state, tabs]) => {
-    data = { profile: { ...state.profile }, attachment: state.attachment }; tab = tabs[0]
+    data = { profile: { ...state.profile }, attachment: state.attachment, ...(state.experiences ? { experiences: state.experiences } : {}) }; tab = tabs[0]
     for (const [key, input] of fields) input.value = data.profile[key] ?? ''
     target.textContent = tab?.url && sourceUrlSchema.safeParse(tab.url).success ? `当前页面：${new URL(tab.url).hostname}` : '请先打开 HTTPS 官网申请表，再打开扩展。资料可先保存。'
     busy = state.run?.status === 'running'; controls(); showRun(state)

@@ -8,6 +8,7 @@ import { generateJobResume, previewJobResume, saveJobResume, type TailoringSessi
 import type { AttachmentSource } from '../mail/lib/mail-draft-storage'
 import type { Draft, SavedJobPreparation } from '../mail/lib/draft-state'
 import { resumeTemplateId, type ResumeTemplateId } from '@/domain/resume-template'
+import { clearTailoringDraft, readTailoringDraft, tailoringDraftContext, writeTailoringDraft } from './lib/tailoring-draft'
 import { useResumePdf } from '@/features/resume/hooks/use-resume-pdf'
 
 type Props = {
@@ -16,19 +17,22 @@ type Props = {
   onApply: (change: Partial<Draft>, saved: SavedJobPreparation) => Promise<void>
 }
 export function JobResumeDialog({ draft, file, source, person, initialTemplate, onClose, onApply }: Props) {
+  const [context] = useState(() => tailoringDraftContext(draft, file, source))
+  const [restored] = useState(() => readTailoringDraft(context, draft.jobDescription ?? ''))
+  const committed = useRef(false)
   const ref = useRef<HTMLDialogElement>(null)
   const controller = useRef<AbortController | null>(null)
   const savedRevision = useRef<{ artifact: ResumePdfArtifact; company: string; role: string; document: Awaited<ReturnType<typeof saveJobResume>> } | null>(null)
   const [session, setSession] = useState<TailoringSession | null>(null)
-  const [accepted, setAccepted] = useState<Set<string>>(new Set())
-  const [edits, setEdits] = useState<Record<string, string>>({})
-  const [originalOrder, setOriginalOrder] = useState(true)
-  const [company, setCompany] = useState(draft.company)
-  const [role, setRole] = useState(draft.role)
-  const [mailEdit, setMailEdit] = useState<{ subject?: string; body?: string }>({})
+  const [accepted, setAccepted] = useState<Set<string>>(new Set(Object.keys(restored?.edits ?? {})))
+  const [edits, setEdits] = useState<Record<string, string>>(restored?.edits ?? {})
+  const [originalOrder, setOriginalOrder] = useState(restored?.originalOrder ?? true)
+  const [company, setCompany] = useState(restored?.company ?? draft.company)
+  const [role, setRole] = useState(restored?.role ?? draft.role)
+  const [mailEdit, setMailEdit] = useState<{ subject?: string; body?: string }>(restored?.mailEdit ?? {})
   const [artifact, setArtifact] = useState<ResumePdfArtifact | null>(null)
   const isPdf = /\.pdf$/i.test(file.name)
-  const [template, setTemplate] = useState<ResumeTemplateId>(resumeTemplateId(initialTemplate ?? (isPdf ? 'original' : undefined)))
+  const [template, setTemplate] = useState<ResumeTemplateId>(resumeTemplateId(restored?.template ?? initialTemplate ?? (isPdf ? 'original' : undefined)))
   const [view, setView] = useState<JobResumeView>(isPdf ? 'source' : 'compare')
   const [busy, setBusy] = useState(false)
   const [generating, setGenerating] = useState(true)
@@ -41,8 +45,11 @@ export function JobResumeDialog({ draft, file, source, person, initialTemplate, 
     const abort = new AbortController(); controller.current = abort
     setGenerating(true); setSuggestionError('')
     void generateJobResume(draft, file, source, abort.signal, value => {
-      if (!abort.signal.aborted) setSession(current => current ?? value)
-    }).then(value => {
+      if (!abort.signal.aborted) {
+        if (restored && restored.rawText !== value.rawText) { setEdits({}); setAccepted(new Set()); setMailEdit({}); setError('原简历内容已变化，已从当前文件重新开始，旧稿未套用。') }
+        setSession(current => current ?? value)
+      }
+    }, retry === 0 ? restored ?? undefined : undefined).then(value => {
       if (abort.signal.aborted) return
       setSession(value)
       setCompany(current => current || draft.company || value.plan.company); setRole(current => current || draft.role || value.plan.role)
@@ -79,6 +86,7 @@ export function JobResumeDialog({ draft, file, source, person, initialTemplate, 
     if (apply && generating) { controller.current?.abort(); setGenerating(false) }
     setBusy(true); setError('')
     try {
+      const text = selectedTemplate === 'original' ? tailoredOriginalResumeText(session.rawText, session.sections, session.plan, accepted, edits) : tailoredResumeText(session.sections, session.plan, accepted, edits, originalOrder)
       if (!text.trim() || text.length > 20000) throw new Error('简历正文须为 1–20000 字。')
       if (apply && (!mail.subject.trim() || mail.subject.length > 200 || /[\r\n]/.test(mail.subject) || !mail.body.trim() || mail.body.length > 12000)) throw new Error('请检查邮件主题和正文。')
       const current = artifact && artifact.inputText === text && resumeTemplateId(artifact.template) === selectedTemplate ? artifact : selectedTemplate === 'original' ? sourcePdf.artifact : null
@@ -94,10 +102,20 @@ export function JobResumeDialog({ draft, file, source, person, initialTemplate, 
         attachmentSource: { id: document.id, updatedAt: document.originalFileUpdatedAt ?? document.updatedAt }, attachmentUse: 'preparation',
         tailoredResume: { jobDescription: (draft.jobDescription ?? '').trim(), company, role, sourceFile: file, source, documentId: document.id, text: pdf.text, template: selectedTemplate },
       })
+      committed.current = true
+      clearTailoringDraft(context)
     } catch (cause) { setError(cause instanceof Error ? cause.message : '保存失败。') }
     finally { setBusy(false) }
   }
-  const close = () => { controller.current?.abort(); onClose() }
+  const persist = () => {
+    if (!session || committed.current) return true
+    try {
+      writeTailoringDraft({ context, rawText: session.rawText, plan: session.plan, edits, originalOrder, company, role, mailEdit, template })
+      return true
+    } catch { setError('修改未能暂存，请先保存并用于邮件，或释放浏览器存储后再关闭。'); return false }
+  }
+  useEffect(() => { persist() }, [session, edits, originalOrder, company, role, mailEdit, template]) // eslint-disable-line react-hooks/exhaustive-deps
+  const close = () => { if (!persist()) return; controller.current?.abort(); onClose() }
   return <dialog ref={ref} aria-label="按岗位修改简历" onCancel={event => { event.preventDefault(); if (!busy || !session) close() }} className="tailoring-dialog resume-workbench">
     <JobResumeWorkspace
       fileName={file.name} recipient={draft.recipient} session={session} text={text}

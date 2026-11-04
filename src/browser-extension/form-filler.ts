@@ -1,4 +1,4 @@
-import { normalizeFieldLabel, sensitiveField, type FormResult, type MissingField, type ProfileKey, type WebsiteAnswer, type WebsiteBatch, type WebsiteProfile } from '../domain/website-automation'
+import { NO_APPLICATION_FORM, normalizeFieldLabel, sensitiveField, type FormResult, type MissingField, type ProfileKey, type WebsiteAnswer, type WebsiteBatch, type WebsiteProfile } from '../domain/website-automation'
 import { leverForm, leverLocation, leverMissing, leverUploadConfirmed } from './lever-adapter'
 import { experienceFields } from './experience-fields'
 import type { WebsiteExperience } from '../domain/website-experience'
@@ -169,7 +169,7 @@ export async function fillApplication(profile: WebsiteProfile, answers: WebsiteA
   for (const element of fields) {
     if ((element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) && element.readOnly && element.type !== 'hidden' && !element.matches(':disabled') && visible(element) && required(element) && !customSelect(element) && !hasValue(element)) addMissing({ label: `${labelFor(element) || '页面必填项'}（请在官网选择或补全）`, kind: 'manual' })
   }
-  if (!descriptors.some(item => item.key) && !combos.some(item => profileKey(labelFor(selectControl(item) ?? item))) && !uploadInputs.length && !textFields.some(element => required(element) && element.closest('form'))) addMissing({ label: '未找到可填写的申请表，请打开具体表单后继续', kind: 'manual' })
+  if (!descriptors.some(item => item.key) && !combos.some(item => profileKey(labelFor(selectControl(item) ?? item))) && !uploadInputs.length && !textFields.some(element => required(element) && element.closest('form'))) addMissing({ label: NO_APPLICATION_FORM, kind: 'manual' })
   if ([...document.querySelectorAll('[role="combobox"][aria-required="true"],[role="listbox"][aria-required="true"]')].some(element => visible(element) && !combos.some(wrapper => wrapper.contains(element) && selectedText(wrapper)))) addMissing({ label: '页面含必填的自定义选项，请在官网选择', kind: 'manual' })
   const site = domesticSite(location.hostname)
   const adapter = leverForm() ? 'Lever 基础字段适配 · ' : site ? `${site.name} · 共用控件规则（实站待验证） · ` : '通用规则 · '

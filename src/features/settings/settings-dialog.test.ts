@@ -3,9 +3,10 @@ import { act, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { SettingsDialog } from './SettingsDialog'
+import { useMailAgent, type MailAgent } from '@/features/applications/hooks/use-mail-agent'
 import { setLlmSettings } from '@/lib/settings'
 
-vi.mock('@/features/applications/hooks/use-mail-agent', () => ({ useMailAgent: () => ({ token: '', snapshot: null, connectionError: '', connect: vi.fn() }) }))
+vi.mock('@/features/applications/hooks/use-mail-agent', () => ({ useMailAgent: vi.fn(() => ({ token: '', snapshot: null, connectionError: '', connect: vi.fn() })) }))
 vi.mock('./hooks/use-llm-status', () => ({ useLlmStatus: () => ({ envConfigured: false, clientConfigured: true, refresh: vi.fn() }) }))
 let root: Root, host: HTMLDivElement
 const close = vi.fn()
@@ -43,4 +44,12 @@ it('点击遮罩不丢弃输入，邮箱和本机仍是同一设置面板', asyn
   await click('本机')
   expect(host.querySelectorAll('[role=dialog]')).toHaveLength(1)
   expect(host.querySelector('[role=tabpanel][aria-label="本机"]')).not.toBeNull()
+})
+
+it('传入已有执行器连接时不再创建第二个轮询实例', async () => {
+  await act(async () => root.render(null))
+  vi.mocked(useMailAgent).mockClear()
+  const agent = { token: '', snapshot: null, connectionError: '', connect: vi.fn() } as unknown as MailAgent
+  await act(async () => root.render(createElement(SettingsDialog, { open: true, onClose: close, agent })))
+  expect(useMailAgent).not.toHaveBeenCalled()
 })

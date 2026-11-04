@@ -18,8 +18,8 @@ export async function discoverRecruitingPage(input: string, keywords: string[] =
   if (titles.length && (!keywords.length || titles.some(title => matchesJobTitle(title, keywords)))) return initial!
   try {
     const rendered = await tools.browser(input, keywords)
-    if (rendered.pages?.length || rendered.links.some(link => link.kind === 'job')) return rendered
-    return { ...rendered, pages: initial?.pages, listingRead: initial?.listingRead || rendered.listingRead, links: [...new Map([...(initial?.links ?? []), ...rendered.links].map(link => [link.url, link])).values()], notes: [...(initial?.notes ?? []), ...rendered.notes] }
+    if (!initial) return rendered
+    return { ...rendered, pages: [...new Map([...(initial?.pages ?? []), ...(rendered.pages ?? [])].map(page => [`${page.url}\n${page.role}`, page])).values()], listingRead: initial?.listingRead || rendered.listingRead, links: [...new Map([...(initial?.links ?? []), ...rendered.links].map(link => [link.url, link])).values()], notes: [...(initial?.notes ?? []), ...rendered.notes] }
   } catch (error) {
     if (initial) return { ...initial, notes: [...initial.notes, `动态读取未完成，已保留原网页的链接和内容。${error instanceof Error ? error.message : ''}`] }
     throw error

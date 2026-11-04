@@ -1,6 +1,7 @@
 import { z } from 'zod'
-import { answerSchema, isWorkbenchUrl, profileSchema, sensitiveField, websiteBatchSchema, type FormResult, type WebsiteQueue } from '../domain/website-automation'
+import { answerSchema, isWorkbenchUrl, profileSchema, sensitiveField, websiteBatchSchema, type WebsiteQueue } from '../domain/website-automation'
 import { createWebsiteQueue } from './queue'
+import { fillTab } from './fill-tab'
 import { createDirectFill } from './direct-fill'
 import { reconnectOpenWorkbenches } from './workbench-recovery'
 
@@ -26,10 +27,7 @@ const engine = createWebsiteQueue({
     // A redirect does not grant permission for a new site. The popup asks for
     // that exact origin before the user can continue.
     if (!origin.startsWith('https://') || ![new URL(job.url).origin, ...(job.authorizedOrigins ?? [])].includes(origin) || !(await chrome.permissions.contains({ origins: [origin + '/*'] }))) throw new Error('页面跳转到了新的站点。打开扩展，允许当前申请页面后继续。')
-    await chrome.scripting.executeScript({ target: { tabId: job.tabId! }, files: ['form-content.js'] })
-    const response = await chrome.tabs.sendMessage(job.tabId!, { type: 'fill-application', profile: queue.profile, answers: queue.answers, attachment: queue.attachment, experiences: queue.experiences, scope: `${job.company}\n${job.role}` }, { frameId: 0 }) as { result?: FormResult; error?: string }
-    if (!response.result) throw new Error(response.error || '没有收到填写结果，请稍后继续。')
-    return response.result
+    return fillTab(job.tabId!, tab.url!, { profile: queue.profile, answers: queue.answers, attachment: queue.attachment, experiences: queue.experiences, scope: `${job.company}\n${job.role}` })
   },
 })
 // Recovery runs once per service-worker lifetime, before accepting commands.

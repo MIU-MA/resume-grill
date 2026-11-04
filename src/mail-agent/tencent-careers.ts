@@ -3,7 +3,7 @@ import { load } from 'cheerio'
 import type { CareerDiscovery, CareerPage } from '../domain/mail-schema.ts'
 import { sourceUrlSchema } from '../domain/mail-schema.ts'
 import { readCareerJson } from './public-page.ts'
-import { searchKeywords } from '../domain/job-search.ts'
+import { searchQueries } from '../domain/job-search.ts'
 
 const ORIGIN = 'https://careers.tencent.com'
 const postSchema = z.object({
@@ -44,7 +44,7 @@ export async function discoverTencentCareers(input: string, keywords: string[] =
   if (!isTencentCareer(input)) throw new Error('不是腾讯招聘官网地址')
   const deadline = Date.now() + 26000
   if (new URL(input).searchParams.has('postId')) return { links: [], pagesRead: 1, pages: [await readTencentCareer(input, deadline, read)], notes: [], listingRead: true }
-  const query = searchKeywords(keywords).slice(0, 3)
+  const query = searchQueries(keywords)
   const posts = new Map<string, Post>()
   let calls = 0, truncated = false
   for (const keyword of query.length ? query : ['']) {
