@@ -39,3 +39,13 @@ it('拒绝权限不发送资料，非官网标签页仍可以保存资料', asyn
   save().click()
   await vi.waitFor(() => expect(fake.runtime.sendMessage).toHaveBeenCalledWith({ type: 'direct-save', data: { profile: {}, attachment: null } }))
 })
+
+it('直接填写保留交接的多段经历，允许仅填写经历', async () => {
+  const experiences = [{ id: 'e1', kind: 'education', organization: '大学', title: '软件工程', start: '', end: '', description: '' }]
+  fake.runtime.sendMessage.mockResolvedValueOnce({ ok: true, data: { profile: {}, attachment: null, experiences } })
+  mountDirectPopup(document.body)
+  await vi.waitFor(() => expect(fillButton().disabled).toBe(false))
+  expect(document.body.textContent).toContain('同时复用 1 段')
+  fillButton().click()
+  await vi.waitFor(() => expect(fake.runtime.sendMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'direct-fill', request: expect.objectContaining({ data: { profile: {}, attachment: null, experiences } }) })))
+})

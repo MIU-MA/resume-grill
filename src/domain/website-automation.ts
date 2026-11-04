@@ -22,6 +22,7 @@ export const websiteBatchSchema = z.object({
 })
 export type WebsiteBatch = z.infer<typeof websiteBatchSchema>
 export type MissingField = { key?: ProfileKey; label: string; kind: 'profile' | 'answer' | 'manual' | 'upload' }
+export const NO_APPLICATION_FORM = '未找到可填写的申请表，请打开具体表单后继续'
 export type FormResult = { filled: string[]; uploaded: boolean; missing: MissingField[]; message: string }
 export type WebsiteJob = WebsiteBatch['jobs'][number] & {
   status: 'pending' | 'opening' | 'filling' | 'waiting' | 'ready' | 'done' | 'skipped'

@@ -9,7 +9,7 @@ const tabs = new Map<number, { id: number; url: string; status: string }>()
 const fake = {
   storage: { local: { setAccessLevel: vi.fn(async () => undefined), get: vi.fn(async () => ({ 'website-queue:v1': structuredClone(stored) })), set: vi.fn(async value => { stored = structuredClone(value['website-queue:v1']) }), remove: vi.fn(async () => { stored = null }) } },
   permissions: { contains: vi.fn(async () => true) },
-  scripting: { executeScript: vi.fn(async () => []) },
+  scripting: { executeScript: vi.fn(async (input: { target: { tabId: number }; func?: unknown }) => [{ frameId: 0, documentId: 'doc-1', result: input.func ? tabs.get(input.target.tabId)?.url : undefined }]) },
   tabs: { create: vi.fn(async ({ url }) => { const id = ++nextTab; tabs.set(id, { id, url: redirected ? 'https://redirect.example/form' : url, status: 'complete' }); return { id } }), get: vi.fn(async id => { const tab = tabs.get(id); if (!tab) throw new Error('closed'); return tab }), update: vi.fn(async id => tabs.get(id)), sendMessage: vi.fn(async () => ({ result: { filled: ['姓名'], uploaded: true, missing: [], message: '请核对' } })) },
   windows: { update: vi.fn() },
   runtime: { id: 'test-extension', getURL: (file: string) => `chrome-extension://test-extension/${file}`, getManifest: () => ({ version: '0.2.2' }), onMessage: { addListener: vi.fn(fn => { listener = fn }) }, onInstalled: { addListener: vi.fn() }, onStartup: { addListener: vi.fn() } },
@@ -71,7 +71,7 @@ describe('扩展权限与任务交接', () => {
     expect(fake.scripting.executeScript).not.toHaveBeenCalled()
     await send({ type: 'command', action: 'resume-job', id: input.jobs[0].id, authorizeCurrent: true })
     await vi.waitFor(() => expect(stored?.jobs[0].status).toBe('ready'))
-    expect(fake.scripting.executeScript).toHaveBeenCalledTimes(1)
+    expect(fake.scripting.executeScript).toHaveBeenCalledTimes(2)
     expect(stored?.jobs[0].authorizedOrigins).toContain('https://redirect.example')
   })
   it('标签页关闭后，用户继续才重开，不自动循环开页', async () => {

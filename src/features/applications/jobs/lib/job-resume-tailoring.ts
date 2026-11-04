@@ -24,12 +24,17 @@ export type TailoredResume = {
   documentId: string; text: string
   template?: ResumeTemplateId
 }
-export async function generateJobResume(draft: Draft, file: File, source: AttachmentSource | undefined, signal: AbortSignal, onPrepared?: (session: TailoringSession) => void): Promise<TailoringSession> {
+export async function generateJobResume(draft: Draft, file: File, source: AttachmentSource | undefined, signal: AbortSignal, onPrepared?: (session: TailoringSession) => void, cached?: Pick<TailoringSession, 'rawText' | 'plan'>): Promise<TailoringSession> {
   const document = await prepareJobResume({ job: { ...draft, jobDescription: draft.jobDescription ?? '' }, attachment: file, attachmentSource: source }, 'tailoring')
   if (signal.aborted) throw new DOMException('已取消', 'AbortError')
   const rawText = document.extracted.text
   const sections = tailoringSections(rawText)
   const session: TailoringSession = { sourceDocumentId: document.id, sourceFile: document.sourceFile, rawText, sections, plan: { company: '', role: '', sectionOrder: sections.map(section => section.id), changes: [], highlights: [], gaps: [] }, template: /\.pdf$/i.test(file.name) ? 'original' : document.pdfTemplate, originalFile: file, photo: document.photo }
+  if (cached?.rawText === rawText) {
+    const restored = { ...session, plan: usableTailoringSchema(rawText, draft.jobDescription ?? '').parse(cached.plan) }
+    onPrepared?.(restored)
+    return restored
+  }
   onPrepared?.(session)
   const response = await fetch('/api/tailor-resume', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, signal,

@@ -22,6 +22,13 @@ export function SettingsDialog(props: SettingsDialogProps) {
   return props.open ? <SettingsContent {...props} /> : null
 }
 function SettingsContent(props: SettingsDialogProps) {
+  return props.agent ? <SettingsPanel {...props} agent={props.agent} /> : <SettingsWithAgent {...props} />
+}
+function SettingsWithAgent(props: SettingsDialogProps) {
+  const agent = useMailAgent()
+  return <SettingsPanel {...props} agent={agent} />
+}
+function SettingsPanel(props: SettingsDialogProps & { agent: MailAgent }) {
   const [tab, setTab] = useState(props.initialTab ?? 'model')
   const [modelDirty, setModelDirty] = useState(false)
   const [mailDirty, setMailDirty] = useState(false)
@@ -29,8 +36,7 @@ function SettingsContent(props: SettingsDialogProps) {
   const [mailBusy, setMailBusy] = useState(false)
   const confirmation = useConfirmation()
   const status = useLlmStatus()
-  const fallbackAgent = useMailAgent()
-  const agent = props.agent ?? fallbackAgent
+  const agent = props.agent
   const close = async () => {
     if (modelBusy || mailBusy) return
     if ((modelDirty || mailDirty) && !await confirmation.confirm({ title: '放弃未保存的设置？', message: '当前输入尚未保存。继续关闭会丢弃这些修改。', confirmLabel: '放弃修改并关闭' })) return

@@ -160,3 +160,57 @@ it('泛标题按本岗位正文判断方向；明确其他职业不借协作关�
   ], target, [])
   expect(results.map(job => job.page.role)).toEqual(['软件工程师'])
 })
+
+it('前 30 个候选都不匹配时继续读取下一来源', async () => {
+  const { tools } = setup()
+  tools.plan.mockResolvedValue({ plan, sources: [{ company: 'A', url: 'https://a.example/jobs' }, { company: 'B', url: 'https://b.example/jobs' }] })
+  tools.discover.mockResolvedValueOnce({ pagesRead: 1, pages: Array.from({ length: 30 }, (_, i) => page(i)), links: [], notes: [] })
+    .mockResolvedValueOnce({ pagesRead: 1, pages: [page(100)], links: [], notes: [] })
+  tools.match.mockImplementation(async (_plan, jobs) => ({ results: jobs.map(job => ({ ...assessment(job), verdict: job.id.includes('/100') ? 'review' : 'skip' })) }))
+  const task = await runJobAssistant(initial(), tools)
+  expect(tools.discover).toHaveBeenCalledTimes(2)
+  expect(task.sources.map(source => source.status)).toEqual(['done', 'done'])
+  expect(task.jobs.find(job => job.page.url === page(100).url)?.assessment?.verdict).toBe('review')
+})
+it('同一岗位补齐 JD 后替换旧正文并重新核对，已有空 JD 仍补读详情', async () => {
+  const { tools } = setup()
+  const old = collectAssistantJobs([{ ...page(1), jobDescription: '' }], plan, [])
+  old[0].assessment = assessment({ id: old[0].id, company: '', role: '', url: '', description: '' })
+  const merged = collectAssistantJobs([page(1)], plan, old)
+  expect(merged).toHaveLength(1)
+  expect(merged[0].page.jobDescription).toBe('熟悉 React')
+  expect(merged[0].assessment).toBeUndefined()
+  expect(old[0].page.jobDescription).toBe('')
+  tools.discover.mockResolvedValue({ pagesRead: 1, pages: [{ ...page(1), jobDescription: '' }], links: [{ url: page(1).url, sourceUrl: plan.sourceUrls[0], label: '前端工程师', kind: 'job' }], notes: [] })
+  tools.read.mockResolvedValue(page(1))
+  const result = await runJobAssistant(initial(), tools)
+  expect(tools.read).toHaveBeenCalledWith(page(1).url)
+  expect(tools.match.mock.calls[0][1][0].description).toBe('熟悉 React')
+  expect(result.jobs).toHaveLength(1)
+})
+it('连续不匹配时仍有 90 个候选的硬上限，不无限消耗模型', async () => {
+  const { tools } = setup()
+  tools.plan.mockResolvedValue({ plan, sources: [1, 2, 3, 4].map(i => ({ company: String(i), url: `https://example.com/source/${i}` })) })
+  let i = 0
+  tools.discover.mockImplementation(async () => ({ pagesRead: 1, pages: Array.from({ length: 30 }, () => page(i++)), links: [], notes: [] }))
+  tools.match.mockImplementation(async (_plan, jobs) => ({ results: jobs.map(job => ({ ...assessment(job), verdict: 'skip' })) }))
+  const task = await runJobAssistant(initial(), tools)
+  expect(task.jobs).toHaveLength(90)
+  expect(tools.discover).toHaveBeenCalledTimes(3)
+  expect(task.sources[3].status).toBe('pending')
+  expect(task.message).toContain('上限')
+})
+
+it('少量不匹配候选也会触发备用来源，不等到凑满一批', async () => {
+  const { tools } = setup()
+  const task = initial()
+  task.plan = plan
+  task.sources = [{ company: 'A', url: 'https://a.example/jobs', status: 'pending' }, { company: 'B', url: 'https://b.example/jobs', status: 'pending' }]
+  task.reserveSources = [{ company: '备用', url: 'https://reserve.example/jobs' }]
+  let id = 0
+  tools.discover.mockImplementation(async () => ({ pagesRead: 1, pages: [page(++id)], links: [], notes: [] }))
+  tools.match.mockImplementation(async (_plan, jobs) => ({ results: jobs.map(job => ({ ...assessment(job), verdict: 'skip' })) }))
+  const result = await runJobAssistant(task, tools)
+  expect(tools.discover.mock.calls.map(args => args[0])).toContain('https://reserve.example/jobs')
+  expect(result.jobs).toHaveLength(3)
+})

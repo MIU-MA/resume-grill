@@ -34,7 +34,7 @@ export function JobAssistant({ tools, envConfigured }: { tools: JobAssistantTool
       </>}
       <button className="text-label text-text-secondary underline" onClick={() => { setClientConfigured(!!getLlmSettings()); setSettingsOpen(true) }}>模型设置</button>
     </div>
-    <p className="mb-0 mt-2 text-meta leading-relaxed text-text-tertiary">从收录的官网和你提供的链接查找，先读取最多 8 个来源，未找到岗位时自动补充最多 4 个来源，共整理最多 30 个岗位。会将所选简历文字和岗位要求发送给配置的模型，可能产生调用费用。条件和最近一次任务保存在本机浏览器。</p>
+    <p className="mb-0 mt-2 text-meta leading-relaxed text-text-tertiary">从收录的官网和你提供的链接查找，先读取最多 8 个来源，未找到岗位时自动补充最多 4 个来源，最多核对 90 个候选，保留最多 30 个待核对或匹配岗位。会将所选简历文字和岗位要求发送给配置的模型，可能产生调用费用。条件和最近一次任务保存在本机浏览器。</p>
     {hydrated && !assistant.documents.length && <p className="text-body text-warning">先到简历库导入一份简历，就可以开始。</p>}
     {assistant.error && <p role="alert" className="text-body text-danger">{assistant.error}</p>}
     {task && <div className="mt-4 border-t border-line pt-3">
@@ -42,7 +42,7 @@ export function JobAssistant({ tools, envConfigured }: { tools: JobAssistantTool
       <p className="mb-2 mt-1 text-meta text-text-tertiary">本次目标：{task.goal} · 简历：{task.resume.name}（{new Date(task.resume.updatedAt).toLocaleString('zh-CN')} 保存）</p>
       {task.plan && <p className="my-1 text-meta text-text-tertiary">岗位关键词：{task.plan.keywords.join(' / ')}</p>}
       {!!task.sources.length && <details className="text-body text-text-secondary"><summary className="cursor-pointer">查看查找范围 · {task.sources.filter(source => source.status !== 'pending').length}/{task.sources.length} 个官网已处理</summary><div className="mt-2 space-y-1">{task.sources.map(source => <div key={source.url}><a href={source.url} target="_blank" rel="noopener noreferrer" className="underline">{source.company}</a><span className="ml-2">{source.status === 'done' ? '已读取' : source.status === 'failed' ? source.error : '待读取'}</span></div>)}</div></details>}
-      {!running && task.sources.some(source => source.status === 'failed') && task.jobs.length < 30 && <button className="mt-2 text-label text-accent underline" disabled={locked} onClick={() => void assistant.execute('retry')}>重试未读到的官网</button>}
+      {!running && task.sources.some(source => source.status === 'failed') && task.jobs.filter(job => job.assessment?.verdict !== 'skip').length < 30 && task.jobs.length < 90 && <button className="mt-2 text-label text-accent underline" disabled={locked} onClick={() => void assistant.execute('retry')}>重试未读到的官网</button>}
       {!!task.jobs.length && <>
         <div className="my-3 flex flex-wrap items-center gap-3 text-body">
           <select aria-label="筛选匹配结果" className="mail-input" value={filter} onChange={event => setFilter(event.target.value as typeof filter)}><option value="all">全部岗位（{task.jobs.length}）</option>{(['match', 'review', 'skip'] as const).map(value => <option key={value} value={value}>{labels[value]}（{task.jobs.filter(job => job.assessment?.verdict === value).length}）</option>)}</select>

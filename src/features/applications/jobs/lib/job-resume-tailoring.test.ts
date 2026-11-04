@@ -53,3 +53,14 @@ it('请求在解析后取消时不调用模型', async () => {
   await expect(generateJobResume(draft, new File([rawText], 'original.txt'), undefined, abort.signal)).rejects.toThrow('已取消')
   expect(fetch).not.toHaveBeenCalled()
 })
+
+it('恢复同一原文的草稿时复用建议；原文变化后重新分析', async () => {
+  const cached = { rawText, plan }
+  const prepared = vi.fn()
+  const resumed = await generateJobResume(draft, new File([rawText], 'original.txt'), undefined, new AbortController().signal, prepared, cached)
+  expect(resumed.rawText).toBe(rawText)
+  expect(prepared).toHaveBeenCalledOnce()
+  expect(fetch).not.toHaveBeenCalled()
+  await generateJobResume(draft, new File([rawText + '\n新增经历'], 'original.txt'), undefined, new AbortController().signal, undefined, cached)
+  expect(vi.mocked(fetch).mock.calls.filter(([url]) => url === '/api/tailor-resume')).toHaveLength(1)
+})
