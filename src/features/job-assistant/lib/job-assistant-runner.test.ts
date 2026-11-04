@@ -151,3 +151,12 @@ describe('可恢复的求职任务', () => {
     expect(collectAssistantJobs(Array.from({ length: 35 }, (_, i) => page(i)), plan, [])).toHaveLength(30)
   })
 })
+
+it('泛标题按本岗位正文判断方向；明确其他职业不借协作关键词混入', () => {
+  const target = { ...plan, keywords: ['全栈'] }
+  const results = collectAssistantJobs([
+    { ...page(1), role: '软件工程师', jobDescription: '负责全栈开发。' },
+    { ...page(2), role: '产品经理', jobDescription: '与全栈开发协作。' },
+  ], target, [])
+  expect(results.map(job => job.page.role)).toEqual(['软件工程师'])
+})

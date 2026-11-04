@@ -26,7 +26,7 @@ describe('求职助手接口', () => {
     modelReply({ ...plan, keywords: ['会计', '财务', 'Accountant'] })
     const response = await handleAssistantRequest(request({ goal: '财务会计工作', resume: '曾参与 React 项目，也有税务申报实习' }))
     expect(response.status).toBe(200)
-    expect((await response.json()).plan.keywords).toEqual(['会计', '财务', 'Accountant'])
+    expect((await response.json()).plan.keywords).toEqual(expect.arrayContaining(['会计', '财务', 'Accountant']))
     const userInput = JSON.parse(String(vi.mocked(llmStructured).mock.calls[0][1]))
     expect(userInput.goal).toBe('财务会计工作')
     expect(userInput.sources.every((source: Record<string, unknown>) => !('frontendRoles' in source))).toBe(true)

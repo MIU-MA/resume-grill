@@ -1,6 +1,6 @@
 import { APPLICATION_CHANNELS, type ManualApplication } from '@/domain/application-record'
-import { applicationStage, type ApplicationProgress, type ApplicationStage } from '@/domain/application-progress'
-import type { MailJob } from '@/domain/mail-schema'
+import { APPLICATION_STAGES, applicationStage, type ApplicationProgress, type ApplicationStage } from '@/domain/application-progress'
+import { MAIL_STATUS_LABELS, type MailJob } from '@/domain/mail-schema'
 import type { WebsiteApplication } from '../../mail/lib/draft-state'
 
 export type ApplicationKind = 'mail' | 'website' | 'manual'
@@ -72,6 +72,16 @@ export function applicationEntryChannel(entry: ApplicationEntry) {
   if (entry.kind === 'mail') return '邮件投递'
   if (entry.kind === 'website') return '官网投递'
   return APPLICATION_CHANNELS[entry.manual?.channel ?? 'other']
+}
+
+export function applicationEntryChannelKey(entry: ApplicationEntry) {
+  return entry.kind === 'manual' ? entry.manual?.channel ?? 'other' : entry.kind
+}
+
+export function applicationEntryStatus(entry: ApplicationEntry, progress?: ApplicationProgress) {
+  const stage = applicationEntryStage(entry, progress)
+  if (stage) return { label: APPLICATION_STAGES[stage], tone: stage === 'offer' ? 'success' : stage === 'rejected' || stage === 'withdrawn' ? 'warning' : 'info' }
+  return { label: entry.mail ? MAIL_STATUS_LABELS[entry.mail.status] : '尚未记录进展', tone: entry.mail?.status === 'failed' || entry.mail?.status === 'uncertain' ? 'warning' : 'neutral' }
 }
 
 export function applicationEntryTitle(entry: ApplicationEntry) {

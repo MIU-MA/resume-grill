@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { MailJob } from '@/domain/mail-schema'
 import { emptyApplicationProgress } from '@/domain/application-progress'
-import { applicationEntryChannel, applicationEntrySearchText, applicationEntryStage, buildApplicationEntries } from './application-entry'
+import { applicationEntryChannel, applicationEntryChannelKey, applicationEntryStatus, applicationEntrySearchText, applicationEntryStage, buildApplicationEntries } from './application-entry'
 import type { WebsiteApplication } from '../../mail/lib/draft-state'
 
 const mail = { id: 'm1', company: '邮件公司', role: '前端', recipient: 'hr@mail.com', sourceUrl: '', createdAt: 1, updatedAt: 4, status: 'sent' } as MailJob
@@ -24,4 +24,11 @@ describe('投递记录适配', () => {
     expect(applicationEntrySearchText(entries.find(entry => entry.kind === 'manual')!)).toContain('手动公司')
     expect(applicationEntrySearchText(entries.find(entry => entry.kind === 'website')!)).toContain('hr@site.com')
   })
+})
+
+it('手动登记的官网与内推按实际渠道归类；发送失败展示发送状态', () => {
+  const rows = buildApplicationEntries({ jobs: [{ ...mail, status: 'failed' }], manuals: [{ ...manual, channel: 'website' }, manual] })
+  expect(applicationEntryChannelKey(rows.find(entry => entry.kind === 'manual')!)).toBe('website')
+  expect(applicationEntryStatus(rows.find(entry => entry.kind === 'mail')!).label).not.toBe('等待回复')
+  expect(applicationEntryStatus(rows.find(entry => entry.kind === 'mail')!).tone).toBe('warning')
 })

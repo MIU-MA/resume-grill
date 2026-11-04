@@ -1,6 +1,6 @@
 import type { AssistantJob, AssistantPlan, AssistantTask, JobAssessment, JobAssistantTools, MatchingJob } from '@/domain/job-assistant'
 import type { CareerPage } from '@/domain/mail-schema'
-import { matchesJobTitle } from '@/domain/job-search'
+import { isGenericJobTitle, matchesJob, matchesJobTitle } from '@/domain/job-search'
 import { selectCareerJob } from '@/features/applications/jobs/lib/career-selection'
 import { careerUrlKey } from '@/features/applications/jobs/lib/pasted-career'
 
@@ -21,7 +21,7 @@ export function collectAssistantJobs(pages: CareerPage[], plan: AssistantPlan, e
   for (const page of pages) {
     const choices = page.jobs?.length ? page.jobs.map(job => selectCareerJob(page, job.id)) : page.role ? [page] : []
     for (const choice of choices) {
-      if (!titleMatches(choice.role, plan.keywords) || plan.excludedCompanies.some(company => choice.company.toLowerCase().includes(company.toLowerCase()))) continue
+      if (!matchesJob(choice.role, choice.jobDescription ?? '', plan.keywords) || plan.excludedCompanies.some(company => choice.company.toLowerCase().includes(company.toLowerCase()))) continue
       const id = assistantJobKey(choice)
       if (seen.has(id) || result.length >= ASSISTANT_JOB_LIMIT) continue
       seen.add(id); result.push({ id, page: choice })
@@ -79,8 +79,8 @@ export async function runJobAssistant(initial: AssistantTask, tools: RunnerTools
       try {
         const discovery = await tools.discover(source.url, plan.keywords)
         await save({ jobs: collectAssistantJobs(discovery.pages ?? [], plan, task.jobs) })
-        const details = discovery.links.filter(link => link.kind === 'job' && (titleMatches(link.label, plan.keywords) || /^(?:查看|岗位|职位)?详情$|^(?:view|job)\s*details?$/i.test(link.label.trim()))
-          && !(discovery.pages ?? []).some(page => page.url === link.url)
+        const details = discovery.links.filter(link => link.kind === 'job' && (titleMatches(link.label, plan.keywords) || isGenericJobTitle(link.label) || /^(?:查看|岗位|职位)?详情$|^(?:view|job)\s*details?$/i.test(link.label.trim()))
+          && !(discovery.pages ?? []).some(page => page.url === link.url && !!page.jobDescription?.trim())
           && !task.jobs.some(job => job.page.url === link.url)).slice(0, 5)
         for (const detail of details) {
           if (await stop()) return task
@@ -89,7 +89,7 @@ export async function runJobAssistant(initial: AssistantTask, tools: RunnerTools
           catch (error) { if (error instanceof CheckpointError) throw error; failure = '部分岗位详情未读到，可稍后重试。' }
         }
         if (!discovery.listingRead && !discovery.pages?.length && !details.length) failure = '没有读到可用的职位列表，可能依赖脚本或登录；不能据此判断没有匹配岗位。'
-        if (discovery.notes.some(note => /时间限制/.test(note))) failure = '部分入口未读完，已找到的岗位已保留，可稍后重试这个来源。'
+        if (discovery.notes.some(note => /时间限制|未完成|未读完|并非全部|未继续抓取/.test(note))) failure = '部分入口未读完，已找到的岗位已保留，可稍后重试这个来源。'
       } catch (error) { if (error instanceof CheckpointError) throw error; failure = error instanceof Error ? error.message : '官网读取失败，可重试或手动打开查看。' }
       await save({ sources: task.sources.map((item, i) => i === index ? { ...item, status: failure ? 'failed' : 'done', error: failure || undefined } : item) })
       // Show the first usable results before waiting for all remaining websites.

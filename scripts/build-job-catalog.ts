@@ -4,6 +4,8 @@ import { careerSites } from '../src/data/career-sites.ts'
 import { seedJobs as existingJobs } from '../src/data/job-catalog.ts'
 import { discoverCareers } from '../src/mail-agent/career-discovery.ts'
 import { discoverBrowserCareers } from '../src/mail-agent/browser-careers.ts'
+import { discoverTencentCareers, isTencentCareer } from '../src/mail-agent/tencent-careers.ts'
+import { normalizeCareerUrl } from '../src/mail-agent/career-links.ts'
 
 type SeedJob = {
   company: string
@@ -20,13 +22,12 @@ const limit = Number(arg('limit') ?? 0) || Infinity
 const browserMode = arg('browser') ?? 'fallback'
 const concurrency = Math.max(1, Number(arg('concurrency') ?? 4))
 const forceAll = process.argv.includes('--all')
+const companies = arg('companies')?.split(',').map(value => value.trim()).filter(Boolean)
+const keywords = arg('keywords')?.split(',').map(value => value.trim()).filter(Boolean).slice(0, 6) ?? []
 
 function normalize(url: string) {
   try {
-    const parsed = new URL(url)
-    parsed.hash = ''
-    parsed.search = ''
-    return parsed.href.replace(/\/$/, '')
+    return (normalizeCareerUrl(url) ?? url).replace(/\/$/, '')
   } catch { return url }
 }
 function keyOf(url: string, role: string) { return `${normalize(url)}\n${role}` }
@@ -40,7 +41,7 @@ function collect(company: string, discovery: CareerDiscovery, sourceUrl: string,
     const clean = roleOf(role)
     if (!clean || !/^https?:/i.test(url)) return
     const key = keyOf(url, clean)
-    if (!into.has(key)) into.set(key, { company, role: clean, url, sourceUrl, email, fetchedAt })
+    into.set(key, { company, role: clean, url, sourceUrl, email, fetchedAt })
   }
   for (const page of (discovery.pages ?? []) as CareerPage[]) {
     const email = page.recommendedEmail || ''
@@ -62,6 +63,11 @@ function withTimeout<T>(work: Promise<T>, ms: number, label: string): Promise<T>
 async function discover(site: { company: string; url: string }) {
   let discovery: CareerDiscovery | null = null
   let source = 'http'
+  if (isTencentCareer(site.url)) {
+    const results = await Promise.allSettled((keywords.length ? keywords : ['']).map(term => discoverTencentCareers(site.url, term ? [term] : [])))
+    const loaded = results.flatMap(result => result.status === 'fulfilled' ? [result.value] : [])
+    if (loaded.length) return { discovery: { pagesRead: loaded.reduce((n, value) => n + value.pagesRead, 0), pages: loaded.flatMap(value => value.pages ?? []), links: loaded.flatMap(value => value.links), notes: loaded.flatMap(value => value.notes) }, source: 'official-api' }
+  }
   if (browserMode !== 'always') {
     try { discovery = await withTimeout(discoverCareers(site.url), 24000, 'HTTP ') } catch (error) {
       console.log(`${site.company}: HTTP ${error instanceof Error ? error.message : String(error)}`)
@@ -82,10 +88,11 @@ async function discover(site: { company: string; url: string }) {
 const jobs = new Map<string, SeedJob>()
 for (const job of existingJobs) jobs.set(keyOf(job.url, job.role), job)
 const seededSources = new Set(existingJobs.map(job => job.sourceUrl))
-const targets = careerSites.filter(site => forceAll || !seededSources.has(site.url)).slice(0, limit)
+const targets = careerSites.filter(site => (!companies || companies.includes(site.company)) && (forceAll || !seededSources.has(site.url))).slice(0, limit)
 console.log(`Base ${existingJobs.length} jobs; crawling ${targets.length} / ${careerSites.length} sites (browser=${browserMode}, concurrency=${concurrency})`)
 
 const started = Date.now()
+let writing = Promise.resolve(0)
 let next = 0
 let done = 0
 const write = async () => {
@@ -106,7 +113,7 @@ const workers = Array.from({ length: Math.min(concurrency, targets.length) }, as
       if (discovery) collect(site.company, discovery, site.url, Date.now(), jobs)
       done++
       console.log(`${done}/${targets.length} ${site.company}: ${source}, ${discovery?.pagesRead ?? 0} pages, ${jobs.size} total, ${Date.now() - at}ms`)
-      if (done % 5 === 0) await write()
+      if (done % 5 === 0) { writing = writing.then(write); await writing }
     } catch (error) {
       done++
       console.log(`${done}/${targets.length} ${site.company}: ${error instanceof Error ? error.message : String(error)}`)
@@ -114,6 +121,7 @@ const workers = Array.from({ length: Math.min(concurrency, targets.length) }, as
   }
 })
 await Promise.all(workers)
+await writing
 const total = await write()
 console.log(`\n${total} jobs from ${new Set([...jobs.values()].map(row => row.sourceUrl)).size} sites in ${Math.round((Date.now() - started) / 1000)}s`)
 // Browser resources can keep the event loop alive after a timeout; the file is already written.

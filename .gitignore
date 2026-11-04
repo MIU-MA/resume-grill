@@ -34,3 +34,6 @@ next-env.d.ts
 .claude/
 .mail-agent/
 public/generated/
+
+# Local project showcase
+/site/

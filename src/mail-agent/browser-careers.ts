@@ -6,7 +6,7 @@ import { companyFromCareerUrl } from '../data/career-sites.ts'
 import { renderedCareerCards, renderedCareerDetail } from './rendered-career-pages.ts'
 import { renderedJobData, type RenderedJobData } from './rendered-job-data.ts'
 import { browserRequestAllowed, trustedPublicBrowserHost } from './browser-origins.ts'
-import { matchesJobTitle, searchKeywords } from '../domain/job-search.ts'
+import { matchesJob, matchesJobTitle, searchKeywords, searchQueries } from '../domain/job-search.ts'
 
 export async function launchCareerBrowser(): Promise<Browser> {
   for (const channel of ['msedge', 'chrome']) {
@@ -88,17 +88,21 @@ export async function discoverBrowserCareers(input: string, keywords: string[] =
         const search = page.locator(selector).filter({ visible: true }).first()
         if (!await search.count()) continue
         try {
-          for (const keyword of keywords.slice(0, 3)) {
-            if (Date.now() + 6000 >= deadline) break
-            apiJobs.clear()
+          for (const keyword of searchQueries(keywords)) {
+            if (Date.now() + 6000 >= deadline) { notes.push('时间限制内未完成全部关键词搜索，已读岗位保留。'); break }
             options.onProgress?.(`搜索 ${keyword}`)
             await search.fill(keyword, { timeout: 5000 }); await search.press('Enter'); await settle(page, deadline)
             await Promise.allSettled([...jsonTasks])
-            if ([...apiJobs.values()].some(job => matches(job.title, keywords)) || renderedCareerCards(await page.content(), page.url()).some(card => matches(card.role, keywords))) break
+            for (const card of renderedCareerCards(await page.content(), page.url())) {
+              const data = apiJobs.get(card.role)
+              const description = data?.description || card.jobDescription || ''
+              if (matchesJob(card.role, description, keywords)) collected.set(card.url, { ...card, jobDescription: description })
+            }
+            if (collected.size >= 30) break
           }
           break
         }
-        catch { notes.push('搜索框暂未响应，继续读取当前列表中的匹配岗位。') }
+        catch { notes.push('搜索未完成，搜索框暂未响应；已保留当前列表中的岗位。') }
       }
     }
     if (!options.detail) {
@@ -113,7 +117,7 @@ export async function discoverBrowserCareers(input: string, keywords: string[] =
     if (options.detail) await waitForDescription(page, deadline)
     const html = await page.content()
     const root = options.detail ? renderedCareerDetail(html, page.url()) : extractCareerEmails(html, page.url())
-    const cards = renderedCareerCards(html, page.url()).filter(card => matches(card.role, keywords))
+    const cards = renderedCareerCards(html, page.url()).filter(card => (!keywords.length || matchesJob(card.role, card.jobDescription ?? '', keywords)))
     options.onProgress?.(`读到 ${cards.length} 个职位卡片、${apiJobs.size} 条岗位数据`)
     for (const card of cards) {
       const data = apiJobs.get(card.role)
@@ -122,7 +126,7 @@ export async function discoverBrowserCareers(input: string, keywords: string[] =
     if (!cards.length && (root.role || root.jobs?.length)) collected.set(root.url, root)
     const links = root.links ?? []
     if (!options.detail && !cards.length) {
-      const candidates = [...apiJobs.values()].filter(job => matches(job.title, keywords) || matches(job.description, keywords)).map(job => job.title)
+      const candidates = [...apiJobs.values()].filter(job => (!keywords.length || matchesJob(job.title, job.description, keywords))).map(job => job.title)
       if (!candidates.length && keywords[0]) candidates.push(...(await page.getByText(keywords[0], { exact: false }).allTextContents()).map(value => value.trim()).filter(value => value.length > 4 && value.length < 100 && !/^[\d、.\s]|负责|熟悉|要求|搜索/.test(value)))
       for (const title of [...new Set(candidates)].slice(0, 4)) {
         if (Date.now() + 5000 >= deadline) break

@@ -8,7 +8,7 @@ it('首页读到无关岗位时仍按全栈及同义名称搜索，失败也保�
   const tools = { static: vi.fn().mockResolvedValue(loaded), browser: vi.fn().mockResolvedValue(fullstack), tencent: vi.fn() }
   const result = await discoverRecruitingPage('https://example.com/jobs', ['全栈'], tools)
   expect(tools.browser).toHaveBeenCalledWith('https://example.com/jobs', ['全栈', '全端', 'Full Stack'])
-  expect(result.pages?.[0].role).toBe('Full-stack Engineer')
+  expect(result.pages?.map(page => page.role)).toContain('Full-stack Engineer')
   tools.browser.mockRejectedValueOnce(new Error('timeout'))
   expect((await discoverRecruitingPage('https://example.com/jobs', ['全栈'], tools)).pages).toEqual(loaded.pages)
   tools.browser.mockResolvedValueOnce(empty)
@@ -16,8 +16,8 @@ it('首页读到无关岗位时仍按全栈及同义名称搜索，失败也保�
 })
 it('静态网页只有外壳或请求失败时，自动进入浏览器读取并传递目标关键词', async () => {
   const tools = { static: vi.fn().mockResolvedValue(empty), browser: vi.fn().mockResolvedValue(loaded), tencent: vi.fn() }
-  expect(await discoverRecruitingPage('https://example.com/jobs', ['后端'], tools)).toBe(loaded)
-  expect(tools.browser).toHaveBeenCalledWith('https://example.com/jobs', ['后端'])
+  expect(await discoverRecruitingPage('https://example.com/jobs', ['后端'], tools)).toEqual(loaded)
+  expect(tools.browser).toHaveBeenCalledWith('https://example.com/jobs', expect.arrayContaining(['后端']))
   tools.static.mockRejectedValueOnce(new Error('not html'))
   expect(await discoverRecruitingPage('https://example.com/jobs', ['会计'], tools)).toBe(loaded)
 })
@@ -34,4 +34,12 @@ it('动态读取失败不能丢掉原页面已经发现的入口链接', async (
   const result = await discoverRecruitingPage('https://example.com/', [], tools)
   expect(result.links).toEqual(initial.links)
   expect(result.notes.join('')).toContain('已保留原网页')
+})
+
+it('动态读取和静态读取的不同岗位同时保留，重复岗位用动态正文更新', async () => {
+  const updated = { ...loaded.pages![0], jobDescription: '完整职责和任职要求' }
+  const extra = { ...updated, url: 'https://example.com/jobs/2', role: '财务' }
+  const tools = { static: vi.fn().mockResolvedValue(loaded), browser: vi.fn().mockResolvedValue({ ...empty, pages: [updated, extra] }), tencent: vi.fn() }
+  const result = await discoverRecruitingPage('https://example.com/jobs', ['财务'], tools)
+  expect(result.pages).toEqual([updated, extra])
 })

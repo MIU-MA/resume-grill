@@ -60,7 +60,7 @@ export async function handleAssistantRequest(request: Request) {
         .filter(source => !plan.excludedCompanies.some(company => source.company.toLowerCase().includes(company.toLowerCase())))
       if (!selected.length) return json({ error: '可选官网都被排除了，请在目标中补充公司官网链接。' }, 422)
       const companySpecified = careerSites.some(site => [site.company, ...(site.aliases ?? [])].some(name => body.goal.toLowerCase().includes(name.toLowerCase())))
-      const reserveSources = companySpecified ? [] : ['字节跳动', '腾讯', '环信', '蓝曜炬辉', '蜂动科技', '杰诺科技'].map(company => careerSites.find(site => site.company === company)).filter((site): site is typeof careerSites[number] => !!site && !selected.some(item => item.url === site.url) && !plan.excludedCompanies.some(company => site.company.toLowerCase().includes(company.toLowerCase()))).slice(0, 4).map(({ company, url }) => ({ company, url }))
+      const reserveSources = companySpecified ? [] : careerSites.filter(site => !selected.some(item => item.url === site.url) && !plan.excludedCompanies.some(company => site.company.toLowerCase().includes(company.toLowerCase()))).slice(0, 4).map(({ company, url }) => ({ company, url }))
       return json({ plan: { ...plan, keywords: searchKeywords(plan.keywords).slice(0, 12), sourceUrls: selected.map(source => source.url) }, sources: selected.map(({ company, url }) => ({ company, url })), reserveSources })
     }
     const result = await llmStructured(ASSISTANT_MATCH_PROMPT, JSON.stringify({ goal: body.goal, plan: body.plan, resume: body.resume, jobs: body.jobs }), groundedAssessments(body.resume, body.jobs), config, { signal })
