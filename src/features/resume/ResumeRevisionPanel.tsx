@@ -26,13 +26,13 @@ export function ResumeRevisionToolbar({ text, conflict, saving, draftStatus, pdf
 
 export function ResumeRevisionPreview({ open, baseText, text, artifact, error, onClose }: { open: boolean; baseText: string; text: string; artifact: ResumePdfArtifact | null; error: string | null; onClose: () => void }) {
   const [compare, setCompare] = useState(false)
-  return <Dialog open={open} onClose={onClose} label="新稿预览" panelClassName="flex max-h-[90dvh] w-[min(960px,calc(100%-32px))] flex-col border border-line-strong bg-surface">
+  return <Dialog open={open} onClose={onClose} label="新稿预览" panelClassName="flex h-[90dvh] max-h-[90dvh] w-[min(960px,calc(100%-32px))] flex-col border border-line-strong bg-surface">
     <div className="flex flex-none items-center justify-between gap-3 border-b border-line px-5 py-3">
       <strong className="text-body">{compare ? '修改前后' : '新稿预览'}</strong>
       <div className="flex items-center gap-2"><Button variant="ghost" className="h-8 px-2 text-label" onClick={() => setCompare((value) => !value)}>{compare ? '查看新稿' : '前后对照'}</Button><Button variant="ghost" className="h-8 px-2" aria-label="关闭预览" onClick={onClose}><X size={16} /></Button></div>
     </div>
     <p className="m-0 flex-none border-b border-line bg-surface-soft px-5 py-2 text-body leading-relaxed text-text-secondary">{artifact?.template === 'original' ? '在原文件上替换已确认的文字，照片和排版保留。预览与下载使用同一份新稿。' : '当前已选择重新排版。预览与下载使用同一份 PDF，原文件保留。'}</p>
-    <div className="min-h-0 flex-1 overflow-y-auto p-5">
+    <div className={`min-h-0 flex-1 p-5 ${compare ? 'overflow-y-auto' : 'flex flex-col overflow-hidden'}`}>
       {compare ? <div className="grid gap-6 sm:grid-cols-2"><section><h3 className="mt-0 text-label font-medium text-text-tertiary">修改前</h3><p className="m-0 whitespace-pre-wrap break-words text-body leading-[1.8]">{baseText}</p></section><section><h3 className="mt-0 text-label font-medium text-text-tertiary">修改后</h3><p className="m-0 whitespace-pre-wrap break-words text-body leading-[1.8]">{text}</p></section></div>
         : artifact ? <PdfPages file={artifact.file} /> : <p role={error ? 'alert' : 'status'} className="text-body text-text-secondary">{error ?? '正在生成 PDF…'}</p>}
     </div>
