@@ -72,12 +72,12 @@ export function AppShell({ mode, badges, onNavigate, onOpenHistory, header, head
       onClose={() => setNavOpen(false)}
     />
     <ShellContext.Provider value={api}>
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {!headerless && <header className="flex h-14 flex-none items-center gap-3 border-b border-line bg-surface/95 px-4 backdrop-blur-lg md:px-6">
           <button type="button" className="grid size-8 flex-none place-items-center text-text-secondary hover:bg-surface-hover md:hidden" onClick={() => setNavOpen(true)} aria-label="打开导航"><Menu size={18} /></button>
           {header}
         </header>}
-        <main className={contentClassName ?? 'min-h-0 flex-1 overflow-hidden'}>{children}</main>
+        <main className={contentClassName ?? 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden'}>{children}</main>
       </div>
     </ShellContext.Provider>
     <SettingsDialog open={settingsOpen} onClose={onCloseSettings} initialTab={settingsTab} {...settingsProps} />

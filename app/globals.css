@@ -270,7 +270,7 @@ select:disabled { opacity: .5; cursor: not-allowed; }
 }
 
 @container diagnosis (min-width: 900px) {
-  .diagnosis-report-grid { grid-template-columns: minmax(0, 1fr) 320px; overflow: hidden; }
+  .diagnosis-report-grid { grid-template-columns: minmax(0, 1fr) 320px; grid-template-rows: minmax(0, 1fr); overflow: hidden; }
   .diagnosis-summary { display: block; overflow-y: auto; }
   .diagnosis-findings { overflow-y: auto; }
   .diagnosis-compact-summary { display: none; }

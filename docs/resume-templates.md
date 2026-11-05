@@ -27,6 +27,6 @@
 
 模板缩略图和完整示例样张由实际 PDF 生成，使用 `examples/resume-templates.txt` 中的演示资料。调整排版后运行 `npx tsx scripts/render-resume-template-previews.ts` 更新图片；用于核对的完整 PDF 和 PNG 输出到忽略目录 `dist/resume-templates/`。
 
-预览支持 滚轮 围绕鼠标位置缩放（25%–300%）；默认左键按住即可拖动查看整页底部，点击段落仍可编辑；也支持空格或中键拖动。`Shift + 滚轮` 用于上下滚动，点击段落仍可编辑。
+预览中普通滚轮上下滚动，`Ctrl / ⌘ + 滚轮` 围绕鼠标位置缩放（25%–300%）。默认左键按住即可拖动查看整页底部，点击段落仍可编辑，也支持空格或中键拖动。拖动期间暂停缩放，预览操作不改变外层面板的滚动位置。
 
 开发时先运行 `npm run build`，再执行 `npm run check:pdf-preview`，可用本机 Edge / Chrome 检查桌面与窄屏下的缩放、拖动和底部按钮占位；检查使用演示画布，不启动网页服务。

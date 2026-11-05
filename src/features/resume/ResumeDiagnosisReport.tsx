@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import { Download } from 'lucide-react'
 import { DIAGNOSIS_DIMENSIONS, DIAGNOSIS_PRIORITIES, sortDiagnosisIssues, type ResumeDiagnosis } from '@/domain/resume-diagnosis'
+import { ScrollArea } from '@/components/ui/ScrollArea'
 import { Button } from '@/components/ui/Button'
 import { buildDiagnosisReport } from '@/features/resume/lib/resume-diagnosis'
 import { downloadText } from '@/features/report/lib/report'
@@ -22,7 +23,7 @@ export function ResumeDiagnosisReport({ diagnosis, showToolbar = true, renderIss
     <div className="resume-workbench diagnosis-layout flex h-full min-h-0 flex-col bg-surface" aria-label="简历检查结果">
       {showToolbar && <DiagnosisToolbar diagnosis={diagnosis} actions={<DiagnosisExportButton diagnosis={diagnosis} />} />}
       <div className="diagnosis-report-grid min-h-0 flex-1">
-        <div className="diagnosis-findings min-w-0">
+        <ScrollArea aria-label="检查建议滚动区" className="diagnosis-findings">
           <details open className="diagnosis-compact-summary border-b border-line bg-surface-soft px-5 py-3">
             <summary className="cursor-pointer text-label font-semibold">检查小结</summary>
             <div className="pt-5"><DiagnosisSummary diagnosis={diagnosis} /></div>
@@ -42,7 +43,7 @@ export function ResumeDiagnosisReport({ diagnosis, showToolbar = true, renderIss
           </section>)}
           {issues.length === 0 && <p className="px-7 py-8 text-body text-text-secondary">这次没有发现明显问题。</p>}
           <p className="m-0 px-5 py-4 text-meta leading-relaxed text-text-tertiary sm:px-7">检查针对文字内容，排版可在简历预览中查看。</p>
-        </div>
+        </ScrollArea>
         <aside className="diagnosis-summary border-l border-line bg-surface-soft p-6" aria-label="检查小结">
           <DiagnosisSummary diagnosis={diagnosis} />
         </aside>

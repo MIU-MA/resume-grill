@@ -48,7 +48,7 @@ export function PdfPages({ file, artifact, disabled, selectedStart, changedRange
       <button type="button" className="grid size-7 place-items-center text-text-secondary hover:bg-surface-hover disabled:opacity-40" aria-label="放大简历预览" disabled={zoom >= MAX_ZOOM} onClick={() => changeZoom(zoom + 10)}><Plus size={14} /></button>
       <button type="button" className="ml-1 h-7 px-2 text-label text-text-secondary hover:bg-surface-hover disabled:opacity-40" disabled={zoom === 100} onClick={() => changeZoom(100)}>适应宽度</button>
       <button type="button" className="h-7 px-2 text-label text-text-secondary hover:bg-surface-hover" aria-pressed={navigation.hand} onClick={() => navigation.setHand(!navigation.hand)}>拖动查看</button>
-      <span className="ml-auto text-meta text-text-tertiary" title="左键按住拖动查看整页；滚轮缩放；Shift + 滚轮上下滚动">左键拖动 · 滚轮缩放</span>
+      <span className="ml-auto text-meta text-text-tertiary" title="滚轮滚动；Ctrl / ⌘ + 滚轮缩放；左键按住拖动查看整页">滚轮滚动 · Ctrl / ⌘ 缩放</span>
     </div>
     <div ref={container} tabIndex={0} aria-label="简历预览画布" className={`min-h-0 min-w-0 flex-1 space-y-4 overflow-auto overscroll-contain p-1 focus-visible:outline-brand ${navigation.cursor ? '[&_button]:cursor-inherit' : ''}`} style={{ cursor: navigation.cursor, userSelect: navigation.dragging ? 'none' : undefined }}>
       {Array.from({ length: document.numPages }, (_, index) => <PdfPage key={index} document={document} pageNumber={index + 1} layout={artifact?.pages[index]} disabled={disabled} selectedStart={selectedStart} changedRanges={changedRanges} onSelect={onSelect} zoom={zoom} />)}

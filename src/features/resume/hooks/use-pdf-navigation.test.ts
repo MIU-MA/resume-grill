@@ -44,13 +44,14 @@ async function pointer(type: string, target: EventTarget, options: MouseEventIni
   await act(async () => { target.dispatchEvent(event) })
   return event
 }
-it('PDF 加载后普通滚轮直接缩放，Shift 滚轮保留滚动，不接管外部区域', async () => {
+it('普通滚轮保留原生滚动，仅 Ctrl 或 Meta 滚轮缩放，不接管外部区域', async () => {
   expect((await wheel({ deltaY: -100, ctrlKey: true })).defaultPrevented).toBe(false)
   await load()
-  expect((await wheel({ deltaY: 100, shiftKey: true })).defaultPrevented).toBe(true)
-  expect(viewport.scrollTop).toBe(100)
+  expect((await wheel({ deltaY: 100 })).defaultPrevented).toBe(false)
+  expect((await wheel({ deltaY: 100, shiftKey: true })).defaultPrevented).toBe(false)
+  expect(viewport.scrollTop).toBe(0)
   expect(host.querySelector('output')!.textContent).toBe('100')
-  expect((await wheel({ deltaY: -100 })).defaultPrevented).toBe(true)
+  expect((await wheel({ deltaY: -100, ctrlKey: true })).defaultPrevented).toBe(true)
   expect(host.querySelector('output')!.textContent).toBe('110')
   const outside = new WheelEvent('wheel', { cancelable: true, ctrlKey: true, deltaY: -100 })
   document.body.dispatchEvent(outside)
@@ -102,7 +103,7 @@ it('文字输入框中的空格不会被预览拦截', async () => {
   expect(viewport.style.cursor).toBe('grab')
 })
 
-it('纵向滚动在外层面板时分别拖动正确的横向和纵向容器', async () => {
+it('预览内容不溢出时拖动也不会改动外层面板的滚动位置', async () => {
   await load()
   Object.defineProperty(viewport, 'scrollHeight', { value: 400 })
   host.style.overflowY = 'auto'
@@ -111,7 +112,7 @@ it('纵向滚动在外层面板时分别拖动正确的横向和纵向容器', a
   await pointer('pointerdown', viewport, { button: 1, clientX: 100, clientY: 100 })
   await pointer('pointermove', window, { clientX: 60, clientY: 70 })
   expect(viewport.scrollLeft).toBe(140)
-  expect(host.scrollTop).toBe(230)
+  expect(host.scrollTop).toBe(200)
   expect(viewport.scrollTop).toBe(0)
 })
 
@@ -128,4 +129,19 @@ it('默认左键即可拖动，普通单击不误判为拖动', async () => {
   await pointer('pointerup', window, { button: 0 })
   await act(async () => button.click())
   expect(select).toHaveBeenCalledOnce()
+})
+
+it('拖动期间忽略滚轮缩放及普通滚轮，结束后恢复缩放', async () => {
+  await load(); viewport.scrollTop = 200
+  await pointer('pointerdown', viewport, { button: 0, clientX: 100, clientY: 100 })
+  await pointer('pointermove', window, { clientX: 100, clientY: 60 })
+  await wheel({ deltaY: -100, ctrlKey: true })
+  await wheel({ deltaY: 100 })
+  expect(host.querySelector('output')!.textContent).toBe('100')
+  expect(viewport.scrollTop).toBe(240)
+  await pointer('pointermove', window, { clientX: 100, clientY: 40 })
+  expect(viewport.scrollTop).toBe(260)
+  await pointer('pointerup', window)
+  await wheel({ deltaY: -100, metaKey: true })
+  expect(host.querySelector('output')!.textContent).toBe('110')
 })

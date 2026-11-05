@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import { ArrowLeft, ArrowRight, FileText, Menu, Mail, Settings, Loader2, Download, X } from 'lucide-react'
 import type { ExtractedText } from '@/features/resume/lib/pdf'
+import { ScrollArea } from '@/components/ui/ScrollArea'
 import { Button } from '@/components/ui/Button'
 import type { JobContext } from '@/domain/job-context'
 import type { JobPreparationIntent } from '@/domain/job-preparation'
@@ -73,7 +74,7 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
     initialPhoto, onSaveRevisionDraft, onSaveRevision, onLoadOriginal, onDownloadResume, initialTab,
   })
   return (
-    <section className="resume-workbench flex h-full min-h-0 flex-col">
+    <section className="resume-workbench flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <header className="flex h-14 flex-none items-center gap-4 border-b border-line px-4 sm:px-6">
         <button type="button" className="grid size-8 place-items-center text-text-secondary hover:bg-surface-hover md:hidden" onClick={openNav} aria-label="打开导航"><Menu size={16} /></button>
         <strong className="flex-none text-body font-semibold">{embedded ? '简历检查' : 'Resume Grill'}</strong>
@@ -128,10 +129,10 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
               <button type="button" aria-pressed={!mobileDocument} className={!mobileDocument ? 'font-semibold' : 'text-text-tertiary'} onClick={() => setMobileDocument(false)}>{tab === 'raw' ? '全文编辑' : '修改建议'}</button>
               <button type="button" aria-pressed={mobileDocument} className={mobileDocument ? 'font-semibold' : 'text-text-tertiary'} onClick={() => setMobileDocument(true)}>简历预览</button>
             </div>
-            <div className="grid min-h-0 flex-1 grid-cols-1 min-[1100px]:grid-cols-[minmax(360px,0.9fr)_minmax(0,1.1fr)]">
+            <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)] min-[1100px]:grid-cols-[minmax(360px,0.9fr)_minmax(0,1.1fr)]">
               <div className={`min-h-0 min-w-0 flex-col ${mobileDocument ? 'hidden min-[1100px]:flex' : 'flex'}`}>
                 {tab === 'diagnosis' ? <ResumeDiagnosisStep diagnosis={diagnosis} configured={envConfigured || clientConfigured} demo={demo} analyzing={analyzing || revisionBusy || leaving} jobDescription={jobDescription} onJobDescriptionChange={setJobDescription} onConfigure={() => openSettings('model')} revisionPending={revisionPending || draftSaveState !== 'saved'} onIssueSelect={evidence => setEditRequest({ evidence, time: Date.now() })} renderIssueEditor={evidence => <div className="mt-4"><Button variant="secondary" className="h-8 px-3 text-label" disabled={analyzing || revisionBusy || leaving || revisionConflict || diagnosis.loading} onClick={() => { setEditRequest({ evidence, time: Date.now() }); setMobileDocument(true) }}>定位并修改</Button></div>} />
-                  : writingMode === 'full' || !paragraphSections.length ? <ResumeTextEditor text={revisionConflict ? text : editingText} analyzing={analyzing || revisionBusy || leaving || revisionConflict || diagnosis.loading} onTextChange={updateText} /> : <div className="min-h-0 flex-1 overflow-y-auto bg-surface-soft p-4"><ResumeParagraphEditor sections={paragraphSections} originals={originalParagraphs} selected={editingParagraph} disabled={analyzing || revisionBusy || leaving || revisionConflict || diagnosis.loading} onSelect={setEditingParagraph} onChange={changeParagraph} onReset={resetParagraph} /></div>}
+                  : writingMode === 'full' || !paragraphSections.length ? <ResumeTextEditor text={revisionConflict ? text : editingText} analyzing={analyzing || revisionBusy || leaving || revisionConflict || diagnosis.loading} onTextChange={updateText} /> : <ScrollArea aria-label="简历段落滚动区" className="bg-surface-soft p-4"><ResumeParagraphEditor sections={paragraphSections} originals={originalParagraphs} selected={editingParagraph} disabled={analyzing || revisionBusy || leaving || revisionConflict || diagnosis.loading} onSelect={setEditingParagraph} onChange={changeParagraph} onReset={resetParagraph} /></ScrollArea>}
               </div>
               <div className={`min-h-0 min-w-0 flex-col ${mobileDocument ? 'flex' : 'hidden min-[1100px]:flex'}`}>
                 <ResumeDocumentEditor baseText={text} text={editingText} artifact={pdf.artifact} previous={pdf.previous} loading={pdf.loading || (!!onLoadOriginal && !original && !originalError)} error={originalError || pdf.error} disabled={analyzing || revisionBusy || leaving || revisionConflict || diagnosis.loading} request={editRequest} onChange={updateText} onRetry={() => { if (onLoadOriginal && !original) setOriginalAttempt(value => value + 1); else pdf.retry() }} onLoadOriginal={onLoadOriginal} layout={template} />
@@ -150,7 +151,7 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
                 <Button variant="ghost" className="h-8 px-2.5 text-label" disabled={workflowBlocked} onClick={keepProjects}>仅项目</Button>
               </div>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <ScrollArea aria-label="练习内容滚动区">
               <div className="mx-auto max-w-[1040px]">
                 <ResumeCandidateList groupedCandidates={groupedCandidates} candidates={candidates} sections={sections} editingId={editingId} analyzing={workflowBlocked} onSetEditing={setEditingId} onUpdate={updateCandidate} onMergeWithNext={mergeWithNext} onDelete={deleteCandidate} onAdd={addCandidate} />
                 <ResumeAnalysisOptions
@@ -165,7 +166,7 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
                   onJobDescriptionChange={setJobDescription}
                 />
               </div>
-            </div>
+            </ScrollArea>
           </>}
         </main>
       </div>
