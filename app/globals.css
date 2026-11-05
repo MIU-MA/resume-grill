@@ -191,6 +191,7 @@ select:disabled { opacity: .5; cursor: not-allowed; }
 .workbench-status[data-tone="danger"] { background: var(--color-danger-soft); color: var(--color-danger); }
 .workbench-status[data-tone="info"] { background: var(--color-info-soft); color: var(--color-info); }
 .diagnosis-strengths { border-top: 2px solid var(--color-success); }
+.pdf-preview { display: flex; flex: 1 1 0%; flex-direction: column; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; }
 .resume-document-editor { background: var(--color-canvas); }
 .diagnosis-strengths h2 { color: var(--color-success); }
 .diagnosis-strengths blockquote { border-color: var(--color-line-strong); }
@@ -406,6 +407,7 @@ input.mail-input, select.mail-input { height: 36px; }
 .resume-template-preview-heading strong { font-weight: 500; }
 .resume-template-preview-heading span { color: var(--color-text-tertiary); font-size: var(--text-meta); }
 .resume-template-preview-pages { flex: 1; min-height: 0; overflow-y: auto; padding: 24px; }
+.resume-template-preview-pages:has(> .pdf-preview) { display: flex; flex-direction: column; overflow: hidden; }
 .resume-template-preview-pages > img { display: block; width: 100%; height: auto; border: 1px solid var(--color-line-strong); background: white; }
 .resume-template-preview-status { display: flex; min-height: 260px; height: 100%; flex-direction: column; justify-content: center; align-items: center; gap: 12px; text-align: center; font-size: var(--text-meta); color: var(--color-text-secondary); }
 .resume-template-dialog-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; flex: none; padding: 14px 24px; border-top: 1px solid var(--color-line); background: white; }
@@ -517,7 +519,9 @@ input.mail-input, select.mail-input { height: 36px; }
 .tailoring-paper p { margin: 5px 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--text-body); line-height: 1.85; }
 .tailoring-paper h2 + p { margin-bottom: 14px; color: #666f78; font-size: var(--text-meta); }
 .tailoring-paper-space { height: 3px; }
-.tailoring-pdf { width: 100%; max-width: 640px; margin-inline: auto; }
+.tailoring-review-scroll:has(.tailoring-pdf) { overflow: hidden; }
+.tailoring-pdf { display: flex; flex-direction: column; width: 100%; height: 100%; max-height: 100%; min-height: 0; max-width: 640px; margin-inline: auto; }
+.tailoring-source-note { flex: none; }
 .tailoring-error { flex: none; margin: 0; padding: 10px 26px; border-top: 1px solid #efd6d0; background: #fff5f2; color: var(--color-danger); font-size: var(--text-body); }
 .tailoring-footer { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 76px; flex: none; padding: 14px 26px; border-top: 1px solid var(--color-line); background: white; }
 .tailoring-footer > div { min-width: 0; }
@@ -543,6 +547,7 @@ input.mail-input, select.mail-input { height: 36px; }
   .tailoring-count { display: none; }
   .tailoring-body { display: block; overflow-y: auto; }
   .tailoring-review-scroll { overflow: visible; }
+  .tailoring-pdf { height: 65dvh; }
   .tailoring-delivery { border-top: 1px solid var(--color-line); border-left: 0; }
   .tailoring-delivery-scroll { overflow: visible; }
   .tailoring-delivery-heading { padding-inline: 20px; }

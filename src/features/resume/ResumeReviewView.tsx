@@ -66,7 +66,7 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
     saveState, groupedCandidates,
     updateText, changeTemplate, changeParagraph, changePhoto, resetParagraph, saveRevision, discardRevision,
     leaveReview, downloadResume, updateCandidate, deleteCandidate, undoDelete, selectAll, clearAll,
-    keepProjects, scrollToSection, mergeWithNext, submit,
+    keepProjects, scrollToSection, mergeWithNext, addCandidate, submit,
   } = useResumeReview({
     sourceFile, demo, extracted, analyzing, envConfigured, clientConfigured, onConfirm,
     initialReview, autoDiagnose, preparationIntent, onSaveReview, initialRevisionDraft, initialPdfTemplate,
@@ -118,7 +118,7 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
             <div className="flex h-12 flex-none items-center justify-between border-b border-line px-5 text-body min-[900px]:hidden">
               文档目录<button type="button" aria-label="收起目录" onClick={() => setSidebarOpen(false)}><X size={16} /></button>
             </div>
-            <ResumeReviewSidebar sections={sections} sectionTitles={groupedCandidates.map(([title]) => title)} onSectionClick={scrollToSection} />
+            <ResumeReviewSidebar sections={sections} onSectionClick={scrollToSection} />
           </div>
         </>}
 
@@ -152,7 +152,7 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               <div className="mx-auto max-w-[1040px]">
-                <ResumeCandidateList groupedCandidates={groupedCandidates} candidates={candidates} sections={sections} editingId={editingId} analyzing={workflowBlocked} onSetEditing={setEditingId} onUpdate={updateCandidate} onMergeWithNext={mergeWithNext} onDelete={deleteCandidate} />
+                <ResumeCandidateList groupedCandidates={groupedCandidates} candidates={candidates} sections={sections} editingId={editingId} analyzing={workflowBlocked} onSetEditing={setEditingId} onUpdate={updateCandidate} onMergeWithNext={mergeWithNext} onDelete={deleteCandidate} onAdd={addCandidate} />
                 <ResumeAnalysisOptions
                   analysisGoal={analysisGoal}
                   goalOpen={goalOpen}

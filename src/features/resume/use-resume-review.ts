@@ -7,7 +7,7 @@ import type { JobPreparationIntent } from '@/domain/job-preparation'
 import { parseResumeStructure } from '@/domain/resume-structure'
 import type { ResumeReviewSubmission } from '@/domain/resume-review'
 import type { ReviewCandidate } from '@/features/resume/resume-review-types'
-import { createReviewCandidates, groupCandidates } from '@/features/resume/resume-review-utils'
+import { createReviewCandidates, groupCandidates, includeReviewLine } from '@/features/resume/resume-review-utils'
 import { useResumePdf } from './hooks/use-resume-pdf'
 import type { ResumePdfArtifact } from './lib/resume-pdf'
 import { useAppShell } from '@/features/workspace/app-shell-context'
@@ -116,7 +116,7 @@ export function useResumeReview({ sourceFile, demo, extracted, analyzing, envCon
     void saveRef.current(review).then(() => { if (active) setSaveState('saved') }).catch(() => { if (active) setSaveState('error') })
     return () => { active = false }
   }, [review])
-  const groupedCandidates = useMemo(() => groupCandidates(candidates), [candidates])
+  const groupedCandidates = useMemo(() => groupCandidates(candidates, sections), [candidates, sections])
   const projectSectionTitles = useMemo(
     () =>
       new Set(
@@ -266,6 +266,11 @@ export function useResumeReview({ sourceFile, demo, extracted, analyzing, envCon
       })),
     )
 
+  const addCandidate = (title: string, lineNumber: number) => {
+    if (workflowBlocked) return
+    const section = sections.find(section => section.title === title)
+    if (section) setCandidates(current => includeReviewLine(current, section, lineNumber))
+  }
   const scrollToSection = (index: number) => {
     setSidebarOpen(false)
     if (tab !== 'structure') setTab('structure')
@@ -313,6 +318,6 @@ export function useResumeReview({ sourceFile, demo, extracted, analyzing, envCon
     review, saveState, setSaveState, groupedCandidates, projectSectionTitles, persistRevisionDraft,
     updateText, changeTemplate, changeParagraph, changePhoto, resetParagraph, saveRevision, discardRevision,
     leaveReview, downloadResume, updateCandidate, deleteCandidate, undoDelete, selectAll, clearAll,
-    keepProjects, scrollToSection, mergeWithNext, submit,
+    keepProjects, scrollToSection, mergeWithNext, addCandidate, submit,
   }
 }

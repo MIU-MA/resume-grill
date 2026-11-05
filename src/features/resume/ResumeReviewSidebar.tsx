@@ -2,12 +2,11 @@ import type { ParsedResumeSection } from '@/domain/resume-structure'
 
 type ResumeReviewSidebarProps = {
   sections: ParsedResumeSection[]
-  sectionTitles: string[]
   onSectionClick: (index: number) => void
 }
 
-export function ResumeReviewSidebar({ sections, sectionTitles, onSectionClick }: ResumeReviewSidebarProps) {
-  const visibleSections = sections.map((section, index) => ({ section, index })).filter(({ section }) => sectionTitles.includes(section.title))
+export function ResumeReviewSidebar({ sections, onSectionClick }: ResumeReviewSidebarProps) {
+  const visibleSections = sections.map((section, index) => ({ section, index }))
   return (
     <aside className="flex min-h-0 flex-1 flex-col" aria-label="文档章节">
       <div className="flex h-16 flex-none items-center justify-between px-5">

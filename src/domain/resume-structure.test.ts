@@ -100,3 +100,13 @@ describe('resume structure', () => {
     expect(isClaimGroundedInRawText('负责会员产品规划，推动三个版本上线', flattened)).toBe(true)
   })
 })
+
+it('项目与实习中以名词开头的具体描述也可练习，不只保留技能列表', () => {
+  const candidates = extractResumeClaimCandidates('技术能力\n前端：React、TypeScript\n项目经历\n订单模块：使用 React 实现筛选、分页与异常处理。\n实习经历\n◦ 需求联调：完成接口对接与页面交付。\n教育背景\n示例大学 本科')
+  expect(candidates.map(item => item.sourceSection)).toEqual(['技术能力', '项目经历', '实习经历'])
+})
+
+it('补充名词开头的描述时不把纯项目标题误当成经历声明', () => {
+  const candidates = extractResumeClaimCandidates('项目经历\n库存管理系统\n页面功能：实现库存查询、筛选与导出。')
+  expect(candidates.map(item => item.content)).toEqual(['页面功能：实现库存查询、筛选与导出。'])
+})

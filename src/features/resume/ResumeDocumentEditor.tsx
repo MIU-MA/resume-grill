@@ -100,7 +100,7 @@ export function ResumeDocumentEditor({ baseText, text, artifact, previous, loadi
         <button type="button" disabled={disabled || text.slice(active.start, active.end) === active.original} className="mt-2 flex items-center gap-1 text-label text-text-secondary disabled:opacity-40" onClick={() => change(active.original)}><RotateCcw size={12} />撤销本次修改</button>
       </div>}
     </>}
-    <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-3 sm:p-5">
       {view === 'draft' ? <>
         {error && <p role="alert" className="border border-danger bg-danger-soft p-3 text-body text-danger">{error}<button type="button" className="ml-2 underline" onClick={onRetry}>重试预览</button></p>}
         {shown ? <PdfPages file={shown.file} artifact={shown} disabled={disabled || !artifact} selectedStart={active?.start} changedRanges={artifact ? changedRanges : undefined} onSelect={select} /> : !error && <p role="status" className="text-meta text-text-tertiary">{text.trim() ? '正在生成 PDF 预览…' : '填写简历内容后显示预览。'}</p>}

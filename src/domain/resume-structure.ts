@@ -109,7 +109,8 @@ export function extractResumeClaimCandidates(rawText: string): ResumeClaimCandid
       const eligibleGeneral = section.kind === 'general' && (line.bullet || STARTS_AS_STATEMENT.test(content))
       if (!(eligibleSection || eligibleSkill || eligibleGeneral)) continue
       if (!line.bullet && DATE_RANGE.test(content) && !STARTS_AS_STATEMENT.test(content)) continue
-      if (!line.bullet && section.kind !== 'skills' && !STARTS_AS_STATEMENT.test(content)) continue
+      if (!line.bullet && eligibleSection && !STARTS_AS_STATEMENT.test(content) && (content.length < 8 || !/[：:，,；;。.!?]/.test(content))) continue
+      if (!line.bullet && !eligibleSection && section.kind !== 'skills' && !STARTS_AS_STATEMENT.test(content)) continue
       if (!eligibleSkill && !ACTION.test(content) && !OUTCOME.test(content)) continue
       candidates.push({ content, sourceSection: section.title, lineNumber: line.lineNumber })
     }
@@ -124,7 +125,7 @@ function isSkillStatement(content: string): boolean {
 
 export function extractLooseClaimCandidates(rawText: string): ResumeClaimCandidate[] {
   const chunks = normalizeText(rawText)
-    .replace(/[-*•·●▪]\s*/g, '\n')
+    .replace(/[-*•·●▪◦‣⁃▸►○◆◇]\s*/g, '\n')
     .split(/[\n。；;]+|(?=负责|主导|参与|协助|执行|承担|将)/)
     .map((item) => cleanBullet(item))
     .filter((item) => item.length >= 8 && item.length <= 220)
@@ -191,13 +192,13 @@ function matchHeading(line: string): { kind: ResumeSectionKind; title: string } 
 }
 
 function isBulletLine(line: string): boolean {
-  return /^[oO]\s+/.test(line) || /^[-*•·●▪]/.test(line) || /^\d+[.)、]\s+/.test(line)
+  return /^[oO]\s+/.test(line) || /^[-*•·●▪◦‣⁃▸►○◆◇]/.test(line) || /^\d+[.)、]\s+/.test(line)
 }
 
 function cleanBullet(value: string): string {
   return value
     .replace(/^[oO]\s+/, '')
-    .replace(/^[-*•·●▪]\s*/, '')
+    .replace(/^[-*•·●▪◦‣⁃▸►○◆◇]\s*/, '')
     .replace(/^\d+[.)、]\s+/, '')
     .replace(/\s+/g, ' ')
     .trim()

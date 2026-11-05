@@ -1,3 +1,4 @@
+import { isExcludedClaimContent } from '@/domain/claim-filter'
 import { Combine, Target, Trash2 } from 'lucide-react'
 import type { ParsedResumeSection } from '@/domain/resume-structure'
 import type { ReviewCandidate } from '@/features/resume/resume-review-types'
@@ -11,6 +12,7 @@ type ResumeCandidateListProps = {
   onSetEditing: (id: string | null) => void
   onUpdate: (id: string, patch: Partial<ReviewCandidate>) => void
   onMergeWithNext: (id: string) => void
+  onAdd?: (section: string, lineNumber: number) => void
   onDelete: (id: string) => void
 }
 
@@ -23,7 +25,7 @@ export function ResumeCandidateList({
   onSetEditing,
   onUpdate,
   onMergeWithNext,
-  onDelete,
+  onDelete, onAdd,
 }: ResumeCandidateListProps) {
   return (
     <section>
@@ -53,6 +55,7 @@ export function ResumeCandidateList({
                 {items.length} 条
               </span>
             </div>
+            <SectionSource section={sections.find(item => item.title === section)} candidates={items} disabled={analyzing} onAdd={onAdd} />
             {items.map((candidate) => {
               const index = candidates.findIndex(
                 (item) => item.id === candidate.id,
@@ -142,4 +145,16 @@ export function ResumeCandidateList({
       )}
     </section>
   )
+}
+
+function SectionSource({ section, candidates, disabled, onAdd }: { section?: ParsedResumeSection; candidates: ReviewCandidate[]; disabled: boolean; onAdd?: (section: string, lineNumber: number) => void }) {
+  if (!section) return null
+  const canPractice = !['general', 'profile', 'education', 'awards', 'selfReview'].includes(section.kind)
+  return <details className="border-t border-line px-5 py-3 text-label text-text-secondary" open={candidates.length === 0}>
+    <summary className="cursor-pointer">本节原文{candidates.length === 0 ? ' · 尚未加入练习要点' : ''}</summary>
+    <div className="mt-3 space-y-3">{section.lines.map(line => {
+      const canAdd = canPractice && !isExcludedClaimContent(line.text) && !candidates.some(item => item.lineNumber === line.lineNumber)
+      return <div key={line.lineNumber} className="flex items-start gap-3"><p className="m-0 min-w-0 flex-1 whitespace-pre-wrap break-words text-body leading-relaxed">{line.text}</p>{canAdd && onAdd && <button type="button" className="shrink-0 underline" disabled={disabled} onClick={() => onAdd(section.title, line.lineNumber)}>加入练习</button>}</div>
+    })}</div>
+  </details>
 }

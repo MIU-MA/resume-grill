@@ -23,7 +23,8 @@
     "start": "next start",
     "lint": "oxlint",
     "check:architecture": "node scripts/check-architecture.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check:pdf-preview": "node scripts/check-pdf-preview.mjs"
   },
   "dependencies": {
     "@embedpdf/pdfium": "^2.15.1",
