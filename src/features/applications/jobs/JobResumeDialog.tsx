@@ -24,6 +24,7 @@ export function JobResumeDialog({ draft, file, source, person, initialTemplate, 
   const controller = useRef<AbortController | null>(null)
   const savedRevision = useRef<{ artifact: ResumePdfArtifact; company: string; role: string; document: Awaited<ReturnType<typeof saveJobResume>> } | null>(null)
   const [session, setSession] = useState<TailoringSession | null>(null)
+  const [suggestionsReady, setSuggestionsReady] = useState(false)
   const [accepted, setAccepted] = useState<Set<string>>(new Set(Object.keys(restored?.edits ?? {})))
   const [edits, setEdits] = useState<Record<string, string>>(restored?.edits ?? {})
   const [originalOrder, setOriginalOrder] = useState(restored?.originalOrder ?? true)
@@ -43,7 +44,7 @@ export function JobResumeDialog({ draft, file, source, person, initialTemplate, 
   useEffect(() => { ref.current?.showModal() }, [])
   useEffect(() => {
     const abort = new AbortController(); controller.current = abort
-    setGenerating(true); setSuggestionError('')
+    setGenerating(true); setSuggestionError(''); setSuggestionsReady(false)
     void generateJobResume(draft, file, source, abort.signal, value => {
       if (!abort.signal.aborted) {
         if (restored && restored.rawText !== value.rawText) { setEdits({}); setAccepted(new Set()); setMailEdit({}); setError('原简历内容已变化，已从当前文件重新开始，旧稿未套用。') }
@@ -52,6 +53,7 @@ export function JobResumeDialog({ draft, file, source, person, initialTemplate, 
     }, retry === 0 ? restored ?? undefined : undefined).then(value => {
       if (abort.signal.aborted) return
       setSession(value)
+      setSuggestionsReady(true)
       setCompany(current => current || draft.company || value.plan.company); setRole(current => current || draft.role || value.plan.role)
     }).catch(cause => { if (!abort.signal.aborted) setSuggestionError(cause instanceof Error ? cause.message : '建议未能生成。') })
       .finally(() => { if (!abort.signal.aborted) setGenerating(false) })
@@ -110,11 +112,11 @@ export function JobResumeDialog({ draft, file, source, person, initialTemplate, 
   const persist = () => {
     if (!session || committed.current) return true
     try {
-      writeTailoringDraft({ context, rawText: session.rawText, plan: session.plan, edits, originalOrder, company, role, mailEdit, template })
+      writeTailoringDraft({ context, rawText: session.rawText, plan: session.plan, suggestionsReady, edits, originalOrder, company, role, mailEdit, template })
       return true
     } catch { setError('修改未能暂存，请先保存并用于邮件，或释放浏览器存储后再关闭。'); return false }
   }
-  useEffect(() => { persist() }, [session, edits, originalOrder, company, role, mailEdit, template]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { persist() }, [session, suggestionsReady, edits, originalOrder, company, role, mailEdit, template]) // eslint-disable-line react-hooks/exhaustive-deps
   const close = () => { if (!persist()) return; controller.current?.abort(); onClose() }
   return <dialog ref={ref} aria-label="按岗位修改简历" onCancel={event => { event.preventDefault(); if (!busy || !session) close() }} className="tailoring-dialog resume-workbench">
     <JobResumeWorkspace

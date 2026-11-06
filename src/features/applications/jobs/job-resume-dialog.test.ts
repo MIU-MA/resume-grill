@@ -263,6 +263,27 @@ it('关闭再打开恢复逐条修改和邮件，保存成功才清理独立草�
   await act(async () => button('保存并用于这封邮件').click())
   expect(Object.keys(sessionStorage).some(key => key.includes('tailoring-draft'))).toBe(false)
 })
+
+it('生成期间关闭不会把空建议存成完成；重新打开重试且保留手写修改', async () => {
+  vi.mocked(generateJobResume).mockImplementationOnce((_draft, _file, _source, _signal, onPrepared) => {
+    onPrepared?.({ ...session, plan: { ...session.plan, changes: [], highlights: [] } })
+    return new Promise(() => {})
+  })
+  await mount(false)
+  await act(async () => button('逐条修改').click())
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="编辑项目经历第 1 条"]')!.click())
+  await edit('修改项目经历第 1 条', '生成期间保留的手写描述')
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="关闭"]')!.click())
+  const key = Object.keys(sessionStorage).find(key => key.includes('tailoring-draft'))!
+  expect(JSON.parse(sessionStorage.getItem(key)!).suggestionsReady).toBe(false)
+  await act(async () => root.render(null))
+  await mount(false)
+  expect(vi.mocked(generateJobResume).mock.calls.at(-1)?.[5]).toMatchObject({ suggestionsReady: false })
+  expect(JSON.parse(sessionStorage.getItem(key)!).suggestionsReady).toBe(true)
+  await act(async () => button('逐条修改').click())
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="编辑项目经历第 1 条"]')!.click())
+  expect(host.querySelector<HTMLTextAreaElement>('[aria-label="修改项目经历第 1 条"]')!.value).toBe('生成期间保留的手写描述')
+})
 it('另一个岗位不恢复旧稿；暂存失败时关闭不会丢失输入', async () => {
   await mount()
   await act(async () => root.render(null))

@@ -7,6 +7,7 @@ import type { AttachmentSource } from '../../mail/lib/mail-draft-storage'
 
 const schema = z.object({
   context: z.string(), rawText: z.string().max(20000), plan: tailoringPlanSchema,
+  suggestionsReady: z.boolean().optional(),
   edits: z.record(z.string(), z.string().max(20000)), originalOrder: z.boolean(),
   company: z.string().max(120), role: z.string().max(120),
   mailEdit: z.object({ subject: z.string().max(200).optional(), body: z.string().max(12000).optional() }),

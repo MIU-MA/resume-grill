@@ -64,3 +64,29 @@ it('恢复同一原文的草稿时复用建议；原文变化后重新分析', a
   await generateJobResume(draft, new File([rawText + '\n新增经历'], 'original.txt'), undefined, new AbortController().signal, undefined, cached)
   expect(vi.mocked(fetch).mock.calls.filter(([url]) => url === '/api/tailor-resume')).toHaveLength(1)
 })
+
+it('中断或失败后暂存的空建议会重新请求，保留原文可编辑的准备回调', async () => {
+  const emptyPlan = { ...plan, changes: [], highlights: [] }
+  const prepared = vi.fn()
+  const result = await generateJobResume(draft, new File([rawText], 'original.txt'), undefined, new AbortController().signal, prepared, { rawText, plan: emptyPlan, suggestionsReady: false })
+  expect(prepared.mock.calls[0][0].plan.changes).toEqual([])
+  expect(result.plan.changes).toEqual(plan.changes)
+  expect(vi.mocked(fetch).mock.calls.filter(([url]) => url === '/api/tailor-resume')).toHaveLength(1)
+})
+
+it('兼容旧空草稿：不能把未完成占位当成模型结果', async () => {
+  await generateJobResume(draft, new File([rawText], 'original.txt'), undefined, new AbortController().signal, undefined, { rawText, plan: { ...plan, changes: [], highlights: [] } })
+  expect(vi.mocked(fetch).mock.calls.filter(([url]) => url === '/api/tailor-resume')).toHaveLength(1)
+})
+
+it('模型确实没有修改建议时，完成标记允许复用，避免重复消耗', async () => {
+  const emptyPlan = { ...plan, changes: [], highlights: [] }
+  const result = await generateJobResume(draft, new File([rawText], 'original.txt'), undefined, new AbortController().signal, undefined, { rawText, plan: emptyPlan, suggestionsReady: true })
+  expect(result.plan.changes).toEqual([])
+  expect(fetch).not.toHaveBeenCalled()
+})
+
+it('模型请求超时给出可重试提示，不一直显示生成中', async () => {
+  vi.mocked(fetch).mockRejectedValue(new DOMException('timeout', 'TimeoutError'))
+  await expect(generateJobResume(draft, new File([rawText], 'original.txt'), undefined, new AbortController().signal)).rejects.toThrow('生成超时')
+})

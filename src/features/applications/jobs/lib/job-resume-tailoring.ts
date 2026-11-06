@@ -24,22 +24,31 @@ export type TailoredResume = {
   documentId: string; text: string
   template?: ResumeTemplateId
 }
-export async function generateJobResume(draft: Draft, file: File, source: AttachmentSource | undefined, signal: AbortSignal, onPrepared?: (session: TailoringSession) => void, cached?: Pick<TailoringSession, 'rawText' | 'plan'>): Promise<TailoringSession> {
+export async function generateJobResume(draft: Draft, file: File, source: AttachmentSource | undefined, signal: AbortSignal, onPrepared?: (session: TailoringSession) => void, cached?: Pick<TailoringSession, 'rawText' | 'plan'> & { suggestionsReady?: boolean }): Promise<TailoringSession> {
   const document = await prepareJobResume({ job: { ...draft, jobDescription: draft.jobDescription ?? '' }, attachment: file, attachmentSource: source }, 'tailoring')
   if (signal.aborted) throw new DOMException('已取消', 'AbortError')
   const rawText = document.extracted.text
   const sections = tailoringSections(rawText)
   const session: TailoringSession = { sourceDocumentId: document.id, sourceFile: document.sourceFile, rawText, sections, plan: { company: '', role: '', sectionOrder: sections.map(section => section.id), changes: [], highlights: [], gaps: [] }, template: /\.pdf$/i.test(file.name) ? 'original' : document.pdfTemplate, originalFile: file, photo: document.photo }
-  if (cached?.rawText === rawText) {
+  // Legacy drafts with no changes may be the empty onPrepared placeholder, not a model result.
+  const reusable = cached && (cached.suggestionsReady ?? cached.plan.changes.length > 0)
+  if (reusable && cached.rawText === rawText) {
     const restored = { ...session, plan: usableTailoringSchema(rawText, draft.jobDescription ?? '').parse(cached.plan) }
     onPrepared?.(restored)
     return restored
   }
   onPrepared?.(session)
-  const response = await fetch('/api/tailor-resume', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, signal,
-    body: JSON.stringify({ rawText, jobDescription: draft.jobDescription, llm: getLlmSettings() ?? undefined }),
-  })
+  let response: Response
+  try {
+    response = await fetch('/api/tailor-resume', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.any([signal, AbortSignal.timeout(100_000)]),
+      body: JSON.stringify({ rawText, jobDescription: draft.jobDescription, llm: getLlmSettings() ?? undefined }),
+    })
+  } catch (error) {
+    if (!signal.aborted && error instanceof Error && error.name === 'TimeoutError') throw new Error('AI 建议生成超时，请重试。已输入的修改会保留。')
+    throw error
+  }
   const data = await response.json()
   if (!response.ok) throw new Error(data.error || '岗位版简历生成失败。')
   const plan = usableTailoringSchema(rawText, draft.jobDescription ?? '').parse(data)
