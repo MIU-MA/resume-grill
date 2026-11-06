@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, type SetStateAction } from 'react'
+import { useState, useRef, useCallback, useEffect, type SetStateAction } from 'react'
 import { interviewInputKey, readInterviewInput, writeInterviewInput } from '../lib/interview-input-draft'
 import type { ResumeClaim } from '@/domain/resume-schema'
 import type { ClaimAnalysis, InterviewAction, InterviewRound, InterviewSession, InterviewContinueResult, FinalResult } from '@/domain/interview-schema'
@@ -29,6 +29,18 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
   const [activeClaimSnapshot, setActiveClaimSnapshot] = useState<ResumeClaim | null>(null)
   const [version, setVersion] = useState(1)
   const [draftSaved, setDraftSaved] = useState(true)
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null)
+  const generation = useRef(0)
+  const requests = useRef(new Set<AbortController>())
+  const invalidateRequests = useCallback(() => {
+    generation.current++
+    for (const request of requests.current) request.abort()
+    requests.current.clear()
+  }, [])
+  useEffect(() => {
+    setLoading(false); setRegeneratingId(null)
+    return invalidateRequests
+  }, [scope, invalidateRequests])
   const inputs = useRef({ answer, annotation })
   inputs.current = { answer, annotation }
 
@@ -37,13 +49,15 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
   const cacheKey = (claim: ResumeClaim) => `${claim.id}:${hashClaimContent(claim.content)}`
 
   const reset = useCallback(() => {
+    invalidateRequests(); setLoading(false); setRegeneratingId(null)
     cache.current.clear(); contextRef.current = undefined
     setRounds([]); setCurrentQuestion(''); setCurrentIntent(''); setAnswer(''); setAnnotation('')
     setDone(false); setActiveClaimSnapshot(null); setVersion(1); setDraftSaved(true)
-  }, [])
+  }, [invalidateRequests])
 
   const restore = useCallback((claim: ResumeClaim, session: InterviewSession): boolean => {
     if (session.status !== 'in_progress') return false
+    invalidateRequests(); setLoading(false); setRegeneratingId(null)
     contextRef.current = session.context ?? getContext?.(claim.id)
     const snapshot: ResumeClaim = session.claimContent && session.claimContent !== claim.content
       ? { ...claim, content: session.claimContent }
@@ -59,13 +73,14 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       cache.current.set(cacheKey(snapshot), session.claimAnalysis)
     }
     return true
-  }, [getContext, scope])
+  }, [getContext, scope, invalidateRequests])
 
   const start = useCallback(async (claim: ResumeClaim, opts?: StartOptions) => {
     if (!getLlmSettings() && !envConfigured) {
       onError('请先配置 API Key（点击顶部齿轮图标 → Base URL + Key + Model）')
       return
     }
+    invalidateRequests(); setRegeneratingId(null)
     setLoading(true); onError('')
     contextRef.current = getContext?.(claim.id)
 
@@ -115,9 +130,9 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       })
     } catch (e) { onError(e instanceof Error ? e.message : '启动面试失败') }
     finally { setLoading(false) }
-  }, [envConfigured, onError, onSessionSaved, getContext, scope])
+  }, [envConfigured, onError, onSessionSaved, getContext, scope, invalidateRequests])
 
-  const finalizeSession = useCallback(async (claim: ResumeClaim, finalRounds: InterviewRound[]) => {
+  const finalizeSession = useCallback(async (claim: ResumeClaim, finalRounds: InterviewRound[], signal: AbortSignal, isCurrent: () => boolean) => {
     const snapshot = activeClaimSnapshot ?? claim
     const sessionId = `${snapshot.id}:v${version}`
     const context = contextRef.current
@@ -139,14 +154,17 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
     try {
       const llm = getLlmSettings()
       const body: any = { claim: snapshot, rounds: finalRounds, context }; if (llm) body.llm = llm
-      const res = await fetch('/api/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const res = await fetch('/api/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.any([signal, AbortSignal.timeout(100_000)]) })
       const data = (await res.json()) as FinalResult | { error: string }
+      if (!isCurrent()) return
       if (!res.ok || 'error' in data) {
         onToast('总结生成失败，问答记录仍会保存。')
       } else {
         finalResult = data; summarySucceeded = true
       }
-    } catch { onToast('总结请求失败，问答记录仍会保存。') }
+    } catch { if (!isCurrent()) return; onToast('总结请求失败，问答记录仍会保存。') }
+
+    if (!isCurrent()) return
 
     onSessionSaved(snapshot.id, {
       id: sessionId,
@@ -180,10 +198,14 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
   }, [activeClaimSnapshot, version, onSessionSaved])
 
   const continueInterview = useCallback(async (claim: ResumeClaim, action: InterviewAction) => {
-    if (!currentQuestion || loading || done) return
+    if (!currentQuestion || loading || done || requests.current.size) return
     if (action === 'answer' && !answer.trim()) return
     if (action === 'clarify' && !annotation.trim()) return
     const snapshot = activeClaimSnapshot ?? claim
+    const abort = new AbortController()
+    const epoch = generation.current
+    requests.current.add(abort)
+    const isCurrent = () => generation.current === epoch && !abort.signal.aborted
     setLoading(true)
     try {
       const claimAnalysis = cache.current.get(cacheKey(snapshot))
@@ -199,8 +221,9 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
         rounds, verifyPoints: claimAnalysis.verifyPoints, trapPoints: claimAnalysis.trapPoints,
       }
       if (llm) body.llm = llm
-      const res = await fetch('/api/interview/continue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const res = await fetch('/api/interview/continue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(100_000)]) })
       const data = (await res.json()) as InterviewContinueResult | { error: string }
+      if (!isCurrent()) return
       if (!res.ok || 'error' in data) throw new Error('error' in data ? data.error : '生成下一问失败')
       const round: InterviewRound = {
         action, question: currentQuestion, questionIntent: currentIntent,
@@ -213,12 +236,12 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       setAnswer(''); setAnnotation('')
       if (data.isFinal) {
         setDone(true)
-        await finalizeSession(snapshot, newRounds)
+        await finalizeSession(snapshot, newRounds, abort.signal, isCurrent)
       } else {
         saveInProgress(snapshot, newRounds, data.nextQuestion, data.nextReason)
       }
-    } catch (e) { onError(e instanceof Error ? e.message : '追问失败') }
-    finally { setLoading(false) }
+    } catch (e) { if (isCurrent()) onError(e instanceof Error && e.name === 'TimeoutError' ? '追问超时，请重试。回答草稿已保留。' : e instanceof Error ? e.message : '追问失败') }
+    finally { requests.current.delete(abort); if (isCurrent()) setLoading(false) }
   }, [currentQuestion, currentIntent, loading, done, answer, annotation, rounds, activeClaimSnapshot, finalizeSession, saveInProgress, onError, scope, version])
 
   const submit = useCallback((claim: ResumeClaim) => (
@@ -227,9 +250,12 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
 
   const skip = useCallback((claim: ResumeClaim) => continueInterview(claim, 'skip'), [continueInterview])
 
-  const [regeneratingId, setRegeneratingId] = useState<string | null>(null)
-
   const regenerateSummary = useCallback(async (claim: ResumeClaim, session: InterviewSession) => {
+    if (requests.current.size) return false
+    const abort = new AbortController()
+    const epoch = generation.current
+    requests.current.add(abort)
+    const isCurrent = () => generation.current === epoch && !abort.signal.aborted
     const snapshot: ResumeClaim = session.claimContent && session.claimContent !== claim.content
       ? { ...claim, content: session.claimContent }
       : claim
@@ -240,8 +266,9 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
     try {
       const llm = getLlmSettings()
       const body: any = { claim: snapshot, rounds: session.rounds, context }; if (llm) body.llm = llm
-      const res = await fetch('/api/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const res = await fetch('/api/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(100_000)]) })
       const data = (await res.json()) as FinalResult | { error: string }
+      if (!isCurrent()) return false
       if (!res.ok || 'error' in data) {
         onToast('重新生成总结失败，请稍后再试。')
         return false
@@ -260,9 +287,10 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
       onToast('复盘已重新生成，可在「面试复盘」查看。')
       return true
     } catch (e) {
+      if (!isCurrent()) return false
       onError(e instanceof Error ? e.message : '重新生成总结失败')
       return false
-    } finally { setRegeneratingId(null) }
+    } finally { requests.current.delete(abort); if (isCurrent()) setRegeneratingId(null) }
   }, [onError, onToast, onSessionSaved, getContext])
 
   const covered = rounds[rounds.length - 1]?.evaluation?.coveredPoints ?? []

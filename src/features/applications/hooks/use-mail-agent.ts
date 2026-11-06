@@ -10,6 +10,10 @@ export function useMailAgent() {
   const [snapshot, setSnapshot] = useState<AgentSnapshot | null>(null)
   const [connectionError, setConnectionError] = useState('')
   const tokenRef = useRef('')
+  const revision = useRef(0)
+  const refreshing = useRef(0)
+  const mutations = useRef(0)
+  useEffect(() => () => { revision.current++ }, [])
   const readerVersion = useRef<boolean | undefined>(undefined)
   const [readerWarning, setReaderWarning] = useState('')
   const readCapabilities = (status: AgentSnapshot) => {
@@ -45,26 +49,35 @@ export function useMailAgent() {
 
   const connect = useCallback(async (value: string) => {
     const trimmed = value.trim()
-    const status = await request<AgentSnapshot>('/status', undefined, trimmed)
-    tokenRef.current = trimmed
-    setToken(trimmed)
-    window.sessionStorage.setItem(TOKEN_KEY, trimmed)
-    setSnapshot(status)
-    readCapabilities(status)
-    setConnectionError('')
+    const order = ++revision.current
+    mutations.current++
+    try {
+      const status = await request<AgentSnapshot>('/status', undefined, trimmed)
+      if (revision.current !== order) return
+      tokenRef.current = trimmed
+      setToken(trimmed)
+      window.sessionStorage.setItem(TOKEN_KEY, trimmed)
+      setSnapshot(status)
+      readCapabilities(status)
+      setConnectionError('')
+    } finally { mutations.current-- }
   }, [request])
 
   const refresh = useCallback(async () => {
+    if (mutations.current) return null
     const currentToken = tokenRef.current
+    const order = ++refreshing.current
+    const epoch = revision.current
+    const isCurrent = () => tokenRef.current === currentToken && epoch === revision.current && order === refreshing.current
     try {
       const status = await request<AgentSnapshot>('/status')
-      if (tokenRef.current !== currentToken) return null
+      if (!isCurrent()) return null
       setSnapshot(status)
       readCapabilities(status)
       setConnectionError('')
       return status
     } catch (error) {
-      if (tokenRef.current !== currentToken) return null
+      if (!isCurrent()) return null
       if (error instanceof ExpiredConnectionError) {
         tokenRef.current = ''; setToken(''); window.sessionStorage.removeItem(TOKEN_KEY)
         readerVersion.current = undefined; setReaderWarning('')
@@ -92,13 +105,20 @@ export function useMailAgent() {
   }, [token, refresh])
 
   const command = useCallback(async (path: string, body: unknown = {}) => {
-    const status = await request<AgentSnapshot>(path, body)
-    setSnapshot(status)
-    setConnectionError('')
-    return status
+    const order = ++revision.current
+    mutations.current++
+    try {
+      const status = await request<AgentSnapshot>(path, body)
+      if (revision.current === order) {
+        setSnapshot(status)
+        setConnectionError('')
+      }
+      return status
+    } finally { mutations.current-- }
   }, [request])
 
   const forgetConnection = useCallback(() => {
+    revision.current++
     tokenRef.current = ''
     readerVersion.current = undefined; setReaderWarning('')
     window.sessionStorage.removeItem(TOKEN_KEY)

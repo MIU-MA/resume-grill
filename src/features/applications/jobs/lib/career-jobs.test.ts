@@ -1,6 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import type { CareerPage } from '@/domain/mail-schema'
-import { careerJobRows, careerSiteKey, emptyCareerJobs, recordCareerDiscovery } from './career-jobs'
+import { careerJobRows, careerSiteKey, emptyCareerJobs, inferDirection, recordCareerDiscovery } from './career-jobs'
+
+it.each([
+  ['算法工程师', '使用 Python 进行机器学习开发', 'algorithm'],
+  ['数据分析师', '使用 Python 完成数据分析', 'data'],
+  ['测试开发工程师', '负责 React 页面自动化测试', 'test'],
+  ['前端工程师', '配合测试，调用 Java 接口与算法服务', 'frontend'],
+  ['后端工程师', '配合前端开发 React 页面接口', 'backend'],
+  ['产品经理', '与前端和后端沟通需求', 'product'],
+  ['UI 设计师', '熟悉 Vue 和 React', 'design'],
+  ['招聘专员', 'build recruitment pipeline', 'other'],
+  ['研发工程师', '熟悉 Vue 和 React', 'frontend'],
+])('岗位方向优先按职位名称判断：%s', (role, description, expected) => {
+  expect(inferDirection(role, description)).toBe(expected)
+})
 
 const page: CareerPage = {
   url: 'https://example.com/jobs/1',

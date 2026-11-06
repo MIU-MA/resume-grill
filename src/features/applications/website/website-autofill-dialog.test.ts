@@ -7,6 +7,7 @@ import { extensionRequest, loadWebsiteProfile, makeWebsiteBatch } from './lib/we
 import { PROFILE_LABELS, type WebsiteSnapshot } from '@/domain/website-automation'
 import { loadExperiences } from './lib/website-experience-storage'
 import type { Draft } from '../mail/lib/draft-state'
+import { extractTextFromFile } from '@/features/resume/lib/pdf'
 
 vi.mock('./lib/website-automation', async importOriginal => ({
   ...await importOriginal<typeof import('./lib/website-automation')>(),
@@ -26,6 +27,7 @@ beforeEach(() => {
   vi.mocked(loadWebsiteProfile).mockReset().mockResolvedValue({})
   vi.mocked(extensionRequest).mockReset().mockResolvedValue(null)
   vi.mocked(loadExperiences).mockResolvedValue({ items: [], confirmed: false })
+  vi.mocked(extractTextFromFile).mockReset().mockResolvedValue({ text: '', charCount: 0, pageCount: 1 })
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value: function (this: HTMLDialogElement) { this.open = true } })
   host = document.createElement('div'); document.body.append(host); root = createRoot(host)
@@ -46,6 +48,41 @@ it('只要求附件和岗位入口，基本资料留空也能交接；未核对�
   expect(makeWebsiteBatch).toHaveBeenCalledWith(expect.any(Array), {}, expect.any(Object), expect.any(File), [])
   expect(extensionRequest).toHaveBeenCalledWith('stage', { id: 'batch' })
   expect(host.textContent).toContain('下一步：点击浏览器工具栏')
+})
+
+async function replaceAttachment() {
+  const input = host.querySelector<HTMLInputElement>('input[type=file]')!
+  Object.defineProperty(input, 'files', { configurable: true, value: [new File(['new'], 'new.txt')] })
+  await act(async () => input.dispatchEvent(new Event('change', { bubbles: true })))
+}
+it('更换简历更新自动读取的姓名邮箱，并清除新文件没有的旧手机号', async () => {
+  vi.mocked(extractTextFromFile).mockResolvedValueOnce({ text: '姓名：旧姓名\n邮箱：old@example.com\n手机号：13800138000', charCount: 50, pageCount: 1 })
+    .mockResolvedValueOnce({ text: '姓名：新姓名\n邮箱：new@example.com', charCount: 30, pageCount: 1 })
+  await act(async () => withJob(job()))
+  expect(inputFor('姓名').value).toBe('旧姓名')
+  await replaceAttachment()
+  expect(inputFor('姓名').value).toBe('新姓名')
+  expect(inputFor('邮箱').value).toBe('new@example.com')
+  expect(inputFor('手机号').value).toBe('')
+  await act(async () => submit().click())
+  expect(makeWebsiteBatch).toHaveBeenLastCalledWith(expect.any(Array), {}, expect.objectContaining({ name: '新姓名', email: 'new@example.com' }), expect.objectContaining({ name: 'new.txt' }), [])
+})
+it('更换简历保留手动姓名和主动清空的邮箱，解析失败也不残留旧自动资料', async () => {
+  vi.mocked(extractTextFromFile).mockResolvedValueOnce({ text: '姓名：旧姓名\n邮箱：old@example.com\n手机号：13800138000', charCount: 50, pageCount: 1 })
+    .mockResolvedValueOnce({ text: '姓名：新姓名\n邮箱：new@example.com', charCount: 30, pageCount: 1 })
+    .mockRejectedValueOnce(new Error('读取失败'))
+  await act(async () => withJob(job()))
+  await type(inputFor('姓名'), '手动姓名'); await type(inputFor('邮箱'), '')
+  await replaceAttachment()
+  expect(inputFor('姓名').value).toBe('手动姓名'); expect(inputFor('邮箱').value).toBe('')
+  await replaceAttachment()
+  expect(inputFor('姓名').value).toBe('手动姓名'); expect(inputFor('邮箱').value).toBe(''); expect(inputFor('手机号').value).toBe('')
+})
+it('当前简历中明确的个人信息优先于上次保存的资料', async () => {
+  vi.mocked(loadWebsiteProfile).mockResolvedValueOnce({ name: '上次姓名', email: 'saved@example.com' })
+  vi.mocked(extractTextFromFile).mockResolvedValueOnce({ text: '姓名：当前姓名\n邮箱：current@example.com', charCount: 30, pageCount: 1 })
+  await act(async () => withJob(job()))
+  expect(inputFor('姓名').value).toBe('当前姓名'); expect(inputFor('邮箱').value).toBe('current@example.com')
 })
 
 it('缺附件时解释原因，并能在窗口内直接选择简历', async () => {

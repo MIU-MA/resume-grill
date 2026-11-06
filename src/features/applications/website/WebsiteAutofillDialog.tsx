@@ -18,6 +18,14 @@ const labels = { pending: '待读取', opening: '打开页面中', filling: '填
 export function WebsiteAutofillDialog({ drafts, attachment, resumeId, sender, initialUrls = {}, onClose }: { drafts: Draft[]; attachment: File | null; resumeId?: string; sender?: MailSender | null; initialUrls?: Record<string, string>; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const [profile, setProfile] = useState<WebsiteProfile>({})
+  const manualProfile = useRef<WebsiteProfile>({})
+  const detectedProfile = (source: string) => Object.fromEntries(Object.entries(seedWebsiteProfile(source)).filter(([, value]) => value?.trim()))
+  const editProfile = (next: WebsiteProfile) => {
+    for (const key of Object.keys(next) as Array<keyof WebsiteProfile>) {
+      if (next[key] !== profile[key]) manualProfile.current[key] = next[key]
+    }
+    setProfile(next)
+  }
   const [selectedAttachment, setSelectedAttachment] = useState(attachment)
   const [urls, setUrls] = useState<Record<string, string>>(initialUrls)
   const [connected, setConnected] = useState(false)
@@ -43,13 +51,13 @@ export function WebsiteAutofillDialog({ drafts, attachment, resumeId, sender, in
         try { source = (await extractTextFromFile(attachment)).text }
         catch { if (active) setMessage('未能读取附件文字，可手动补充资料；附件仍可用于官网填写。') }
       }
-      const initial = { ...seedWebsiteProfile(source, sender), ...saved }
+      const initial = { ...seedWebsiteProfile('', sender), ...saved, ...detectedProfile(source) }
       const experiences = await loadExperiences(source)
       if (active) {
         setExperienceSource(source); setExperienceDraft(experiences)
         // Inputs are editable while loading. Preserve every user edit, including
         // intentional empty values; an older extension batch is not this draft.
-        setProfile(current => ({ ...initial, ...current }))
+        setProfile({ ...initial, ...manualProfile.current })
         setReady(true)
       }
     }).catch(() => { if (active) setError('填写资料未能读取，请检查浏览器存储。') })
@@ -70,7 +78,7 @@ export function WebsiteAutofillDialog({ drafts, attachment, resumeId, sender, in
     // Snapshot the selected resume and sender when this dialog opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-  const field = (key: keyof WebsiteProfile) => <ResumeProfileFields key={key} keys={[key]} profile={profile} disabled={busy} onChange={setProfile} optional describedBy="website-profile-help" invalidKeys={!parsedProfile.success && parsedProfile.error.issues.some(issue => issue.path[0] === key) ? [key] : []} />
+  const field = (key: keyof WebsiteProfile) => <ResumeProfileFields key={key} keys={[key]} profile={profile} disabled={busy} onChange={editProfile} optional describedBy="website-profile-help" invalidKeys={!parsedProfile.success && parsedProfile.error.issues.some(issue => issue.path[0] === key) ? [key] : []} />
   const chooseAttachment = async (file: File) => {
     if (!validResumeAttachment(file)) { setError('请选择 5 MB 以内的 PDF、DOCX 或 TXT 简历。'); return }
     setBusy(true); setError(''); setMessage(''); setSelectedAttachment(file)
@@ -79,8 +87,8 @@ export function WebsiteAutofillDialog({ drafts, attachment, resumeId, sender, in
       const source = (await extractTextFromFile(file)).text
       const experiences = await loadExperiences(source)
       setExperienceSource(source); setExperienceDraft(experiences)
-      setProfile(current => ({ ...seedWebsiteProfile(source, sender), ...current }))
-    } catch { setMessage('附件已选择，但未能读取其中的文字。可手动补充资料，附件仍会交给扩展。') }
+      setProfile({ ...seedWebsiteProfile('', sender), ...detectedProfile(source), ...manualProfile.current })
+    } catch { setProfile({ ...manualProfile.current }); setMessage('附件已选择，但未能读取其中的文字。请重新核对个人资料，附件仍会交给扩展。') }
     finally { setBusy(false) }
   }
   return <dialog ref={dialog} onCancel={event => { if (busy) event.preventDefault(); else onClose() }} aria-label="官网批量填写" className="mail-dialog resume-workbench w-[760px] max-w-[calc(100vw-24px)] border border-line-strong bg-surface p-0 text-text-primary backdrop:bg-black/30">

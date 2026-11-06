@@ -10,6 +10,47 @@ beforeEach(() => {
   host = document.createElement('div'); document.body.append(host); root = createRoot(host)
 })
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.useRealTimers(); vi.unstubAllGlobals() })
+it.each(['success', 'unauthorized', 'network'])('旧轮询不能覆盖已成功操作的状态：%s', async outcome => {
+  let resolve!: (value: Response) => void
+  let reject!: (error: Error) => void
+  const configured = { jobs: [], sender: { name: '演示', address: 'demo@example.com' } }
+  const fetchMock = vi.fn((url: string) => url.endsWith('/status') ? new Promise<Response>((done, fail) => { resolve = done; reject = fail }) : Promise.resolve(Response.json(configured)))
+  vi.stubGlobal('fetch', fetchMock)
+  await act(async () => root.render(createElement(Harness)))
+  let polling!: ReturnType<typeof agent.refresh>
+  await act(async () => { polling = agent.refresh() })
+  await act(async () => { await agent.command('/configure', {}) })
+  await act(async () => {
+    if (outcome === 'network') reject(new Error('offline'))
+    else resolve(Response.json(outcome === 'success' ? { jobs: [], sender: null } : { error: 'expired' }, { status: outcome === 'unauthorized' ? 401 : 200 }))
+    await polling
+  })
+  expect(agent.snapshot?.sender?.address).toBe('demo@example.com'); expect(agent.connectionError).toBe('')
+})
+it('操作进行中暂停轮询，结束后可读取新状态', async () => {
+  let resolve!: (value: Response) => void
+  const fetchMock = vi.fn((url: string) => url.endsWith('/configure') ? new Promise<Response>(done => { resolve = done }) : Promise.resolve(Response.json({ jobs: [], sender: null, paused: true })))
+  vi.stubGlobal('fetch', fetchMock)
+  await act(async () => root.render(createElement(Harness)))
+  let command!: ReturnType<typeof agent.command>
+  await act(async () => { command = agent.command('/configure', {}) })
+  await act(async () => { expect(await agent.refresh()).toBeNull() })
+  expect(fetchMock).toHaveBeenCalledTimes(1)
+  await act(async () => { resolve(Response.json({ jobs: [], sender: null })); await command })
+  await act(async () => { await agent.refresh() })
+  expect(agent.snapshot?.paused).toBe(true)
+})
+it('主动断开后忽略迟到的连接成功结果', async () => {
+  let resolve!: (value: Response) => void
+  vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(done => { resolve = done })))
+  await act(async () => root.render(createElement(Harness)))
+  let connecting!: Promise<void>
+  await act(async () => { connecting = agent.connect('pending-token') })
+  await act(async () => agent.forgetConnection())
+  await act(async () => { resolve(Response.json({ jobs: [], sender: null })); await connecting })
+  expect(agent.token).toBe(''); expect(agent.snapshot).toBeNull()
+  expect(sessionStorage.getItem('mail-workbench:connection')).toBeNull()
+})
 it('旧执行器只接受 url：已连接旧服务时不发送新字段，原抓取不会因关键词被 400 拒绝', async () => {
   vi.useFakeTimers()
   const bodies: unknown[] = []

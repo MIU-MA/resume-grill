@@ -25,6 +25,60 @@ beforeEach(async () => {
   await act(async () => root.render(createElement(Harness)))
 })
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals() })
+it.each(['success', 'error'])('切换练习后忽略旧追问的迟到结果：%s', async outcome => {
+  await act(async () => hook.start(claim))
+  const originalSession = callbacks.onSessionSaved.mock.calls.at(-1)![1] as InterviewSession
+  await act(async () => hook.setAnswer('尚未完成的旧回答'))
+  let resolve!: (value: Response) => void
+  let reject!: (error: Error) => void
+  fetchMock.mockImplementationOnce(() => new Promise<Response>((done, fail) => { resolve = done; reject = fail }))
+  let pending!: Promise<void>
+  await act(async () => { pending = hook.submit(claim) })
+  const signal = fetchMock.mock.calls.at(-1)![1].signal as AbortSignal
+  await act(async () => hook.reset())
+  expect(signal.aborted).toBe(true); expect(hook.loading).toBe(false)
+  const next = { ...claim, id: 'b', initialQuestion: '新问题' }
+  await act(async () => hook.start(next))
+  await act(async () => hook.setAnswer('新回答'))
+  callbacks.onSessionSaved.mockClear(); callbacks.onError.mockClear()
+  await act(async () => {
+    if (outcome === 'success') resolve(Response.json({ isFinal: false, nextQuestion: '旧第二问', evaluation: {}, nextReason: '' }))
+    else reject(new Error('旧请求失败'))
+    await pending
+  })
+  expect(hook.currentQuestion).toBe('新问题'); expect(hook.answer).toBe('新回答')
+  expect(callbacks.onSessionSaved).not.toHaveBeenCalled(); expect(callbacks.onError).not.toHaveBeenCalled()
+  await act(async () => hook.restore(claim, originalSession))
+  expect(hook.answer).toBe('尚未完成的旧回答')
+})
+it('重置时中止总结，迟到的总结不能写回会话或显示成功提示', async () => {
+  await act(async () => hook.start(claim))
+  await act(async () => hook.setAnswer('回答'))
+  let resolve!: (value: Response) => void
+  fetchMock.mockImplementation(async (url: string) => url === '/api/summarize' ? new Promise<Response>(done => { resolve = done }) : Response.json({ isFinal: true, nextQuestion: '', nextReason: '', evaluation: {} }))
+  let pending!: Promise<void>
+  await act(async () => { pending = hook.submit(claim) })
+  expect(hook.done).toBe(true)
+  const signal = fetchMock.mock.calls.at(-1)![1].signal as AbortSignal
+  await act(async () => hook.reset())
+  expect(signal.aborted).toBe(true)
+  callbacks.onSessionSaved.mockClear(); callbacks.onToast.mockClear()
+  await act(async () => { resolve(Response.json(result)); await pending })
+  expect(callbacks.onSessionSaved).not.toHaveBeenCalled(); expect(callbacks.onToast).not.toHaveBeenCalled()
+  expect(hook.loading).toBe(false); expect(hook.rounds).toEqual([])
+})
+it('重置后不接受迟到的重新生成复盘结果', async () => {
+  await act(async () => hook.start(claim))
+  const session = callbacks.onSessionSaved.mock.calls.at(-1)![1] as InterviewSession
+  let resolve!: (value: Response) => void
+  fetchMock.mockImplementationOnce(() => new Promise<Response>(done => { resolve = done }))
+  let pending!: Promise<boolean>
+  await act(async () => { pending = hook.regenerateSummary(claim, { ...session, status: 'done' }) })
+  await act(async () => hook.reset())
+  callbacks.onSessionSaved.mockClear()
+  await act(async () => { resolve(Response.json(result)); expect(await pending).toBe(false) })
+  expect(callbacks.onSessionSaved).not.toHaveBeenCalled(); expect(hook.regeneratingId).toBeNull()
+})
 it('一次练习的追问、复盘和保存均使用开始时的岗位与复习记录', async () => {
   const original = structuredClone(context)
   await act(async () => hook.start(claim))

@@ -42,15 +42,21 @@ export function inferEmployment(...values: Array<string | undefined>): Employmen
   return 'unknown'
 }
 export function inferDirection(...values: Array<string | undefined>): JobDirection {
-  const text = values.filter(Boolean).join(' ')
-  if (/前端|frontend|web|react|vue|next\.?js/i.test(text)) return 'frontend'
-  if (/后端|backend|服务端|java|golang|go 语言|python|node|php|c\+\+/i.test(text)) return 'backend'
-  if (/算法|机器学习|深度学习|大模型|nlp|cv|推荐|aigc/i.test(text)) return 'algorithm'
-  if (/数据分析|数据开发|数仓|数据工程|\bbi\b/i.test(text)) return 'data'
-  if (/产品经理|产品运营|产品/i.test(text)) return 'product'
-  if (/设计|ui|ux|视觉|交互/i.test(text)) return 'design'
-  if (/运营|增长|内容/i.test(text)) return 'operations'
-  if (/测试|qa|质量/i.test(text)) return 'test'
+  const rules: Array<[JobDirection, RegExp]> = [
+    ['test', /测试|\bqa\b|质量/i],
+    ['algorithm', /算法|机器学习|深度学习|大模型|\bnlp\b|\bcv\b|推荐|aigc/i],
+    ['data', /数据分析|数据开发|数仓|数据工程|\bbi\b/i],
+    ['product', /产品经理|产品运营|产品/i],
+    ['design', /设计|\bui\b|\bux\b|视觉|交互/i],
+    ['operations', /运营|增长|内容/i],
+    ['frontend', /前端|front[ -]?end|\bweb\b|\breact\b|\bvue\b|next\.?js/i],
+    ['backend', /后端|back[ -]?end|服务端|\bjava\b|golang|go 语言|\bpython\b|\bnode\b|\bphp\b|c\+\+/i],
+  ]
+  // The position title takes precedence over tools mentioned in its description.
+  for (const text of [values[0] ?? '', values.slice(1).filter(Boolean).join(' ')]) {
+    const match = rules.find(([, pattern]) => pattern.test(text))
+    if (match) return match[0]
+  }
   return 'other'
 }
 
