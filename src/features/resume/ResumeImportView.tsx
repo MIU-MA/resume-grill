@@ -14,6 +14,7 @@ import { resumeLibraryEntries } from './resume-library-entries'
 import type { SidebarBadges } from '@/features/workspace/WorkspaceSidebar'
 import { AppShell } from '@/features/workspace/AppShell'
 import type { Mode } from '@/application/types'
+import { ResumePasteInput } from './ResumePasteInput'
 
 const SAMPLE_RESUME = `酒寄彩叶
 全栈工程师 | 4 年 Web 开发经验
@@ -63,7 +64,7 @@ type ResumeImportViewProps = {
 
 export function ResumeImportView({ onNavigate, badges, analyzing, error, onExtracted, envConfigured, clientConfigured, onClientChanged, savedRecords, savedDocuments, onOpenDocument, onDeleteDocument, loadingRecords, onOpenSaved, onDeleteSaved }: ResumeImportViewProps) {
   const [tab, setTab] = useState<Tab>('file')
-  const [paste, setPaste] = useState('')
+  const paste = useRef('')
   const [fileName, setFileName] = useState<string | null>(null)
   const [parsing, setParsing] = useState(false)
   const settingsDialog = useSettingsDialog()
@@ -73,7 +74,7 @@ export function ResumeImportView({ onNavigate, badges, analyzing, error, onExtra
   const fileInput = useRef<HTMLInputElement>(null)
 
   const handleFile = async (file?: File) => {
-    if (!file) return
+    if (!file || parsing || analyzing) return
     setFileName(file.name)
     setParsing(true)
     setParseError(null)
@@ -88,11 +89,15 @@ export function ResumeImportView({ onNavigate, badges, analyzing, error, onExtra
     }
   }
 
-  const handlePaste = async () => {
-    const text = paste.trim()
+  const handlePaste = async (value: string) => {
+    const text = value.trim()
     if (!text || parsing) return
+    if (text.length > 20000) { setParseError('简历正文超过 20000 字，请精简后再导入。'); return }
     setParsing(true)
-    try { await onExtracted({ text, pageCount: 1, charCount: text.length }, '粘贴文本') } finally { setParsing(false) }
+    setParseError(null)
+    try { await onExtracted({ text, pageCount: 1, charCount: text.length }, '粘贴文本') }
+    catch (cause) { setParseError(cause instanceof Error ? cause.message : '文本导入失败，请重试。') }
+    finally { setParsing(false) }
   }
 
   const entryCount = resumeLibraryEntries(savedRecords, savedDocuments).length
@@ -156,16 +161,13 @@ export function ResumeImportView({ onNavigate, badges, analyzing, error, onExtra
             onDragLeave={(event) => { event.preventDefault(); setDragOver(false) }}
             onDrop={(event) => { event.preventDefault(); setDragOver(false); if (!parsing && !analyzing) { const file = event.dataTransfer.files?.[0]; if (file) void handleFile(file) } }}
           >
-            <input ref={fileInput} type="file" accept=".pdf,.txt,.md,.docx" hidden disabled={parsing || analyzing} onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleFile(file) }} />
+            <input ref={fileInput} type="file" accept=".pdf,.txt,.md,.docx" hidden disabled={parsing || analyzing} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void handleFile(file) }} />
             {parsing ? <Loader2 size={24} className="animate-spin text-brand" /> : <Upload size={24} className="text-brand" />}
-            <p className="m-0 text-body">{parsing ? '正在解析文件…' : '拖拽文件到这里'}</p>
+            <p className="m-0 text-body">{parsing ? fileName ? /\.pdf$/i.test(fileName) ? '正在读取 PDF 文本…' : '正在读取简历…' : '正在保存简历…' : '拖拽文件到这里'}</p>
             <Button variant="primary" className="h-8 text-label" disabled={parsing || analyzing} onClick={() => fileInput.current?.click()}>选择文件</Button>
-            <span className="text-meta text-text-tertiary">PDF / DOCX / TXT / Markdown</span>
+            <span className="text-meta text-text-tertiary">PDF / DOCX / TXT / Markdown · 最大 10 MB</span>
             {fileName && !parsing && <span className="max-w-full truncate text-meta text-text-tertiary">{fileName}</span>}
-          </div> : <>
-            <textarea aria-label="粘贴简历文本" className="block h-[180px] w-full resize-y border border-line-strong bg-white p-4 text-label leading-[1.8] focus:border-brand" placeholder="直接粘贴简历文本…" value={paste} onChange={(event) => setPaste(event.target.value)} disabled={analyzing} />
-            <Button variant="primary" className="mt-3 w-full" disabled={parsing || analyzing || paste.trim().length === 0} onClick={handlePaste}>导入文本<ArrowRight size={14} /></Button>
-          </>}
+          </div> : <ResumePasteInput draft={paste} disabled={parsing || analyzing} onImport={value => void handlePaste(value)} />}
 
           {parseError && <p role="alert" className="mt-3 text-body leading-relaxed text-danger">解析失败：{parseError}<button type="button" className="ml-2 underline" onClick={() => setParseError(null)}>关闭</button></p>}
           {error && <p role="alert" className="mt-3 text-body leading-relaxed text-danger">{error}</p>}

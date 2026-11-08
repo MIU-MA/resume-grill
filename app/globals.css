@@ -572,3 +572,32 @@ input.mail-input, select.mail-input { height: 36px; }
   .mail-list { flex: none; max-height: 220px; min-height: 110px; border-right: none; border-bottom: 1px solid var(--color-line); }
   .mail-work-area > section:last-child { overflow-y: visible; flex: none; }
 }
+
+/* Optional dark workbench; PDF paper keeps its original white background. */
+html.dark {
+  color-scheme: dark;
+  --color-bg: #191c20;
+  --color-surface: #22262b;
+  --color-surface-soft: #292e34;
+  --color-surface-hover: #343b43;
+  --color-canvas: #171a1e;
+  --color-text-primary: #eeeee8;
+  --color-text-secondary: #c5c9ce;
+  --color-text-tertiary: #a6aeb7;
+  --color-text-muted: #9ca5af;
+  --color-line: #3c434b;
+  --color-line-strong: #68727e;
+  --color-brand: #7e8d9d;
+  --color-brand-hover: #96a4b4;
+  --color-brand-soft: #303a46;
+  --color-info: #9bbde0;
+  --color-info-soft: #293849;
+  --color-success: #b4c8a4;
+  --color-success-soft: #303c2c;
+  --color-warning: #e9c28b;
+  --color-warning-soft: #443728;
+  --color-danger: #f0a39b;
+  --color-danger-soft: #462e2c;
+}
+html.dark .bg-white:not([data-pdf-page]) { background-color: var(--color-surface); }
+html.dark .pdf-preview [data-pdf-page] { background: white; color: #282d33; }

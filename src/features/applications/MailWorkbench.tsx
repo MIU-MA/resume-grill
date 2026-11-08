@@ -47,7 +47,7 @@ export function MailWorkbench({ mode = 'applications', badges, onNavigate, onHom
     selectedDescription, startTailoring, attachmentLabel, run, updateById, update,
     prepareJob, addDraft, importContacts, removeDraft, preparePreview, previewQuickMail, jobAction,
     openDraft, markApplied, deleteEntry, saveRecord, assistantTools, addCareerPage, returnWebsiteToDrafts,
-    chooseFile, extractSelected, applyTailoring, saveDefaults, sendPreview, editPreview,
+    chooseFile, extractSelected, applyTailoring, saveDefaults, sendPreview, editPreview, prepareEntry, canPrepareEntry,
   } = useMailWorkbench({ mode, onNavigate, onPrepare })
   const draftEditor = selected && tab === 'drafts' ? <DraftEditor key={selected.id} draft={selected as Draft} sender={snapshot?.sender ?? (defaults.sender.name ? defaults.sender : null)} template={renderMailTemplate(defaults, selected as Draft, snapshot?.sender)} connected={!!snapshot} busy={busy} focusRequest={focusRequest} attachmentLabel={attachmentLabel}
     onTailor={() => startTailoring(selected as Draft)} tailoredStatus={preparationByJob[selected.id]?.tailoredResume ? tailoringIsCurrent(selected as Draft, preparationByJob[selected.id]) ? 'current' : 'outdated' : undefined}
@@ -174,6 +174,8 @@ export function MailWorkbench({ mode = 'applications', badges, onNavigate, onHom
         onSaveProgress={(id, changes) => tracking.saveProgress(id, changes)}
         onMailAction={(entry, action) => { if (entry.mail) void run(() => jobAction(entry.mail!, action)) }}
         onReturnToDrafts={returnWebsiteToDrafts}
+        onPrepare={entry => void run(() => prepareEntry(entry))}
+        canPrepare={canPrepareEntry}
       />}
     </div>
     {editOpen && tab === 'drafts' && selected && <DraftDialog disabled={busy} onClose={() => setEditOpen(false)}><nav className="flex gap-4 border-b border-line px-5 py-3 text-meta" aria-label="岗位详情切换"><button onClick={() => setShowDossier(false)} className={!showDossier ? 'font-semibold underline' : 'text-text-secondary'}>编辑投递</button><button onClick={() => setShowDossier(true)} className={showDossier ? 'font-semibold underline' : 'text-text-secondary'}>岗位资料</button></nav>{showDossier ? <JobDossier key={selected.id} id={selected.id} title={[selected.company, selected.role].filter(Boolean).join(' / ') || selected.recipient || '待投递岗位'} sourceUrl={selected.sourceUrl} deliveryStatus="draft" preparation={selectedPreparation} submission={tracking.tracker.submissions[selected.id]} progress={tracking.tracker.progress[selected.id]} disabled={busy || !tracking.loaded} onSave={change => tracking.saveProgress(selected.id, change)} onOpenRecord={onOpenRecord} jobRequirements={<JobPreparationPanel jobDescription={selectedDescription} attachmentLabel={attachmentLabel} busy={busy} onChange={jobDescription => update({ jobDescription })} onPrepare={intent => void run(() => prepareJob(intent))} />} delivery={<p className="text-text-secondary">这个岗位还在待投递清单，可在“编辑投递”中核对附件和内容。</p>} /> : draftEditor}</DraftDialog>}

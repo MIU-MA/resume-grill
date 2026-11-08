@@ -1,6 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { ResumeFitPanel } from './ResumeFitPanel'
 import { ArrowLeft, ArrowRight, FileText, Menu, Mail, Settings, Loader2, Download, X } from 'lucide-react'
 import type { ExtractedText } from '@/features/resume/lib/pdf'
 import { ScrollArea } from '@/components/ui/ScrollArea'
@@ -75,6 +76,7 @@ export function ResumeReviewView({ sourceFile, demo, extracted, analyzing, error
   })
   return (
     <section className="resume-workbench flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <ResumeFitPanel text={editingText} jd={jobDescription} disabled={analyzing || revisionBusy || leaving || revisionConflict} onChange={updateText} />
       <header className="flex h-14 flex-none items-center gap-4 border-b border-line px-4 sm:px-6">
         <button type="button" className="grid size-8 place-items-center text-text-secondary hover:bg-surface-hover md:hidden" onClick={openNav} aria-label="打开导航"><Menu size={16} /></button>
         <strong className="flex-none text-body font-semibold">{embedded ? '简历检查' : 'Resume Grill'}</strong>

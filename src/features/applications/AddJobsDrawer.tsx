@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/Button'
+import { Dialog } from '@/components/ui/Dialog'
 import type { AgentSnapshot, CareerPage, MailBatch } from '@/domain/mail-schema'
 import type { MailDefaults } from './mail/lib/mail-defaults'
 import type { Draft } from './mail/lib/draft-state'
@@ -34,11 +35,10 @@ export function AddJobsDrawer({ open, onClose, mode, onModeChange, connected, bu
 }) {
   if (!open) return null
   const disabled = busy || !!preview || !!snapshot?.running || pending > 0 || !!snapshot?.fatalError
-  return <div className="fixed inset-0 z-50 bg-black/30" onClick={onClose}>
-    <div className="absolute inset-y-0 right-0 flex w-[min(760px,100vw)] flex-col overflow-y-auto border-l border-line-strong bg-surface" onClick={event => event.stopPropagation()}>
+  return <Dialog open label="添加岗位" placement="right" onClose={() => { if (!busy) onClose() }} panelClassName="flex w-[min(760px,100vw)] flex-col overflow-y-auto border-l border-line-strong bg-surface">
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-surface px-5 py-3">
         <strong className="text-section font-semibold">添加岗位</strong>
-        <Button variant="link" className="text-label text-text-secondary" onClick={onClose}>关闭</Button>
+        <Button variant="link" className="text-label text-text-secondary" disabled={busy} onClick={onClose}>关闭</Button>
       </header>
       <div className="mail-import-area flex-none">
         <div className="mail-input-modes flex flex-wrap items-center gap-x-4 gap-y-2 px-5 pt-3 text-body">
@@ -52,6 +52,5 @@ export function AddJobsDrawer({ open, onClose, mode, onModeChange, connected, bu
         {mode === 'contacts' && <ContactImporter disabled={busy || !!preview} slots={20 - drafts.length} onImport={onImportContacts} />}
         {mode === 'links' && <LinkImporter onBusy={onBusy} existingUrls={drafts.filter(draft => (draft.extraction?.jobs?.length ?? 0) < 2).map(draft => draft.sourceUrl)} existingJobs={drafts.map(({ sourceUrl, role }) => ({ sourceUrl, role }))} slots={20 - drafts.length} connected={connected} onConnect={onConnect} read={onRead} onImported={onImported} />}
       </div>
-    </div>
-  </div>
+  </Dialog>
 }

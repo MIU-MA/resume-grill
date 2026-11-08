@@ -51,20 +51,32 @@ export function PdfPages({ file, artifact, disabled, selectedStart, changedRange
       <span className="ml-auto text-meta text-text-tertiary" title="滚轮滚动；Ctrl / ⌘ + 滚轮缩放；左键按住拖动查看整页">滚轮滚动 · Ctrl / ⌘ 缩放</span>
     </div>
     <div ref={container} tabIndex={0} aria-label="简历预览画布" className={`min-h-0 min-w-0 flex-1 space-y-4 overflow-auto overscroll-contain p-1 focus-visible:outline-brand ${navigation.cursor ? '[&_button]:cursor-inherit' : ''}`} style={{ cursor: navigation.cursor, userSelect: navigation.dragging ? 'none' : undefined }}>
-      {Array.from({ length: document.numPages }, (_, index) => <PdfPage key={index} document={document} pageNumber={index + 1} layout={artifact?.pages[index]} disabled={disabled} selectedStart={selectedStart} changedRanges={changedRanges} onSelect={onSelect} zoom={zoom} />)}
+      {Array.from({ length: document.numPages }, (_, index) => <PdfPage key={index} scrollRoot={container} document={document} pageNumber={index + 1} layout={artifact?.pages[index]} disabled={disabled} selectedStart={selectedStart} changedRanges={changedRanges} onSelect={onSelect} zoom={zoom} />)}
     </div>
   </div>
 }
 
-function PdfPage({ document, pageNumber, layout, disabled, selectedStart, changedRanges, onSelect, zoom }: {
+function PdfPage({ document, pageNumber, layout, disabled, selectedStart, changedRanges, onSelect, zoom, scrollRoot }: {
+  scrollRoot: React.RefObject<HTMLDivElement | null>
   document: PDFDocumentProxy; pageNumber: number; layout?: ResumePdfArtifact['pages'][number]; disabled?: boolean; selectedStart?: number; changedRanges?: Props['changedRanges']; onSelect?: Props['onSelect']; zoom: number
 }) {
   const pageWidth = layout?.width ?? RESUME_PAGE.width, pageHeight = layout?.height ?? RESUME_PAGE.height
   const canvas = useRef<HTMLCanvasElement>(null)
+  const frame = useRef<HTMLDivElement>(null)
+  const [visible, setVisible] = useState(pageNumber === 1)
+  useEffect(() => {
+    if (!frame.current || typeof IntersectionObserver === 'undefined') { setVisible(true); return }
+    const observer = new IntersectionObserver(entries => setVisible(entries.some(entry => entry.isIntersecting)), { root: scrollRoot.current, rootMargin: '800px 0px' })
+    observer.observe(frame.current)
+    return () => observer.disconnect()
+  }, [scrollRoot])
   const [ratio, setRatio] = useState(RESUME_PAGE.width / RESUME_PAGE.height)
   const [error, setError] = useState('')
   useEffect(() => {
+    if (!visible) return
     let active = true
+    const element = canvas.current
+    setError('')
     let task: ReturnType<Awaited<ReturnType<PDFDocumentProxy['getPage']>>['render']> | undefined
     void document.getPage(pageNumber).then(page => {
       if (!active || !canvas.current) return
@@ -77,11 +89,11 @@ function PdfPage({ document, pageNumber, layout, disabled, selectedStart, change
     }).catch(cause => {
       if (active) setError(cause instanceof Error ? cause.message : '页面显示失败。')
     })
-    return () => { active = false; task?.cancel() }
-  }, [document, pageNumber])
+    return () => { active = false; task?.cancel(); if (element) { element.width = 0; element.height = 0 } }
+  }, [document, pageNumber, visible])
   return <div>
-    <div data-pdf-page={pageNumber} className="relative mx-auto border border-line-strong bg-white" style={{ aspectRatio: ratio, width: `calc(min(100%, 794px) * ${zoom / 100})` }}>
-      <canvas ref={canvas} className="block h-full w-full" aria-label={`简历 PDF 第 ${pageNumber} 页`} />
+    <div ref={frame} data-pdf-page={pageNumber} className="relative mx-auto border border-line-strong bg-white" style={{ aspectRatio: ratio, width: `calc(min(100%, 794px) * ${zoom / 100})` }}>
+      {visible && <canvas ref={canvas} className="block h-full w-full" aria-label={`简历 PDF 第 ${pageNumber} 页`} />}
       {layout?.blocks.filter(block => block.kind !== 'blank').map((block, index) => <button key={`${block.start}-${block.top}`} type="button" aria-label={`修改第 ${pageNumber} 页第 ${index + 1} 段`} title="点击修改这段" disabled={disabled} data-resume-start={block.start} onClick={() => onSelect?.(block)} className={`absolute border text-left hover:border-brand hover:bg-brand/10 focus:border-brand focus:outline-brand ${selectedStart === block.start ? 'border-brand bg-brand/10' : changedRanges?.some(range => range.start < block.end && range.end > block.start) ? 'border-brand/30 bg-brand/5' : 'border-transparent'}`} style={{ left: `${(block.left ?? RESUME_PAGE.margin) / pageWidth * 100}%`, width: `${(block.width ?? pageWidth - RESUME_PAGE.margin * 2) / pageWidth * 100}%`, top: `${block.top / pageHeight * 100}%`, height: `${block.height / pageHeight * 100}%` }} />)}
     </div>
     {error && <p role="alert" className="text-body text-danger">{error}</p>}

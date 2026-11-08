@@ -9,7 +9,9 @@ import { ApplicationProgressEditor } from './ApplicationProgressEditor'
 import { MailJobDetails } from '../mail/MailJobDetails'
 import { MAIL_STATUS_TONES, savedDate, savedDay, safeLink } from '../mail/lib/mail-presentation'
 
-export function ApplicationEntryDetail({ entry, progress, disabled, onEdit, onDelete, onSaveProgress, onMailAction, onReturnToDrafts }: {
+export function ApplicationEntryDetail({ entry, progress, disabled, onEdit, onDelete, onSaveProgress, onMailAction, onReturnToDrafts, onPrepare, canPrepare }: {
+  onPrepare?: () => void
+  canPrepare?: boolean
   entry: ApplicationEntry
   progress?: ApplicationProgress
   disabled: boolean
@@ -22,6 +24,7 @@ export function ApplicationEntryDetail({ entry, progress, disabled, onEdit, onDe
   const status = applicationEntryStatus(entry, progress)
   const link = entry.sourceUrl ? safeLink(entry.sourceUrl) : undefined
   return <article className="space-y-5 p-5 text-body" aria-label="投递记录详情">
+    {onPrepare && <div className="space-y-2"><Button disabled={disabled || !canPrepare} onClick={onPrepare}>按下一轮类型准备面试</Button>{!canPrepare && <p className="text-meta text-text-tertiary">这条记录尚无关联的 JD 或简历附件。</p>}</div>}
     <header className="space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">

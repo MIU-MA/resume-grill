@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { APPLICATION_STAGES, emptyApplicationProgress, type ApplicationProgress, type ApplicationStage } from '@/domain/application-progress'
 import { Button } from '@/components/ui/Button'
+import { INTERVIEW_KINDS, type InterviewKind } from '@/domain/interview-strategy'
 
 export function ApplicationProgressEditor({ value, disabled, onSave }: { value?: ApplicationProgress; disabled?: boolean; onSave: (changes: Partial<ApplicationProgress>) => Promise<void> }) {
   const [draft, setDraft] = useState(() => value ?? emptyApplicationProgress())
@@ -25,10 +26,11 @@ export function ApplicationProgressEditor({ value, disabled, onSave }: { value?:
   return <form className="space-y-5" onSubmit={event => {
     event.preventDefault(); setSaving(true); setMessage('')
     const { stage, contact, interviewAt, nextAction, followUpAt, note } = draft
-    void onSave({ stage, contact, interviewAt, nextAction, followUpAt, note }).then(() => { edited.current.clear(); setMessage('已保存。') }).catch(() => setMessage('保存失败，填写内容还在，请重试。')).finally(() => setSaving(false))
+    void onSave({ stage, contact, interviewAt, nextAction, followUpAt, note, interviewKind: draft.interviewKind ?? 'technical' }).then(() => { edited.current.clear(); setMessage('已保存。') }).catch(() => setMessage('保存失败，填写内容还在，请重试。')).finally(() => setSaving(false))
   }}>
     <fieldset disabled={disabled || saving} className="m-0 min-w-0 space-y-5 border-0 p-0">
       <div className="grid gap-4 sm:grid-cols-2"><label className="mail-label">求职进展<select className="mail-input" value={draft.stage} onChange={e => change({ stage: e.target.value as ApplicationStage })}>{Object.entries(APPLICATION_STAGES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label></div>
+      <label className="mail-label">下一轮面试类型<select className="mail-input" value={draft.interviewKind ?? 'technical'} onChange={event => change({ interviewKind: event.target.value as InterviewKind })}>{Object.entries(INTERVIEW_KINDS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select><span className="text-meta text-text-tertiary">保存后，从此岗位准备面试时采用对应策略。</span></label>
       <details open={!!(draft.contact || draft.interviewAt || draft.followUpAt || draft.nextAction)} className="border-y border-line py-3"><summary className="cursor-pointer text-label text-text-secondary">联系人和后续安排（选填）</summary><div className="mt-4 space-y-4">
         {field('contact', '联系人')}
       <div className="grid gap-4 sm:grid-cols-2">{field('interviewAt', '下次面试时间（选填）', 'datetime-local')}{field('followUpAt', '跟进时间（选填）', 'datetime-local')}</div>

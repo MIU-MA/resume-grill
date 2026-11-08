@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 // Kept with local resume snapshots, never sent as part of the SMTP payload.
 export const jobContextSchema = z.object({
+  interviewKind: z.enum(['technical', 'architecture', 'project', 'hr']).optional(),
   applicationId: z.string(),
   company: z.string(),
   role: z.string(),

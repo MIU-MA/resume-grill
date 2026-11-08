@@ -8,6 +8,7 @@ export function applicationStage(progress: ApplicationProgress | undefined, deli
   return progress?.stage ?? (delivery === 'website' || delivery === 'sent' ? 'awaiting' : undefined)
 }
 export type ApplicationProgress = {
+  interviewKind?: import('./interview-strategy').InterviewKind
   stage: ApplicationStage
   contact: string
   interviewAt: string

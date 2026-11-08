@@ -69,6 +69,7 @@ export function useKnowledgeActions(ws: KnowledgeActionsState) {
           id: createManualKnowledgeItemId(),
           source: 'manual',
           title: input.title.trim(),
+          question: input.question?.trim(),
           detail: input.detail?.trim() ?? '',
           claimId: '',
           claimTitle: '',

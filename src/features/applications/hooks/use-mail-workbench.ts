@@ -151,7 +151,7 @@ export function useMailWorkbench({ mode, onNavigate, onPrepare }: Args) {
     if (!file) { pendingPreparation.current = { id: selected.id, intent }; fileInput.current?.click(); return }
     pendingPreparation.current = null
     const request: JobPreparationRequest = {
-      job: { id: selected.id, company: selected.company, role: selected.role, sourceUrl: selected.sourceUrl, jobDescription: selectedDescription.trim() },
+      job: { id: selected.id, company: selected.company, role: selected.role, sourceUrl: selected.sourceUrl, jobDescription: selectedDescription.trim(), interviewKind: tracking.tracker.progress[selected.id]?.interviewKind },
       attachment: file, attachmentSource: pickedFile ? undefined : selectedAttachment.source,
     }
     const nextPreparation = { ...preparationByJob, [selected.id]: { ...preparationByJob[selected.id], jobDescription: request.job.jobDescription, attachment: request.attachment, attachmentSource: request.attachmentSource, attachmentUse: selectedAttachment.use } }
@@ -321,6 +321,16 @@ export function useMailWorkbench({ mode, onNavigate, onPrepare }: Args) {
     setTab('drafts')
     setError('')
   }
+  const entryPreparation = (entry: ApplicationEntry) => {
+    const submission = tracking.tracker.submissions[entry.id], saved = preparationByJob[entry.id]
+    return { jobDescription: submission?.jobDescription || saved?.jobDescription || '', attachment: submission?.attachment ?? saved?.attachment, attachmentSource: submission ? undefined : saved?.attachmentSource }
+  }
+  const canPrepareEntry = (entry: ApplicationEntry) => { const value = entryPreparation(entry); return !!value.jobDescription.trim() && validResumeAttachment(value.attachment) }
+  const prepareEntry = async (entry: ApplicationEntry) => {
+    const value = entryPreparation(entry)
+    if (!value.jobDescription.trim() || !validResumeAttachment(value.attachment)) throw new Error('这条记录没有关联的岗位要求或简历附件，请在待投递清单补齐后准备面试。')
+    await onPrepare({ job: { id: entry.id, company: entry.company, role: entry.role, sourceUrl: entry.sourceUrl, jobDescription: value.jobDescription, interviewKind: tracking.tracker.progress[entry.id]?.interviewKind }, attachment: value.attachment, attachmentSource: value.attachmentSource }, 'interview')
+  }
 
   const applyTailoring = async (change: Partial<Draft>, saved: SavedJobPreparation) => {
     if (!tailoring) throw new Error('没有正在修改的岗位。')
@@ -404,6 +414,6 @@ export function useMailWorkbench({ mode, onNavigate, onPrepare }: Args) {
     attachmentLabel, run, updateById, update, prepareJob, addDraft, importContacts,
     removeDraft, preparePreview, previewQuickMail, jobAction, openDraft, markApplied,
     deleteEntry, saveRecord, assistantTools, addCareerPage, returnWebsiteToDrafts,
-    chooseFile, extractSelected, applyTailoring, saveDefaults, sendPreview, editPreview,
+    chooseFile, extractSelected, applyTailoring, saveDefaults, sendPreview, editPreview, canPrepareEntry, prepareEntry,
   }
 }

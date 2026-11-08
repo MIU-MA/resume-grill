@@ -10,6 +10,10 @@ export type ExtractedText = {
 
 export async function extractTextFromFile(file: File): Promise<ExtractedText> {
   const name = file.name.toLowerCase()
+  if (!file.size) throw new Error('文件为空，请重新选择简历。')
+  if (file.size > 10 * 1024 * 1024) throw new Error('简历文件不能超过 10 MB，请压缩后重新导入。')
+  if (name.endsWith('.doc')) throw new Error('暂不支持旧版 .doc 格式，请用 Word 另存为 .docx 或导出为 PDF。')
+  if (!/\.(pdf|docx|txt|md)$/.test(name)) throw new Error('请选择 PDF、DOCX、TXT 或 Markdown 格式的简历。')
   if (name.endsWith('.pdf')) return extractPdf(file)
   if (name.endsWith('.txt') || name.endsWith('.md')) {
     const text = await file.text()
@@ -21,11 +25,7 @@ export async function extractTextFromFile(file: File): Promise<ExtractedText> {
     const result = await mammoth.extractRawText({ arrayBuffer })
     return { text: result.value.trim(), pageCount: 1, charCount: result.value.length }
   }
-  if (name.endsWith('.doc')) {
-    throw new Error('暂不支持旧版 .doc 格式，请用 Word 另存为 .docx 或导出为 PDF。')
-  }
-  const text = await file.text()
-  return { text, pageCount: 1, charCount: text.length }
+  throw new Error('无法读取此简历文件，请重新选择。')
 }
 
 async function extractPdf(file: File): Promise<ExtractedText> {

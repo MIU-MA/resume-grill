@@ -46,6 +46,7 @@ export const interviewActionSchema = z.enum(['answer', 'clarify', 'skip'])
 export type InterviewAction = z.infer<typeof interviewActionSchema>
 
 export const interviewRoundSchema = z.object({
+  previousAttempts: z.array(z.object({ answer: z.string(), annotation: z.string(), score: z.number().min(0).max(100), feedback: z.string() })).max(20).optional(),
   action: interviewActionSchema.default('answer'),
   question: z.string(),
   questionIntent: z.string().default(''),

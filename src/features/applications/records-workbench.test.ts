@@ -6,10 +6,13 @@ import { useMailWorkbench } from './hooks/use-mail-workbench'
 import { initialMailDefaults } from './mail/lib/mail-defaults'
 import { buildApplicationEntries } from './history/lib/application-entry'
 import { emptyApplicationTracker } from './history/lib/application-tracker-storage'
+import type { ApplicationTracker } from './history/lib/application-tracker-storage'
 import type { Draft, WebsiteApplication } from './mail/lib/draft-state'
 import type { DraftStore } from './mail/lib/mail-draft-storage'
 const state = vi.hoisted(() => ({
   count: 20,
+  tracker: {} as ApplicationTracker,
+  prepare: vi.fn(async () => {}),
   save: vi.fn(async () => emptyApplicationTracker()),
   persist: vi.fn(async (store: DraftStore, commit?: (store: DraftStore) => Promise<void>) => { await commit?.(store) }),
 }))
@@ -17,7 +20,7 @@ const makeDraft = (id: string): Draft => ({ id, company: '演示公司', role: '
 const record: WebsiteApplication = { ...makeDraft('website'), recipient: '', sourceUrl: 'https://example.com/jobs/1', applicationUrl: 'https://apply.example.com/form/1', channel: 'website', appliedAt: 1 }
 vi.mock('./hooks/use-mail-agent', () => ({ useMailAgent: () => ({ snapshot: null }) }))
 vi.mock('./history/lib/website-record-storage', () => ({ saveWebsiteRecord: () => state.save() }))
-vi.mock('./history/hooks/use-application-tracker', () => ({ useApplicationTracker: () => ({ tracker: emptyApplicationTracker(), commit: (work: () => Promise<unknown>) => work() }) }))
+vi.mock('./history/hooks/use-application-tracker', () => ({ useApplicationTracker: () => ({ tracker: state.tracker, commit: (work: () => Promise<unknown>) => work() }) }))
 vi.mock('./mail/hooks/use-mail-drafts', () => ({ useMailDrafts: () => {
   const [drafts, setDrafts] = useState(Array.from({ length: state.count }, (_, index) => makeDraft(String(index))))
   const [websiteApplications, setWebsiteApplications] = useState([record])
@@ -28,10 +31,11 @@ vi.mock('./mail/hooks/use-mail-drafts', () => ({ useMailDrafts: () => {
 } }))
 let hook!: ReturnType<typeof useMailWorkbench>
 let root: ReturnType<typeof createRoot>
-function Harness() { hook = useMailWorkbench({ mode: 'application-history', onNavigate: vi.fn(), onPrepare: vi.fn() }); return null }
+function Harness() { hook = useMailWorkbench({ mode: 'application-history', onNavigate: vi.fn(), onPrepare: state.prepare }); return null }
 beforeEach(async () => {
   state.count = 20; state.save.mockReset().mockImplementation(async () => emptyApplicationTracker())
   state.persist.mockClear()
+  state.tracker = emptyApplicationTracker(); state.prepare.mockClear()
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true); sessionStorage.clear()
   root = createRoot(document.createElement('div'))
   await act(async () => root.render(createElement(Harness)))
@@ -39,6 +43,16 @@ beforeEach(async () => {
 afterEach(async () => { await act(async () => root.unmount()); vi.unstubAllGlobals() })
 const entry = () => buildApplicationEntries({ websites: [record] })[0]
 const values = () => ({ company: '改名公司', role: record.role, channel: 'website' as const, contact: '', sourceUrl: record.sourceUrl, appliedAt: 2, note: '', stage: 'awaiting' as const })
+it('从已投递记录准备面试使用当时附件与 JD，并带入下一轮类型', async () => {
+  const file = new File(['snapshot'], 'sent.txt')
+  state.tracker.submissions[record.id] = { attachment: file, jobDescription: '当时的岗位要求', at: 1, channel: 'website' }
+  state.tracker.progress[record.id] = { interviewKind: 'architecture' } as ApplicationTracker['progress'][string]
+  expect(hook.canPrepareEntry(entry())).toBe(true)
+  await act(async () => hook.prepareEntry(entry()))
+  expect(state.prepare).toHaveBeenCalledWith(expect.objectContaining({ attachment: file, job: expect.objectContaining({ jobDescription: '当时的岗位要求', interviewKind: 'architecture' }) }), 'interview')
+  delete state.tracker.submissions[record.id]
+  await expect(hook.prepareEntry(entry())).rejects.toThrow('没有关联')
+})
 it('修改公司和日期保留申请入口，主动清空岗位链接可以保存', async () => {
   await act(async () => hook.setRecordDialog({ mode: 'edit', entry: entry() }))
   await act(async () => hook.saveRecord(values()))

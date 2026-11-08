@@ -4,9 +4,10 @@ import { useRef, useState } from 'react'
 import { Upload } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { readContactFile } from './lib/contact-import'
+import { useSessionState } from '@/hooks/use-session-state'
 
 export function ContactImporter({ disabled, slots, onImport }: { disabled: boolean; slots: number; onImport: (text: string) => string }) {
-  const [input, setInput] = useState('')
+  const [input, setInput] = useSessionState('contact-import-draft', '', (value): value is string => typeof value === 'string')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const file = useRef<HTMLInputElement>(null)

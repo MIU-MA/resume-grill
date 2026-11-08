@@ -8,6 +8,7 @@ import { InterviewHistory } from '@/features/interview/InterviewHistory'
 import { resumeContentKey } from '@/lib/storage'
 
 type InterviewViewProps = {
+  scope?: string
   selected: ResumeClaim
   turns: InterviewTurn[]
   currentQuestion: string | null
@@ -29,9 +30,13 @@ type InterviewViewProps = {
   onSkip: () => void
   onFinish: () => void
   onBackToAudit: () => void
+  onRetry?: (index: number, answer: string) => Promise<void>
+  onStyleChange?: (style: 'standard' | 'probing' | 'supportive') => void
+  style?: 'standard' | 'probing' | 'supportive'
 }
 
 export function InterviewView({
+  scope = 'local',
   selected,
   turns,
   currentQuestion,
@@ -53,6 +58,9 @@ export function InterviewView({
   onSkip,
   onFinish,
   onBackToAudit,
+  onRetry,
+  onStyleChange,
+  style = 'standard',
 }: InterviewViewProps) {
   const chatEndRef = useRef<HTMLDivElement>(null)
   const currentQuestionRef = useRef<HTMLDivElement>(null)
@@ -88,12 +96,13 @@ export function InterviewView({
         />
 
         <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
+          {onStyleChange && <label className="mb-3 flex items-center gap-3 text-label">面试官风格<select disabled={loading || done} value={style} onChange={event => onStyleChange(event.target.value as 'standard' | 'probing' | 'supportive')}><option value="standard">自然提问</option><option value="probing">深入追问</option><option value="supportive">引导解释</option></select></label>}
           <div className="mx-auto max-w-[clamp(720px,44vw,940px)]">
             {error && (
               <div className="rounded-lg border border-danger/20 bg-danger-soft px-4 py-3 mb-6 text-body text-danger">{error}</div>
             )}
 
-            <InterviewHistory turns={turns} strictMode={strictMode} scope={`${selected.id}:${version}:${resumeContentKey(selected.content)}`} />
+            <InterviewHistory turns={turns} strictMode={strictMode} loading={loading} onRetry={onRetry} scope={`${scope}:${selected.id}:${version}:${resumeContentKey(selected.content)}`} />
 
             <CurrentQuestion
               question={currentQuestion}
@@ -111,6 +120,7 @@ export function InterviewView({
         </div>
 
         <InterviewComposer
+          scope={`${scope}:${selected.id}:${version}:${resumeContentKey(currentQuestion ?? '')}`}
           answer={answer}
           annotation={annotation}
           loading={loading}

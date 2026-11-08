@@ -8,10 +8,13 @@ import { APPLICATION_STAGES, type ApplicationProgress, type ApplicationStage } f
 import { applicationEntryChannel, applicationEntryChannelKey, applicationEntryStatus, applicationEntrySearchText, applicationEntryStage, applicationEntryTitle, type ApplicationEntry } from './lib/application-entry'
 import { ApplicationEntryDetail } from './ApplicationEntryDetail'
 import { savedDay } from '../mail/lib/mail-presentation'
+import { ApplicationBoard } from './ApplicationBoard'
 
 type ChannelFilter = 'all' | 'mail' | 'website' | 'referral' | 'other' | 'manual'
 
-export function ApplicationHistoryView({ entries, progress, selectedId, loading = false, disabled = false, onSelect, onAdd, onEdit, onDelete, onSaveProgress, onMailAction, onReturnToDrafts }: {
+export function ApplicationHistoryView({ entries, progress, selectedId, loading = false, disabled = false, onSelect, onAdd, onEdit, onDelete, onSaveProgress, onMailAction, onReturnToDrafts, onPrepare, canPrepare }: {
+  onPrepare?: (entry: ApplicationEntry) => void
+  canPrepare?: (entry: ApplicationEntry) => boolean
   entries: ApplicationEntry[]
   progress: Record<string, ApplicationProgress>
   selectedId: string | null
@@ -26,6 +29,7 @@ export function ApplicationHistoryView({ entries, progress, selectedId, loading 
   onReturnToDrafts: (entry: ApplicationEntry) => void
 }) {
   const [detailOpen, setDetailOpen] = useState(false)
+  const [view, setView] = useSessionState<'list' | 'board'>('application-history-view', 'list', (value): value is 'list' | 'board' => value === 'list' || value === 'board')
   const [query, setQuery] = useSessionState('applications-query', '', (value): value is string => typeof value === 'string')
   const [stage, setStage] = useSessionState<ApplicationStage | ''>('applications-stage', '', (value): value is ApplicationStage | '' => value === '' || typeof value === 'string' && value in APPLICATION_STAGES)
   const [channel, setChannel] = useSessionState<ChannelFilter>('applications-channel', 'all', (value): value is ChannelFilter => value === 'all' || value === 'mail' || value === 'website' || ['manual', 'referral', 'other'].includes(String(value)))
@@ -39,8 +43,10 @@ export function ApplicationHistoryView({ entries, progress, selectedId, loading 
   }, [channel, entries, progress, query, stage])
   const selected = visible.find(entry => entry.id === selectedId) ?? visible[0] ?? null
   const filtered = !!query.trim() || !!stage || channel !== 'all'
+  if (view === 'board') return <section className="flex min-h-0 flex-1 flex-col"><header className="flex gap-4 border-b border-line bg-white p-3"><strong>投递漏斗</strong><button onClick={() => setView('list')}>返回记录列表</button></header><ApplicationBoard entries={entries} progress={progress} onSelect={id => { onSelect(id); setQuery(''); setStage(''); setChannel('all'); setView('list'); setDetailOpen(true) }} /></section>
   return <section className="flex min-h-0 flex-1 flex-col bg-surface" aria-label="投递记录">
     <div className="flex flex-none flex-wrap items-center gap-2 border-b border-line px-4 py-3 sm:px-5">
+      <button className="h-9 px-3 text-label" onClick={() => setView('board')}>看板</button>
       <label className="relative min-w-[180px] flex-1 sm:max-w-[360px]">
         <input className="mail-input h-9 w-full" aria-label="搜索投递记录" placeholder="搜索公司、岗位、邮箱或链接" value={query} onChange={event => setQuery(event.target.value)} />
       </label>
@@ -89,6 +95,8 @@ export function ApplicationHistoryView({ entries, progress, selectedId, loading 
           progress={progress[selected.id]}
           disabled={disabled}
           onEdit={() => onEdit(selected)}
+          onPrepare={onPrepare ? () => onPrepare(selected) : undefined}
+          canPrepare={canPrepare?.(selected)}
           onDelete={() => onDelete(selected)}
           onSaveProgress={changes => onSaveProgress(selected.id, changes)}
           onMailAction={(_job, action) => onMailAction(selected, action)}

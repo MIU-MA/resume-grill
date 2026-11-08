@@ -25,6 +25,31 @@ beforeEach(async () => {
   await act(async () => root.render(createElement(Harness)))
 })
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals() })
+it('单题重答保留原回答和评分，不新增轮次或改动下一问', async () => {
+  fetchMock.mockImplementation(async () => Response.json({ evaluation: { score: 70, coveredPoints: ['说明方案'], missingPoints: [], answerSuggestion: '说明做法', evidenceQuotes: [] }, nextReason: '继续', isFinal: false, nextQuestion: '下一题' }))
+  await act(async () => hook.start(claim))
+  await act(async () => hook.setAnswer('首次回答'))
+  await act(async () => hook.submit(claim))
+  await act(async () => hook.retryRound(claim, 0, '更具体的回答'))
+  expect(hook.rounds).toHaveLength(1); expect(hook.currentQuestion).toBe('下一题')
+  expect(hook.rounds[0].answer).toBe('更具体的回答')
+  expect(hook.rounds[0].previousAttempts?.[0]).toMatchObject({ answer: '首次回答', score: 70 })
+  const saved = callbacks.onSessionSaved.mock.calls.at(-1)![1] as InterviewSession
+  await act(async () => hook.reset())
+  await act(async () => hook.restore(claim, saved))
+  expect(hook.rounds[0].previousAttempts).toHaveLength(1)
+})
+it('重答失败保留旧回答；主动切换面试官风格后保存并传给模型', async () => {
+  fetchMock.mockImplementation(async () => Response.json({ evaluation: { score: 40, coveredPoints: [], missingPoints: ['说明方案'], answerSuggestion: '', evidenceQuotes: [] }, nextReason: '', isFinal: false, nextQuestion: '下一题' }))
+  await act(async () => hook.start(claim))
+  await act(async () => hook.setAnswer('原回答'))
+  await act(async () => hook.submit(claim))
+  fetchMock.mockRejectedValueOnce(new Error('offline'))
+  await act(async () => { await expect(hook.retryRound(claim, 0, '新回答')).rejects.toThrow('offline') })
+  expect(hook.rounds[0].answer).toBe('原回答')
+  await act(async () => hook.setInterviewerStyle('probing'))
+  expect(callbacks.onSessionSaved.mock.calls.at(-1)![1].context.interviewerStyle).toBe('probing')
+})
 it.each(['success', 'error'])('切换练习后忽略旧追问的迟到结果：%s', async outcome => {
   await act(async () => hook.start(claim))
   const originalSession = callbacks.onSessionSaved.mock.calls.at(-1)![1] as InterviewSession

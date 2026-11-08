@@ -1,3 +1,2 @@
-export default function UploadPage() {
-  return null
-}
+import { WorkspaceRoute } from '@/features/workspace/WorkspaceRoute'
+export default function Page() { return <WorkspaceRoute phase="upload" /> }

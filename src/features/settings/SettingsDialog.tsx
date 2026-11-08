@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ModelSettings } from './ModelSettings'
 import { Dialog } from '@/components/ui/Dialog'
 import { Button } from '@/components/ui/Button'
+import { ThemeSelect } from '@/components/ui/ThemeSelect'
 import { useConfirmation } from '@/hooks/use-confirmation'
 import { MailSettings } from '@/features/settings/MailSettings'
 import { useMailAgent, type MailAgent } from '@/features/applications/hooks/use-mail-agent'
@@ -45,7 +46,7 @@ function SettingsPanel(props: SettingsDialogProps & { agent: MailAgent }) {
   return <><Dialog open onClose={() => void close()} label="设置" panelClassName="w-[min(620px,calc(100%-24px))] max-h-[calc(100dvh-32px)] overflow-y-auto border border-line bg-white">
     <header className="flex items-center justify-between border-b border-line px-5 py-3"><h2 className="m-0 text-section font-semibold">设置</h2><Button variant="ghost" onClick={() => void close()}>关闭</Button></header>
     <nav role="tablist" aria-label="设置分类" className="flex gap-5 border-b border-line px-5">{([{ value: 'model', label: '模型' }, { value: 'mail', label: '邮箱' }, { value: 'local', label: '本机' }] as const).map(item => <button key={item.value} role="tab" aria-selected={tab === item.value} className={`border-b-2 py-3 text-label ${tab === item.value ? 'border-brand font-semibold' : 'border-transparent text-text-secondary'}`} onClick={() => setTab(item.value)}>{item.label}</button>)}</nav>
-    <div hidden={tab !== 'model'} role="tabpanel" aria-label="模型"><ModelSettings envConfigured={props.envConfigured ?? status.envConfigured} clientConfigured={props.clientConfigured ?? status.clientConfigured} onDirtyChange={setModelDirty} onBusyChange={setModelBusy} onClientChanged={() => { status.refresh(); props.onClientChanged?.() }} /></div>
+    <div hidden={tab !== 'model'} role="tabpanel" aria-label="模型"><ThemeSelect /><ModelSettings envConfigured={props.envConfigured ?? status.envConfigured} clientConfigured={props.clientConfigured ?? status.clientConfigured} onDirtyChange={setModelDirty} onBusyChange={setModelBusy} onClientChanged={() => { status.refresh(); props.onClientChanged?.() }} /></div>
     <div hidden={tab === 'model'} role="tabpanel" aria-label={tab === 'local' ? '本机' : '邮箱'}><MailSettings embedded agent={agent} purpose={tab === 'local' ? 'agent' : 'sender'} rememberedSender={props.rememberedSender} onVerified={props.onVerified} onDirtyChange={setMailDirty} onBusyChange={setMailBusy} onClose={() => void close()} /></div>
   </Dialog>{confirmation.dialog}</>
 }

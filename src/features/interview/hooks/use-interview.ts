@@ -6,6 +6,7 @@ import type { ResumeClaim } from '@/domain/resume-schema'
 import type { ClaimAnalysis, InterviewAction, InterviewRound, InterviewSession, InterviewContinueResult, FinalResult } from '@/domain/interview-schema'
 import type { InterviewContext } from '@/domain/interview-context'
 import { getLlmSettings } from '@/lib/settings'
+import { mergeCoveredPoints } from '@/domain/interview-state'
 
 type Callbacks = {
   onError: (msg: string) => void
@@ -29,6 +30,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
   const [activeClaimSnapshot, setActiveClaimSnapshot] = useState<ResumeClaim | null>(null)
   const [version, setVersion] = useState(1)
   const [draftSaved, setDraftSaved] = useState(true)
+  const [interviewerStyle, setStyleState] = useState<NonNullable<InterviewContext['interviewerStyle']>>('standard')
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null)
   const generation = useRef(0)
   const requests = useRef(new Set<AbortController>())
@@ -50,6 +52,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
 
   const reset = useCallback(() => {
     invalidateRequests(); setLoading(false); setRegeneratingId(null)
+    setStyleState('standard')
     cache.current.clear(); contextRef.current = undefined
     setRounds([]); setCurrentQuestion(''); setCurrentIntent(''); setAnswer(''); setAnnotation('')
     setDone(false); setActiveClaimSnapshot(null); setVersion(1); setDraftSaved(true)
@@ -59,6 +62,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
     if (session.status !== 'in_progress') return false
     invalidateRequests(); setLoading(false); setRegeneratingId(null)
     contextRef.current = session.context ?? getContext?.(claim.id)
+    setStyleState(contextRef.current?.interviewerStyle ?? 'standard')
     const snapshot: ResumeClaim = session.claimContent && session.claimContent !== claim.content
       ? { ...claim, content: session.claimContent }
       : claim
@@ -83,6 +87,7 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
     invalidateRequests(); setRegeneratingId(null)
     setLoading(true); onError('')
     contextRef.current = getContext?.(claim.id)
+    setStyleState(contextRef.current?.interviewerStyle ?? 'standard')
 
     const resolvedVersion = opts?.version ?? 1
     const resolvedContent = opts?.claimContent ?? claim.content
@@ -250,6 +255,31 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
 
   const skip = useCallback((claim: ResumeClaim) => continueInterview(claim, 'skip'), [continueInterview])
 
+  const retryRound = useCallback(async (claim: ResumeClaim, index: number, revised: string) => {
+    const original = rounds[index]
+    if (!original || original.action !== 'answer' || !revised.trim() || revised.length > 12000 || requests.current.size) return
+    const snapshot = activeClaimSnapshot ?? claim
+    const abort = new AbortController(), epoch = generation.current
+    requests.current.add(abort); setLoading(true); onError('')
+    const isCurrent = () => epoch === generation.current && !abort.signal.aborted
+    try {
+      const analysis = cache.current.get(cacheKey(snapshot)) ?? buildClaimAnalysisFromClaim(snapshot)
+      const response = await fetch('/api/interview/continue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ claim: snapshot, context: contextRef.current, action: 'answer', question: original.question, answer: revised, annotation: original.annotation, rounds: rounds.slice(0, index), verifyPoints: analysis.verifyPoints, trapPoints: analysis.trapPoints, llm: getLlmSettings() ?? undefined }), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(100000)]) })
+      const data = await response.json()
+      if (!isCurrent()) return
+      if (!response.ok || data.error) throw new Error(data.error || '重答评估失败。')
+      const updated = rounds.map((round, at) => {
+        if (at !== index) return round
+        const attempts = [...(round.previousAttempts ?? []), { answer: round.answer, annotation: round.annotation ?? '', score: round.evaluation.score, feedback: round.evaluation.answerSuggestion ?? '' }]
+        return { ...round, answer: revised, evaluation: data.evaluation, previousAttempts: attempts.length > 20 ? [attempts[0], ...attempts.slice(-19)] : attempts }
+      })
+      setRounds(updated)
+      if (done) await finalizeSession(snapshot, updated, abort.signal, isCurrent)
+      else saveInProgress(snapshot, updated, currentQuestion, currentIntent)
+    } catch (cause) { if (isCurrent()) { const message = cause instanceof Error ? cause.message : '重答失败。'; onError(message); throw new Error(message) } }
+    finally { requests.current.delete(abort); if (isCurrent()) setLoading(false) }
+  }, [rounds, activeClaimSnapshot, done, currentQuestion, currentIntent, finalizeSession, saveInProgress, onError])
+
   const regenerateSummary = useCallback(async (claim: ResumeClaim, session: InterviewSession) => {
     if (requests.current.size) return false
     const abort = new AbortController()
@@ -293,7 +323,13 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
     } finally { requests.current.delete(abort); if (isCurrent()) setRegeneratingId(null) }
   }, [onError, onToast, onSessionSaved, getContext])
 
-  const covered = rounds[rounds.length - 1]?.evaluation?.coveredPoints ?? []
+  const setInterviewerStyle = (style: NonNullable<InterviewContext['interviewerStyle']>) => {
+    if (done || requests.current.size) return
+    setStyleState(style)
+    contextRef.current = { jobDescription: '', reviewProgress: [], ...contextRef.current, interviewerStyle: style }
+    if (activeClaimSnapshot && !done && !requests.current.size) saveInProgress(activeClaimSnapshot, rounds, currentQuestion, currentIntent)
+  }
+  const covered = mergeCoveredPoints(rounds, [], (activeClaimSnapshot?.masteryPoints ?? []).map(point => point.point))
   const updateInput = (field: 'answer' | 'annotation', action: SetStateAction<string>) => {
     const value = typeof action === 'function' ? action(inputs.current[field]) : action
     inputs.current = { ...inputs.current, [field]: value }
@@ -306,9 +342,9 @@ export function useInterview(envConfigured: boolean, { onError, onToast, onSessi
   }
 
   return {
-    rounds, currentQuestion, currentIntent, answer, setAnswer: (value: SetStateAction<string>) => updateInput('answer', value), annotation, setAnnotation: (value: string) => updateInput('annotation', value), loading, done,
+    scope, rounds, currentQuestion, currentIntent, answer, setAnswer: (value: SetStateAction<string>) => updateInput('answer', value), annotation, setAnnotation: (value: string) => updateInput('annotation', value), loading, done,
     activeClaimSnapshot, version, covered, draftSaved,
-    reset, start, restore, submit, skip, regenerateSummary, regeneratingId,
+    reset, start, restore, submit, skip, retryRound, interviewerStyle, setInterviewerStyle, regenerateSummary, regeneratingId,
   }
 }
 

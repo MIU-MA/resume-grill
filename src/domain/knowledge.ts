@@ -1,11 +1,15 @@
 import type { ResumeAnalysis } from '@/domain/resume-schema'
 import type { InterviewSession } from '@/domain/interview-schema'
 import { deriveBlindSpots } from '@/domain/blind-spots'
+import type { ReviewSchedule } from './review-schedule'
 
 export type KnowledgeItemSource = 'blind-spot' | 'knowledge-gap' | 'manual'
 export type KnowledgeItemStatus = 'open' | 'mastered'
 
 export type KnowledgeItem = {
+  question?: string
+  review?: ReviewSchedule
+  verification?: { at: number; score: number; feedback: string }
   id: string
   source: KnowledgeItemSource
   title: string
@@ -19,10 +23,11 @@ export type KnowledgeItem = {
 }
 
 export type KnowledgeItemPatch = Partial<
-  Pick<KnowledgeItem, 'title' | 'detail' | 'note' | 'status'>
+  Pick<KnowledgeItem, 'title' | 'detail' | 'note' | 'status' | 'question' | 'review' | 'verification'>
 >
 
 export type KnowledgeItemInput = {
+  question?: string
   title: string
   detail?: string
   note?: string

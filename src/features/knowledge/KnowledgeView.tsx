@@ -17,9 +17,11 @@ import { KnowledgeDetail } from '@/features/knowledge/KnowledgeDetail'
 import { KnowledgeToolbar } from '@/features/knowledge/KnowledgeToolbar'
 import { KnowledgeList } from '@/features/knowledge/KnowledgeList'
 import { KnowledgeEditor } from '@/features/knowledge/KnowledgeEditor'
+import { KnowledgeStudy } from './KnowledgeStudy'
+import { ExternalInterviewReview } from '@/features/interview/ExternalInterviewReview'
 
 type KnowledgeViewProps = {
-  analysis: ResumeAnalysis
+  analysis?: ResumeAnalysis
   knowledgeItems: KnowledgeItem[]
   onToggle: (id: string) => void
   onDelete: (id: string) => void
@@ -46,6 +48,7 @@ export function KnowledgeView({
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState({ title: '', note: '' })
+  const [task, setTask] = useState<'notes' | 'study' | 'review'>('notes')
   const undo = useUndoQueue(6000)
 
   const openCount = knowledgeItems.filter((i) => i.status === 'open').length
@@ -53,9 +56,9 @@ export function KnowledgeView({
 
   const claimIndexById = useMemo(() => {
     const map = new Map<string, number>()
-    analysis.claims.forEach((c, i) => map.set(c.id, i))
+    analysis?.claims.forEach((c, i) => map.set(c.id, i))
     return map
-  }, [analysis.claims])
+  }, [analysis?.claims])
 
   const visible = useMemo(() => {
     const filtered = knowledgeItems.filter(
@@ -119,6 +122,10 @@ export function KnowledgeView({
 
   return (
     <div className="space-y-3 pb-6">
+      <nav className="flex gap-4 border-b border-line bg-white px-5 py-3" aria-label="待复习任务">{([['notes', '复习笔记'], ['study', '闪卡与突击'], ['review', '真实面试复盘']] as const).map(([key, label]) => <button key={key} aria-current={task === key ? 'page' : undefined} onClick={() => setTask(key)}>{label}</button>)}</nav>
+      {task === 'study' && <KnowledgeStudy items={knowledgeItems} onUpdate={onUpdate} />}
+      {task === 'review' && <ExternalInterviewReview onAdd={onAdd} />}
+      {task === 'notes' && <>
       {/* 顶部概览 */}
       <div className="flex items-start justify-between gap-5 rounded-lg bg-white p-5 shadow-card max-[620px]:flex-col max-[620px]:p-4">
         <div>
@@ -184,7 +191,7 @@ export function KnowledgeView({
           ) : (
             <KnowledgeDetail
               item={selected}
-              claim={selected.claimId ? analysis.claims.find((c) => c.id === selected.claimId) ?? null : null}
+              claim={selected.claimId ? analysis?.claims.find((c) => c.id === selected.claimId) ?? null : null}
               editing={editing}
               draft={draft}
               onDraftChange={setDraft}
@@ -199,6 +206,7 @@ export function KnowledgeView({
         </div>
       </div>
 
+      </>}
       <UndoNotice queue={undo} />
     </div>
   )

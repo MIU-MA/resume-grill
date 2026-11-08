@@ -6,6 +6,7 @@ import { sourceUrlSchema, type CareerPage } from '@/domain/mail-schema'
 import { PastedCareerForm } from './PastedCareerForm'
 import { careerUrlKey, planCareerImports, settleCareerFailure, type CareerFailure } from './lib/pasted-career'
 import { CareerPagePicker } from './CareerPagePicker'
+import { useSessionState } from '@/hooks/use-session-state'
 
 export function LinkImporter({ existingUrls, existingJobs, slots, connected, onConnect, read, onImported, onBusy }: {
   existingUrls: string[]; slots: number; connected: boolean; onConnect: () => void
@@ -13,7 +14,7 @@ export function LinkImporter({ existingUrls, existingJobs, slots, connected, onC
   onBusy: (value: boolean) => void
   existingJobs: Array<{ sourceUrl: string; role: string }>
 }) {
-  const [input, setInput] = useState('')
+  const [input, setInput] = useSessionState('link-import-draft', '', (value): value is string => typeof value === 'string')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [failures, setFailures] = useState<CareerFailure[]>([])

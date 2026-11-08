@@ -18,6 +18,12 @@ const claim: ResumeClaim = {
 }
 
 describe('interview prompts', () => {
+  it('按轮次类型选择策略，HR 面与架构面不会使用同一份技术题策略', () => {
+    const make = (kind: 'hr' | 'architecture') => buildInterviewContinueUser(claim, '问题', '回答', '', 'answer', [], [], [], { jobDescription: '', reviewProgress: [], interviewKind: kind })
+    expect(make('hr')).toContain('求职动机')
+    expect(make('architecture')).toContain('可靠性')
+    expect(make('hr')).not.toContain('优先考察原理、实现')
+  })
   it('passes an annotation separately from the answer', () => {
     const prompt = buildInterviewContinueUser(
       claim,

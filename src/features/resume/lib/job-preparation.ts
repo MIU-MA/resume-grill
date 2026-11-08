@@ -20,7 +20,9 @@ export async function prepareJobResume({ job, attachment, attachmentSource }: Jo
     throw new Error('请选择 5 MB 以内的 PDF、DOCX 或 TXT 简历原文件。')
   }
   const resumeVersion = await digest(await attachment.arrayBuffer())
-  const identity = JSON.stringify([job.id, job.company.trim(), job.role.trim(), job.sourceUrl, jobDescription, attachment.name, resumeVersion])
+  const basis = [job.id, job.company.trim(), job.role.trim(), job.sourceUrl, jobDescription, attachment.name, resumeVersion]
+  if (job.interviewKind && job.interviewKind !== 'technical') basis.push(job.interviewKind)
+  const identity = JSON.stringify(basis)
   const id = `resume-document:${purpose === 'tailoring' ? 'tailoring-source' : 'job'}:${await digest(new TextEncoder().encode(identity).buffer)}`
   const existing = await loadResumeDocument(id)
   if (existing) return existing
@@ -36,6 +38,7 @@ export async function prepareJobResume({ job, attachment, attachmentSource }: Jo
     id, sourceFile: attachment.name, extracted, originalFile: attachment, demo: false, pdfTemplate: matchesSource ? source.pdfTemplate : undefined, photo: matchesSource ? source.photo : undefined,
     originalFileUpdatedAt: attachmentSource?.updatedAt ?? Date.now(), updatedAt: Date.now(),
     jobContext: {
+      interviewKind: job.interviewKind,
       applicationId: job.id, company: job.company.trim(), role: job.role.trim(), sourceUrl: job.sourceUrl,
       resumeVersion, resumeDocumentId: matchesSource ? source.id : undefined,
       resumeUpdatedAt: attachmentSource?.updatedAt ?? Date.now(),

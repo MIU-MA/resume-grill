@@ -174,7 +174,7 @@ export function useResumeWorkspace(phase: Phase) {
   }, [analysis, sessions, masteredBlindSpotIds, dismissedKnowledgeItemIds, knowledgeHydrationStatus])
 
   useEffect(() => {
-    if (analysis && knowledgeHydrationStatus === 'hydrated') {
+    if (knowledgeHydrationStatus === 'hydrated') {
       saveKnowledgeItems(knowledgeItems).catch((e) => reportStorageError('保存本地知识点', e))
     }
   }, [knowledgeItems, analysis, knowledgeHydrationStatus, reportStorageError])
@@ -215,6 +215,7 @@ export function useResumeWorkspace(phase: Phase) {
     masteredBlindSpotIds,
     setMasteredBlindSpotIds,
     knowledgeItems,
+    knowledgeReady: knowledgeHydrationStatus === 'hydrated',
     setKnowledgeItems,
     dismissedKnowledgeItemIds,
     setDismissedKnowledgeItemIds,

@@ -1,13 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
+import { WorkspaceRoute } from '@/features/workspace/WorkspaceRoute'
+import { WorkspaceRouteContext } from '@/features/workspace/workspace-route-context'
 import { buildInterviewContext } from '@/domain/interview-context'
-import { ResumeReviewView } from '@/features/resume/ResumeReviewView'
-import { ResumeImportView } from '@/features/resume/ResumeImportView'
-import { WorkspaceShell } from '@/features/workspace/WorkspaceShell'
-import { WorkspaceContent } from '@/features/workspace/WorkspaceContent'
-import { NoResumeWorkspace } from '@/features/workspace/NoResumeWorkspace'
-import { ReviewWorkspace } from '@/features/resume/ReviewWorkspace'
 import { useAppNavigation } from '@/application/hooks/use-app-navigation'
 import { useClaimActions } from '@/application/hooks/use-claim-actions'
 import { useInterview } from '@/features/interview/hooks/use-interview'
@@ -16,17 +12,14 @@ import { useResumeWorkspace } from '@/application/hooks/use-resume-workspace'
 import { useKnowledgeActions } from '@/features/knowledge/hooks/use-knowledge-actions'
 import type { Mode } from '@/application/types'
 import { effectivePriority, summarizeClaimProgress } from '@/domain/risk'
-import { MailWorkbench } from '@/features/applications/MailWorkbench'
-import { JobAssistant } from '@/features/job-assistant/JobAssistant'
-import { ResumeCheckWorkspace } from '../features/resume/ResumeCheckWorkspace'
 import { useConfirmation } from '@/hooks/use-confirmation'
 import { Toast } from '@/components/ui/Toast'
 import { getInterviewEntry } from '@/domain/interview-entry'
 
-function WorkspaceApp({ confirm }: { confirm: (request: { title: string; message: string; confirmLabel?: string }) => Promise<boolean> }) {
+function WorkspaceApp({ confirm, children }: { children?: ReactNode; confirm: (request: { title: string; message: string; confirmLabel?: string }) => Promise<boolean> }) {
   const { phase, mode, push, replace } = useAppNavigation()
   const workspace = useResumeWorkspace(phase)
-  const getInterviewContext = useCallback((claimId: string) => buildInterviewContext(workspace.analysis?.jobDescription, workspace.knowledgeItems, claimId), [workspace.analysis?.jobDescription, workspace.knowledgeItems])
+  const getInterviewContext = useCallback((claimId: string) => buildInterviewContext(workspace.analysis?.jobDescription, workspace.knowledgeItems, claimId, workspace.analysis?.jobContext?.interviewKind), [workspace.analysis?.jobDescription, workspace.analysis?.jobContext?.interviewKind, workspace.knowledgeItems])
   const interview = useInterview(workspace.envConfigured, {
     onError: workspace.setError,
     onToast: workspace.showToast,
@@ -48,7 +41,7 @@ function WorkspaceApp({ confirm }: { confirm: (request: { title: string; message
   const analysis = useResumeAnalysis(workspace, navigation)
   const actions = useClaimActions(workspace, interview, navigation)
   const knowledgeActions = useKnowledgeActions(workspace)
-  const { selected, stats } = workspace
+  const { selected } = workspace
   const handleToggleBlindSpot = (blindSpotId: string) => {
     actions.toggleBlindSpotMastered(blindSpotId)
     const item = workspace.knowledgeItems.find((i) => i.id === blindSpotId)
@@ -74,7 +67,6 @@ function WorkspaceApp({ confirm }: { confirm: (request: { title: string; message
     }
   }, [workspace.recoveredFromStorage, mode, selected, workspace.sessions, interview])
 
-  const activeClaim = interview.activeClaimSnapshot ?? selected
   const claimProgress = useMemo(
     () =>
       workspace.analysis
@@ -134,158 +126,11 @@ function WorkspaceApp({ confirm }: { confirm: (request: { title: string; message
     window.scrollTo({ top: 0, left: 0 })
   }
 
-  const renderWorkspace = () => {
-    if (mode === 'diagnosis') return <ResumeCheckWorkspace badges={sidebarBadges} envConfigured={workspace.envConfigured} clientConfigured={workspace.clientConfigured} onClientChanged={workspace.refreshClientLlm} onHome={() => push('upload')} onNavigate={tab => workspace.analysis || ['diagnosis', 'jobs', 'applications', 'careers', 'application-history'].includes(tab) ? handleTabChange(tab) : push('upload')} onPractice={async (document, review) => {
-      if (!await canSwitchResume()) return
-      interview.reset(); restoredRef.current = false
-      await analysis.handleConfirmText(review, document.sourceFile, document)
-    }} />
-
-    if (workspace.recovering) return <div className="min-h-screen bg-bg" />
-
-    if (mode === 'jobs' || mode === 'applications' || mode === 'careers' || mode === 'application-history') return <MailWorkbench mode={mode} badges={sidebarBadges} renderAssistant={tools => <JobAssistant tools={tools} envConfigured={workspace.envConfigured} />} onNavigate={tab => workspace.analysis || ['diagnosis', 'jobs', 'applications', 'careers', 'application-history'].includes(tab) ? handleTabChange(tab) : push('upload')} onHome={() => push('upload')} onOpenRecord={async record => {
-      if (!await canSwitchResume()) return
-      interview.reset(); restoredRef.current = false; analysis.openSavedRecord(record)
-    }} onPrepare={async (request, intent) => {
-      if (!await canSwitchResume()) return
-      await analysis.openJobPreparation(request, intent, () => {
-        interview.reset()
-        restoredRef.current = false
-      })
-    }} />
-
-    if (phase === 'workspace' && !workspace.analysis && ['audit', 'interview', 'report', 'knowledge'].includes(mode)) {
-    return <NoResumeWorkspace mode={mode} badges={sidebarBadges} onNavigate={tab => workspace.analysis || ['diagnosis', 'jobs', 'applications', 'careers', 'application-history'].includes(tab) ? handleTabChange(tab) : push('upload')} onHome={() => push('upload')} />
-  }
-
-  if (phase === 'upload' || phase === 'review' || !workspace.analysis || !selected || !stats) {
-      if (phase === 'review' && workspace.pendingExtracted) {
-        return (
-          <ReviewWorkspace badges={sidebarBadges} onNavigate={handleTabChange} onHome={() => push('upload')} envConfigured={workspace.envConfigured} clientConfigured={workspace.clientConfigured} onClientChanged={workspace.refreshClientLlm}>
-          <ResumeReviewView
-            embedded
-            key={workspace.pendingExtracted.documentId ?? workspace.pendingExtracted.sourceFile + workspace.pendingExtracted.extracted.text}
-            demo={workspace.pendingExtracted.demo ?? false}
-            sourceFile={workspace.pendingExtracted.sourceFile}
-            extracted={workspace.pendingExtracted.extracted}
-            analyzing={analysis.analyzing}
-            error={workspace.error}
-            envConfigured={workspace.envConfigured}
-            clientConfigured={workspace.clientConfigured}
-            onClientChanged={workspace.refreshClientLlm}
-            onConfirm={analysis.handleConfirmText}
-            initialReview={workspace.pendingExtracted.initialReview}
-            autoDiagnose={workspace.pendingExtracted.autoDiagnose}
-            jobContext={workspace.pendingExtracted.jobContext}
-            preparationIntent={workspace.pendingExtracted.preparationIntent}
-            onSaveReview={analysis.saveReview}
-            initialRevisionDraft={workspace.pendingExtracted.revisionDraft}
-            initialPdfTemplate={workspace.pendingExtracted.pdfTemplate} initialPhoto={workspace.pendingExtracted.photo}
-            onSaveRevisionDraft={analysis.saveRevisionDraft}
-            onSaveRevision={async (text, preview) => {
-              if (interview.loading || interview.regeneratingId) throw new Error('当前回答还在处理中，完成后可保存新稿。')
-              await analysis.saveRevision(text, preview)
-              interview.reset()
-              restoredRef.current = false
-            }}
-            onDownloadResume={workspace.pendingExtracted.hasAttachment ? analysis.downloadResume : undefined}
-            onLoadOriginal={workspace.pendingExtracted.hasAttachment ? analysis.loadResumeFile : undefined}
-            onApplications={() => push('workspace', 'applications')}
-            onBack={analysis.replaceResume}
-          />
-          </ReviewWorkspace>
-        )
-      }
-      return (
-        <ResumeImportView
-          analyzing={analysis.analyzing}
-          error={workspace.error}
-          onExtracted={async (...args) => { if (!await canSwitchResume()) return; interview.reset(); return analysis.handleExtracted(...args) }}
-          envConfigured={workspace.envConfigured}
-          clientConfigured={workspace.clientConfigured}
-          onClientChanged={workspace.refreshClientLlm}
-          savedDocuments={workspace.savedDocuments}
-          onOpenDocument={async document => { if (!await canSwitchResume()) return; interview.reset(); restoredRef.current = false; analysis.openResumeDocument(document) }}
-          onDeleteDocument={analysis.removeResumeDocument}
-          savedRecords={workspace.savedRecords}
-          loadingRecords={workspace.loadingRecords}
-          onOpenSaved={async record => { if (!await canSwitchResume()) return; interview.reset(); restoredRef.current = false; analysis.openSavedRecord(record) }}
-          onNavigate={tab => handleTabChange(tab)} badges={sidebarBadges}
-          onDeleteSaved={analysis.removeSavedRecord}
-        />
-      )
-    }
-
-    return (
-      <WorkspaceShell
-        analysis={workspace.analysis}
-        llmMode={workspace.llmMode}
-        envConfigured={workspace.envConfigured}
-        clientConfigured={workspace.clientConfigured}
-        onHome={() => push('upload')}
-        mode={mode}
-        onTabChange={handleTabChange}
-        onClientChanged={workspace.refreshClientLlm}
-        onExport={actions.exportFull}
-        onExportJson={actions.exportJson}
-        badges={sidebarBadges}
-      >
-        <WorkspaceContent onNavigate={handleTabChange}
-          mode={mode}
-          analysis={workspace.analysis}
-          sessions={workspace.sessions}
-          error={workspace.error}
-          audit={{
-            selectedIndex: workspace.selectedIndex,
-            preparedClaimIds: workspace.preparedClaimIds,
-            progressByClaim: claimProgress,
-            claimPriorityOverrides: workspace.claimPriorityOverrides,
-            onSelect: actions.selectClaim,
-            onTogglePrepared: actions.togglePrepared,
-            onSetClaimsPriority: actions.setClaimsPriority,
-            onBatchTogglePrepared: actions.togglePreparedMany,
-            onStartInterview: actions.startInterview,
-            onReport: actions.goReport,
-          }}
-          knowledge={{
-            items: workspace.knowledgeItems,
-            onToggle: knowledgeActions.toggleMastered,
-            onDelete: knowledgeActions.removeItem,
-            onRestore: knowledgeActions.restoreItem,
-            onUpdate: knowledgeActions.updateItem,
-            onAdd: knowledgeActions.addItem,
-            onRetest: actions.retestClaim,
-          }}
-          report={{
-            masteredBlindSpotIds: workspace.masteredBlindSpotIds,
-            onToggleBlindSpot: handleToggleBlindSpot,
-            onRetest: actions.retestClaim,
-            onRewrite: actions.startRewriteInterview,
-            onRegenerateSummary: interview.regenerateSummary,
-          }}
-          interview={{
-            selected,
-            activeClaim: activeClaim!,
-            view: interview,
-            onFinish: () => {
-              if (interview.done) {
-                actions.goReport()
-                interview.reset()
-              }
-            },
-            onBackToAudit: () => {
-              replace('workspace', 'audit')
-            },
-          }}
-        />
-      </WorkspaceShell>
-    )
-  }
-  return <><Toast message={workspace.toast} tone={workspace.toastTone} onDismiss={() => workspace.setToast('')} />{renderWorkspace()}</>
+  return <WorkspaceRouteContext.Provider value={{ workspace, interview, analysis, actions, knowledgeActions, handleTabChange, handleToggleBlindSpot, canSwitchResume, restoredRef, sidebarBadges, claimProgress, push, replace, mode, phase }}><Toast message={workspace.toast} tone={workspace.toastTone} onDismiss={() => workspace.setToast('')} />{children ?? <WorkspaceRoute />}</WorkspaceRouteContext.Provider>
 }
 
-function App() {
+function App({ children }: { children?: ReactNode }) {
   const confirmation = useConfirmation()
-  return <><WorkspaceApp confirm={confirmation.confirm} />{confirmation.dialog}</>
+  return <><WorkspaceApp confirm={confirmation.confirm}>{children}</WorkspaceApp>{confirmation.dialog}</>
 }
 export default App

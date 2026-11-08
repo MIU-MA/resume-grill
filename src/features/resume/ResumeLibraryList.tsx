@@ -6,6 +6,7 @@ import { resumeLibraryEntries } from './resume-library-entries'
 import { useConfirmation } from '@/hooks/use-confirmation'
 import { useState } from 'react'
 import { useSessionState } from '@/hooks/use-session-state'
+import { ResumeVersionTree } from './ResumeVersionTree'
 
 type Props = {
   records: SavedRecord[]
@@ -22,7 +23,8 @@ export function ResumeLibraryList({ records, documents, onOpenRecord, onOpenDocu
   const entries = resumeLibraryEntries(records, documents).filter(entry => !search.trim() || [entry.record?.analysis.candidate, entry.document?.sourceFile, entry.record?.analysis.sourceFile, entry.record?.analysis.role].filter(Boolean).join(' ').toLowerCase().includes(search.trim().toLowerCase())).sort((a, b) => (recent[b.id] ?? 0) - (recent[a.id] ?? 0))
   const confirmation = useConfirmation()
   const [error, setError] = useState('')
-  return <>{confirmation.dialog}<label className="mail-label py-3">搜索简历<input className="mail-input" placeholder="姓名、文件名或岗位 · 最近打开的排在前面" value={search} onChange={event => setSearch(event.target.value)} /></label>{error && <p role="alert" className="text-body text-danger">{error}</p>}<div className="max-h-[440px] divide-y divide-line overflow-y-auto">
+  const [versions, setVersions] = useState(false)
+  return <>{confirmation.dialog}<button className="my-3 text-label" aria-expanded={versions} onClick={() => setVersions(value => !value)}>{versions ? '收起版本关系' : '版本关系与比较'}</button>{versions && <ResumeVersionTree onOpen={onOpenDocument} />}<label className="mail-label py-3">搜索简历<input className="mail-input" placeholder="姓名、文件名或岗位 · 最近打开的排在前面" value={search} onChange={event => setSearch(event.target.value)} /></label>{error && <p role="alert" className="text-body text-danger">{error}</p>}<div className="max-h-[440px] divide-y divide-line overflow-y-auto">
     {entries.map(({ id, document, record, updatedAt }) => {
       const title = record?.analysis.candidate ?? document!.sourceFile
       const job = document?.jobContext ?? record?.analysis.jobContext

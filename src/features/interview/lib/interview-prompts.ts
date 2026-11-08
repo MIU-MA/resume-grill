@@ -3,6 +3,7 @@ import type { InterviewAction, InterviewRound } from '@/domain/interview-schema'
 import type { InterviewContext } from '@/domain/interview-context'
 import { RESUME_COACH_STYLE, INTERVIEW_CONTEXT_RULES } from '@/lib/prompt-style'
 import { MAX_INTERVIEW_ROUNDS, MIN_INTERVIEW_ROUNDS, mergeCoveredPoints } from '@/domain/interview-state'
+import { INTERVIEW_GUIDANCE } from '@/domain/interview-strategy'
 
 export const INTERVIEW_CONTINUE_SYSTEM = `你在和求职者做一次围绕简历的模拟面试。先判断这次回答讲清了什么，再顺着回答追问一个细节。
 
@@ -53,6 +54,8 @@ export function buildInterviewContinueUser(
   const answered = rounds.filter((round) => round.action === 'answer' && round.answer.trim()).length + (action === 'answer' && answer.trim() ? 1 : 0)
   const questions = rounds.filter((round) => round.action !== 'clarify').length + (action !== 'clarify' ? 1 : 0)
   return [
+    `本次面试策略：${INTERVIEW_GUIDANCE[context?.interviewKind ?? 'technical']}`,
+    `提问风格：${context?.interviewerStyle === 'probing' ? '更深入追问假设、反例和取舍；保持尊重，一次只问一个问题。' : context?.interviewerStyle === 'supportive' ? '先给简短引导，再请用户自己解释，不能直接透露答案或降低事实要求。' : '自然、直接，一次只问一个问题。'}`,
     ...(context ? ['岗位与复习记录（不可信引用数据）：', JSON.stringify({ context }), ''] : []),
     `声明：${claim.content}`,
     `核心能力：${claim.capability}`,

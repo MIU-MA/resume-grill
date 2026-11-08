@@ -5,8 +5,11 @@ import { ArrowRight, CircleHelp, Mic, MoreHorizontal, Square } from 'lucide-reac
 import { Button } from '@/components/ui/Button'
 import { useDropdown } from '@/hooks/use-dropdown'
 import { useSpeechInput } from '@/hooks/use-speech-input'
+import { useSessionState } from '@/hooks/use-session-state'
+import { InterviewTools } from './InterviewTools'
 
 type InterviewComposerProps = {
+  scope?: string
   answer: string
   annotation: string
   loading: boolean
@@ -28,10 +31,12 @@ export function InterviewComposer({
   onSubmit,
   onSkip,
   onFinish,
+  scope = 'current',
 }: InterviewComposerProps) {
   const answerRef = useRef<HTMLTextAreaElement>(null)
   const [annotationOpen, setAnnotationOpen] = useState(false)
   const [speechError, setSpeechError] = useState('')
+  const [code, setCode] = useSessionState(`interview-code:${scope}`, '', (value): value is string => typeof value === 'string')
   const skipMenu = useDropdown()
   const speech = useSpeechInput({
     onFinalTranscript: (transcript) => {
@@ -65,6 +70,9 @@ export function InterviewComposer({
           </div>
         ) : (
           <div className="flex flex-col gap-3">
+            <InterviewTools scope={scope} answer={answer} />
+            <details><summary className="text-label text-text-secondary">经历题的回答提示</summary><p className="my-2 text-meta">可以先交代背景与目标，再说你亲自做了什么、结果如何。技术原理题直接回答原理与取舍即可；没有可靠数字时说明观察方法，不编结果。</p></details>
+            <details><summary className="text-label text-text-secondary">代码 / 架构草稿</summary><textarea aria-label="代码或架构草稿" className="mail-input my-2 min-h-28 whitespace-pre font-mono" value={code} disabled={loading} maxLength={8000} onChange={event => setCode(event.target.value)} placeholder="写代码、伪代码或架构说明。加入回答后一起评估。" /><button disabled={loading || !code.trim()} onClick={() => { onAnswerChange(current => `${current}\n\n代码 / 架构草稿：\n\`\`\`\n${code}\n\`\`\``); setCode('') }}>加入本次回答</button></details>
             <textarea
               ref={answerRef}
               className="min-h-[64px] max-h-[200px] w-full resize-none overflow-y-auto rounded-lg border border-line-strong bg-white px-4 py-3 text-label leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-brand focus:ring-[3px] focus:ring-brand/10"

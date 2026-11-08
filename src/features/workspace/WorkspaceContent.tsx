@@ -15,6 +15,7 @@ import { getInterviewEntry } from '@/domain/interview-entry'
 import { practiceState } from '@/domain/practice-state'
 
 export type InterviewViewData = {
+  scope?: string
   rounds: Array<{
     action: InterviewAction
     question: string
@@ -37,6 +38,9 @@ export type InterviewViewData = {
   setAnnotation: (v: string) => void
   submit: (claim: ResumeClaim) => Promise<void>
   skip: (claim: ResumeClaim) => Promise<void>
+  retryRound?: (claim: ResumeClaim, index: number, answer: string) => Promise<void>
+  setInterviewerStyle?: (style: 'standard' | 'probing' | 'supportive') => void
+  interviewerStyle?: 'standard' | 'probing' | 'supportive'
   reset: () => void
   regenerateSummary: (claim: ResumeClaim, session: InterviewSession) => Promise<boolean>
   regeneratingId: string | null
@@ -206,6 +210,7 @@ function WorkspaceBody({
           <div className="fixed inset-0 z-30 bg-black/20 min-[1200px]:hidden" onClick={() => setStatusOpen(false)} aria-hidden="true" />
         )}
         <InterviewView
+          scope={interview.view.scope}
           selected={interview.activeClaim}
           turns={interview.view.rounds.map((r) => ({
             action: r.action,
@@ -215,6 +220,8 @@ function WorkspaceBody({
             answerSuggestion: r.evaluation.answerSuggestion,
             intent: r.questionIntent,
             evidenceQuotes: r.evaluation.evidenceQuotes,
+            ...('previousAttempts' in r ? { previousAttempts: r.previousAttempts as import('@/domain/interview-schema').InterviewRound['previousAttempts'] } : {}),
+            ...('score' in r.evaluation ? { score: r.evaluation.score as number } : {}),
           }))}
           currentQuestion={interview.view.currentQuestion || null}
           currentIntent={interview.view.currentIntent || null}
@@ -231,6 +238,9 @@ function WorkspaceBody({
           onToggleStatus={() => setStatusOpen((v) => !v)}
           onAnswerChange={interview.view.setAnswer}
           onSubmit={() => interview.view.submit(interview.selected)}
+          onRetry={interview.view.retryRound ? (index, answer) => interview.view.retryRound!(interview.activeClaim, index, answer) : undefined}
+          onStyleChange={interview.view.setInterviewerStyle}
+          style={interview.view.interviewerStyle}
           onSkip={() => interview.view.skip(interview.selected)}
           onAnnotationChange={interview.view.setAnnotation}
           onFinish={interview.onFinish}

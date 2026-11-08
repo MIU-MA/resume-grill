@@ -2,7 +2,6 @@
 
 import { useCallback, useState } from 'react'
 import { deleteResumeDocument, importResumeDocument, listResumeDocuments, loadResumeDocument, resumeDocumentForRecord, saveResumeRevisionDraft, setCurrentResumeDocument, updateResumeDocument, type ResumeDocument, type ResumeRevisionDraft } from '@/features/resume/lib/resume-library'
-import { createResumeRevision, downloadResumeFile } from '@/features/resume/lib/resume-revision'
 import { selectResumeCheckDocument } from '@/features/resume/lib/resume-check-workspace'
 import type { ResumePdfArtifact } from '@/features/resume/lib/resume-pdf'
 import type { ResumeAnalysis } from '@/domain/resume-schema'
@@ -122,6 +121,7 @@ export function useResumeAnalysis(
   }, [ws])
 
   const saveRevision = useCallback(async (text: string, preview?: ResumePdfArtifact) => {
+    const { createResumeRevision, downloadResumeFile } = await import('@/features/resume/lib/resume-revision')
     const pending = ws.pendingExtracted
     if (!pending?.documentId) throw new Error('原简历未保存，请先重新导入。')
     const document = await createResumeRevision(pending.documentId, text, pending.initialReview?.rawText ?? pending.extracted.text, preview, { allowUnchanged: !!preview?.template })
@@ -130,6 +130,7 @@ export function useResumeAnalysis(
   }, [ws, openResumeDocument])
 
   const downloadResume = useCallback(async () => {
+    const { downloadResumeFile } = await import('@/features/resume/lib/resume-revision')
     const id = ws.pendingExtracted?.documentId
     const document = id ? await loadResumeDocument(id) : undefined
     if (!document?.originalFile) throw new Error('这份简历没有可下载的附件，请修改后保存为新稿。')

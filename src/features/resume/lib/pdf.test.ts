@@ -1,5 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { reconstructPdfPage } from './pdf'
+import { extractTextFromFile, reconstructPdfPage } from './pdf'
+
+it.each(['image.png', 'archive.zip', 'resume.pdf.exe'])('拒绝把非简历文件当文本读取：%s', async name => {
+  await expect(extractTextFromFile(new File(['not a resume'], name))).rejects.toThrow('请选择 PDF')
+})
+it('空文件和超大文件在解析之前直接拒绝', async () => {
+  await expect(extractTextFromFile(new File([], 'resume.pdf'))).rejects.toThrow('文件为空')
+  const oversized = new File(['test'], 'resume.pdf')
+  Object.defineProperty(oversized, 'size', { value: 10 * 1024 * 1024 + 1 })
+  await expect(extractTextFromFile(oversized)).rejects.toThrow('不能超过 10 MB')
+})
+it('继续支持大小写扩展名及文本、Markdown，旧 doc 明确说明转换方法', async () => {
+  expect((await extractTextFromFile(new File(['简历正文'], 'resume.TXT'))).text).toBe('简历正文')
+  expect((await extractTextFromFile(new File(['# 简历'], 'resume.md'))).text).toBe('# 简历')
+  await expect(extractTextFromFile(new File(['legacy'], 'resume.doc'))).rejects.toThrow('另存为 .docx')
+})
 
 describe('reconstructPdfPage', () => {
   it('restores visual lines and separates distant columns', () => {
