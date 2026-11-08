@@ -7,6 +7,17 @@ const store = (id: string): DraftStore => ({
 })
 
 describe('草稿持久化', () => {
+  it('跨存储事务也经过自动保存队列，等待旧写入完成后才执行', async () => {
+    let release!: () => void
+    const gate = new Promise<void>(resolve => { release = resolve })
+    const saved: string[] = []
+    const persist = createDraftWriter(async value => { await gate; saved.push(value.drafts[0].id) })
+    const first = persist(store('old'))
+    const atomic = persist(store('edited'), async value => { saved.push(`transaction:${value.drafts[0].id}`) })
+    await Promise.resolve(); expect(saved).toEqual([])
+    release(); await Promise.all([first, atomic])
+    expect(saved).toEqual(['old', 'transaction:edited'])
+  })
   it('显式保存等待前一次自动保存，旧内容不会覆盖新内容', async () => {
     let release!: () => void
     const gate = new Promise<void>(resolve => { release = resolve })

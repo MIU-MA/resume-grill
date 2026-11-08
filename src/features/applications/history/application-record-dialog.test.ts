@@ -31,3 +31,25 @@ it('公司为空时给出提示，不调用保存', async () => {
   expect(onSave).not.toHaveBeenCalled()
   expect(host.querySelector('[role="alert"]')).not.toBeNull()
 })
+
+it('保存过程中锁定输入并阻止 Esc 关闭和重复提交，失败后保留输入供重试', async () => {
+  let reject!: (error: Error) => void
+  const onClose = vi.fn()
+  const onSave = vi.fn(() => new Promise<void>((_resolve, fail) => { reject = fail }))
+  await act(async () => root.render(createElement(ApplicationRecordDialog, { mode: 'add', onClose, onSave })))
+  const company = host.querySelector<HTMLInputElement>('input[placeholder="公司名称"]')!
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(company, '示例公司')
+    company.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  await act(async () => host.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
+  expect(host.querySelector('fieldset')!.disabled).toBe(true)
+  await act(async () => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    host.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+  })
+  expect(onClose).not.toHaveBeenCalled(); expect(onSave).toHaveBeenCalledOnce()
+  await act(async () => reject(new Error('存储失败')))
+  expect(company.value).toBe('示例公司'); expect(host.querySelector('fieldset')!.disabled).toBe(false)
+  expect(host.querySelector('[role="alert"]')!.textContent).toContain('存储失败')
+})

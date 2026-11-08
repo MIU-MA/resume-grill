@@ -14,15 +14,15 @@ export type DraftStore = {
   defaults?: MailDefaults
   selectedIds?: string[]
 }
-const STORAGE_KEY = 'mail-workbench:drafts:v1'
+export const MAIL_DRAFTS_KEY = 'mail-workbench:drafts:v1'
 
-export function loadMailDrafts() { return get<DraftStore>(STORAGE_KEY) }
+export function loadMailDrafts() { return get<DraftStore>(MAIL_DRAFTS_KEY) }
 
 /** Serialize autosaves and explicit writes, allowing recovery after a failed write. */
-export function createDraftWriter(save: (store: DraftStore) => Promise<void> = store => set(STORAGE_KEY, store)) {
+export function createDraftWriter(save: (store: DraftStore) => Promise<void> = store => set(MAIL_DRAFTS_KEY, store)) {
   let pending = Promise.resolve()
-  return (store: DraftStore) => {
-    const write = pending.catch(() => undefined).then(() => save(store))
+  return (store: DraftStore, commit = save) => {
+    const write = pending.catch(() => undefined).then(() => commit(store))
     pending = write
     return write
   }

@@ -21,11 +21,12 @@ export function useApplicationTracker(snapshot: AgentSnapshot | null, onError: (
     void loadApplicationTracker().then(value => { if (active) { accept(value, order); setLoaded(true) } }).catch(() => onError('无法读取岗位进展，请检查浏览器存储权限后刷新。'))
     return () => { active = false }
   }, [accept, onError])
-  const save = useCallback(async (change: (current: ApplicationTracker) => ApplicationTracker) => {
-    const order = ++sequence.current
-    const saved = await updateApplicationTracker(change)
-    accept(saved, order)
+  const commit = useCallback(async (work: () => Promise<ApplicationTracker>) => {
+    const saved = await work()
+    // Transaction completion determines freshness; a queued draft save may start later.
+    accept(saved, ++sequence.current)
   }, [accept])
+  const save = useCallback((change: (current: ApplicationTracker) => ApplicationTracker) => commit(() => updateApplicationTracker(change)), [commit])
   useEffect(() => {
     if (!loaded || !snapshot) return
     const key = JSON.stringify(snapshot.jobs)
@@ -72,5 +73,5 @@ export function useApplicationTracker(snapshot: AgentSnapshot | null, onError: (
   }))
   const hideJob = (id: string) => save(current => current.hiddenMailJobIds.includes(id) ? current : ({ ...current, hiddenMailJobIds: [...current.hiddenMailJobIds, id] }))
   const unhideJob = (id: string) => save(current => ({ ...current, hiddenMailJobIds: current.hiddenMailJobIds.filter(item => item !== id) }))
-  return { tracker, loaded, saveProgress, capture, restoreSubmission, saveManual, removeManual, restoreManual, hideJob, unhideJob }
+  return { tracker, loaded, commit, saveProgress, capture, restoreSubmission, saveManual, removeManual, restoreManual, hideJob, unhideJob }
 }

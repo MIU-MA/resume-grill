@@ -32,6 +32,7 @@ export function ApplicationRecordDialog({ mode, initial, allowNote = true, lockC
   const [saving, setSaving] = useState(false)
   const change = (patch: Partial<ApplicationRecordValues>) => { setDraft(current => ({ ...current, ...patch })); setError('') }
   const submit = async () => {
+    if (saving) return
     const input = {
       company: draft.company,
       role: draft.role,
@@ -48,12 +49,13 @@ export function ApplicationRecordDialog({ mode, initial, allowNote = true, lockC
     catch (cause) { setError(cause instanceof Error ? cause.message : '保存失败，请重试。') }
     finally { setSaving(false) }
   }
-  return <Dialog open onClose={onClose} label={mode === 'add' ? '登记投递' : '编辑投递记录'} panelClassName="w-[min(620px,calc(100%-32px))] max-h-[calc(100dvh-40px)] overflow-y-auto border border-line bg-white p-5">
+  return <Dialog open onClose={() => { if (!saving) onClose() }} label={mode === 'add' ? '登记投递' : '编辑投递记录'} panelClassName="w-[min(620px,calc(100%-32px))] max-h-[calc(100dvh-40px)] overflow-y-auto border border-line bg-white p-5">
     <header className="mb-5">
       <h2 className="m-0 text-section font-semibold">{mode === 'add' ? '登记投递' : '编辑投递记录'}</h2>
       <p className="mb-0 mt-1 text-body leading-relaxed text-text-tertiary">用于官网直投、内推等没有草稿的投递。这里只记录信息，不会发送邮件或提交官网。</p>
     </header>
     <form className="space-y-4" onSubmit={event => { event.preventDefault(); void submit() }}>
+      <fieldset disabled={saving} className="m-0 min-w-0 space-y-4 border-0 p-0">
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="mail-label">公司 *<input autoFocus className="mail-input" maxLength={120} required value={draft.company} onChange={event => change({ company: event.target.value })} placeholder="公司名称" /></label>
         <label className="mail-label">岗位<input className="mail-input" maxLength={120} value={draft.role} onChange={event => change({ role: event.target.value })} placeholder="岗位名称" /></label>
@@ -73,6 +75,7 @@ export function ApplicationRecordDialog({ mode, initial, allowNote = true, lockC
         <Button type="button" variant="secondary" onClick={onClose} disabled={saving}>取消</Button>
         <Button type="submit" loading={saving}>保存记录</Button>
       </div>
+      </fieldset>
     </form>
   </Dialog>
 }

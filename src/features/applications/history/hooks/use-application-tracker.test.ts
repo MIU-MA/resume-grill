@@ -22,6 +22,17 @@ beforeEach(() => {
   host = document.createElement('div'); document.body.append(host); root = createRoot(host)
 })
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals() })
+it('排队的官网记录事务完成后，以最终写入结果刷新进展', async () => {
+  await act(async () => root.render(createElement(Harness, { snapshot: null })))
+  let resolve!: (value: ApplicationTracker) => void
+  let pending!: Promise<void>
+  await act(async () => { pending = current.commit(() => new Promise<ApplicationTracker>(done => { resolve = done })) })
+  await act(async () => { await current.saveProgress('b', { stage: 'offer' }) })
+  const committed = { ...data, progress: { ...data.progress, a: { ...data.progress.b, stage: 'interview' as const } } }
+  await act(async () => { resolve(committed); await pending })
+  expect(current.tracker.progress.a.stage).toBe('interview')
+  expect(current.tracker.progress.b.stage).toBe('offer')
+})
 it('执行器断开和重新打开页面后，已读取的邮件、进展、笔记仍保留', async () => {
   await act(async () => root.render(createElement(Harness, { snapshot })))
   await act(async () => { await current.saveProgress('a', { stage: 'interview', contact: 'HR', note: '周五一面' }) })

@@ -20,6 +20,7 @@ import { useApplicationTracker } from '../history/hooks/use-application-tracker'
 import { prepareQuickMail } from '../mail/lib/quick-mail'
 import { applyMailDefaults, type MailDefaults } from '../mail/lib/mail-defaults'
 import { captureMailSubmissions } from '../history/lib/application-tracker-storage'
+import { saveWebsiteRecord } from '../history/lib/website-record-storage'
 import { parseContactList, planContactImports } from '../mail/lib/contact-import'
 import { websiteTargets } from '../website/lib/website-automation'
 import { careerUrlKey } from '../jobs/lib/pasted-career'
@@ -52,6 +53,8 @@ export function useMailWorkbench({ mode, onNavigate, onPrepare }: Args) {
     setTab: setStoredTab,
     persist,
   } = useMailDrafts(setError, agent.snapshot?.sender)
+  const currentDrafts = useRef(drafts)
+  currentDrafts.current = drafts
   const tab: 'drafts' | 'history' = mode === 'application-history' ? 'history' : 'drafts'
   const isCareers = mode === 'careers'
   const isJobs = mode === 'jobs'
@@ -95,9 +98,9 @@ export function useMailWorkbench({ mode, onNavigate, onPrepare }: Args) {
   const selectedPreparation = selected ? preparationByJob[selected.id] : undefined
   const selectedAttachment = preparationAttachment(selectedPreparation, attachment, attachmentSource)
   const selectedDescription = selected?.jobDescription ?? ''
-  const persistWorkspace = (changes: Partial<Parameters<typeof persist>[0]>) => persist({
+  const persistWorkspace = (changes: Partial<Parameters<typeof persist>[0]>, commit?: Parameters<typeof persist>[1]) => persist({
     drafts, attachment, attachmentSource, websiteApplications, preparationByJob, defaults, selectedIds: selectedDraftIds, ...changes,
-  })
+  }, commit)
   const startTailoring = (draft: Draft, pickedFile?: File) => {
     if (!draft.jobDescription?.trim()) { setError('先粘贴这个岗位的 JD。'); return }
     const saved = preparationByJob[draft.id]?.tailoredResume
@@ -127,6 +130,9 @@ export function useMailWorkbench({ mode, onNavigate, onPrepare }: Args) {
     setBusy(true); setError('')
     try { await work() } catch (e) { setError(e instanceof Error ? e.message : '操作失败') }
     finally { setBusy(false) }
+  }
+  const assertDraftCapacity = (id: string) => {
+    if (!currentDrafts.current.some(item => item.id === id) && currentDrafts.current.length >= 20) throw new Error('待投递清单已满，请先移除条目后重试。')
   }
   const updateById = (id: string, change: Partial<Draft>) => {
     const target = drafts.find(draft => draft.id === id)
@@ -171,7 +177,12 @@ export function useMailWorkbench({ mode, onNavigate, onPrepare }: Args) {
     const preparation = preparationByJob[id]
     const wasSelected = selectedDraftIds.includes(id)
     if (!draft) return
-    undoable('已移除草稿', () => { setDrafts(items => items.some(item => item.id === id) ? items : [...items, draft]); if (preparation) setPreparationByJob(items => ({ ...items, [id]: preparation })); if (wasSelected) setSelectedDraftIds(items => [...new Set([...items, id])]) })
+    undoable('已移除草稿', () => {
+      assertDraftCapacity(id)
+      setDrafts(items => items.some(item => item.id === id) ? items : [...items, draft])
+      if (preparation) setPreparationByJob(items => ({ ...items, [id]: preparation }))
+      if (wasSelected) setSelectedDraftIds(items => [...new Set([...items, id])])
+    })
     setDrafts(items => items.filter(item => item.id !== id))
     setSelectedDraftIds(items => items.filter(item => item !== id))
     if (selected?.id === id) setEditOpen(false)
@@ -217,7 +228,7 @@ export function useMailWorkbench({ mode, onNavigate, onPrepare }: Args) {
     await tracking.capture({ [draft.id]: { jobDescription: draft.jobDescription ?? '', attachment: selectedAttachment.file ?? undefined, at: record.appliedAt, channel: 'website' } })
     setPreparationByJob(items => ({ ...items, [draft.id]: { ...items[draft.id], jobDescription: draft.jobDescription ?? '' } }))
     setWebsiteApplications(items => [...items, record]); setDrafts(items => items.filter(item => item.id !== draft.id))
-    undoable('已登记官网申请', async () => { await tracking.restoreSubmission(draft.id, record.appliedAt, previousSubmission); setWebsiteApplications(items => items.filter(item => item.id !== record.id)); setDrafts(items => items.some(item => item.id === draft.id) ? items : [...items, draft]); setTab('drafts'); setSelectedId(draft.id) })
+    undoable('已登记官网申请', async () => { assertDraftCapacity(draft.id); await tracking.restoreSubmission(draft.id, record.appliedAt, previousSubmission); assertDraftCapacity(draft.id); setWebsiteApplications(items => items.filter(item => item.id !== record.id)); setDrafts(items => items.some(item => item.id === draft.id) ? items : [...items, draft]); setTab('drafts'); setSelectedId(draft.id) })
     setTab('history'); setSelectedId(record.id)
   }
   const deleteEntry = async (entry: ApplicationEntry) => {
@@ -241,16 +252,17 @@ export function useMailWorkbench({ mode, onNavigate, onPrepare }: Args) {
     const now = Date.now()
     const editing = recordDialog?.mode === 'edit' ? recordDialog.entry : undefined
     if (editing?.kind === 'website' && editing.website) {
-      setWebsiteApplications(items => items.map(item => item.id === editing.id ? {
+      if (!websiteApplications.some(item => item.id === editing.id)) throw new Error('这条记录已不存在，请关闭后重新打开。')
+      const next = websiteApplications.map(item => item.id === editing.id ? {
         ...item,
         company: input.company,
         role: input.role,
         recipient: input.contact,
-        sourceUrl: input.sourceUrl || item.sourceUrl,
-        applicationUrl: input.sourceUrl || item.applicationUrl,
+        sourceUrl: input.sourceUrl,
         appliedAt: input.appliedAt,
-      } : item))
-      await tracking.saveProgress(editing.id, { stage })
+      } : item)
+      await persistWorkspace({ websiteApplications: next }, store => tracking.commit(() => saveWebsiteRecord(store, editing.id, stage)))
+      setWebsiteApplications(next)
     } else if (editing?.kind === 'manual' && editing.manual) {
       const record: ManualApplication = { ...editing.manual, ...input, updatedAt: now }
       await tracking.saveManual(record, stage)
@@ -300,12 +312,14 @@ export function useMailWorkbench({ mode, onNavigate, onPrepare }: Args) {
   const returnWebsiteToDrafts = (entry: ApplicationEntry) => {
     const record = entry.website
     if (!record) return
+    try { assertDraftCapacity(record.id) } catch (cause) { setError(cause instanceof Error ? cause.message : '无法移回待投递清单。'); return }
     const { channel: _channel, applicationUrl: _url, appliedAt: _at, ...draft } = record
     setWebsiteApplications(items => items.filter(item => item.id !== entry.id))
-    setDrafts(items => [...items, draft])
-    setSelectedDraftIds(items => [...items, draft.id])
+    setDrafts(items => items.some(item => item.id === draft.id) ? items : [...items, draft])
+    setSelectedDraftIds(items => [...new Set([...items, draft.id])])
     setSelectedId(draft.id)
     setTab('drafts')
+    setError('')
   }
 
   const applyTailoring = async (change: Partial<Draft>, saved: SavedJobPreparation) => {

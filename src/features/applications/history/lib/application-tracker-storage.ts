@@ -13,7 +13,7 @@ export type ApplicationTracker = {
   /** Mail records hidden locally; the executor journal is never rewritten. */
   hiddenMailJobIds: string[]
 }
-const KEY = 'mail-workbench:application-tracker:v1'
+export const APPLICATION_TRACKER_KEY = 'mail-workbench:application-tracker:v1'
 export function emptyApplicationTracker(): ApplicationTracker {
   return { progress: {}, mailJobs: [], submissions: {}, manualApplications: [], hiddenMailJobIds: [] }
 }
@@ -30,12 +30,12 @@ export function normalizeApplicationTracker(value: Partial<ApplicationTracker> |
   }
 }
 export async function loadApplicationTracker() {
-  return normalizeApplicationTracker(await get<Partial<ApplicationTracker>>(KEY))
+  return normalizeApplicationTracker(await get<Partial<ApplicationTracker>>(APPLICATION_TRACKER_KEY))
 }
 /** Atomic read/modify/write preserves simultaneous edits, submissions and agent updates. */
 export async function updateApplicationTracker(change: (current: ApplicationTracker) => ApplicationTracker) {
   let saved!: ApplicationTracker
-  await update<Partial<ApplicationTracker>>(KEY, current => { saved = change(normalizeApplicationTracker(current)); return saved })
+  await update<Partial<ApplicationTracker>>(APPLICATION_TRACKER_KEY, current => { saved = change(normalizeApplicationTracker(current)); return saved })
   return saved
 }
 export function captureMailSubmissions(batch: MailBatch, descriptions: Record<string, string>, now: number) {
