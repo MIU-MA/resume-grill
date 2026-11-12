@@ -24,6 +24,7 @@
     "lint": "oxlint",
     "check:architecture": "node scripts/check-architecture.mjs",
     "test": "vitest run",
+    "test:go-bridge": "vitest run --config vitest.go.config.ts",
     "check:pdf-preview": "node scripts/check-pdf-preview.mjs"
   },
   "dependencies": {

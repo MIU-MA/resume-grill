@@ -9,6 +9,27 @@ permissions:
   contents: read
 
 jobs:
+  go:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    env:
+      CGO_ENABLED: '0'
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+      - run: go test ./...
+      - run: go vet ./...
+      - run: go build ./...
   verify:
     strategy:
       fail-fast: false
@@ -26,5 +47,10 @@ jobs:
       - run: npm run check:architecture
       - run: npm run lint
       - run: npm test
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+      - run: npm run test:go-bridge
       - run: npm run build
       - run: npx tsc --noEmit

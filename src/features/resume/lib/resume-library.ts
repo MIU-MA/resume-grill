@@ -53,6 +53,17 @@ export function loadResumeDocument(id: string): Promise<ResumeDocument | undefin
   return get<ResumeDocument>(id)
 }
 
+/** Import a separate text copy; never overwrite a PDF or its associated review. */
+export async function importResumeTextCopy(sourceName: string, text: string): Promise<ResumeDocument> {
+  if (!text.trim()) throw new Error('备份文本为空。')
+  const document: ResumeDocument = {
+    id: `${PREFIX}text-copy:${crypto.randomUUID()}`, sourceFile: `${sourceName}（文本副本）`,
+    extracted: { text, charCount: text.length, pageCount: 1 }, demo: false, updatedAt: Date.now(),
+  }
+  await set(document.id, document)
+  return document
+}
+
 export async function resumeDocumentForRecord(record: SavedRecord): Promise<ResumeDocument> {
   const linked = (await listResumeDocuments()).find(document => document.recordId === record.id && document.review?.rawText === record.analysis.rawText && document.review.jobDescription === (record.analysis.jobDescription ?? ''))
   if (linked) return linked

@@ -14,6 +14,7 @@
 - `src/providers/` 放模型适配器；`src/mail-agent/` 放独立的 Node 邮件执行器。浏览器代码不得导入执行器实现。
 - `src/browser-extension/` 放官网填写扩展及可恢复队列；只通过消息与工作台交接数据，不导入工作台视图、Node 执行器或模型适配器。打包入口放 `scripts/`，产物在已忽略的 `dist/website-extension/` 和 `public/generated/`。
 - `scripts/` 只放可执行入口和开发检查；文档及截图放在 `docs/`，示例输入放在 `examples/`，采集快照放在 `data/`，静态网站资源放在 `public/`。
+- `server/` 是独立的 Go 模块：`cmd/` 放入口，`internal/httpapi/` 放 HTTP 适配，`internal/store/` 放 SQLite 连接、迁移与存储实现。数据库数据放在根目录 `.server/`，不入库；文本快照接口由服务端令牌和归属配置保护，经本机同源 API 桥接，不能接收浏览器指定的归属。前端仍以 IndexedDB 为主，导入快照只创建副本。
 
 ## 依赖与命名
 
@@ -50,3 +51,5 @@ npm run build
 ```
 
 `check:architecture` 会检查本地导入是否有效、分层边界和运行时循环依赖；CI 同样执行。新增异步存储逻辑时，验证写入顺序和失败恢复；验证不接触真实邮箱或模型账户。
+
+Go 模块更改后，在 `server/` 运行 `go test ./...`、`go vet ./...` 和 `go build ./...`，并使用 `gofmt` 格式化。测试使用临时数据库；不启动常驻服务或读取用户的真实数据库。

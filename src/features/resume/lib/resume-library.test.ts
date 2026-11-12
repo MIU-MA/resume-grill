@@ -31,6 +31,7 @@ vi.mock('idb-keyval', () => database)
 import {
   deleteResumeDocument,
   importResumeDocument,
+  importResumeTextCopy,
   listResumeAttachments,
   listResumeDocuments,
   loadResumeDocument,
@@ -54,6 +55,30 @@ beforeEach(() => {
 })
 
 describe('resume library', () => {
+  it('备份导入始终新建文本副本，不覆盖原 PDF、照片或检查结果', async () => {
+    const original = await importResumeDocument(extracted(), '原简历.pdf', false, new File(['pdf'], '原简历.pdf'))
+    await updateResumeDocument(original.id, { review: review() })
+    database.values.set(original.id, { ...await loadResumeDocument(original.id), photo: { dataUrl: 'data:image/png;base64,example', position: 'right' } })
+    const before = await loadResumeDocument(original.id)
+    const first = await importResumeTextCopy(original.sourceFile, original.extracted.text)
+    const second = await importResumeTextCopy(original.sourceFile, original.extracted.text)
+    expect(first.id).not.toBe(original.id)
+    expect(second.id).not.toBe(first.id)
+    expect(first.originalFile).toBeUndefined()
+    expect(first.review).toBeUndefined()
+    expect(first.jobContext).toBeUndefined()
+    expect(await loadResumeDocument(original.id)).toEqual(before)
+    expect(await loadResumeDocument(first.id)).toEqual(first)
+    expect(database.values.get('current-resume-document')).toBe(original.id)
+  })
+
+  it('副本写入失败时保留原简历，不更改当前简历指针', async () => {
+    const original = await importResumeDocument(extracted(), '原简历.pdf', false)
+    database.set.mockRejectedValueOnce(new Error('quota exceeded'))
+    await expect(importResumeTextCopy('快照', '正文')).rejects.toThrow('quota exceeded')
+    expect(await listResumeDocuments()).toEqual([original])
+    expect(database.values.get('current-resume-document')).toBe(original.id)
+  })
   it('shows one reusable attachment per version and retains an older job copy after the library file changes', async () => {
     const file = new File(['original'], '简历.txt')
     const original = await importResumeDocument(extracted(), file.name, false, file)

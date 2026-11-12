@@ -19,7 +19,7 @@
 
 | 功能 | 支持内容 |
 | --- | --- |
-| 简历库 | PDF／DOCX／TXT／Markdown、粘贴文字、多份简历；主干与岗位版本关系、版本比较和重新打开 |
+| 简历库 | PDF／DOCX／TXT／Markdown、粘贴文字、多份简历；版本关系与比较；可选本机文本快照与副本导入 |
 | 简历检查 | 独立检查与逐条修改；技术关键词覆盖雷达、事实补充；复用资料新建简历，支持上传照片 |
 | 简历修改 | 原 PDF 上定位与修改、保留照片和排版；可选八种模板重新排版 |
 | 职位清单 | 已读取岗位的完整列表；按校招／社招、岗位方向、公司和关键词筛选，结果缓存在本机 |
@@ -74,5 +74,7 @@ npm run dev
 [使用与配置](docs/getting-started.md) · [邮箱投递](docs/email-applications.md) · [官网扩展](docs/website-automation.md) · [招聘目录](docs/career-directory.md) · [参与开发](CONTRIBUTING.md)
 
 代码入口在 `src/application/`，业务按模块放在 `src/features/`。投递模块分为职位 `jobs/`、邮件 `mail/`、官网填写 `website/` 和记录 `history/`；AI 找岗位独立放在 `job-assistant/`。模块职责见 [目录说明](src/features/README.md)，开发约定见 [AGENTS.md](AGENTS.md)。
+
+`server/` 是实验中的 [Go + SQLite 服务](docs/go-service.md)，支持迁移、健康检查和可选文本快照；现有工作台仍可独立使用。
 
 [MIT License](LICENSE)

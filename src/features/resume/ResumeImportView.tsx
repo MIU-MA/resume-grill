@@ -15,6 +15,7 @@ import type { SidebarBadges } from '@/features/workspace/WorkspaceSidebar'
 import { AppShell } from '@/features/workspace/AppShell'
 import type { Mode } from '@/application/types'
 import { ResumePasteInput } from './ResumePasteInput'
+import { ResumeSnapshotPanel } from './ResumeSnapshotPanel'
 
 const SAMPLE_RESUME = `酒寄彩叶
 全栈工程师 | 4 年 Web 开发经验
@@ -71,6 +72,7 @@ export function ResumeImportView({ onNavigate, badges, analyzing, error, onExtra
   const openSettings = settingsDialog.onOpenSettings
   const [parseError, setParseError] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
+  const [snapshotsOpen, setSnapshotsOpen] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
 
   const handleFile = async (file?: File) => {
@@ -140,6 +142,9 @@ export function ResumeImportView({ onNavigate, badges, analyzing, error, onExtra
               </div> : <ResumeLibraryList records={savedRecords} documents={savedDocuments} onOpenRecord={onOpenSaved} onOpenDocument={onOpenDocument} onDeleteRecord={onDeleteSaved} onDeleteDocument={onDeleteDocument} />}
 
           </div>
+
+          <button type="button" className="mt-4 text-label text-text-secondary" aria-expanded={snapshotsOpen} onClick={() => setSnapshotsOpen(value => !value)}>本机文本备份{snapshotsOpen ? ' · 收起' : '（实验）'}</button>
+          {snapshotsOpen && <ResumeSnapshotPanel documents={savedDocuments} onOpen={onOpenDocument} />}
 
           <Link href="/applications" className="library-mail-link mt-6 flex items-center gap-4 border-y px-4 py-4">
             <div className="min-w-0 flex-1"><strong className="text-label font-medium">投递简历</strong><p className="mb-0 mt-1 text-label leading-relaxed text-text-secondary">找招聘官网、准备邮件、查看投递记录。</p></div>

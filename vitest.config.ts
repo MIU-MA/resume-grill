@@ -13,5 +13,6 @@ export default defineConfig({
     maxWorkers: 4,
     environment: 'node',
     include: ['src/**/*.test.ts'],
+    exclude: ['src/**/*.integration.test.ts'],
   },
 })
