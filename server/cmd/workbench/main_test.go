@@ -8,7 +8,7 @@ import (
 )
 
 func TestInvalidCredentialsFailBeforeCreatingDatabase(t *testing.T) {
-	for _, credentials := range [][2]string{{"", "local"}, {"short", "local"}, {"a-token-that-is-at-least-thirty-two-characters", " "}} {
+	for _, credentials := range [][2]string{{"", "local"}, {"short", "local"}, {"a-token-that-is-at-least-thirty-two-characters", " "}, {"a-token-that-is-at-least-thirty-two-characters ", "local"}, {"a-token-that-is-at-least-thirty-two-characters\n", "local"}, {"中文中文中文中文中文中文中文中文中文中文中文中文中文中文中文中文", "local"}} {
 		path := filepath.Join(t.TempDir(), "not-created.db")
 		if err := run(context.Background(), "127.0.0.1:3108", path, credentials[0], credentials[1]); err == nil {
 			t.Fatal("accepted invalid credentials")

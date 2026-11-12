@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 export const resumeSnapshotInput = z.object({
-  sourceName: z.string().min(1).max(512).refine(value => !!value.trim()),
+  sourceName: z.string().min(1).max(1024).refine(value => !!value.trim() && Array.from(value).length <= 512),
   rawText: z.string().min(1).refine(value => !!value.trim() && new TextEncoder().encode(value).length <= 1024 * 1024),
 }).strict()
 

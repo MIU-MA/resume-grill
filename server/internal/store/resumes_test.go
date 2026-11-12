@@ -7,6 +7,49 @@ import (
 	"testing"
 )
 
+func TestConcurrentSnapshotsDoNotOverwriteOrCrossOwners(t *testing.T) {
+	s, _ := openTestStore(t)
+	type result struct {
+		owner    string
+		document Resume
+		err      error
+	}
+	completed := make(chan result, 32)
+	for index := 0; index < 32; index++ {
+		owner := "alice"
+		if index%2 == 1 {
+			owner = "bob"
+		}
+		go func(owner string) {
+			document, err := s.CreateResume(context.Background(), owner, "简历.pdf", owner+" 的正文")
+			completed <- result{owner, document, err}
+		}(owner)
+	}
+	ids := map[string]bool{}
+	for index := 0; index < 32; index++ {
+		entry := <-completed
+		if entry.err != nil {
+			t.Fatal(entry.err)
+		}
+		if ids[entry.document.ID] {
+			t.Fatal("snapshot overwritten")
+		}
+		ids[entry.document.ID] = true
+	}
+	for _, owner := range []string{"alice", "bob"} {
+		documents, err := s.ListResumes(context.Background(), owner)
+		if err != nil || len(documents) != 16 {
+			t.Fatalf("%s: %d snapshots, %v", owner, len(documents), err)
+		}
+		for _, document := range documents {
+			stored, err := s.GetResume(context.Background(), owner, document.ID)
+			if err != nil || stored.RawText != owner+" 的正文" {
+				t.Fatal("cross-owner content or failed read")
+			}
+		}
+	}
+}
+
 func TestSnapshotsSurviveRestartAndStayIsolated(t *testing.T) {
 	s, path := openTestStore(t)
 	ctx := context.Background()

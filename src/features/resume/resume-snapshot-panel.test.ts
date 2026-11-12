@@ -53,3 +53,13 @@ it('连续点击保存只发起一次请求', async () => {
   await act(async () => resolve({ ...snapshot, id: 'b'.repeat(32), rawText: '正文' }))
   expect(host.textContent).toContain('文本快照已保存')
 })
+
+it('关闭面板后完成的读取不会再写入副本或跳转', async () => {
+  let resolve!: (value: typeof snapshot & { rawText: string }) => void
+  vi.mocked(readResumeSnapshot).mockReturnValue(new Promise(done => { resolve = done }))
+  await click('导入文本副本')
+  await act(async () => root.render(null))
+  await act(async () => resolve({ ...snapshot, rawText: '已关闭面板的结果' }))
+  expect(importResumeTextCopy).not.toHaveBeenCalled()
+  expect(onOpen).not.toHaveBeenCalled()
+})

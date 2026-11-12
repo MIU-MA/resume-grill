@@ -149,3 +149,21 @@ func TestClosedDatabaseIsNotReady(t *testing.T) {
 		t.Fatal("closed database reported ready")
 	}
 }
+
+func TestSchemaVersionAloneDoesNotMakeDatabaseReady(t *testing.T) {
+	for _, statement := range []string{"DROP TABLE resume_documents", "DROP TABLE owners", "ALTER TABLE resume_documents RENAME COLUMN raw_text TO wrong_column"} {
+		t.Run(statement, func(t *testing.T) {
+			s, path := openTestStore(t)
+			execSQL(t, s.writer, statement)
+			if err := s.Check(context.Background()); err == nil {
+				t.Fatal("broken schema reported ready")
+			}
+			_ = s.Close()
+			reopened, err := Open(context.Background(), path)
+			if err == nil {
+				_ = reopened.Close()
+				t.Fatal("startup accepted a broken schema")
+			}
+		})
+	}
+}

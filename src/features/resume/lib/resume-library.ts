@@ -16,6 +16,7 @@ const CURRENT_KEY = 'current-resume-document'
 export type ResumeDocument = {
   id: string
   sourceFile: string
+  snapshotSourceName?: string
   extracted: ExtractedText
   originalFile?: File
   originalFileUpdatedAt?: number
@@ -57,7 +58,7 @@ export function loadResumeDocument(id: string): Promise<ResumeDocument | undefin
 export async function importResumeTextCopy(sourceName: string, text: string): Promise<ResumeDocument> {
   if (!text.trim()) throw new Error('备份文本为空。')
   const document: ResumeDocument = {
-    id: `${PREFIX}text-copy:${crypto.randomUUID()}`, sourceFile: `${sourceName}（文本副本）`,
+    id: `${PREFIX}text-copy:${crypto.randomUUID()}`, sourceFile: `${sourceName}（文本副本）`, snapshotSourceName: sourceName,
     extracted: { text, charCount: text.length, pageCount: 1 }, demo: false, updatedAt: Date.now(),
   }
   await set(document.id, document)

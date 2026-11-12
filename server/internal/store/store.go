@@ -109,6 +109,19 @@ func (s *Store) Check(ctx context.Context) error {
 	if version != SchemaVersion {
 		return fmt.Errorf("unexpected schema version %d", version)
 	}
+	// A version stamp alone cannot prove the business schema is usable.
+	for _, query := range []string{
+		"SELECT id FROM owners LIMIT 0",
+		"SELECT owner_id,id,source_name,raw_text,parent_id,created_at,updated_at FROM resume_documents LIMIT 0",
+	} {
+		rows, err := s.reader.QueryContext(ctx, query)
+		if err != nil {
+			return fmt.Errorf("check business schema: %w", err)
+		}
+		if err = rows.Close(); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

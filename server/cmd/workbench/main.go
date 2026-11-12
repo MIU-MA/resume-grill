@@ -40,8 +40,8 @@ func run(ctx context.Context, address, path, token, owner string) error {
 	if err := validateAddress(address); err != nil {
 		return err
 	}
-	if len(token) < 32 || strings.TrimSpace(owner) == "" {
-		return fmt.Errorf("WORKBENCH_TOKEN must contain at least 32 characters and owner must not be empty")
+	if !httpapi.ValidAccessToken(token) || strings.TrimSpace(owner) == "" {
+		return fmt.Errorf("WORKBENCH_TOKEN must contain at least 32 printable ASCII characters without whitespace; owner must not be empty")
 	}
 	startup, cancel := context.WithTimeout(ctx, 10*time.Second)
 	database, err := store.Open(startup, path)

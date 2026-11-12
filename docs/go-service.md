@@ -10,7 +10,7 @@
 [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
 ```
 
-将结果填入根目录 `.env.local` 的 `WORKBENCH_TOKEN`。这是服务端变量，不加 `NEXT_PUBLIC_` 前缀；文件已被 Git 忽略。Next.js 默认连接本机 3108 端口，更换端口时另设 `WORKBENCH_PORT`。
+将结果填入根目录 `.env.local` 的 `WORKBENCH_TOKEN`。令牌至少 32 位，只接受无空白的可打印 ASCII 字符；复制时不要带入空格或换行。这是服务端变量，不加 `NEXT_PUBLIC_` 前缀；文件已被 Git 忽略。Next.js 默认连接本机 3108 端口，更换端口时另设 `WORKBENCH_PORT`。
 
 在另一个 PowerShell 终端设置相同的令牌，然后手动启动 Go 服务：
 
@@ -31,7 +31,7 @@ go run ./cmd/workbench
 | 接口 | 用途 |
 | --- | --- |
 | `GET /healthz` | 进程存活 |
-| `GET /readyz` | 数据库能否读取预期迁移版本 |
+| `GET /readyz` | 检查迁移版本及业务表的必需列是否可读 |
 | `POST /v1/resumes` | 创建不可变文本快照，返回 201 |
 | `GET /v1/resumes` | 最近 100 份快照的元信息 |
 | `GET /v1/resumes/{id}` | 读取快照正文 |
@@ -39,6 +39,8 @@ go run ./cmd/workbench
 业务接口要求 `Authorization: Bearer <令牌>`，归属只取 Go 进程配置。浏览器不接触令牌，经 Next.js 的 `/api/local-resumes` 同源桥接；桥接只接受本机工作台地址、固定回环目标和同源写请求。Go 拒绝直接携带 Origin 的业务请求，两个服务的令牌不一致会在界面提示。
 
 Go 仍只监听回环 IP。**这是单机功能，不是可部署的多用户鉴权方案。** 不应将桥接或 Go 服务反向代理给公网用户；多用户账户、会话与权限校验留待后续阶段实现。请求限制 2 MiB，正文限制 1 MiB；失败不会清除浏览器数据，保存操作不自动重试。
+
+网页桥接读取请求体最多等待 5 秒，超时或取消后不再提交；等待 Go 响应最多 7 秒，并响应客户端取消。提交后中断仍可能已经落库，需先刷新列表核对。
 
 ## 实现与验证
 

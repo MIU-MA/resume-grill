@@ -67,6 +67,7 @@ describe('resume library', () => {
     expect(first.originalFile).toBeUndefined()
     expect(first.review).toBeUndefined()
     expect(first.jobContext).toBeUndefined()
+    expect(first.snapshotSourceName).toBe(original.sourceFile)
     expect(await loadResumeDocument(original.id)).toEqual(before)
     expect(await loadResumeDocument(first.id)).toEqual(first)
     expect(database.values.get('current-resume-document')).toBe(original.id)

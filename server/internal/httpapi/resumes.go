@@ -20,6 +20,19 @@ type ResumeRepository interface {
 	GetResume(context.Context, string, string) (store.Resume, error)
 }
 
+// HTTP bearer tokens must survive header encoding without trimming or normalization.
+func ValidAccessToken(token string) bool {
+	if len(token) < 32 {
+		return false
+	}
+	for _, character := range []byte(token) {
+		if character < 0x21 || character > 0x7e {
+			return false
+		}
+	}
+	return true
+}
+
 // The owner is trusted service configuration, never a request parameter.
 func ResumeHandler(repository ResumeRepository, token, owner string) http.Handler {
 	mux := http.NewServeMux()
@@ -77,7 +90,7 @@ func ResumeHandler(repository ResumeRepository, token, owner string) http.Handle
 	})
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		if len(token) < 32 || strings.TrimSpace(owner) == "" || subtle.ConstantTimeCompare([]byte(r.Header.Get("Authorization")), []byte("Bearer "+token)) != 1 {
+		if !ValidAccessToken(token) || strings.TrimSpace(owner) == "" || subtle.ConstantTimeCompare([]byte(r.Header.Get("Authorization")), []byte("Bearer "+token)) != 1 {
 			jsonReply(w, 401, map[string]string{"error": "unauthorized"})
 			return
 		}

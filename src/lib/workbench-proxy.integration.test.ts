@@ -79,9 +79,9 @@ afterAll(async () => {
   }
 })
 
-function request(method = 'GET') {
+function request(method = 'GET', input = source) {
   return new Request('http://localhost:3000/api/local-resumes', {
-    method, ...(method === 'POST' ? { headers: { Origin: 'http://localhost:3000', 'Content-Type': 'application/json' }, body: JSON.stringify(source) } : {}),
+    method, ...(method === 'POST' ? { headers: { Origin: 'http://localhost:3000', 'Content-Type': 'application/json' }, body: JSON.stringify(input) } : {}),
   })
 }
 
@@ -99,6 +99,17 @@ it('真实 HTTP 保存后重启进程，仍能经网页桥接读回相同文本'
   expect(loaded.status).toBe(200)
   expect(await loaded.json()).toEqual(snapshot)
   expect(output).not.toContain(token)
+})
+
+it('包含非 BMP 字符的来源名称在 TypeScript 与 Go 间使用相同长度规则', async () => {
+  await start()
+  const input = { ...source, sourceName: '😀'.repeat(512) }
+  const created = await proxyResumeSnapshot(request('POST', input))
+  expect(created.status).toBe(201)
+  expect(resumeSnapshot.parse(await created.json())).toMatchObject(input)
+  const listing = await proxyResumeSnapshot(request())
+  expect(resumeSnapshotSummary.array().parse(await listing.json())[0].sourceName).toBe(input.sourceName)
+  expect((await proxyResumeSnapshot(request('POST', { ...input, sourceName: input.sourceName + '字' }))).status).toBe(400)
 })
 
 it('令牌不一致、跨归属读取和进程退出都不会返回伪成功', async () => {
