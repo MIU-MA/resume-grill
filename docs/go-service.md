@@ -44,7 +44,7 @@ Go 仍只监听回环 IP。**这是单机功能，不是可部署的多用户鉴
 
 ## 实现与验证
 
-`cmd/workbench/` 管启动和退出，`internal/httpapi/` 管 HTTP 与认证，`internal/store/` 管存储。SQLite 使用 WAL、单写连接、只读连接池和外键约束。快照写入与归属创建在同一事务内；迁移失败回滚，遇到高于程序支持的数据库版本则拒绝启动。SQL 迁移嵌入程序；新增迁移时更新执行逻辑和版本，不能修改已应用的 SQL 来变更已有数据库。
+`cmd/workbench/main.go` 管启动和退出，`internal/httpapi/handler.go` 管 HTTP 与认证，`internal/store/store.go` 管连接、迁移和快照存储；各层测试与实现同名，SQL 独立放在 `migrations/`。SQLite 使用 WAL、单写连接、只读连接池和外键约束。快照写入与归属创建在同一事务内；迁移失败回滚，遇到高于程序支持的数据库版本则拒绝启动。SQL 迁移嵌入程序；新增迁移时更新执行逻辑和版本，不能修改已应用的 SQL 来变更已有数据库。
 
 ```bash
 cd server

@@ -75,6 +75,6 @@ npm run dev
 
 代码入口在 `src/application/`，业务按模块放在 `src/features/`。投递模块分为职位 `jobs/`、邮件 `mail/`、官网填写 `website/` 和记录 `history/`；AI 找岗位独立放在 `job-assistant/`。模块职责见 [目录说明](src/features/README.md)，开发约定见 [AGENTS.md](AGENTS.md)。
 
-`server/` 是实验中的 [Go + SQLite 服务](docs/go-service.md)，支持迁移、健康检查和可选文本快照；现有工作台仍可独立使用。
+`server/` 是实验中的 [Go + SQLite 服务](docs/go-service.md)，按入口、HTTP、存储三层组织，支持迁移、健康检查和可选文本快照；现有工作台仍可独立使用。
 
 [MIT License](LICENSE)
