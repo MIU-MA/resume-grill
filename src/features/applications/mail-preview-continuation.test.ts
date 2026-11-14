@@ -10,7 +10,6 @@ const sender = { name: '演示用户', address: 'demo@qq.com' }
 const draft: Draft = { id: 'a034dbde-b56b-4b00-98cc-319633e12ab3', company: '', role: '', recipient: 'hr@example.com', subject: '应聘', body: '附件是我的简历', sourceConfirmed: true, sourceUrl: '' }
 const persist = vi.fn(async () => {})
 vi.mock('./hooks/use-mail-agent', () => ({ useMailAgent: () => ({ snapshot: { sender, jobs: [], running: false }, connectionError: '', token: '', command: vi.fn() }) }))
-vi.mock('../settings/LocalSetupStatus', () => ({ LocalSetupStatus: () => null }))
 vi.mock('./history/hooks/use-application-tracker', () => ({ useApplicationTracker: () => ({ loaded: true, tracker: { mailJobs: [], submissions: {}, progress: {} }, capture: vi.fn() }) }))
 vi.mock('./mail/hooks/use-mail-drafts', () => ({ useMailDrafts: () => {
   const [attachment, setAttachment] = useState<File | null>(null)

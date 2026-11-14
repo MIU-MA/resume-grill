@@ -104,6 +104,23 @@ it('重置后不接受迟到的重新生成复盘结果', async () => {
   await act(async () => { resolve(Response.json(result)); expect(await pending).toBe(false) })
   expect(callbacks.onSessionSaved).not.toHaveBeenCalled(); expect(hook.regeneratingId).toBeNull()
 })
+
+it('旧复盘请求结束时不能清除新请求的忙碌状态', async () => {
+  await act(async () => hook.start(claim))
+  const session = callbacks.onSessionSaved.mock.calls.at(-1)![1] as InterviewSession
+  let oldResolve!: (value: Response) => void, nextResolve!: (value: Response) => void
+  fetchMock.mockImplementationOnce(() => new Promise<Response>(done => { oldResolve = done }))
+  let oldPending!: Promise<boolean>, nextPending!: Promise<boolean>
+  await act(async () => { oldPending = hook.regenerateSummary(claim, { ...session, status: 'done' }) })
+  await act(async () => hook.reset())
+  fetchMock.mockImplementationOnce(() => new Promise<Response>(done => { nextResolve = done }))
+  const next = { ...session, id: 'a:v2', version: 2, status: 'done' as const }
+  await act(async () => { nextPending = hook.regenerateSummary(claim, next) })
+  await act(async () => { oldResolve(Response.json(result)); expect(await oldPending).toBe(false) })
+  expect(hook.regeneratingId).toBe(next.id)
+  await act(async () => { nextResolve(Response.json(result)); expect(await nextPending).toBe(true) })
+  expect(hook.regeneratingId).toBeNull()
+})
 it('一次练习的追问、复盘和保存均使用开始时的岗位与复习记录', async () => {
   const original = structuredClone(context)
   await act(async () => hook.start(claim))
@@ -114,6 +131,21 @@ it('一次练习的追问、复盘和保存均使用开始时的岗位与复习�
   expect(fetchMock).toHaveBeenCalledTimes(2)
   for (const call of fetchMock.mock.calls) expect(JSON.parse(call[1].body).context).toEqual(original)
   expect(callbacks.onSessionSaved).toHaveBeenLastCalledWith('a', expect.objectContaining({ context: original, finalResult: result }))
+})
+it('改写后的新版本在启动、完成和重新生成复盘时保留自己的内容与版本', async () => {
+  const rewritten = '负责支付接口幂等键与数据库唯一约束设计'
+  await act(async () => hook.start(claim, { version: 3, claimContent: rewritten }))
+  const expected = { id: 'a:v3', version: 3, claimContent: rewritten, context: structuredClone(context) }
+  expect(callbacks.onSessionSaved).toHaveBeenLastCalledWith('a', expect.objectContaining({ ...expected, status: 'in_progress' }))
+  await act(async () => hook.setAnswer('以唯一约束拦截重复请求'))
+  await act(async () => hook.submit(claim))
+  const saved = callbacks.onSessionSaved.mock.calls.at(-1)![1] as InterviewSession
+  expect(saved).toMatchObject({ ...expected, status: 'done', finalResult: result })
+  await act(async () => hook.reset())
+  context = { jobDescription: '当前其他岗位', reviewProgress: [] }
+  await act(async () => hook.regenerateSummary(claim, saved))
+  expect(callbacks.onSessionSaved).toHaveBeenLastCalledWith('a', expect.objectContaining({ ...expected, finalResult: result }))
+  for (const call of fetchMock.mock.calls) expect(JSON.parse(call[1].body).claim.content).toBe(rewritten)
 })
 it('恢复和重新生成使用旧会话自己的背景，不被当前岗位覆盖', async () => {
   const saved: InterviewSession = { id: 'a:v2', claimContent: claim.content, rounds: [], claimAnalysis: { level: '通用', verifyPoints: [{ point: '说明方案', importance: 'high' }], trapPoints: [] }, finalResult: null, status: 'in_progress', version: 2, context: { jobDescription: '原来的岗位', reviewProgress: [] } }

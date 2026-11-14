@@ -20,7 +20,6 @@ vi.mock('./hooks/use-mail-agent', () => ({ useMailAgent: () => ({
   snapshot: { sender: { name: '张三', address: 'candidate@qq.com' }, jobs: [] },
   connectionError: '', request: vi.fn(), command: mocks.command,
 }) }))
-vi.mock('../settings/LocalSetupStatus', () => ({ LocalSetupStatus: () => null }))
 vi.mock('./jobs/JobResumeDialog', () => ({ JobResumeDialog: (props: ComponentProps<typeof JobResumeDialog>) => createElement('button', {
   'data-testid': 'apply-tailoring', onClick: () => void props.onApply({ company: '示例公司', role: '前端', subject: '岗位求职信', body: '参与页面开发，附件为岗位版。', automatic: false }, {
     jobDescription: props.draft.jobDescription!, attachment: new File(['pdf'], '岗位版.pdf'),

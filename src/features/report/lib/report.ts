@@ -4,9 +4,9 @@ import type { InterviewSession } from '@/domain/interview-schema'
 import { deriveBlindSpots } from '@/domain/blind-spots'
 import { buildDiagnosisReport } from '@/features/resume/lib/resume-diagnosis'
 
-export function buildReport(analysis: ResumeAnalysis): string {
+function reportHeader(title: string, analysis: ResumeAnalysis) {
   const lines = [
-    '# 面试练习清单',
+    `# ${title}`,
     '',
     `姓名：${analysis.candidate} · ${analysis.role}`,
     `来源文件：${analysis.sourceFile}`,
@@ -16,6 +16,11 @@ export function buildReport(analysis: ResumeAnalysis): string {
   ]
   appendJobMatch(lines, analysis)
   if (analysis.diagnosis) lines.push(buildDiagnosisReport(analysis.diagnosis), '')
+  return lines
+}
+
+export function buildReport(analysis: ResumeAnalysis): string {
+  const lines = reportHeader('面试练习清单', analysis)
 
   for (const claim of analysis.claims) {
     const prio = PRIORITY_META[claim.testPriority]
@@ -38,17 +43,7 @@ export function buildReport(analysis: ResumeAnalysis): string {
 }
 
 export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<string, InterviewSession[]>, masteredBlindSpotIds: string[] = []): string {
-  const lines = [
-    '# 模拟面试复盘',
-    '',
-    `姓名：${analysis.candidate} · ${analysis.role}`,
-    `来源文件：${analysis.sourceFile}`,
-    '',
-    analysis.summary,
-    '',
-  ]
-  appendJobMatch(lines, analysis)
-  if (analysis.diagnosis) lines.push(buildDiagnosisReport(analysis.diagnosis), '')
+  const lines = reportHeader('模拟面试复盘', analysis)
   const masteredSet = new Set(masteredBlindSpotIds)
   const blindSpots = deriveBlindSpots(analysis, sessions)
   if (blindSpots.length > 0) {
@@ -167,8 +162,8 @@ function appendJobMatch(lines: string[], analysis: ResumeAnalysis) {
   lines.push(`- 还没写清的要求：${analysis.jobMatch.gaps.join('；') || '无'}`, `- 建议先练：${analysis.jobMatch.interviewFocus.join('；') || '无'}`, '')
 }
 
-export function downloadText(filename: string, content: string) {
-  const url = URL.createObjectURL(new Blob([content], { type: 'text/markdown;charset=utf-8' }))
+function downloadFile(filename: string, content: string, type: string) {
+  const url = URL.createObjectURL(new Blob([content], { type }))
   const anchor = document.createElement('a')
   anchor.href = url
   anchor.download = filename
@@ -177,6 +172,10 @@ export function downloadText(filename: string, content: string) {
   anchor.click()
   anchor.remove()
   window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+export function downloadText(filename: string, content: string) {
+  downloadFile(filename, content, 'text/markdown;charset=utf-8')
 }
 
 export function downloadReport(analysis: ResumeAnalysis) {
@@ -195,14 +194,5 @@ export function downloadJsonExport(analysis: ResumeAnalysis, sessions: Record<st
     sessions,
     masteredBlindSpotIds,
   }
-  const json = JSON.stringify(payload, null, 2)
-  const url = URL.createObjectURL(new Blob([json], { type: 'application/json;charset=utf-8' }))
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = `简历数据-${analysis.candidate}.json`
-  anchor.style.display = 'none'
-  document.body.appendChild(anchor)
-  anchor.click()
-  anchor.remove()
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+  downloadFile(`简历数据-${analysis.candidate}.json`, JSON.stringify(payload, null, 2), 'application/json;charset=utf-8')
 }

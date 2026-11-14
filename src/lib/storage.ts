@@ -59,7 +59,10 @@ export async function updateRecordDiagnosis(id: string, review: ResumeReviewSubm
 
 export async function loadRecord(id: string): Promise<SavedRecord | undefined> {
   if (typeof window === 'undefined') return undefined
-  const value = await get<unknown>(id)
+  return normalizeRecord(await get<unknown>(id))
+}
+
+function normalizeRecord(value: unknown): SavedRecord | undefined {
   // This namespace also contains preferences and selection pointers. They are
   // not interview records, and must not make the entire resume library fail.
   if (!value || typeof value !== 'object' || !('analysis' in value)) return undefined
@@ -90,85 +93,35 @@ export async function deleteRecord(id: string): Promise<void> {
   await del(id)
 }
 
-export async function upsertSession(
-  recordId: string,
-  analysis: ResumeAnalysis,
-  claimId: string,
-  session: InterviewSession,
-): Promise<void> {
-  const existing = (await loadRecord(recordId)) ?? {
-    id: recordId,
-    analysis,
-    sessions: {},
-    preparedClaimIds: [],
-    masteredBlindSpotIds: [],
-    claimPriorityOverrides: {},
-    updatedAt: Date.now(),
-  }
-  const list = existing.sessions[claimId] ?? []
-  const idx = list.findIndex((s) => s.version === session.version)
-  if (idx >= 0) list[idx] = session
-  else list.push(session)
-  existing.sessions[claimId] = list
-  existing.updatedAt = Date.now()
-  await saveRecord(existing)
+async function updateSavedRecord(id: string, analysis: ResumeAnalysis, change: (record: SavedRecord) => SavedRecord): Promise<void> {
+  if (typeof window === 'undefined') return
+  await update<unknown>(id, value => {
+    const record = normalizeRecord(value) ?? {
+      id, analysis, sessions: {}, preparedClaimIds: [], masteredBlindSpotIds: [], claimPriorityOverrides: {}, updatedAt: 0,
+    }
+    return { ...change(record), updatedAt: Date.now() }
+  })
 }
 
-export async function updatePreparedClaims(
-  recordId: string,
-  analysis: ResumeAnalysis,
-  preparedClaimIds: string[],
-): Promise<void> {
-  const existing = (await loadRecord(recordId)) ?? {
-    id: recordId,
-    analysis,
-    sessions: {},
-    preparedClaimIds: [],
-    masteredBlindSpotIds: [],
-    claimPriorityOverrides: {},
-    updatedAt: Date.now(),
-  }
-  existing.preparedClaimIds = preparedClaimIds
-  existing.updatedAt = Date.now()
-  await saveRecord(existing)
+export function upsertSession(recordId: string, analysis: ResumeAnalysis, claimId: string, session: InterviewSession): Promise<void> {
+  return updateSavedRecord(recordId, analysis, record => {
+    const list = record.sessions[claimId] ?? []
+    const index = list.findIndex(item => item.version === session.version)
+    const sessions = index >= 0 ? list.map((item, at) => at === index ? session : item) : [...list, session]
+    return { ...record, sessions: { ...record.sessions, [claimId]: sessions } }
+  })
 }
 
-export async function updateMasteredBlindSpots(
-  recordId: string,
-  analysis: ResumeAnalysis,
-  masteredBlindSpotIds: string[],
-): Promise<void> {
-  const existing = (await loadRecord(recordId)) ?? {
-    id: recordId,
-    analysis,
-    sessions: {},
-    preparedClaimIds: [],
-    masteredBlindSpotIds: [],
-    claimPriorityOverrides: {},
-    updatedAt: Date.now(),
-  }
-  existing.masteredBlindSpotIds = masteredBlindSpotIds
-  existing.updatedAt = Date.now()
-  await saveRecord(existing)
+export function updatePreparedClaims(recordId: string, analysis: ResumeAnalysis, preparedClaimIds: string[]): Promise<void> {
+  return updateSavedRecord(recordId, analysis, record => ({ ...record, preparedClaimIds }))
 }
 
-export async function updateClaimPriorityOverrides(
-  recordId: string,
-  analysis: ResumeAnalysis,
-  overrides: Record<string, TestPriority>,
-): Promise<void> {
-  const existing = (await loadRecord(recordId)) ?? {
-    id: recordId,
-    analysis,
-    sessions: {},
-    preparedClaimIds: [],
-    masteredBlindSpotIds: [],
-    claimPriorityOverrides: {},
-    updatedAt: Date.now(),
-  }
-  existing.claimPriorityOverrides = overrides
-  existing.updatedAt = Date.now()
-  await saveRecord(existing)
+export function updateMasteredBlindSpots(recordId: string, analysis: ResumeAnalysis, masteredBlindSpotIds: string[]): Promise<void> {
+  return updateSavedRecord(recordId, analysis, record => ({ ...record, masteredBlindSpotIds }))
+}
+
+export function updateClaimPriorityOverrides(recordId: string, analysis: ResumeAnalysis, overrides: Record<string, TestPriority>): Promise<void> {
+  return updateSavedRecord(recordId, analysis, record => ({ ...record, claimPriorityOverrides: overrides }))
 }
 
 function migrateLegacyRecord(record: SavedRecord): SavedRecord {
