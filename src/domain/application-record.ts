@@ -1,18 +1,18 @@
 import { z } from 'zod'
 import { sourceUrlSchema } from './mail-schema'
 
-/** How a manually recorded application reached the company. */
+/** How a recorded application reached the company. */
 export const APPLICATION_CHANNELS = {
   website: '官网直投',
+  boss: 'BOSS 投递',
   referral: '内推',
   other: '其他渠道',
 } as const
 export type ApplicationChannel = keyof typeof APPLICATION_CHANNELS
 
 /**
- * An application the user recorded themselves. Mail deliveries and imported
- * website applications keep their own records; this fills the "applied on the
- * company site" gap without pretending the workbench sent anything.
+ * A user-recorded application or a fully verified BOSS batch result. Mail
+ * deliveries and imported website applications keep their own records.
  */
 export type ManualApplication = {
   id: string
@@ -33,7 +33,7 @@ export const manualApplicationSchema = z.object({
   id: z.uuid(),
   company: z.string().trim().min(1).max(120),
   role: z.string().trim().max(120),
-  channel: z.enum(['website', 'referral', 'other']),
+  channel: z.enum(['website', 'boss', 'referral', 'other']),
   appliedAt: z.number().int().nonnegative(),
   sourceUrl: z.union([sourceUrlSchema, z.literal('')]),
   contact,

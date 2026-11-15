@@ -1,6 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { BossBatchHistory } from './BossBatchHistory'
+import { BrowserSimulationHistory } from './BrowserSimulationHistory'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { useSessionState } from '@/hooks/use-session-state'
@@ -10,7 +12,7 @@ import { ApplicationEntryDetail } from './ApplicationEntryDetail'
 import { savedDay } from '../mail/lib/mail-presentation'
 import { ApplicationBoard } from './ApplicationBoard'
 
-type ChannelFilter = 'all' | 'mail' | 'website' | 'referral' | 'other' | 'manual'
+type ChannelFilter = 'all' | 'mail' | 'boss' | 'website' | 'referral' | 'other' | 'manual'
 
 export function ApplicationHistoryView({ entries, progress, selectedId, loading = false, disabled = false, onSelect, onAdd, onEdit, onDelete, onSaveProgress, onMailAction, onReturnToDrafts, onPrepare, canPrepare }: {
   onPrepare?: (entry: ApplicationEntry) => void
@@ -32,7 +34,7 @@ export function ApplicationHistoryView({ entries, progress, selectedId, loading 
   const [view, setView] = useSessionState<'list' | 'board'>('application-history-view', 'list', (value): value is 'list' | 'board' => value === 'list' || value === 'board')
   const [query, setQuery] = useSessionState('applications-query', '', (value): value is string => typeof value === 'string')
   const [stage, setStage] = useSessionState<ApplicationStage | ''>('applications-stage', '', (value): value is ApplicationStage | '' => value === '' || typeof value === 'string' && value in APPLICATION_STAGES)
-  const [channel, setChannel] = useSessionState<ChannelFilter>('applications-channel', 'all', (value): value is ChannelFilter => value === 'all' || value === 'mail' || value === 'website' || ['manual', 'referral', 'other'].includes(String(value)))
+  const [channel, setChannel] = useSessionState<ChannelFilter>('applications-channel', 'all', (value): value is ChannelFilter => value === 'all' || value === 'mail' || value === 'website' || ['manual', 'boss', 'referral', 'other'].includes(String(value)))
   const visible = useMemo(() => {
     const term = query.trim().toLowerCase()
     return entries.filter(entry => {
@@ -55,12 +57,14 @@ export function ApplicationHistoryView({ entries, progress, selectedId, loading 
         {Object.entries(APPLICATION_STAGES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
       </select>
       <div className="flex items-center border border-line bg-white p-0.5" role="group" aria-label="按渠道筛选">
-        {([['all', '全部'], ['mail', '邮件'], ['website', '官网'], ['referral', '内推'], ['other', '其他']] as const).map(([key, label]) => <button key={key} type="button" aria-pressed={channel === key} className={`h-7 px-2.5 text-label ${channel === key ? 'bg-brand text-white' : 'text-text-secondary hover:bg-surface-hover'}`} onClick={() => setChannel(key)}>{label}</button>)}
+        {([['all', '全部'], ['mail', '邮件'], ['boss', 'BOSS'], ['website', '官网'], ['referral', '内推'], ['other', '其他']] as const).map(([key, label]) => <button key={key} type="button" aria-pressed={channel === key} className={`h-7 px-2.5 text-label ${channel === key ? 'bg-brand text-white' : 'text-text-secondary hover:bg-surface-hover'}`} onClick={() => setChannel(key)}>{label}</button>)}
       </div>
       <span className="ml-auto text-meta text-text-tertiary">{visible.length} / {entries.length} 条</span>
       <Button className="h-9 px-3 text-label" disabled={disabled || loading} onClick={onAdd}><Plus size={14} />登记投递</Button>
     </div>
 
+    <BossBatchHistory />
+    <BrowserSimulationHistory />
     <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(360px,440px)] max-[1080px]:block max-[1080px]:overflow-y-auto">
       <div className={`min-h-0 overflow-y-auto max-[1080px]:overflow-visible ${detailOpen && selected ? 'max-[1080px]:hidden' : ''}`}>
         <div className="sticky top-0 z-10 grid grid-cols-[minmax(0,1fr)_86px_104px_116px_36px] items-center gap-2 border-b border-line bg-surface-soft px-4 py-2 text-meta text-text-tertiary max-[760px]:grid-cols-[minmax(0,1fr)_86px_36px]">

@@ -14,6 +14,7 @@ import {
   Mail,
   Globe,
   BriefcaseBusiness,
+  MessagesSquare,
   Library,
   type LucideIcon,
 } from 'lucide-react'
@@ -42,6 +43,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   { label: '投递', items: [
     { key: 'jobs', label: '职位清单', icon: BriefcaseBusiness },
     { key: 'careers', label: 'AI 找岗位', icon: Globe },
+    { key: 'boss', label: 'BOSS 投递', icon: MessagesSquare },
     { key: 'applications', label: '投递清单', icon: Mail },
     { key: 'application-history', label: '投递记录', icon: History },
   ] },

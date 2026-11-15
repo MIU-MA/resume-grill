@@ -33,6 +33,7 @@ next-env.d.ts
 *.sw?
 .claude/
 .mail-agent/
+.boss-agent/
 public/generated/
 
 # Local project showcase

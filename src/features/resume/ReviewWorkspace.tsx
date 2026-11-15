@@ -8,8 +8,9 @@ import type { SidebarBadges } from '@/features/workspace/WorkspaceSidebar'
 import { AppShell } from '@/features/workspace/AppShell'
 
 /** Shell for the first review pass, so it no longer swaps to a sidebar-less page. */
-export function ReviewWorkspace({ children, badges, onNavigate, onHome, envConfigured, clientConfigured, onClientChanged, mode = 'diagnosis' }: {
+export function ReviewWorkspace({ children, badges, onNavigate, onHome, envConfigured, clientConfigured, onClientChanged, mode = 'diagnosis', header }: {
   mode?: Mode
+  header?: ReactNode
   children: ReactNode
   badges: SidebarBadges
   onNavigate: (mode: Mode) => void
@@ -26,7 +27,8 @@ export function ReviewWorkspace({ children, badges, onNavigate, onHome, envConfi
     onOpenHistory={onHome}
     {...settingsDialog}
     settings={{ envConfigured, clientConfigured, onClientChanged }}
-    headerless
+    header={header}
+    headerless={!header}
   >
     {children}
   </AppShell>

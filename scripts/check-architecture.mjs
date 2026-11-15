@@ -78,15 +78,15 @@ for (const file of ['app', 'src', 'scripts'].flatMap(folder => files(resolve(roo
     const to = target ? label(target) : entry.specifier
     if (!entry.typeOnly && target && /\.[cm]?[jt]sx?$/.test(to)) graph.get(file).push(target)
     if (from.startsWith('src/domain/') && (
-      /^(src\/(application|features|lib|providers|mail-agent|hooks|components)\/|app\/)/.test(to)
+      /^(src\/(application|features|lib|providers|mail-agent|browser-agent|hooks|components)\/|app\/)/.test(to)
       || /^(react(?:\/|$)|next(?:\/|$)|idb-keyval$|node:)/.test(to)
     )) fail('domain 只能依赖领域契约和纯规则')
     if (from.startsWith('src/lib/') && /^(src\/(features|application)\/|app\/)/.test(to)) fail('共享基础设施不得反向依赖业务或应用')
     if (/^src\/(hooks\/|components\/ui\/)/.test(from) && /^src\/(features|application)\//.test(to)) fail('通用交互不得依赖业务或应用')
     if (from.startsWith('src/features/') && to.startsWith('src/application/') && !entry.typeOnly) fail('业务模块不得在运行时依赖应用编排')
-    if (/^src\/(features|components|hooks|application)\//.test(from) && (to.startsWith('src/mail-agent/') || to.startsWith('node:'))) fail('浏览器层不得依赖本机执行器或 Node 实现')
-    if (from.startsWith('src/mail-agent/') && /^src\/(features|application|components|hooks)\//.test(to)) fail('执行器不得依赖浏览器业务实现')
-    if (from.startsWith('src/browser-extension/') && /^(src\/(features|application|components|hooks|providers|mail-agent)\/|node:)/.test(to)) fail('扩展只能依赖领域契约和扩展内部实现')
+    if (/^src\/(features|components|hooks|application)\//.test(from) && (/^src\/(mail-agent|browser-agent)\//.test(to) || to.startsWith('node:'))) fail('浏览器层不得依赖本机执行器或 Node 实现')
+    if (/^src\/(mail-agent|browser-agent)\//.test(from) && /^src\/(features|application|components|hooks)\//.test(to)) fail('执行器不得依赖浏览器业务实现')
+    if (from.startsWith('src/browser-extension/') && /^(src\/(features|application|components|hooks|providers|mail-agent|browser-agent)\/|node:)/.test(to)) fail('扩展只能依赖领域契约和扩展内部实现')
     if (!from.startsWith('src/browser-extension/') && !from.startsWith('scripts/') && to.startsWith('src/browser-extension/')) fail('工作台通过消息使用扩展，不直接导入扩展实现')
   }
 }

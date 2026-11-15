@@ -14,6 +14,7 @@ const MailWorkbench = dynamic(() => import('@/features/applications/MailWorkbenc
 const JobAssistant = dynamic(() => import('@/features/job-assistant/JobAssistant').then(module => module.JobAssistant), { loading: WorkspaceLoading })
 const ResumeCheckWorkspace = dynamic(() => import('@/features/resume/ResumeCheckWorkspace').then(module => module.ResumeCheckWorkspace), { loading: WorkspaceLoading })
 const KnowledgeView = dynamic(() => import('@/features/knowledge/KnowledgeView').then(module => module.KnowledgeView), { loading: WorkspaceLoading })
+const BossWorkbench = dynamic(() => import('@/features/applications/website/BossWorkbench').then(module => module.BossWorkbench), { loading: WorkspaceLoading })
 export function WorkspaceRoute(props: { mode?: Mode; phase?: 'upload' | 'review' | 'workspace' } = {}) {
   const state = useContext(WorkspaceRouteContext)
   if (!state) return <WorkspaceLoading />
@@ -22,8 +23,9 @@ export function WorkspaceRoute(props: { mode?: Mode; phase?: 'upload' | 'review'
   const { selected, stats } = workspace
   const activeClaim = interview.activeClaimSnapshot ?? selected
   const renderWorkspace = () => {
+    if (mode === 'boss') return <ReviewWorkspace mode="boss" header={<><h1 className="text-section font-semibold">BOSS 投递</h1><span className="ml-auto text-label text-text-secondary">核对批次后执行</span></>} badges={sidebarBadges} onNavigate={handleTabChange} onHome={() => push('upload')} envConfigured={workspace.envConfigured} clientConfigured={workspace.clientConfigured} onClientChanged={workspace.refreshClientLlm}><BossWorkbench /></ReviewWorkspace>
     if (mode === 'knowledge') return <ReviewWorkspace mode="knowledge" badges={sidebarBadges} onNavigate={handleTabChange} onHome={() => push('upload')} envConfigured={workspace.envConfigured} clientConfigured={workspace.clientConfigured} onClientChanged={workspace.refreshClientLlm}><div className="h-full overflow-auto p-4">{workspace.knowledgeReady ? <KnowledgeView analysis={workspace.analysis ?? undefined} knowledgeItems={workspace.knowledgeItems} onToggle={knowledgeActions.toggleMastered} onDelete={knowledgeActions.removeItem} onRestore={knowledgeActions.restoreItem} onUpdate={knowledgeActions.updateItem} onAdd={knowledgeActions.addItem} onRetest={actions.retestClaim} /> : <WorkspaceLoading />}</div></ReviewWorkspace>
-    if (mode === 'diagnosis') return <ResumeCheckWorkspace badges={sidebarBadges} envConfigured={workspace.envConfigured} clientConfigured={workspace.clientConfigured} onClientChanged={workspace.refreshClientLlm} onHome={() => push('upload')} onNavigate={tab => workspace.analysis || ['diagnosis', 'jobs', 'applications', 'careers', 'application-history', 'knowledge'].includes(tab) ? handleTabChange(tab) : push('upload')} onPractice={async (document, review) => {
+    if (mode === 'diagnosis') return <ResumeCheckWorkspace badges={sidebarBadges} envConfigured={workspace.envConfigured} clientConfigured={workspace.clientConfigured} onClientChanged={workspace.refreshClientLlm} onHome={() => push('upload')} onNavigate={tab => workspace.analysis || ['boss', 'diagnosis', 'jobs', 'applications', 'careers', 'application-history', 'knowledge'].includes(tab) ? handleTabChange(tab) : push('upload')} onPractice={async (document, review) => {
       if (!await canSwitchResume()) return
       interview.reset(); restoredRef.current = false
       await analysis.handleConfirmText(review, document.sourceFile, document)
@@ -31,7 +33,7 @@ export function WorkspaceRoute(props: { mode?: Mode; phase?: 'upload' | 'review'
 
     if (workspace.recovering) return <WorkspaceLoading />
 
-    if (mode === 'jobs' || mode === 'applications' || mode === 'careers' || mode === 'application-history') return <MailWorkbench mode={mode} badges={sidebarBadges} renderAssistant={tools => <JobAssistant tools={tools} envConfigured={workspace.envConfigured} />} onNavigate={tab => workspace.analysis || ['diagnosis', 'jobs', 'applications', 'careers', 'application-history', 'knowledge'].includes(tab) ? handleTabChange(tab) : push('upload')} onHome={() => push('upload')} onOpenRecord={async record => {
+    if (mode === 'jobs' || mode === 'applications' || mode === 'careers' || mode === 'application-history') return <MailWorkbench mode={mode} badges={sidebarBadges} renderAssistant={tools => <JobAssistant tools={tools} envConfigured={workspace.envConfigured} />} onNavigate={tab => workspace.analysis || ['boss', 'diagnosis', 'jobs', 'applications', 'careers', 'application-history', 'knowledge'].includes(tab) ? handleTabChange(tab) : push('upload')} onHome={() => push('upload')} onOpenRecord={async record => {
       if (!await canSwitchResume()) return
       interview.reset(); restoredRef.current = false; analysis.openSavedRecord(record)
     }} onPrepare={async (request, intent) => {
@@ -43,7 +45,7 @@ export function WorkspaceRoute(props: { mode?: Mode; phase?: 'upload' | 'review'
     }} />
 
     if (phase === 'workspace' && !workspace.analysis && ['audit', 'interview', 'report', 'knowledge'].includes(mode)) {
-    return <NoResumeWorkspace mode={mode} badges={sidebarBadges} onNavigate={tab => workspace.analysis || ['diagnosis', 'jobs', 'applications', 'careers', 'application-history', 'knowledge'].includes(tab) ? handleTabChange(tab) : push('upload')} onHome={() => push('upload')} />
+    return <NoResumeWorkspace mode={mode} badges={sidebarBadges} onNavigate={tab => workspace.analysis || ['boss', 'diagnosis', 'jobs', 'applications', 'careers', 'application-history', 'knowledge'].includes(tab) ? handleTabChange(tab) : push('upload')} onHome={() => push('upload')} />
   }
 
   if (phase === 'upload' || phase === 'review' || !workspace.analysis || !selected || !stats) {
