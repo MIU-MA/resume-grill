@@ -5,6 +5,7 @@ import type { WebsiteExperience } from '../domain/website-experience'
 import { fieldHasValue as hasValue, formControls as controls, formLabel as labelFor, formVisible as visible, formRequired as required, formInvalid, type FormField as Field } from './form-dom'
 import { customSelect, fillCustomSelect, selectControl, selectedText } from './custom-select'
 import { biliUploadState, domesticSite } from './domestic-sites'
+import { bindFormField } from './field-binding'
 
 export function profileKey(label: string, autocomplete = ''): ProfileKey | undefined {
   if (sensitiveField(label)) return
@@ -68,13 +69,17 @@ export async function fillApplication(profile: WebsiteProfile, answers: WebsiteA
     addMissing({ label: '请在官网处理验证码，再点击继续填写', kind: 'manual' })
   }
   const textFields = editable.filter(element => !(element instanceof HTMLInputElement) || !['hidden', 'password', 'file', 'submit', 'button', 'reset', 'checkbox', 'radio', 'image'].includes(element.type))
-  const descriptors = textFields.map(element => ({ element, label: labelFor(element), key: profileKey(labelFor(element), element.autocomplete) }))
+  const descriptors = textFields.map(element => ({ element, resolve: bindFormField(element), label: labelFor(element), key: profileKey(labelFor(element), element.autocomplete) }))
   const experiencePlan = experienceFields(experiences, labelFor, visible)
   experiencePlan.missing.forEach(addMissing)
-  const changed: Array<{ element: Field; label: string; expected: string }> = []
-  for (const { element, label, key } of descriptors) {
+  const changed: Array<{ resolve: () => Field | undefined; label: string; expected: string }> = []
+  const selected: Array<{ wrapper: HTMLElement; label: string; expected: string }> = []
+  for (const { element: original, resolve, label, key } of descriptors) {
+    const element = resolve()
+    if (!element || !visible(element) || element.matches(':disabled') || ('readOnly' in element && element.readOnly)) { if (required(original)) addMissing({ label: `${label}（页面已变化，请核对后继续填写）`, kind: 'manual' }); continue }
     if (customSelect(element)) continue
-    const experience = experiencePlan.fields.get(element)
+    const planned = experiencePlan.fields.get(original)
+    const experience = planned ? { ...planned, value: experienceFields(experiences, labelFor, visible).fields.get(element)?.value } : undefined
     if (experience && !experience.value) {
       if (required(element) && !hasValue(element)) addMissing({ label: `${experience.label}（请对照经历填写）`, kind: 'manual' })
       continue
@@ -100,7 +105,7 @@ export async function fillApplication(profile: WebsiteProfile, answers: WebsiteA
       addMissing({ label: `${label}（请在页面中选择或填写）`, kind: 'manual' }); continue
     }
     setValue(element, target)
-    changed.push({ element, label: experience?.label ?? label, expected: target })
+    changed.push({ resolve, label: experience?.label ?? label, expected: target })
   }
   const combos = [...new Set([...document.querySelectorAll('[role="combobox"]'), ...fields].map(customSelect).filter((element): element is HTMLElement => !!element))].filter(visible)
   for (const wrapper of combos) {
@@ -110,7 +115,8 @@ export async function fillApplication(profile: WebsiteProfile, answers: WebsiteA
     if (!control) { if (required(wrapper)) addMissing({ label: `${label}（请在官网选择）`, kind: 'manual' }); continue }
     const key = profileKey(label)
     const input = wrapper.querySelector<Field>('input,textarea')
-    const experience = experiencePlan.fields.get(wrapper) ?? (input && experiencePlan.fields.get(input))
+    const currentExperiences = experienceFields(experiences, labelFor, visible)
+    const experience = currentExperiences.fields.get(wrapper) ?? (input && currentExperiences.fields.get(input))
     const duplicate = key && [...descriptors.filter(item => !wrapper.contains(item.element)).map(item => item.key), ...combos.filter(item => item !== wrapper).map(item => profileKey(labelFor(selectControl(item) ?? item)))].includes(key)
     const answer = answers.find(answer => answer.origin === location.origin && answer.scope === scope && normalizeFieldLabel(answer.label) === normalizeFieldLabel(label))
     const value = experience ? experience.value : duplicate ? undefined : key ? profile[key] : answer?.value
@@ -118,12 +124,13 @@ export async function fillApplication(profile: WebsiteProfile, answers: WebsiteA
       if (formInvalid(control)) addMissing({ label: `${label}（已有选项未通过页面校验）`, kind: 'manual' })
       continue
     }
-    if (value && await fillCustomSelect(wrapper, value)) filled.push(experience?.label ?? label)
+    if (value && await fillCustomSelect(wrapper, value)) selected.push({ wrapper, label: experience?.label ?? label, expected: value })
     else if (value || required(control)) addMissing({ label: `${label}（请在官网选择）`, kind: 'manual' })
   }
   let uploaded = false
   const uploadInputs = fields.filter((element): element is HTMLInputElement => element instanceof HTMLInputElement && element.type === 'file' && !element.matches(':disabled') && (!element.parentElement || visible(element.parentElement))
     && /简历|resume|\bcv\b/i.test(labelFor(element)) && !/cover.?letter|求职信|证件|照片|成绩单/i.test(labelFor(element)))
+  const uploadedFields = uploadInputs.map(element => ({ resolve: bindFormField(element), label: labelFor(element) || '简历附件' }))
   for (const input of uploadInputs) {
     const label = labelFor(input) || '简历附件'
     if (input.files?.length || biliUploadState(input) === 'confirmed' || (leverForm()?.contains(input) && leverUploadConfirmed())) { uploaded = true; continue }
@@ -142,7 +149,13 @@ export async function fillApplication(profile: WebsiteProfile, answers: WebsiteA
       if (!input.files?.length) addMissing({ label: `${label}（请手动上传）`, kind: 'upload' })
     } catch { addMissing({ label: `${label}（请手动上传）`, kind: 'upload' }) }
   }
-  await new Promise(resolve => setTimeout(resolve, 120))
+  await new Promise(resolve => setTimeout(resolve, 320))
+  if (!leverForm() && !domesticSite(location.hostname)) for (const field of uploadedFields) {
+    const element = field.resolve()
+    if (uploaded && (!(element instanceof HTMLInputElement) || !element.files?.length)) {
+      uploaded = false; addMissing({ label: `${field.label}（页面未保留附件，请重新核对）`, kind: 'upload' })
+    }
+  }
   if (leverForm()) {
     // Binding FileList is not proof that Lever's asynchronous /parseResume succeeded.
     uploaded = leverUploadConfirmed()
@@ -154,8 +167,14 @@ export async function fillApplication(profile: WebsiteProfile, answers: WebsiteA
     if (!uploaded) addMissing({ label: '简历上传结果尚未确认，请在官网检查上传或解析提示', kind: 'upload' })
   }
   for (const change of changed) {
-    if (change.element.isConnected && change.element.value === change.expected && !formInvalid(change.element)) filled.push(change.label)
+    const element = change.resolve()
+    if (element && visible(element) && element.value === change.expected && !formInvalid(element)) filled.push(change.label)
     else addMissing({ label: `${change.label}（页面未接受填写，请手动核对）`, kind: 'manual' })
+  }
+  for (const change of selected) {
+    const control = selectControl(change.wrapper)
+    if (control && visible(change.wrapper) && !formInvalid(control) && normalizeFieldLabel(selectedText(change.wrapper)) === normalizeFieldLabel(change.expected)) filled.push(change.label)
+    else addMissing({ label: `${change.label}（页面未保留选项，请在官网核对）`, kind: 'manual' })
   }
   for (const element of editable) {
     if (element instanceof HTMLInputElement && required(element) && ['checkbox', 'radio'].includes(element.type) && !element.checked) {
@@ -169,7 +188,10 @@ export async function fillApplication(profile: WebsiteProfile, answers: WebsiteA
   for (const element of fields) {
     if ((element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) && element.readOnly && element.type !== 'hidden' && !element.matches(':disabled') && visible(element) && required(element) && !customSelect(element) && !hasValue(element)) addMissing({ label: `${labelFor(element) || '页面必填项'}（请在官网选择或补全）`, kind: 'manual' })
   }
-  if (!descriptors.some(item => item.key) && !combos.some(item => profileKey(labelFor(selectControl(item) ?? item))) && !uploadInputs.length && !textFields.some(element => required(element) && element.closest('form'))) addMissing({ label: NO_APPLICATION_FORM, kind: 'manual' })
+  for (const element of controls(document)) {
+    if (!fields.includes(element) && visible(element) && !element.matches(':disabled') && element.type !== 'hidden' && required(element) && !hasValue(element)) addMissing({ label: `${labelFor(element) || '新增必填项'}（页面更新后出现，请继续填写）`, kind: 'manual' })
+  }
+  if (!experiencePlan.fields.size && !descriptors.some(item => item.key) && !combos.some(item => profileKey(labelFor(selectControl(item) ?? item))) && !uploadInputs.length && !textFields.some(element => required(element) && element.closest('form'))) addMissing({ label: NO_APPLICATION_FORM, kind: 'manual' })
   if ([...document.querySelectorAll('[role="combobox"][aria-required="true"],[role="listbox"][aria-required="true"]')].some(element => visible(element) && !combos.some(wrapper => wrapper.contains(element) && selectedText(wrapper)))) addMissing({ label: '页面含必填的自定义选项，请在官网选择', kind: 'manual' })
   const site = domesticSite(location.hostname)
   const adapter = leverForm() ? 'Lever 基础字段适配 · ' : site ? `${site.name} · 共用控件规则（实站待验证） · ` : '通用规则 · '

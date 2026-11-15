@@ -47,3 +47,16 @@ it('图片回执哈希不匹配时保留招呼语成功状态；暂停在下一�
   expect(paused.tasks[0].steps.map(step => step.state)).toEqual(['verified', 'pending'])
   expect(paused.state).toBe('paused')
 })
+it('建立沟通后断连保留已完成步骤，当前消息待核对，后续岗位不执行', async () => {
+  const run = makeRun(); run.mode = 'boss'
+  run.tasks[0].steps.unshift({ id: 'contact', kind: 'contact', value: 'job1', state: 'pending' })
+  run.tasks.push({ ...structuredClone(run.tasks[0]), url: 'job2' })
+  const port = adapter()
+  vi.mocked(port.send).mockImplementation(async (_task, step) => { if (step.kind === 'greeting') throw new Error('Chrome 调试连接已断开') })
+  await runApplicationQueue(run, port, async () => {})
+  expect(run.state).toBe('paused')
+  expect(run.tasks[0].steps.map(step => step.state)).toEqual(['verified', 'uncertain', 'pending'])
+  expect(run.tasks[1].state).toBe('queued')
+  await runApplicationQueue(run, port, async () => {})
+  expect(vi.mocked(port.send).mock.calls.filter(call => call[0].url === 'job1')).toHaveLength(2)
+})

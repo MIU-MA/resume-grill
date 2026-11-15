@@ -91,11 +91,8 @@ export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Pa
           const state = await page.evaluate(bossDeliveryDom, { action: 'receipts', text: '', assetUrls: assets })
           const uploaded = state.verifiedImages.find(url => !before.has(url))
           if (uploaded) return uploaded
-          // Some pages expose a local blob until upload completes. Verify its actual bytes.
-          for (const url of state.images.filter(value => value.startsWith('blob:') && !before.has(value))) {
-            const hash = await page.evaluate(async value => { const data = await (await fetch(value)).arrayBuffer(); return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', data)), byte => byte.toString(16).padStart(2, '0')).join('') }, url)
-            if (hash === step.value) return `image:${hash}`
-          }
+          // Local blob bytes only prove that a preview exists. Require a successful
+          // upload response AND a new outgoing image matching its returned URL.
           if (!confirmTried && Date.now() - began > 1000) {
             confirmTried = true
             // No thumbnail is normal for auto-send image inputs. Never retry file injection.

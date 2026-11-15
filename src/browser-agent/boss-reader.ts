@@ -190,7 +190,8 @@ class BossReadPage extends EventEmitter {
     const { frameTree } = await this.browser.command('Page.getFrameTree', {}, sessionId)
     this.frame.id = frameTree.frame.id
     await this.browser.command('Page.enable', {}, sessionId)
-    await this.browser.command('Network.enable', {}, sessionId)
+    // Keep bounded response bodies available while verifying upload receipts.
+    await this.browser.command('Network.enable', { maxTotalBufferSize: 8 * 1024 * 1024, maxResourceBufferSize: 1024 * 1024, maxPostDataSize: 0, enableDurableMessages: true }, sessionId)
   }
   // tsx may preserve nested function names with __name; keep its helper local to this read.
   async evaluate<T, A = undefined>(fn: (arg: A) => T, arg?: A): Promise<Awaited<T>> {

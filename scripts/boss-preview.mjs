@@ -8,7 +8,7 @@ import { tsImport } from 'tsx/esm/api'
 
 const { createBossBatch } = await tsImport('../src/browser-agent/boss-batch.ts', import.meta.url)
 const { createBossSimulation } = await tsImport('../src/browser-agent/boss-simulation.ts', import.meta.url)
-const { runBossComposer } = await tsImport('../src/browser-agent/boss-composer.ts', import.meta.url)
+const { runBossComposer, inspectBossComposerDocument } = await tsImport('../src/browser-agent/boss-composer.ts', import.meta.url)
 const { createBossDraftSession } = await tsImport('../src/browser-agent/boss-draft-session.ts', import.meta.url)
 const { inspectBossDetail } = await tsImport('../src/browser-agent/boss-inspection.ts', import.meta.url)
 const { chromeDebugEndpoint } = await tsImport('../src/browser-agent/chrome-connection.ts', import.meta.url)
@@ -216,10 +216,11 @@ export async function createBossPreview({ port = 4327, fixture = false, headless
         if (!viewReady()) throw new Error('请先选择 BOSS 页面')
         await captureFrame(); reply(200, { frameCount }); return
       }
-      if (['/open-existing-chats', '/composer', '/draft-test', '/draft-preview', '/fill-draft'].includes(req.url)) {
+      if (['/open-existing-chats', '/composer', '/composer-diagnostics', '/draft-test', '/draft-preview', '/fill-draft'].includes(req.url)) {
         if (!attach || phase !== 'connected' || !page || page.isClosed() || inputBusy) throw new Error('请先连接 BOSS 页面并等待当前操作结束')
         if (req.method === 'POST' && req.url === '/open-existing-chats') { inputBusy = true; try { await page.openExistingChats(); reply(200, { ok: true }); return } finally { inputBusy = false } }
         if (req.method === 'GET' && req.url === '/composer') { reply(200, await page.evaluate(runBossComposer, { action: 'inspect' })); return }
+        if (req.method === 'GET' && req.url === '/composer-diagnostics') { reply(200, await page.evaluate(inspectBossComposerDocument)); return }
         if (req.method === 'POST' && ['/draft-preview', '/fill-draft'].includes(req.url)) {
           let body = ''; for await (const chunk of req) { body += chunk; if (body.length > 10000) throw new Error('招呼语过长') }
           const input = JSON.parse(body)

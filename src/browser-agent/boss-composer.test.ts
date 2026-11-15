@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { inspectBossComposer, testBossComposer, runBossComposer } from './boss-composer'
+import { inspectBossComposer, testBossComposer, runBossComposer, inspectBossComposerDocument } from './boss-composer'
 const text = '【填写测试，请勿发送】你好，想了解这个岗位的工作内容。'
 beforeEach(() => {
   vi.stubGlobal('location', { hostname: 'www.zhipin.com', pathname: '/web/geek/chat' })
@@ -8,6 +8,14 @@ beforeEach(() => {
   document.body.innerHTML = '<div class="chat-input"><textarea></textarea><button>发送</button></div>'
 })
 afterEach(() => { document.body.innerHTML = ''; vi.restoreAllMocks(); vi.unstubAllGlobals() })
+it('诊断只返回输入结构，不包含会话正文或查询参数', () => {
+  vi.stubGlobal('location', new URL('https://www.zhipin.com/web/geek/chat?private=secret'))
+  document.querySelector('textarea')!.value = '用户未发送的私人草稿'
+  document.body.insertAdjacentHTML('beforeend', '<div class="chat-title">私人联系人</div>')
+  const result = inspectBossComposerDocument()
+  expect(result.fields).toEqual([{ tag: 'TEXTAREA', id: '', visible: true, editable: true }])
+  expect(JSON.stringify(result)).not.toMatch(/私人|secret|private=/)
+})
 it('填入后读回并清除，不点击发送、不触发键盘快捷发送', async () => {
   const clicked = vi.fn(), keyed = vi.fn(), input = vi.fn()
   document.querySelector('button')!.onclick = clicked

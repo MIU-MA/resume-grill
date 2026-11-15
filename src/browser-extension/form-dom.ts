@@ -25,6 +25,7 @@ export function formLabel(element: Element): string {
 }
 
 export function formVisible(element: Element): boolean {
+  if (!element.isConnected) return false
   if (element.closest('[hidden],[inert],[aria-hidden="true"]')) return false
   for (let node: Element | null = element; node; node = node.parentElement) {
     const style = getComputedStyle(node)

@@ -31,3 +31,19 @@ export async function runBossComposer(input: Operation): Promise<BossComposerSta
 }
 export async function inspectBossComposer() { return await runBossComposer({ action: 'inspect' }) as BossComposerState }
 export async function testBossComposer(input: { text: string; clear: boolean }) { return await runBossComposer({ action: 'test', ...input }) as BossDraftResult }
+
+/** Structural diagnostics only: no message text, contacts, cookies or URL parameters. */
+export function inspectBossComposerDocument() {
+  const visible = (node: Element) => node.getClientRects().length > 0 && getComputedStyle(node).visibility !== 'hidden'
+  const controls = (doc: Document) => [...doc.querySelectorAll<HTMLElement>('textarea,[contenteditable="true"]')].map(node => ({ tag: node.tagName, id: node.id, visible: visible(node), editable: !node.hasAttribute('disabled') && !node.hasAttribute('readonly') }))
+  const address = (value: string) => { try { const url = new URL(value, location.href); return url.origin === location.origin ? url.origin + url.pathname : '[其他站点]' } catch { return '[未知地址]' } }
+  return {
+    url: address(location.href), readyState: document.readyState, visibility: document.visibilityState,
+    fields: controls(document),
+    frames: [...document.querySelectorAll('iframe')].slice(0, 10).map(frame => {
+      let doc: Document | null = null
+      try { doc = frame.contentDocument } catch { /* Cross-origin contents remain unread. */ }
+      return { url: address(frame.src), visible: visible(frame), accessible: !!doc, readyState: doc?.readyState, fields: doc ? controls(doc) : [] }
+    }),
+  }
+}
