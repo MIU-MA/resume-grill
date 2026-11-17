@@ -1,11 +1,11 @@
-import { randomBytes } from 'node:crypto'
+import { randomBytes, randomUUID, createHash } from 'node:crypto'
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { BossBrowserReader } from './boss-reader.ts'
 import { createBrowserBatch, validateBrowserBatch } from './browser-batch.ts'
 import { runApplicationQueue } from './application-queue.ts'
 import { createBossDeliveryAdapter } from './boss-delivery-adapter.ts'
-import type { BrowserRun, SimulationBatch } from '../domain/browser-application.ts'
+import type { BrowserRun, SimulationBatch, BossBatchPreview } from '../domain/browser-application.ts'
 type Page = Parameters<Parameters<BossBrowserReader['withJobPage']>[2]>[0]
 type Context = { browser: BossBrowserReader; source: Page }
 export function createBossBatch(directory: string, current: () => Context | undefined, onRunning: (running: boolean) => void) {
@@ -54,6 +54,30 @@ export function createBossBatch(directory: string, current: () => Context | unde
     return urls
   }
   return {
+    async prepareRemaining(id: string): Promise<BossBatchPreview> {
+      const run = await manager.status(id)
+      if (run.mode !== 'boss' || run.state === 'running') throw new Error('请先暂停当前真实批次')
+      // Only untouched jobs can form another batch. Partial/uncertain jobs are
+      // deliberately left for review; a new batch must never replay their steps.
+      const untouched = run.tasks.filter(task => task.state === 'queued' && task.steps.every(step => step.state === 'pending'))
+      if (!untouched.length) throw new Error('没有完全未执行的岗位，不会重发已联系或待核对的岗位')
+      const images: SimulationBatch['images'] = []
+      const original = run.tasks[0]?.steps.filter(step => step.kind === 'image') ?? []
+      for (const [index, step] of original.entries()) {
+        let image: SimulationBatch['images'][number] | undefined
+        for (const [extension, type] of [['png', 'image/png'], ['jpg', 'image/jpeg']] as const) {
+          const path = join(directory, run.id, 'images', `${index}.${extension}`)
+          try {
+            const bytes = await readFile(path)
+            if (createHash('sha256').update(bytes).digest('hex') !== step.value) throw new Error('原批次图片已变化，不能继续，请重新核对附件')
+            image = { name: `原批次简历-${index + 1}.${extension}`, type, sha256: step.value, base64: bytes.toString('base64') }; break
+          } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error }
+        }
+        if (!image) throw new Error('原批次图片已丢失，不能继续，请重新核对附件')
+        images.push(image)
+      }
+      return this.preview({ id: randomUUID(), jobs: untouched.map(task => ({ url: task.url, title: task.title, company: task.company, greeting: task.steps.find(step => step.kind === 'greeting')?.value ?? '' })), images })
+    },
     async preview(value: unknown) {
       const context = current()
       if (!context || !context.browser.isConnected()) throw new Error('请先连接已登录的 BOSS 浏览器')

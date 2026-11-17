@@ -107,6 +107,10 @@ export async function createBossPreview({ port = 4327, fixture = false, headless
         reply(200, result); return
       }
       if (req.method === 'GET' && /^\/boss-batch\/[a-f0-9-]{36}$/.test(req.url)) { reply(200, await deliveries.status(req.url.split('/')[2])); return }
+      if (req.method === 'POST' && /^\/boss-batch\/[a-f0-9-]{36}\/remaining$/.test(req.url)) {
+        let size = 0; for await (const chunk of req) { size += chunk.length; if (size > 1000) throw new Error('请求过长') }
+        reply(200, await deliveries.prepareRemaining(req.url.split('/')[2])); return
+      }
       if (req.method === 'POST' && /^\/boss-batch\/[a-f0-9-]{36}\/stop$/.test(req.url)) { deliveries.stop(req.url.split('/')[2]); reply(202, { ok: true }); return }
       if (req.method === 'POST' && req.url === '/simulation') {
         let size = 0; const chunks = []

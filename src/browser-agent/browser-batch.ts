@@ -51,7 +51,7 @@ export function createBrowserBatch(directory: string, options: Options) {
   let admission = Promise.resolve()
   return {
     start(value: unknown) { const result = admission.catch(() => undefined).then(() => begin(value)); admission = result.then(() => undefined, () => undefined); return result },
-    async status(id: string) { const current = active.get(id); if (current) return current.run; const saved = await load(id); if (!saved) throw new Error('没有找到批次'); return recover(saved.run) },
+    async status(id: string) { const current = active.get(id); if (current) { if (current.run.state !== 'running') await current.done?.catch(() => {}); return current.run } const saved = await load(id); if (!saved) throw new Error('没有找到批次'); return recover(saved.run) },
     stop(id: string) { const entry = active.get(id); if (entry) entry.stop = true },
     async close() { for (const entry of active.values()) entry.stop = true; await Promise.allSettled([...active.values()].map(entry => entry.done)) },
   }

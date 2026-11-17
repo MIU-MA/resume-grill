@@ -62,3 +62,17 @@ it('刷新即使没有草稿也恢复批次，记录保存失败只允许重新�
   await act(async () => retry.click())
   expect(vi.mocked(bossRequest).mock.calls.every(call => call[1] === `/boss-batch/${run.id}`)).toBe(true)
 })
+
+it('从原批次继续剩余岗位会先展示新预览，不自动确认，也不需要重选简历', async () => {
+  const step = { id: 'contact', kind: 'contact' as const, value: draft.url, state: 'pending' as const }
+  const paused: BrowserRun = { ...run, state: 'paused', tasks: [{ ...draft, state: 'queued', steps: [step] }] }
+  sessionStorage.setItem('boss-browser:live-batch:v1', paused.id)
+  vi.mocked(bossRequest).mockImplementation(async (_connection, path) => path.endsWith('/remaining') ? { id: 'remaining', batchId: '20000000-0000-4000-8000-000000000001', greetingMode: 'platform', expiresAt: Date.now() + 120000, jobs: [draft], images: [], skipped: [] } : paused)
+  await render([])
+  const next = [...host.querySelectorAll('button')].find(button => button.textContent === '继续未执行的 1 个岗位')!
+  await act(async () => next.click())
+  expect(host.textContent).toContain('将联系 1 个岗位')
+  expect(host.querySelector('input[type=checkbox]')).not.toBeNull()
+  expect(vi.mocked(bossRequest).mock.calls.some(call => call[1] === '/boss-batch/confirm')).toBe(false)
+  expect(sessionStorage.getItem('boss-browser:live-batch:v1')).toBeNull()
+})
