@@ -29,3 +29,12 @@ it('等待授权时禁用重复连接，页面关闭后保留刷新和断开入�
   expect(host.textContent).toContain('刷新页面列表')
   expect(host.textContent).toContain('断开 Chrome')
 })
+
+it('ego 连接入口不要求 Chrome 远程调试，已连接时显示正确浏览器', async () => {
+  await render({ ...status('disconnected', false), backend: 'ego' })
+  expect([...host.querySelectorAll('button')].some(button => button.textContent === '连接 ego')).toBe(true)
+  expect(host.textContent).not.toContain('chrome://inspect/#remote-debugging')
+  await render({ ...status('selecting'), backend: 'ego' })
+  expect(host.textContent).toContain('ego 已连接')
+  expect(host.textContent).toContain('断开 ego')
+})

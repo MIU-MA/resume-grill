@@ -5,8 +5,16 @@ export async function runBossComposer(input: Operation): Promise<BossComposerSta
   const jobUrl = 'jobUrl' in input ? input.jobUrl : undefined
   const chat = location.hostname === 'www.zhipin.com' && (/^\/web\/geek\/chat\/?$/.test(location.pathname) || !!jobUrl && location.origin + location.pathname === jobUrl)
   const nodes = chat ? [...document.querySelectorAll<HTMLElement>('textarea, [contenteditable="true"]')].filter(node => node.getClientRects().length > 0 && getComputedStyle(node).visibility !== 'hidden') : []
-  const conversation = chat ? [...document.querySelectorAll<HTMLElement>('.user-item.active, .user-item.selected, .user-list .active, .chat-list .active, .chat-user-list .active, .chat-header .name, .chat-info .name, .chat-title')].filter(node => node.getClientRects().length > 0).map(node => node.innerText.trim()).filter(Boolean).join('\n').slice(0, 500) : ''
-  const state: BossComposerState = { chat, conversation, fields: nodes.map(node => ({ tag: node.tagName, id: node.id, className: node.className, role: node.getAttribute('role'), placeholder: node.getAttribute('placeholder') || node.getAttribute('data-placeholder'), editable: !node.hasAttribute('disabled') && !node.hasAttribute('readonly'), empty: !(node instanceof HTMLTextAreaElement ? node.value : node.innerText).trim(), ancestors: [node.parentElement?.className, node.parentElement?.parentElement?.className] })) }
+  const conversation = chat ? [...document.querySelectorAll<HTMLElement>('.friend-content.selected .title-box, .user-item.active, .user-item.selected, .user-list .active, .chat-list .active, .chat-user-list .active, .chat-header .name, .chat-info .name, .chat-title')].filter(node => node.getClientRects().length > 0).map(node => node.innerText.trim()).filter(Boolean).join('\n').slice(0, 500) : ''
+  const selected = chat ? [...document.querySelectorAll<HTMLElement>('.friend-content.selected, .user-item.active, .user-item.selected')].filter(node => node.getClientRects().length > 0) : []
+  let conversationKey: string | undefined
+  if (selected.length === 1) {
+    const owner = window as unknown as { __resumeGrillDraftRecipients?: WeakMap<HTMLElement, string> }
+    const identities = owner.__resumeGrillDraftRecipients ??= new WeakMap()
+    conversationKey = identities.get(selected[0])
+    if (!conversationKey) { conversationKey = crypto.randomUUID(); identities.set(selected[0], conversationKey) }
+  }
+  const state: BossComposerState = { chat, conversation, ...(conversationKey ? { conversationKey } : {}), fields: nodes.map(node => ({ tag: node.tagName, id: node.id, className: node.className, role: node.getAttribute('role'), placeholder: node.getAttribute('placeholder') || node.getAttribute('data-placeholder'), editable: !node.hasAttribute('disabled') && !node.hasAttribute('readonly'), empty: !(node instanceof HTMLTextAreaElement ? node.value : node.innerText).trim(), ancestors: [node.parentElement?.className, node.parentElement?.parentElement?.className] })) }
   if (input.action === 'inspect') return state
   if (!chat) throw new Error('请在 Chrome 手动打开对应的已有会话，再检查输入框。')
   if (!input.text.trim() || input.text.length > 1000) throw new Error('招呼语应为 1–1000 字')

@@ -41,7 +41,7 @@ export function previewRequestAllowed(address, method, type) {
 
 export async function createBossPreview({ port = 4327, fixture = false, headless = false, stream = true, attach, deferConnect = false, draftTest = false, autoOpenBoss = true, deliveryDirectory = resolve(root, '.boss-agent/boss-batches'), simulationDirectory = resolve(root, '.boss-agent/simulations') } = {}) {
   const viewport = { width: 1280, height: 800 }
-  if (typeof attach === 'string') {
+  if (typeof attach === 'string' && attach !== 'ego:') {
     const address = new URL(attach)
     if (!['http:', 'ws:'].includes(address.protocol) || !['127.0.0.1', 'localhost', '[::1]'].includes(address.hostname) || address.username || address.password) throw new Error('只允许连接本机 Chrome 调试地址')
   }
@@ -137,7 +137,7 @@ export async function createBossPreview({ port = 4327, fixture = false, headless
       }
       if (req.method === 'GET' && req.url === '/status') {
         if (viewReady()) Object.assign(viewport, await viewPage().evaluate(() => ({ width: innerWidth, height: innerHeight })).catch(() => viewport))
-        reply(200, { ready: viewReady(), mode: attach ? 'existing' : 'dedicated', readOnly: false, localDraftFilling: !!attach, backend: attach ? 'scoped-cdp' : 'playwright-fixture', protocolCommands, documentRequests, preparedCount: lastPreparedCount, sentCount: 0, phase, browserConnected: !!browser?.isConnected(), tabs: await listTabs(), frameCount, frameAt, viewport, url: viewPage() ? safeLocation(viewPage().url()) : '', error: lastError, blocked, responses, navigations }); return
+        reply(200, { ready: viewReady(), mode: attach ? 'existing' : 'dedicated', readOnly: false, localDraftFilling: !!attach, backend: attach === 'ego:' ? 'ego' : attach ? 'scoped-cdp' : 'playwright-fixture', protocolCommands, documentRequests, preparedCount: lastPreparedCount, sentCount: 0, phase, browserConnected: !!browser?.isConnected(), tabs: await listTabs(), frameCount, frameAt, viewport, url: viewPage() ? safeLocation(viewPage().url()) : '', error: lastError, blocked, responses, navigations }); return
       }
       if (req.method === 'POST' && req.url === '/connect') {
         if (!attach || connecting || browser?.isConnected()) { reply(409, { error: '请等待当前连接完成，或先断开再重试' }); return }
@@ -290,10 +290,13 @@ export async function createBossPreview({ port = 4327, fixture = false, headless
       }
       if (req.method === 'GET' && req.url === '/jobs') {
         if (phase !== 'connected' || !page || page.isClosed()) throw new Error('请先选择 BOSS 页面并开始预览')
+        const source = page, address = page.url()
         const jobs = await collectJobs()
-        lastRead = { id: randomBytes(12).toString('hex'), page, url: page.url(), jobs }
-        const text = await page.locator('body').innerText({ timeout: 3000 })
-        reply(200, { readId: lastRead.id, jobs, needsLogin: /扫码登录|登录后查看|登录\/注册/.test(text), needsVerification: /安全验证|滑动验证|请完成验证/.test(text) }); return
+        const text = await source.locator('body').innerText({ timeout: 3000 })
+        if (source !== page || address !== page.url()) throw new Error('读取期间页面已变化，请等待搜索完成后重新读取')
+        const snapshot = { id: randomBytes(12).toString('hex'), page: source, url: address, jobs }
+        lastRead = snapshot
+        reply(200, { readId: snapshot.id, jobs, needsLogin: /扫码登录|登录后查看|登录\/注册/.test(text), needsVerification: /安全验证|滑动验证|请完成验证/.test(text) }); return
       }
       reply(404, { error: '没有此操作' })
     } catch (error) { reply(400, { error: error?.issues?.[0]?.message ?? (error instanceof Error ? error.message : '验证失败') }) }
@@ -334,7 +337,7 @@ export async function createBossPreview({ port = 4327, fixture = false, headless
     return Promise.all([...candidates].map(async ([id, target]) => ({ id, url: safeLocation(target.url()), title: await target.title().catch(() => '标题暂不可读') })))
   }
   async function connectBrowser() {
-    connecting = true; phase = 'awaiting-permission'; lastError = ''
+    connecting = true; phase = attach === 'ego:' ? 'preparing' : 'awaiting-permission'; lastError = ''
     try {
       const endpoint = attach === true ? await chromeDebugEndpoint() : attach
       const connected = await BossBrowserReader.connect(endpoint)
@@ -449,7 +452,7 @@ export async function createBossPreview({ port = 4327, fixture = false, headless
       await preparePage()
     }
     console.log(`工作台入口（含本次连接凭据，请勿分享）：http://localhost:3000/boss#boss-token=${token}&boss-origin=${encodeURIComponent(origin)}`)
-    console.log(`BOSS 浏览器连接：${origin}\n${attach ? '点击连接并在 Chrome 允许授权后，会自动打开或复用 BOSS；多个页面时再选择。' : '专用浏览器已打开，登录由用户手动完成。'}批量投递只会在工作台整批确认后执行；诊断和模拟不会发送。`)
+    console.log(`BOSS 浏览器连接：${origin}\n${attach === 'ego:' ? '点击连接后在 ego 独立任务空间打开 BOSS，登录由用户手动完成。' : attach ? '点击连接并在 Chrome 允许授权后，会自动打开或复用 BOSS；多个页面时再选择。' : '专用浏览器已打开，登录由用户手动完成。'}批量投递只会在工作台整批确认后执行；诊断和模拟不会发送。`)
     return { origin, get page() { return page }, get context() { return context }, close, blocked, token }
   } catch (error) { await close(); throw error }
 }
@@ -457,7 +460,7 @@ export async function createBossPreview({ port = 4327, fixture = false, headless
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const address = process.argv.find(arg => arg.startsWith('--attach='))?.slice('--attach='.length)
-    const attach = address ?? (process.argv.includes('--attach') ? true : undefined)
+    const attach = process.argv.includes('--ego') ? 'ego:' : address ?? (process.argv.includes('--attach') ? true : undefined)
     const preview = await createBossPreview({ fixture: process.argv.includes('--fixture'), headless: process.argv.includes('--headless'), attach, deferConnect: !!attach, draftTest: process.argv.includes('--allow-draft-test') })
     for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => { void preview.close().finally(() => process.exit(0)) })
   } catch (error) {

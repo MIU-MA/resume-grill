@@ -9,6 +9,13 @@ const image = { name: '简历.png', type: 'image/png', size: 1000, width: 1200, 
 const input = (extra = {}) => bossPreparationSchema.parse({ readId: 'read-1', target: '全栈', resumeText: '项目经历：使用 React、TypeScript 和 Node.js 实现订单查询。', images: [image], ...extra })
 
 describe('BOSS 投递内容准备', () => {
+  it('合并 PDF 排版换行，保留完整语句，不引用半行或截断长句', () => {
+    const resumeText = '专业技能\n• AI Agent 开发 熟悉 Prompt 工程与多步 Agent 编排，能控制上下文长度、解析 SSE 增量响应，用 Zod 校验模型输出并\n核对引用来源。\n• TypeScript ' + '很长的描述'.repeat(80) + '。'
+    const result = prepareBossApplications([{ ...jobs[0], title: 'AI Agent 开发实习', description: 'TypeScript Agent Zod' }], input({ target: 'Agent', resumeText }))
+    expect(result.prepared[0].evidence).toContain('并核对引用来源。')
+    expect(result.prepared[0].greeting).not.toContain('并。')
+    expect(result.prepared[0].evidence.length).toBeLessThanOrEqual(180)
+  })
   it('复用岗位别名筛选，并按招呼语、简历图片的顺序生成预览，不标记已发送', () => {
     const result = prepareBossApplications(jobs, input())
     expect(result.prepared).toHaveLength(1)

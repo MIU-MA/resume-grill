@@ -144,7 +144,7 @@ try {
   for (const path of ['/input', '/open']) assert.equal((await fetch(`${attached.origin}${path}`, { method: 'POST', headers: auth, body: '{}' })).status, 403)
   await controls.getByLabel('岗位方向', { exact: true }).fill('全栈')
   await controls.getByRole('button', {name:'官网搜索',exact:true}).click()
-  await page.waitForURL('https://www.zhipin.com/web/geek/jobs?query=%E5%85%A8%E6%A0%88')
+  await page.waitForURL(url => url.pathname === '/web/geek/jobs' && url.searchParams.get('query') === '全栈' && url.searchParams.get('city') === '100010000')
   await controls.getByRole('button', {name:'官网搜索',exact:true}).click()
   assert.equal((await state()).protocolCommands['Page.navigate'],1,'searching the current query must not reload it')
   assert.equal((await state()).protocolCommands['Target.attachToTarget'],1)

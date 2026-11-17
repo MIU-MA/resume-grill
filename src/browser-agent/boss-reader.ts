@@ -1,6 +1,8 @@
 import { connectChromeSocket } from './chrome-connection.ts'
 import { resolve } from 'node:path'
 import { EventEmitter } from 'node:events'
+import { findBossImageInput } from './boss-delivery-dom.ts'
+import { EgoCdpSocket } from './ego-cdp-connection.ts'
 
 type TargetInfo = { targetId: string; type: string; url: string; title: string; browserContextId?: string; openerId?: string }
 type ProtocolMessage = { id?: number; sessionId?: string; method?: string; params?: any; result?: any; error?: { message: string } }
@@ -10,7 +12,7 @@ const readMethods = new Set(['Target.getTargets', 'Target.createTarget', 'Target
 // Local browser runtime: discover metadata and attach one explicitly selected page.
 // No Debugger, global auto-attach or startup scripts. Batch input is scoped to owned pages.
 export class BossBrowserReader extends EventEmitter {
-  private socket: WebSocket
+  private socket: WebSocket | EgoCdpSocket
   private nextId = 0
   private pending = new Map<number, { resolve: (value: any) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }>()
   private pages = new Map<string, BossReadPage>()
@@ -20,10 +22,10 @@ export class BossBrowserReader extends EventEmitter {
   private detailCreations = new Set<Promise<{ targetId: string }>>()
   private closing = false
   private openingBoss?: Promise<BossReadPage | undefined>
-  private constructor(socket: WebSocket) {
+  private constructor(socket: WebSocket | EgoCdpSocket) {
     super(); this.socket = socket
     socket.addEventListener('message', event => {
-      const message = JSON.parse(String(event.data)) as ProtocolMessage
+      const message = JSON.parse(String((event as MessageEvent).data)) as ProtocolMessage
       if (message.id !== undefined) {
         const request = this.pending.get(message.id)
         if (!request) return
@@ -42,6 +44,11 @@ export class BossBrowserReader extends EventEmitter {
     })
   }
   static async connect(address: string) {
+    if (address === 'ego:') {
+      const reader = new BossBrowserReader(await EgoCdpSocket.connect())
+      try { await reader.command('Target.setDiscoverTargets', { discover: true }); return reader }
+      catch (error) { await reader.close(); throw error }
+    }
     let endpoint = new URL(address)
     const local = (url: URL) => ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname) && !url.username && !url.password
     if (!local(endpoint) || !['http:', 'ws:'].includes(endpoint.protocol)) throw new Error('只允许本机 Chrome 调试地址')
@@ -70,7 +77,7 @@ export class BossBrowserReader extends EventEmitter {
     if (method === 'Target.closeTarget' && !this.ownedTargets.has((params as { targetId: string }).targetId)) return Promise.reject(new Error('只能关闭本次读取创建的临时标签页'))
     if (method === 'Page.navigate') {
       const url = new URL((params as { url: string }).url)
-      if (url.origin !== 'https://www.zhipin.com' || url.username || url.password || url.hash || !(url.pathname === '/web/geek/chat' && !url.search || /^\/job_detail\/[^/]+\.html$/.test(url.pathname) && !url.search || url.pathname === '/web/geek/jobs' && (!url.search || [...url.searchParams.keys()].every(key => key === 'query') && !!url.searchParams.get('query')))) return Promise.reject(new Error('只允许打开官网岗位、搜索或已有会话'))
+      if (url.origin !== 'https://www.zhipin.com' || url.username || url.password || url.hash || !(url.pathname === '/web/geek/chat' && !url.search || /^\/job_detail\/[^/]+\.html$/.test(url.pathname) && !url.search || url.pathname === '/web/geek/jobs' && (!url.search || [...url.searchParams.keys()].every(key => key === 'query' || key === 'city') && !!url.searchParams.get('query') && (!url.searchParams.has('city') || /^\d{9}$/.test(url.searchParams.get('city')!))))) return Promise.reject(new Error('只允许打开官网岗位、搜索或已有会话'))
     }
     if (!this.isConnected()) return Promise.reject(new Error('Chrome 调试连接已断开'))
     this.emit('command', method)
@@ -196,7 +203,10 @@ class BossReadPage extends EventEmitter {
   // tsx may preserve nested function names with __name; keep its helper local to this read.
   async evaluate<T, A = undefined>(fn: (arg: A) => T, arg?: A): Promise<Awaited<T>> {
     await this.attach()
-    const data = await this.browser.command('Runtime.evaluate', { expression: `(() => { const __name = value => value; return (${fn.toString()})(${JSON.stringify(arg) ?? 'undefined'}) })()`, returnByValue: true, awaitPromise: true }, this.sessionId)
+    // Reviewed batch clicks may open a chat window. Ordinary reads and draft
+    // filling do not receive a browser user gesture.
+    const userGesture = !!arg && typeof arg === 'object' && 'action' in arg && ['contact', 'send', 'confirm-image'].includes(String(arg.action))
+    const data = await this.browser.command('Runtime.evaluate', { expression: `(() => { const __name = value => value; return (${fn.toString()})(${JSON.stringify(arg) ?? 'undefined'}) })()`, returnByValue: true, awaitPromise: true, userGesture }, this.sessionId)
     if (data.exceptionDetails) throw new Error(data.exceptionDetails.exception?.description || '页面读取失败')
     return data.result.value
   }
@@ -211,7 +221,7 @@ class BossReadPage extends EventEmitter {
   }
   async attachImage(file: string) {
     await this.attach()
-    const result = await this.browser.command('Runtime.evaluate', { expression: `(() => { const inputs = [...document.querySelectorAll('input[type="file"]')].filter(node => !node.disabled && /image|png|jpe?g/i.test(node.accept)); if(inputs.length!==1) throw new Error('图片上传入口不唯一'); return inputs[0] })()`, returnByValue: false }, this.sessionId)
+    const result = await this.browser.command('Runtime.evaluate', { expression: `(() => { const __name = value => value; return (${findBossImageInput.toString()})(); })()`, returnByValue: false }, this.sessionId)
     if (result.exceptionDetails || !result.result?.objectId) throw new Error('没有识别到唯一图片上传入口')
     await this.browser.command('DOM.setFileInputFiles', { objectId: result.result.objectId, files: [resolve(file)] }, this.sessionId)
   }
@@ -228,6 +238,8 @@ class BossReadPage extends EventEmitter {
   async searchJobs(query: string) {
     await this.attach()
     const url = new URL('https://www.zhipin.com/web/geek/jobs'); url.searchParams.set('query', query)
+    const city = new URL(this.url()).searchParams.get('city')
+    url.searchParams.set('city', city && /^\d{9}$/.test(city) ? city : '100010000')
     if (this.url() === url.href) return
     await this.browser.command('Page.navigate', { url: url.href }, this.sessionId)
   }

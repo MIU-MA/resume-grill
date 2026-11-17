@@ -25,6 +25,8 @@
     "check:architecture": "node scripts/check-architecture.mjs",
     "test": "vitest run",
     "boss:preview": "node scripts/boss-preview.mjs --attach",
+    "boss:ego": "node scripts/boss-preview.mjs --ego",
+    "check:ego": "node scripts/check-ego-browser.mjs",
     "check:pdf-preview": "node scripts/check-pdf-preview.mjs"
   },
   "dependencies": {

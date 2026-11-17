@@ -59,3 +59,16 @@ it('正式填写保留招呼语；会话变化时拒绝旧的核对状态', asyn
   finally { delete (HTMLElement.prototype as unknown as Record<string, unknown>).innerText }
   expect(document.querySelector('textarea')!.value).toBe('')
 })
+
+it('核对后切换到同名同公司的另一会话，也不能使用旧状态填写', async () => {
+  Object.defineProperty(HTMLElement.prototype, 'innerText', { configurable: true, get() { return this.textContent ?? '' } })
+  try {
+    document.body.insertAdjacentHTML('beforeend', '<div class="friend-content selected"><div class="title-box">王先生 · 示例公司</div></div><div class="friend-content"><div class="title-box">王先生 · 示例公司</div></div>')
+    const expected = await inspectBossComposer()
+    expect(expected.conversationKey).toBeTruthy()
+    const items = document.querySelectorAll('.friend-content')
+    items[0].classList.remove('selected'); items[1].classList.add('selected')
+    await expect(runBossComposer({ action: 'fill', text: '本次核对的草稿', expected })).rejects.toThrow('会话或输入框已变化')
+    expect(document.querySelector('textarea')!.value).toBe('')
+  } finally { delete (HTMLElement.prototype as unknown as Record<string, unknown>).innerText }
+})

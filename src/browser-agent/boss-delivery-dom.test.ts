@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { bossDeliveryDom } from './boss-delivery-dom'
+import { bossDeliveryDom, findBossImageInput } from './boss-delivery-dom'
 const url = 'https://www.zhipin.com/job_detail/fixture.html'
 beforeEach(() => {
   vi.stubGlobal('location', { origin: 'https://www.zhipin.com', pathname: '/job_detail/fixture.html', href: url })
@@ -30,4 +30,27 @@ it('不把失败或发送中的气泡当作有效回执，也不把空输入时�
   document.body.insertAdjacentHTML('beforeend', '<div class="chat-message-self failed">已核对的招呼语</div><div class="chat-message-self"><span>已核对的招呼语</span><span class="send-fail"></span></div>')
   expect(await bossDeliveryDom({ action: 'receipts', text: '已核对的招呼语' })).toMatchObject({ sendButtons: 1, texts: [] })
   await expect(bossDeliveryDom({ action: 'send', text: '已核对的招呼语' })).rejects.toThrow('未发送')
+})
+
+it('真实页面的图片入口与 PDF/Word 附件入口分开，多个图片入口拒绝猜测', () => {
+  document.body.innerHTML = '<input id="image" type="file" accept="image/gif,image/jpeg,image/jpg,image/png"><input type="file" accept="image/png,application/pdf,.doc,.docx"><input type="file" accept="image/jpeg,.pdf">'
+  expect(findBossImageInput().id).toBe('image')
+  document.body.insertAdjacentHTML('beforeend', '<input type="file" accept="image/*">')
+  expect(() => findBossImageInput()).toThrow('不唯一')
+})
+
+it('识别真实 item-myself 气泡，不包含时间及已读状态，不把对方消息作为回执', async () => {
+  document.body.insertAdjacentHTML('beforeend', '<li class="message-item item-friend"><div class="message-content">已核对的招呼语</div></li><li class="message-item item-myself" data-mid="real-style"><div class="item-time">10:00</div><div class="message-content"><span class="text">已核对的招呼语</span><span>已读</span></div></li>')
+  expect((await bossDeliveryDom({ action: 'receipts', text: '已核对的招呼语' })).texts).toEqual(['real-style'])
+})
+
+it('同名会话不能共用身份，最后一条消息变化不使身份变化', async () => {
+  document.body.insertAdjacentHTML('beforeend', '<div class="friend-content selected"><div class="title-box"><span class="name-text">王先生 · 示例公司</span></div><div class="last-msg">旧消息</div></div><div class="friend-content"><div class="title-box"><span class="name-text">王先生 · 示例公司</span></div></div>')
+  const first = await bossDeliveryDom({ action: 'inspect', text: '' })
+  expect(first.recipientKey).not.toBe('')
+  document.querySelector('.last-msg')!.textContent = '新消息'
+  expect((await bossDeliveryDom({ action: 'inspect', text: '' })).recipientKey).toBe(first.recipientKey)
+  const items = document.querySelectorAll('.friend-content')
+  items[0].classList.remove('selected'); items[1].classList.add('selected')
+  await expect(bossDeliveryDom({ action: 'send', text: '已核对的招呼语', expectedRecipientKey: first.recipientKey })).rejects.toThrow('身份已变化')
 })

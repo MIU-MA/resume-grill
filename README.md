@@ -68,7 +68,7 @@ npm run dev
 
 读取官网或发送邮件时，将启动命令换成 `npm run dev:local`，按页面提示连接本机。扩展安装、模型配置和部署步骤见[使用说明](docs/getting-started.md)。
 
-BOSS 投递另运行 `npm run boss:preview`，打开终端输出的工作台链接；操作与验证范围见 [BOSS 实验说明](docs/boss-preview.md)。
+BOSS 投递另运行 `npm run boss:ego`（需先安装并登录 ego）或 `npm run boss:preview`（连接 Chrome），打开终端输出的工作台链接。真实读取、准备和草稿填写已验证；真实批量发送仍待核验，见 [BOSS 实验说明](docs/boss-preview.md)。
 
 当前为 Beta。官网填写的覆盖范围见[适配记录](docs/website-adaptation.md)，最终申请由你核对提交。BOSS 自动投递目前仅通过隔离页面测试，尚未验证真实账号发送与上传；未知页面或不明确回执会暂停。语音输入取决于浏览器支持。数据主要保存在本机，清理站点数据前请备份。
 

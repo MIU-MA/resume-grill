@@ -1,5 +1,5 @@
 export type BossConnection = { origin: string; token: string }
-export type BossStatus = { ready: boolean; browserConnected?: boolean; phase: string; error: string; tabs: { id: string; title: string }[] }
+export type BossStatus = { ready: boolean; browserConnected?: boolean; backend?: 'ego' | 'scoped-cdp' | 'playwright-fixture'; phase: string; error: string; tabs: { id: string; title: string }[] }
 const KEY = 'boss-browser:connection:v1'
 
 export function parseBossConnection(link: string): BossConnection {

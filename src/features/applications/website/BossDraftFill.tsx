@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import { Button } from '@/components/ui/Button'
 import type { BossDraftPreview, BossDraftResult } from '@/domain/boss-draft'
 import { bossRequest, type BossConnection } from './lib/boss-client'
-export function BossDraftFill({ connection, connected, disabled, company, title, url, text, onBusy }: { connection: BossConnection | null; connected: boolean; disabled: boolean; company: string; title: string; url: string; text: string; onBusy: (busy: boolean) => void }) {
+export function BossDraftFill({ connection, connected, disabled, company, title, url, text, onBusy, browserName = 'Chrome' }: { connection: BossConnection | null; connected: boolean; disabled: boolean; company: string; title: string; url: string; text: string; browserName?: string; onBusy: (busy: boolean) => void }) {
   const version = useRef(0)
   const [open, setOpen] = useState(false)
   const [preview, setPreview] = useState<BossDraftPreview | null>(null)
@@ -27,11 +27,11 @@ export function BossDraftFill({ connection, connected, disabled, company, title,
   return <div className="mt-3 border-t border-line pt-3">
     <Button variant="secondary" disabled={inactive || !text.trim() || !company || !title} onClick={() => { setPreview(null); setConfirmed(false); setOpen(value => !value) }}>填入已有会话</Button>
     {open && <section className="mt-3 space-y-3 text-body" aria-label={`${title}会话填写`}>
-      <p className="text-text-secondary">在 Chrome 手动选好已有会话。这里只填招呼语，不点击沟通、发送或上传。</p>
+      <p className="text-text-secondary">在 {browserName} 手动选好已有会话。这里只填招呼语，不点击沟通、发送或上传。</p>
       <Button variant="link" disabled={inactive} onClick={() => void perform(async () => { if (!connection) return; setPreview(null); setConfirmed(false); await bossRequest(connection, '/open-existing-chats', {}) })}>打开已有沟通</Button>
       <Button variant="secondary" disabled={inactive} onClick={() => void perform(async () => { if (!connection) return; const current = version.current; const result = await bossRequest<BossDraftPreview>(connection, '/draft-preview', { company, title, url, text }); if (current !== version.current) return; setPreview(result); setConfirmed(false); setDone(false) })}>检查当前输入框</Button>
-      {preview && <><p>待填写岗位：<strong>{preview.company} · {preview.title}</strong></p><p className="text-label text-text-secondary">{preview.state.conversation ? `Chrome 当前会话：${preview.state.conversation}` : '未自动识别会话名称，请在 Chrome 人工核对收件人。'}</p><label className="flex items-start gap-2"><input type="checkbox" checked={confirmed} disabled={inactive} onChange={event => setConfirmed(event.target.checked)} /><span>我已确认 Chrome 当前会话对应上面的公司和岗位，只填写草稿。</span></label><Button disabled={inactive || !confirmed} onClick={() => void perform(async () => { if (!connection) return; const result = await bossRequest<BossDraftResult>(connection, '/fill-draft', { id: preview.id, confirmed: true }); setPreview(null); setConfirmed(false); if (!result.written) throw new Error('文字未能稳定保留，请到 Chrome 检查。'); setDone(true) })}>填写到 Chrome，不发送</Button></>}
-      {done && <p role="status">已填入 Chrome 并读回核对，尚未发送。请在 Chrome 检查后自行决定是否发送。</p>}
+      {preview && <><p>待填写岗位：<strong>{preview.company} · {preview.title}</strong></p><p className="text-label text-text-secondary">{preview.state.conversation ? `${browserName} 当前会话：${preview.state.conversation}` : `未自动识别会话名称，请在 ${browserName} 人工核对收件人。`}</p><label className="flex items-start gap-2"><input type="checkbox" checked={confirmed} disabled={inactive} onChange={event => setConfirmed(event.target.checked)} /><span>我已确认 {browserName} 当前会话对应上面的公司和岗位，只填写草稿。</span></label><Button disabled={inactive || !confirmed} onClick={() => void perform(async () => { if (!connection) return; const result = await bossRequest<BossDraftResult>(connection, '/fill-draft', { id: preview.id, confirmed: true }); setPreview(null); setConfirmed(false); if (!result.written) throw new Error(`文字未能稳定保留，请到 ${browserName} 检查。`); setDone(true) })}>填写到 {browserName}，不发送</Button></>}
+      {done && <p role="status">已填入 {browserName} 并读回核对，尚未发送。请在 {browserName} 检查后自行决定是否发送。</p>}
       {error && <p role="alert" className="text-danger">{error}</p>}
     </section>}
   </div>
