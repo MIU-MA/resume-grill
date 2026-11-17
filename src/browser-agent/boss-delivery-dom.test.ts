@@ -56,6 +56,23 @@ it('已存在的继续沟通入口不点击，避免新批次重复联系官网�
   expect(click).not.toHaveBeenCalled()
 })
 
+it('岗位页的简易输入框只沿官网链接打开完整会话，不再次点击沟通', async () => {
+  const assign = vi.fn(); vi.stubGlobal('location', { origin: 'https://www.zhipin.com', pathname: '/job_detail/fixture.html', href: url, assign })
+  document.body.insertAdjacentHTML('beforeend', '<a class="btn-startchat" redirect-url="/web/geek/chat?id=recruiter&amp;jobId=fixture&amp;securityId=website-token">立即沟通</a>')
+  const click = vi.fn(); document.querySelector<HTMLAnchorElement>('a')!.onclick = click
+  expect((await bossDeliveryDom({ action: 'inspect', text: '' })).canOpenChat).toBe(true)
+  await bossDeliveryDom({ action: 'open-chat', text: '', expectedJobUrl: url })
+  expect(assign).toHaveBeenCalledWith('https://www.zhipin.com/web/geek/chat?id=recruiter&jobId=fixture&securityId=website-token')
+  expect(click).not.toHaveBeenCalled()
+})
+
+it.each(['/web/geek/chat?id=recruiter&jobId=other', 'https://outside.invalid/web/geek/chat?id=recruiter&jobId=fixture', '/web/geek/chat?jobId=fixture'])('拒绝不是本岗位的沟通地址 %s', async redirect => {
+  document.body.insertAdjacentHTML('beforeend', '<a class="btn-startchat">立即沟通</a>')
+  document.querySelector('a')!.setAttribute('redirect-url', redirect)
+  expect((await bossDeliveryDom({ action: 'inspect', text: '' })).canOpenChat).toBe(false)
+  await expect(bossDeliveryDom({ action: 'open-chat', text: '', expectedJobUrl: url })).rejects.toThrow('未跳转')
+})
+
 it('同名会话不能共用身份，最后一条消息变化不使身份变化', async () => {
   document.body.insertAdjacentHTML('beforeend', '<div class="friend-content selected"><div class="title-box"><span class="name-text">王先生 · 示例公司</span></div><div class="last-msg">旧消息</div></div><div class="friend-content"><div class="title-box"><span class="name-text">王先生 · 示例公司</span></div></div>')
   const first = await bossDeliveryDom({ action: 'inspect', text: '' })

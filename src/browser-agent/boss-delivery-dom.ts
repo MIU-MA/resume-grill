@@ -1,4 +1,4 @@
-type Input = { action: 'inspect' | 'contact' | 'send' | 'receipts' | 'confirm-image'; text: string; assetUrls?: string[]; expectedRecipientKey?: string; expectedJobUrl?: string }
+type Input = { action: 'inspect' | 'contact' | 'open-chat' | 'send' | 'receipts' | 'confirm-image'; text: string; assetUrls?: string[]; expectedRecipientKey?: string; expectedJobUrl?: string }
 
 /** Image-only picker: attachment pickers that also accept documents are not chat images. */
 export function findBossImageInput() {
@@ -27,6 +27,15 @@ export async function bossDeliveryDom(input: Input) {
   const sendButtons = [...document.querySelectorAll<HTMLElement>('button, .btn-send, .send-message')].filter(node => visible(node) && norm(node.innerText) === '发送')
   const send = sendButtons.filter(enabled)
   const contact = [...document.querySelectorAll<HTMLElement>('a, button, .btn-startchat')].filter(node => visible(node) && enabled(node) && /^(立即沟通|继续沟通)$/.test(norm(node.innerText)))
+  const chats = [...new Set(contact.flatMap(node => {
+    const value = node.getAttribute('redirect-url')
+    if (!value) return []
+    try {
+      const url = new URL(value, location.origin)
+      const job = location.pathname.match(/^\/job_detail\/([^/]+)\.html$/)?.[1]
+      return url.origin === location.origin && url.pathname === '/web/geek/chat' && !url.username && !url.password && !url.hash && !!url.searchParams.get('id') && url.searchParams.get('jobId') === job ? [url.href] : []
+    } catch { return [] }
+  }))]
   const outgoing = [...document.querySelectorAll<HTMLElement>('.chat-message-self, .message-self, .message-item.is-self, .message-item.sent, .message-item.item-my, .message-item.item-myself, .message-item.role-geek, .message-item.item-me, .message-list .item-me')].filter(node => visible(node) && !node.matches('.sending, .failed, .send-failed') && !node.querySelector('.send-fail, .message-fail, .send-error, .message-status.loading'))
   const outgoingTexts = outgoing.flatMap((node, index) => {
     const content = node.querySelector<HTMLElement>('.message-content .text-content, .message-content .msg-content') ?? node.querySelector<HTMLElement>('.message-content .text') ?? node.querySelector<HTMLElement>('.message-content, .msg-content, .text-content, .text') ?? node
@@ -59,6 +68,12 @@ export async function bossDeliveryDom(input: Input) {
     if (norm(contact[0].innerText) === '继续沟通') throw new Error('官网显示已沟通过，未再次联系')
     contact[0].click()
   }
+  if (input.action === 'open-chat') {
+    if (!input.expectedJobUrl || chats.length !== 1) throw new Error('未识别到当前岗位的唯一沟通页面，未跳转')
+    // Follow the website's own destination. This only opens a conversation;
+    // unlike clicking "立即沟通" again it never repeats friend/add or a greeting.
+    location.assign(chats[0])
+  }
   if (input.action === 'send') {
     if (texts.length) throw new Error('已有相同招呼语，已停止以避免重复发送')
     if (editors.length !== 1 || send.length !== 1) throw new Error('输入框或发送按钮不唯一，未发送')
@@ -78,5 +93,5 @@ export async function bossDeliveryDom(input: Input) {
       if (input.assetUrls.some(asset => { try { const value = new URL(asset); return value.origin === url.origin && value.pathname === url.pathname } catch { return false } })) verifiedImages.push(src)
     }
   }
-  return { url: location.origin + location.pathname, recipientKey, editors: editors.length, sendButtons: sendButtons.length, contactButtons: contact.length, texts, outgoingTexts, images, verifiedImages, jobLinks }
+  return { url: location.origin + location.pathname, recipientKey, editors: editors.length, sendButtons: sendButtons.length, contactButtons: contact.length, canOpenChat: chats.length === 1, texts, outgoingTexts, images, verifiedImages, jobLinks }
 }

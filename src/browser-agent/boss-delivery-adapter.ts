@@ -23,9 +23,20 @@ export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Pa
     release?.(); await held?.catch(() => {}); jobPage = chat = undefined; release = undefined; held = undefined
   }
   const active = () => { if (!chat || chat.isClosed()) throw new Error('本批会话页面已关闭'); return chat }
+  const openConversation = async (task: BrowserTask) => {
+    await active().evaluate(bossDeliveryDom, { action: 'open-chat', text: '', expectedJobUrl: task.url })
+    const state = await wait(async () => {
+      const state = await active().evaluate(bossDeliveryDom, { action: 'inspect', text: '' })
+      if (state.jobLinks.some(url => url !== task.url)) throw new Error('沟通页的岗位链接不一致，已停止')
+      return state.url === 'https://www.zhipin.com/web/geek/chat' && state.editors === 1 && state.sendButtons === 1 && !!state.recipientKey ? state : undefined
+    }, '完整沟通页未就绪，未再次点击沟通', 20000)
+    recipientKey = state.recipientKey; contactVerified = true
+    return state
+  }
   const adapter: BrowserDeliveryAdapter = {
     async open(task) {
       await closePage(); contactVerified = false; recipientKey = ''; beforeContact = new Set(); currentUrl = task.url
+      const previouslyContacted = task.steps.some(step => step.kind === 'contact' && step.state === 'verified' && step.receipt === `contact:${task.url}`)
       let opened!: () => void, rejected!: (error: unknown) => void
       const ready = new Promise<void>((resolve, reject) => { opened = resolve; rejected = reject })
       held = browser.withJobPage(task.url, source, async page => {
@@ -34,7 +45,7 @@ export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Pa
         await wait(async () => {
           const detail = await inspectBossDetail(page, { url: task.url, title: task.title, company: task.company })
           reason = detail.blockers.join(' ') || reason
-          if (detail.matched && detail.communication.labels.includes('继续沟通')) { reason = '官网显示已沟通过，未再次联系，请在已有会话处理'; throw new Error(reason) }
+          if (detail.matched && detail.communication.labels.includes('继续沟通') && !previouslyContacted) { reason = '官网显示已沟通过，未再次联系，请在已有会话处理'; throw new Error(reason) }
           if (detail.kind === 'login' || detail.kind === 'verification') throw new Error(detail.blockers.join(' '))
           return detail.matched && !detail.blockers.length ? true : undefined
         }, '岗位详情未核对通过').catch(() => { throw new Error(reason) })
@@ -42,6 +53,7 @@ export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Pa
       }).catch(error => { rejected(error); throw error })
       void held.catch(() => {})
       await ready
+      if (previouslyContacted) await openConversation(task)
     },
     async checkRecipient(task) {
       if (task.url !== currentUrl || !chat || chat.isClosed()) return false
@@ -58,6 +70,9 @@ export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Pa
           if (popup) chat = popup
           const state = await active().evaluate(bossDeliveryDom, { action: 'inspect', text: '' })
           if (state.jobLinks.some(url => url !== task.url)) throw new Error('沟通页的岗位链接不一致，已停止')
+          if (state.url === task.url && state.editors === 1 && state.canOpenChat && !state.outgoingTexts.length) {
+            return openConversation(task)
+          }
           return state.editors === 1 && state.sendButtons === 1 && (state.url === task.url || !!state.recipientKey) ? state : undefined
         }, '点击沟通后未能核对会话，结果待核对，不会重新点击')
         recipientKey = verified.recipientKey; contactVerified = true; receipts.set(step.id, { id: `contact:${task.url}`, value: task.url }); return
@@ -99,13 +114,17 @@ export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Pa
       } finally { page.removeListener('response', response) }
     },
     async resolveGreeting(task) {
+      let observed = '尚未读到会话消息'
       const message = await wait(async () => {
         if (!await adapter.checkRecipient(task)) throw new Error('自动招呼核对前会话已变化')
         const state = await active().evaluate(bossDeliveryDom, { action: 'receipts', text: '' })
         const added = state.outgoingTexts.filter(value => !beforeContact.has(value.id) && !value.id.startsWith('text:') && value.delivered)
+        observed = `读到 ${state.outgoingTexts.length} 条己方消息，${added.length} 条新增且已送达`
         if (added.length > 1) throw new Error('出现多条自动消息，已暂停，不追加文字')
         return added[0]
-      }, '未确认官网自动招呼回执，已暂停，不补发自定义文字')
+      }, '未确认官网自动招呼回执，已暂停，不补发自定义文字', 30000).catch(error => {
+        throw new Error(`${error instanceof Error ? error.message : '自动招呼核对失败'}（${observed}）`)
+      })
       return { id: message.id, value: message.text }
     },
     async receipt(_task: BrowserTask, step: BrowserStep) { return receipts.get(step.id) ?? null },

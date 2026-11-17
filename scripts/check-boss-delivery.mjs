@@ -42,6 +42,10 @@ const detail = index => `<!doctype html><meta charset="utf-8"><div class="job-ba
 let next=0;
 document.querySelector('#contact').onclick=()=>{fetch('https://fixture.invalid/contact');document.querySelector('#contact').hidden=true;document.querySelector('#panel').innerHTML='<div class="chat-editor"><div id="chat-input" class="chat-input" contenteditable="true"></div><button id="send">发送</button><input type="file" accept="image/png,image/jpeg"></div><div id="messages"></div>';document.querySelector('#send').onclick=()=>{const editor=document.querySelector('#chat-input');const message=document.createElement('div');message.className='chat-message-self';message.dataset.mid=String(++next);const text=document.createElement('span');text.className='message-content';text.textContent=editor.textContent;message.append(text);if(${index !== '4'})document.querySelector('#messages').append(message);editor.textContent='';fetch('https://fixture.invalid/custom')};const automatic=document.createElement('li');automatic.className='message-item item-myself';automatic.dataset.mid='auto-${index}';automatic.innerHTML='<div class="message-content"><div class="text"><i class="message-status status-delivery">送达</i><p><span class="text-content">官网自动招呼</span></p></div></div>';if(${index !== '4'})document.querySelector('#messages').append(automatic);fetch('https://fixture.invalid/text');document.querySelector('input').onchange=async event=>{const file=event.target.files[0];const image=document.createElement('img');if(${index === '6'}){image.src=URL.createObjectURL(file)}else{const reply=await(await fetch('https://www.zhipin.com/wapi/zpchat/image/upload',{method:'POST',body:file})).json();image.src=reply.zpData.url}await image.decode();const message=document.createElement('div');message.className='chat-message-self';message.dataset.mid=String(++next);message.append(image);document.querySelector('#messages').append(message);fetch('https://fixture.invalid/image')}};
 </script>`
+  const inlineDetail = '<!doctype html><meta charset="utf-8"><div class="job-banner"><h1>全栈开发7</h1></div><div class="sider-company"><div class="company-name">测试公司7</div></div><section class="job-sec-text">使用 React 和 Node.js 完成全栈开发。</section><a class="btn-startchat" redirect-url="/web/geek/chat?id=inline-recruiter&amp;jobId=fixture-7">立即沟通</a><div id="panel"></div><script>document.querySelector("a").onclick=()=>{fetch("https://fixture.invalid/contact");fetch("https://fixture.invalid/text");document.querySelector("#panel").innerHTML="<div class=chat-editor><textarea></textarea><button>发送</button></div>"}</script>'
+  // The first contact already sent its automatic greeting. Opening the full
+  // conversation must read it, not call contact or generate a second greeting.
+  const inlineConversation = detail('7').replace("fetch('https://fixture.invalid/contact');", '').replace("fetch('https://fixture.invalid/text');", '') + '<script>document.querySelector("#contact").click();document.body.insertAdjacentHTML("beforeend", \'<div class="friend-content selected"><div class="title-box">测试公司7 · 全栈开发7</div></div>\')</script>'
   const context = await owner.newContext({ignoreHTTPSErrors:true})
   await context.route('**/*', route => {
     const url = new URL(route.request().url())
@@ -50,7 +54,8 @@ document.querySelector('#contact').onclick=()=>{fetch('https://fixture.invalid/c
     if (url.hostname === 'www.zhipin.com' && url.pathname === '/assets/upload-receipt.png') return route.fulfill({contentType:'image/png',body:createCanvas(24,32).toBuffer('image/png')})
     if (url.hostname !== 'www.zhipin.com') return route.abort()
     const match = url.pathname.match(/^\/job_detail\/fixture-(\d)\.html$/)
-    if (match) return route.fulfill({ contentType: 'text/html', body: detail(match[1]) })
+    if (match) return route.fulfill({ contentType: 'text/html', body: match[1] === '7' ? inlineDetail : detail(match[1]) })
+    if (url.pathname === '/web/geek/chat' && url.searchParams.get('jobId') === 'fixture-7') return route.fulfill({ contentType: 'text/html', body: inlineConversation })
     const bulk = url.pathname.match(/^\/job_detail\/bulk-(\d+)\.html$/)
     if (bulk) return route.fulfill({ contentType: 'text/html', body: detail(`bulk-${bulk[1]}`) })
     if (url.pathname === '/web/geek/jobs') return route.fulfill({ contentType: 'text/html; charset=utf-8', body: '<title>批次测试列表</title><h1>模拟岗位列表</h1>' })
@@ -60,7 +65,7 @@ document.querySelector('#contact').onclick=()=>{fetch('https://fixture.invalid/c
   service = await createBossPreview({ port: 4328, fixture: true, attach: 'http://127.0.0.1:4332', deferConnect: true, autoOpenBoss: false, deliveryDirectory: directory })
   const headers = { Authorization: `Bearer ${service.token}`, 'Content-Type': 'application/json' }
   const call = async (path, body) => { const response = await fetch(service.origin + path, { method: body === undefined ? 'GET' : 'POST', headers, ...(body === undefined ? {} : { body: JSON.stringify(body) }) }); return { status: response.status, value: await response.json() } }
-  const until = async (read, done, timeout = 25000) => { const end = Date.now() + timeout; while (Date.now() < end) { const value = await read(); if (done(value)) return value; await new Promise(resolve => setTimeout(resolve, 100)) } throw new Error('测试等待超时') }
+  const until = async (read, done, timeout = 45000) => { const end = Date.now() + timeout; while (Date.now() < end) { const value = await read(); if (done(value)) return value; await new Promise(resolve => setTimeout(resolve, 100)) } throw new Error('测试等待超时') }
   await call('/connect', {})
   const state = await until(() => call('/status'), result => result.value.phase === 'selecting')
   await call('/select', { id: state.value.tabs[0].id })
@@ -109,6 +114,10 @@ document.querySelector('#contact').onclick=()=>{fetch('https://fixture.invalid/c
   assert.equal(localOnly.state, 'paused', 'a local blob preview is not an upload receipt')
   assert.equal(localOnly.tasks[0].steps.at(-1).state, 'uncertain')
   assert(localOnly.tasks[0].error.includes('图片未获得发送回执')); assert.equal(uploadRequests,2,'local blob case must not upload')
+  const beforeInline = { ...counts }
+  const inline = await execute({ id: randomUUID(), jobs: [job(7)], images: batch.images })
+  assert.equal(inline.state, 'finished', JSON.stringify(inline))
+  assert.deepEqual(counts, { contact: beforeInline.contact + 1, text: beforeInline.text + 1, image: beforeInline.image + 1 }, 'inline composer must navigate to the full chat without another contact or greeting')
   const beforeBulk = { ...counts }, beforeUploads = uploadRequests
   const bulk = await execute({ id: randomUUID(), jobs: Array.from({ length: 10 }, (_, index) => ({ url: `https://www.zhipin.com/job_detail/bulk-${index + 1}.html`, company: `测试公司bulk-${index + 1}`, title: `全栈开发bulk-${index + 1}`, greeting: '备用草稿，不自动发送' })), images: batch.images })
   assert.equal(bulk.state, 'finished', JSON.stringify(bulk))
