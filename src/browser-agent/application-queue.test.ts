@@ -60,3 +60,22 @@ it('建立沟通后断连保留已完成步骤，当前消息待核对，后续�
   await runApplicationQueue(run, port, async () => {})
   expect(vi.mocked(port.send).mock.calls.filter(call => call[0].url === 'job1')).toHaveLength(2)
 })
+
+it('官网已自动发送招呼时不追加自定义文字，记录真实官网内容，再发送图片', async () => {
+  const run = makeRun(), port = adapter()
+  port.resolveGreeting = vi.fn(async () => ({ id: 'platform-message-1', value: '官网账号默认招呼' }))
+  await runApplicationQueue(run, port, async () => {})
+  expect(vi.mocked(port.send).mock.calls.map(call => call[1].kind)).toEqual(['image'])
+  expect(run.tasks[0].steps[0]).toMatchObject({ source: 'platform', value: '官网账号默认招呼', requestedValue: '你好', receipt: 'platform-message-1', state: 'verified' })
+  await runApplicationQueue(run, port, async () => {})
+  expect(port.resolveGreeting).toHaveBeenCalledTimes(1)
+})
+
+it('未核对到官网自动招呼时暂停，不补发任何文字和图片', async () => {
+  const run = makeRun(), port = adapter()
+  port.resolveGreeting = vi.fn(async () => { throw new Error('官网自动招呼未确认') })
+  await runApplicationQueue(run, port, async () => {})
+  expect(port.send).not.toHaveBeenCalled()
+  expect(run.state).toBe('paused')
+  expect(run.tasks[0].steps.map(step => step.state)).toEqual(['pending', 'pending'])
+})

@@ -3,8 +3,6 @@ import type { BrowserTask, BrowserStep } from '../domain/browser-application.ts'
 import type { BrowserDeliveryAdapter } from './application-queue.ts'
 import type { BossBrowserReader } from './boss-reader.ts'
 import { inspectBossDetail } from './boss-inspection.ts'
-import { runBossComposer } from './boss-composer.ts'
-import type { BossComposerState } from '../domain/boss-draft.ts'
 import { bossDeliveryDom } from './boss-delivery-dom.ts'
 
 type Page = Parameters<Parameters<BossBrowserReader['withJobPage']>[2]>[0]
@@ -13,6 +11,7 @@ export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Pa
   let contactVerified = false
   let currentUrl = ''
   let recipientKey = ''
+  let beforeContact = new Set<string>()
   const receipts = new Map<string, { id: string; value: string }>()
   const wait = async <T>(check: () => Promise<T | undefined>, message: string, timeout = 10000) => {
     const end = Date.now() + timeout
@@ -26,7 +25,7 @@ export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Pa
   const active = () => { if (!chat || chat.isClosed()) throw new Error('本批会话页面已关闭'); return chat }
   const adapter: BrowserDeliveryAdapter = {
     async open(task) {
-      await closePage(); contactVerified = false; recipientKey = ''; currentUrl = task.url
+      await closePage(); contactVerified = false; recipientKey = ''; beforeContact = new Set(); currentUrl = task.url
       let opened!: () => void, rejected!: (error: unknown) => void
       const ready = new Promise<void>((resolve, reject) => { opened = resolve; rejected = reject })
       held = browser.withJobPage(task.url, source, async page => {
@@ -35,6 +34,7 @@ export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Pa
         await wait(async () => {
           const detail = await inspectBossDetail(page, { url: task.url, title: task.title, company: task.company })
           reason = detail.blockers.join(' ') || reason
+          if (detail.matched && detail.communication.labels.includes('继续沟通')) { reason = '官网显示已沟通过，未再次联系，请在已有会话处理'; throw new Error(reason) }
           if (detail.kind === 'login' || detail.kind === 'verification') throw new Error(detail.blockers.join(' '))
           return detail.matched && !detail.blockers.length ? true : undefined
         }, '岗位详情未核对通过').catch(() => { throw new Error(reason) })
@@ -51,6 +51,7 @@ export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Pa
     },
     async send(task, step) {
       if (step.kind === 'contact') {
+        beforeContact = new Set((await active().evaluate(bossDeliveryDom, { action: 'inspect', text: '' })).outgoingTexts.map(message => message.id))
         await active().evaluate(bossDeliveryDom, { action: 'contact', text: '' })
         const verified = await wait(async () => {
           const popup = jobPage ? await browser.ownedChatPopup(jobPage) : undefined
@@ -62,13 +63,7 @@ export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Pa
         recipientKey = verified.recipientKey; contactVerified = true; receipts.set(step.id, { id: `contact:${task.url}`, value: task.url }); return
       }
       if (step.kind === 'greeting') {
-        const page = active()
-        const state = await page.evaluate(runBossComposer, { action: 'inspect', jobUrl: task.url }) as BossComposerState
-        const written = await page.evaluate(runBossComposer, { action: 'fill', text: step.value, expected: state, jobUrl: task.url })
-        if (!('written' in written) || !written.written) throw new Error('招呼语未能保留，未点击发送')
-        await page.evaluate(bossDeliveryDom, { action: 'send', text: step.value, ...(recipientKey ? { expectedRecipientKey: recipientKey } : { expectedJobUrl: task.url }) })
-        const id = await wait(async () => (await page.evaluate(bossDeliveryDom, { action: 'receipts', text: step.value })).texts[0], '未获得招呼语的发送回执，结果待核对')
-        receipts.set(step.id, { id, value: step.value }); return
+        throw new Error('BOSS 批次不追加自定义招呼语，只核对官网自动招呼')
       }
       const file = files.get(step.value)
       if (!file) throw new Error('已核对的简历图片不存在')
@@ -102,6 +97,16 @@ export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Pa
         }, '图片未获得发送回执，可能已上传；已停止，不能自动重发', 12000)
         receipts.set(step.id, { id: createHash('sha256').update(id).digest('hex'), value: step.value })
       } finally { page.removeListener('response', response) }
+    },
+    async resolveGreeting(task) {
+      const message = await wait(async () => {
+        if (!await adapter.checkRecipient(task)) throw new Error('自动招呼核对前会话已变化')
+        const state = await active().evaluate(bossDeliveryDom, { action: 'receipts', text: '' })
+        const added = state.outgoingTexts.filter(value => !beforeContact.has(value.id) && !value.id.startsWith('text:') && value.delivered)
+        if (added.length > 1) throw new Error('出现多条自动消息，已暂停，不追加文字')
+        return added[0]
+      }, '未确认官网自动招呼回执，已暂停，不补发自定义文字')
+      return { id: message.id, value: message.text }
     },
     async receipt(_task: BrowserTask, step: BrowserStep) { return receipts.get(step.id) ?? null },
   }

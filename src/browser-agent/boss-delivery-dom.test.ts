@@ -44,6 +44,18 @@ it('识别真实 item-myself 气泡，不包含时间及已读状态，不把对
   expect((await bossDeliveryDom({ action: 'receipts', text: '已核对的招呼语' })).texts).toEqual(['real-style'])
 })
 
+it('真实气泡的送达图标在 text 容器内时，只比较 text-content 正文', async () => {
+  document.body.insertAdjacentHTML('beforeend', '<li class="message-item item-myself" data-mid="delivered"><div class="message-content"><div class="text"><i class="message-status status-delivery">送达</i><p><span class="text-content">已核对的招呼语</span></p></div></div></li>')
+  expect((await bossDeliveryDom({ action: 'receipts', text: '已核对的招呼语' })).texts).toEqual(['delivered'])
+})
+
+it('已存在的继续沟通入口不点击，避免新批次重复联系官网已有会话', async () => {
+  document.body.innerHTML = '<button>继续沟通</button>'
+  const click = vi.fn(); document.querySelector('button')!.onclick = click
+  await expect(bossDeliveryDom({ action: 'contact', text: '' })).rejects.toThrow('已沟通过')
+  expect(click).not.toHaveBeenCalled()
+})
+
 it('同名会话不能共用身份，最后一条消息变化不使身份变化', async () => {
   document.body.insertAdjacentHTML('beforeend', '<div class="friend-content selected"><div class="title-box"><span class="name-text">王先生 · 示例公司</span></div><div class="last-msg">旧消息</div></div><div class="friend-content"><div class="title-box"><span class="name-text">王先生 · 示例公司</span></div></div>')
   const first = await bossDeliveryDom({ action: 'inspect', text: '' })

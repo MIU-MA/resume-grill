@@ -21,7 +21,7 @@ let owner, uploads, proxy, service
 try {
 const certificatePath=join(directory,'test-only.pfx')
 await promisify(execFile)('powershell.exe',['-NoProfile','-NonInteractive','-Command',String.raw`$fixtureRsa=[System.Security.Cryptography.RSA]::Create(2048); $fixtureRequest=[System.Security.Cryptography.X509Certificates.CertificateRequest]::new('CN=www.zhipin.com',$fixtureRsa,[System.Security.Cryptography.HashAlgorithmName]::SHA256,[System.Security.Cryptography.RSASignaturePadding]::Pkcs1); $fixtureCert=$fixtureRequest.CreateSelfSigned([DateTimeOffset]::Now.AddDays(-1),[DateTimeOffset]::Now.AddDays(2)); try { [System.IO.File]::WriteAllBytes($env:RESUME_TEST_CERTIFICATE,$fixtureCert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx,'fixture-only')) } finally { $fixtureCert.Dispose(); $fixtureRsa.Dispose() }`],{windowsHide:true,env:{...process.env,RESUME_TEST_CERTIFICATE:certificatePath}})
-let uploadRequests=0
+let uploadRequests=0, customTextSends=0
 uploads=createServer({pfx:await readFile(certificatePath),passphrase:'fixture-only'},async(request,response)=>{
   if(request.method!=='POST'||request.url!=='/wapi/zpchat/image/upload'){response.writeHead(403);response.end();return}
   for await(const _chunk of request){ /* Only the synthetic PNG fixture. */ }
@@ -40,12 +40,12 @@ owner=await chromium.launch({channel:'msedge',headless:true,proxy:{server:'http:
 const counts = { contact: 0, text: 0, image: 0 }
 const detail = index => `<!doctype html><meta charset="utf-8"><div class="job-banner"><h1>全栈开发${index}</h1></div><div class="sider-company"><div class="company-name">测试公司${index === '3' ? '错误' : index}</div></div><section class="job-sec-text">使用 React 和 Node.js 完成全栈开发。</section><button id="contact">立即沟通</button><div id="panel"></div><script>
 let next=0;
-document.querySelector('#contact').onclick=()=>{fetch('https://fixture.invalid/contact');document.querySelector('#contact').hidden=true;document.querySelector('#panel').innerHTML='<div class="chat-editor"><div id="chat-input" class="chat-input" contenteditable="true"></div><button id="send">发送</button><input type="file" accept="image/png,image/jpeg"></div><div id="messages"></div>';document.querySelector('#send').onclick=()=>{const editor=document.querySelector('#chat-input');const message=document.createElement('div');message.className='chat-message-self';message.dataset.mid=String(++next);const text=document.createElement('span');text.className='message-content';text.textContent=editor.textContent;message.append(text);if(${index !== '4'})document.querySelector('#messages').append(message);editor.textContent='';fetch('https://fixture.invalid/text')};document.querySelector('input').onchange=async event=>{const file=event.target.files[0];const image=document.createElement('img');if(${index === '6'}){image.src=URL.createObjectURL(file)}else{const reply=await(await fetch('https://www.zhipin.com/wapi/zpchat/image/upload',{method:'POST',body:file})).json();image.src=reply.zpData.url}await image.decode();const message=document.createElement('div');message.className='chat-message-self';message.dataset.mid=String(++next);message.append(image);document.querySelector('#messages').append(message);fetch('https://fixture.invalid/image')}};
+document.querySelector('#contact').onclick=()=>{fetch('https://fixture.invalid/contact');document.querySelector('#contact').hidden=true;document.querySelector('#panel').innerHTML='<div class="chat-editor"><div id="chat-input" class="chat-input" contenteditable="true"></div><button id="send">发送</button><input type="file" accept="image/png,image/jpeg"></div><div id="messages"></div>';document.querySelector('#send').onclick=()=>{const editor=document.querySelector('#chat-input');const message=document.createElement('div');message.className='chat-message-self';message.dataset.mid=String(++next);const text=document.createElement('span');text.className='message-content';text.textContent=editor.textContent;message.append(text);if(${index !== '4'})document.querySelector('#messages').append(message);editor.textContent='';fetch('https://fixture.invalid/custom')};const automatic=document.createElement('li');automatic.className='message-item item-myself';automatic.dataset.mid='auto-${index}';automatic.innerHTML='<div class="message-content"><div class="text"><i class="message-status status-delivery">送达</i><p><span class="text-content">官网自动招呼</span></p></div></div>';if(${index !== '4'})document.querySelector('#messages').append(automatic);fetch('https://fixture.invalid/text');document.querySelector('input').onchange=async event=>{const file=event.target.files[0];const image=document.createElement('img');if(${index === '6'}){image.src=URL.createObjectURL(file)}else{const reply=await(await fetch('https://www.zhipin.com/wapi/zpchat/image/upload',{method:'POST',body:file})).json();image.src=reply.zpData.url}await image.decode();const message=document.createElement('div');message.className='chat-message-self';message.dataset.mid=String(++next);message.append(image);document.querySelector('#messages').append(message);fetch('https://fixture.invalid/image')}};
 </script>`
   const context = await owner.newContext({ignoreHTTPSErrors:true})
   await context.route('**/*', route => {
     const url = new URL(route.request().url())
-    if (url.hostname === 'fixture.invalid') { if (url.pathname.slice(1) in counts) counts[url.pathname.slice(1)]++; return route.fulfill({ contentType: 'application/json', body: '{}' }) }
+    if (url.hostname === 'fixture.invalid') { if (url.pathname === '/custom') customTextSends++; if (url.pathname.slice(1) in counts) counts[url.pathname.slice(1)]++; return route.fulfill({ contentType: 'application/json', body: '{}' }) }
     if (url.hostname === 'www.zhipin.com' && url.pathname === '/wapi/zpchat/image/upload') return route.continue()
     if (url.hostname === 'www.zhipin.com' && url.pathname === '/assets/upload-receipt.png') return route.fulfill({contentType:'image/png',body:createCanvas(24,32).toBuffer('image/png')})
     if (url.hostname !== 'www.zhipin.com') return route.abort()
@@ -72,7 +72,7 @@ document.querySelector('#contact').onclick=()=>{fetch('https://fixture.invalid/c
   const result = await until(() => call('/boss-batch/' + batch.id), value => value.value.state !== 'running')
   assert.equal(result.value.state, 'finished', JSON.stringify(result.value))
   assert(result.value.tasks.every(task => task.state === 'verified' && task.steps.every(step => step.state === 'verified' && step.receipt)))
-  assert.deepEqual(counts, { contact: 2, text: 2, image: 2 }); assert.equal(uploadRequests,2)
+  assert.deepEqual(counts, { contact: 2, text: 2, image: 2 }); assert.equal(uploadRequests,2); assert.equal(customTextSends,0,'default greeting must not be followed by custom text'); assert(result.value.tasks.every(task=>task.steps[1].source==='platform'&&task.steps[1].value==='官网自动招呼'))
   await call('/boss-batch/confirm', { id: preview.value.id, confirmed: true, defaultGreetingAccepted: true })
   assert.deepEqual(counts, { contact: 2, text: 2, image: 2 }, 'retry must not contact or send twice')
   assert.equal((await call('/boss-batch/preview', { ...batch, id: randomUUID() })).status, 400, 'new batches must exclude contacted jobs')
@@ -92,7 +92,7 @@ document.querySelector('#contact').onclick=()=>{fetch('https://fixture.invalid/c
   const unknown = await execute({ id: randomUUID(), jobs: [job(4), job(5)], images: [] })
   assert.equal(unknown.state, 'paused')
   assert.equal(unknown.tasks[0].state, 'uncertain')
-  assert.equal(unknown.tasks[0].steps[1].state, 'uncertain')
+  assert.equal(unknown.tasks[0].steps[1].state, 'pending', 'no extra text may be attempted when the platform greeting receipt is missing')
   assert.equal(unknown.tasks[1].state, 'queued')
   assert.deepEqual(counts, { contact: 3, text: 3, image: 2 }, 'missing receipt stops the batch without retries')
   assert.equal((await call('/boss-batch/preview', { id: randomUUID(), jobs: [job(4)], images: [] })).status, 400, 'uncertain send cannot be retried in a new batch')
@@ -101,5 +101,5 @@ document.querySelector('#contact').onclick=()=>{fetch('https://fixture.invalid/c
   assert.equal(localOnly.state, 'paused', 'a local blob preview is not an upload receipt')
   assert.equal(localOnly.tasks[0].steps.at(-1).state, 'uncertain')
   assert(localOnly.tasks[0].error.includes('图片未获得发送回执')); assert.equal(uploadRequests,2,'local blob case must not upload')
-  console.log('隔离两岗位整批确认、建立沟通、文字+图片发送、回执、跨批次去重、身份错配阻断、缺失回执暂停、本地图片不冒充上传回执和源页面保留检查通过；未访问真实招聘方。')
+  console.log('隔离两岗位整批确认、建立沟通、官网单次招呼+图片发送、回执、跨批次去重、身份错配阻断、缺失回执暂停、本地图片不冒充上传回执和源页面保留检查通过；未访问真实招聘方。')
 } finally { await service?.close(); await owner?.close(); if(proxy?.listening) await new Promise(done=>proxy.close(done)); if(uploads?.listening) await new Promise(done=>uploads.close(done)); await rm(resolve(directory), { recursive: true, force: true }) }

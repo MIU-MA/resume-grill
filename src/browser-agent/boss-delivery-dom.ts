@@ -28,10 +28,12 @@ export async function bossDeliveryDom(input: Input) {
   const send = sendButtons.filter(enabled)
   const contact = [...document.querySelectorAll<HTMLElement>('a, button, .btn-startchat')].filter(node => visible(node) && enabled(node) && /^(立即沟通|继续沟通)$/.test(norm(node.innerText)))
   const outgoing = [...document.querySelectorAll<HTMLElement>('.chat-message-self, .message-self, .message-item.is-self, .message-item.sent, .message-item.item-my, .message-item.item-myself, .message-item.role-geek, .message-item.item-me, .message-list .item-me')].filter(node => visible(node) && !node.matches('.sending, .failed, .send-failed') && !node.querySelector('.send-fail, .message-fail, .send-error, .message-status.loading'))
-  const texts = outgoing.flatMap((node, index) => {
-    const content = node.querySelector<HTMLElement>('.message-content .text, .message-content .text-content, .message-content .msg-content') ?? node.querySelector<HTMLElement>('.message-content, .msg-content, .text-content, .text') ?? node
-    return norm(content.innerText) === norm(input.text) ? [node.getAttribute('data-mid') || node.getAttribute('data-message-id') || `text:${index}`] : []
+  const outgoingTexts = outgoing.flatMap((node, index) => {
+    const content = node.querySelector<HTMLElement>('.message-content .text-content, .message-content .msg-content') ?? node.querySelector<HTMLElement>('.message-content .text') ?? node.querySelector<HTMLElement>('.message-content, .msg-content, .text-content, .text') ?? node
+    const text = content.innerText.trim()
+    return text ? [{ id: node.getAttribute('data-mid') || node.getAttribute('data-message-id') || `text:${index}`, text, delivered: !!node.querySelector('.message-status.status-delivery, .message-status.status-read') }] : []
   })
+  const texts = outgoingTexts.filter(value => norm(value.text) === norm(input.text)).map(value => value.id)
   const images = outgoing.flatMap(node => [...node.querySelectorAll<HTMLImageElement>('img')]).filter(node => node.complete && node.naturalWidth > 0).map(node => node.currentSrc || node.src)
   const jobLinks = [...document.querySelectorAll<HTMLAnchorElement>('.chat-header a[href*="/job_detail/"], .chat-job-info a[href*="/job_detail/"], .chat-job-card a[href*="/job_detail/"]')].map(node => { const url = new URL(node.href); return url.origin + url.pathname })
   const modern = [...document.querySelectorAll<HTMLElement>('.friend-content.selected')].filter(visible)
@@ -54,6 +56,7 @@ export async function bossDeliveryDom(input: Input) {
   if ((input.expectedRecipientKey && recipientKey !== input.expectedRecipientKey) || (input.expectedJobUrl && location.origin + location.pathname !== input.expectedJobUrl)) throw new Error('发送前会话身份已变化，未点击发送')
   if (input.action === 'contact') {
     if (contact.length !== 1) throw new Error('沟通入口不唯一，未点击')
+    if (norm(contact[0].innerText) === '继续沟通') throw new Error('官网显示已沟通过，未再次联系')
     contact[0].click()
   }
   if (input.action === 'send') {
@@ -75,5 +78,5 @@ export async function bossDeliveryDom(input: Input) {
       if (input.assetUrls.some(asset => { try { const value = new URL(asset); return value.origin === url.origin && value.pathname === url.pathname } catch { return false } })) verifiedImages.push(src)
     }
   }
-  return { url: location.origin + location.pathname, recipientKey, editors: editors.length, sendButtons: sendButtons.length, contactButtons: contact.length, texts, images, verifiedImages, jobLinks }
+  return { url: location.origin + location.pathname, recipientKey, editors: editors.length, sendButtons: sendButtons.length, contactButtons: contact.length, texts, outgoingTexts, images, verifiedImages, jobLinks }
 }

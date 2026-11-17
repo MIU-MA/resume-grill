@@ -68,7 +68,7 @@ export function createBossBatch(directory: string, current: () => Context | unde
       if (previews.size >= 30) throw new Error('待核对批次过多，请稍后重试')
       const id = randomBytes(16).toString('hex'), expiresAt = Date.now() + 120000
       previews.set(id, { batch, context, expires: expiresAt })
-      return { id, batchId: batch.id, expiresAt, jobs: batch.jobs, skipped, images: batch.images.map(({ base64: _base64, ...image }) => image) }
+      return { id, batchId: batch.id, expiresAt, greetingMode: 'platform' as const, jobs: batch.jobs, skipped, images: batch.images.map(({ base64: _base64, ...image }) => image) }
     },
     async confirm(id: string, confirmed: boolean, defaultGreetingAccepted: boolean) {
       const value = previews.get(id)

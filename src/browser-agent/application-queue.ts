@@ -5,6 +5,7 @@ export type BrowserDeliveryAdapter = {
   checkRecipient(task: BrowserTask): Promise<boolean>
   send(task: BrowserTask, step: BrowserStep): Promise<void>
   receipt(task: BrowserTask, step: BrowserStep): Promise<{ id: string; value: string } | null>
+  resolveGreeting?(task: BrowserTask): Promise<{ id: string; value: string }>
 }
 
 /** Persist intent before every side effect. Never replay a step with an ambiguous outcome. */
@@ -24,6 +25,13 @@ export async function runApplicationQueue(run: BrowserRun, adapter: BrowserDeliv
         if (step.state === 'verified') continue
         if (stopped()) { task.state = 'queued'; run.state = 'paused'; await persist(); return run }
         if (!await adapter.checkRecipient(task)) throw new Error('当前会话与选中岗位不一致，已停止此岗位。')
+        if (step.kind === 'greeting' && adapter.resolveGreeting) {
+          const receipt = await adapter.resolveGreeting(task)
+          if (!receipt.id || !receipt.value || !await adapter.checkRecipient(task)) throw new Error('官网自动招呼回执不明确，未追加自定义文字')
+          step.requestedValue = step.value; step.value = receipt.value; step.source = 'platform'
+          step.state = 'verified'; step.receipt = receipt.id
+          await persist(); continue
+        }
         step.state = 'sending'
         await persist() // A failed journal write must prevent sending.
         await adapter.send(task, step)

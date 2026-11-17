@@ -14,7 +14,7 @@ export async function saveBossBatch(run: BrowserRun) {
       const id = run.id.slice(0, -8) + index.toString(16).padStart(8, '0')
       if (records.some(record => record.id === id)) continue
       const at = task.verifiedAt ?? run.updatedAt
-      records.push({ id, company: task.company.slice(0, 120), role: task.title.slice(0, 120), channel: 'boss', sourceUrl: task.url, contact: '', appliedAt: at, createdAt: at, updatedAt: at, note: `BOSS 批次 ${run.id}\n招呼语：${task.steps.find(step => step.kind === 'greeting')?.value ?? ''}\n简历图片：${task.steps.filter(step => step.kind === 'image').length} 张（回执已核对）` })
+      records.push({ id, company: task.company.slice(0, 120), role: task.title.slice(0, 120), channel: 'boss', sourceUrl: task.url, contact: '', appliedAt: at, createdAt: at, updatedAt: at, note: `BOSS 批次 ${run.id}\n${task.steps.find(step => step.kind === 'greeting')?.source === 'platform' ? '官网自动招呼' : '招呼语'}：${task.steps.find(step => step.kind === 'greeting')?.value ?? ''}\n简历图片：${task.steps.filter(step => step.kind === 'image').length} 张（回执已核对）` })
       progress[id] ??= changeApplicationProgress(undefined, { stage: 'awaiting' }, at)
     }
     return { ...current, manualApplications: records, progress }
