@@ -28,7 +28,14 @@ export function BossLivePreview({ connection, connected }: { connection: BossCon
   const [visible, setVisible] = useState(true)
   const [error, setError] = useState('')
   const [updated, setUpdated] = useState(false)
-  useEffect(() => { if (!connected) setPlaying(false) }, [connected])
+  const ready = connected && !!connection
+  useEffect(() => {
+    if (ready) return
+    setPlaying(false)
+    setLoaded(false)
+    setUpdated(false)
+    setError('')
+  }, [ready])
   useEffect(() => {
     const update = () => setVisible(document.visibilityState !== 'hidden')
     update(); document.addEventListener('visibilitychange', update)
@@ -70,9 +77,11 @@ export function BossLivePreview({ connection, connected }: { connection: BossCon
   }, [connection, connected, id, loaded, playing, visible])
 
   return <section className="border border-line" aria-label="浏览器实时画面">
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3"><div><h2 className="text-section font-medium">官网画面</h2><p role="status" className="mt-1 text-meta text-text-secondary">{!connected ? '未连接 · 已停止更新' : error ? '更新中断' : playing ? visible ? '正在更新 · 约每秒一帧' : '标签页不可见 · 暂停更新' : updated ? '已暂停 · 显示最后一帧' : '点击开始预览'}</p></div><Button variant="secondary" disabled={!connected || !connection} onClick={() => { setError(''); setPlaying(value => !value) }}>{playing ? '暂停画面' : '开始预览'}</Button></div>
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3"><div><h2 className="text-section font-medium">官网画面</h2><p role="status" className="mt-1 text-meta text-text-secondary">{!ready ? '未连接 · 已停止更新' : error ? '更新中断' : playing ? !visible ? '标签页不可见 · 暂停更新' : updated ? '正在更新 · 约每秒一帧' : '正在读取画面…' : updated ? '已暂停 · 显示最后一帧' : '点击开始预览'}</p></div><Button variant="secondary" disabled={!ready} onClick={() => { setError(''); setPlaying(value => !value) }}>{playing ? '暂停画面' : '开始预览'}</Button></div>
     {error && <p role="alert" className="p-3 text-body text-danger">{error}。更新已停止，可点击开始预览重试。</p>}
-    <div className="relative h-80 overflow-hidden lg:h-96"><iframe ref={frame} title="BOSS 官网实时画面（只读）" sandbox="allow-scripts" referrerPolicy="no-referrer" srcDoc={source} className="h-full w-full border-0" onLoad={() => setLoaded(true)} />{!connected && <div className="absolute inset-0 grid place-items-center bg-surface text-body text-text-secondary">连接 BOSS 页面后可查看画面</div>}</div>
+    <div className="relative h-80 overflow-hidden lg:h-96">{ready
+      ? <iframe ref={frame} title="BOSS 官网实时画面（只读）" sandbox="allow-scripts" referrerPolicy="no-referrer" srcDoc={source} className="h-full w-full border-0" onLoad={() => setLoaded(true)} />
+      : <div className="absolute inset-0 grid place-items-center bg-surface text-body text-text-secondary">连接 BOSS 页面后可查看画面</div>}</div>
     <p className="border-t border-line px-4 py-2 text-meta text-text-tertiary">当前连接页面的实时画面。暂停预览不会中断连接或后台任务。</p>
   </section>
 }

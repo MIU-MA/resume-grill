@@ -15,7 +15,7 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.useRealTimers(); vi.unstubAllGlobals() })
 async function render(connected = true) {
   await act(async () => root.render(createElement(BossLivePreview, { connection, connected })))
-  await act(async () => host.querySelector('iframe')!.dispatchEvent(new Event('load')))
+  if (connected) await act(async () => host.querySelector('iframe')!.dispatchEvent(new Event('load')))
 }
 async function click() { await act(async () => host.querySelector('button')!.click()) }
 it('主动开始后更新，暂停取消请求和定时器，iframe 不接收凭据', async () => {
@@ -42,13 +42,14 @@ it('慢请求期间不积压后续请求，断开后丢弃迟到画面', async (
   await act(async () => vi.advanceTimersByTimeAsync(5000))
   expect(fetch).toHaveBeenCalledTimes(1)
   await render(false)
+  expect(host.querySelector('iframe')).toBeNull()
   await act(async () => finish(new Response('jpeg', { headers: { 'Content-Type': 'image/jpeg' } })))
   expect(receiver).not.toHaveBeenCalled()
 })
 it('批次切换后台页时保留画面并继续，真正的断开仍停止采集', async () => {
   vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ code: 'FRAME_SWITCH' }), { status: 409 }))
   await render(); await click()
-  expect(host.textContent).toContain('约每秒一帧')
+  expect(host.textContent).toContain('正在读取画面')
   expect(host.querySelector('[role=alert]')).toBeNull()
   await act(async () => vi.advanceTimersByTimeAsync(1000))
   expect(fetch).toHaveBeenCalledTimes(2)

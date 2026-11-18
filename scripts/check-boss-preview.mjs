@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict'
+import { once } from 'node:events'
+import { request } from 'node:http'
 import { chromium } from 'playwright-core'
 import { createBossPreview, previewRequestAllowed } from './boss-preview.mjs'
 
@@ -153,7 +155,13 @@ try {
   assert.equal((await state()).protocolCommands['Debugger.enable'],undefined)
   assert.equal((await state()).protocolCommands['Page.reload'],undefined)
 
-  await sandbox.route('https://www.zhipin.com/job_detail/**', route => route.fulfill({ contentType: 'text/html; charset=utf-8', body: '<meta charset="utf-8"><div class="job-banner"><h1>Full Stack Developer</h1></div><div class="sider-company"><span class="company-name">示例公司</span></div><div class="job-sec-text">使用 React、TypeScript 和 Node.js 开发业务系统，需要全栈开发经验。</div><button onclick="fetch(\'/must-not-send\')">立即沟通</button>' }))
+  const detailStarted = Promise.withResolvers()
+  const releaseDetail = Promise.withResolvers()
+  await sandbox.route('https://www.zhipin.com/job_detail/**', async route => {
+    detailStarted.resolve()
+    await releaseDetail.promise
+    await route.fulfill({ contentType: 'text/html; charset=utf-8', body: '<meta charset="utf-8"><div class="job-banner"><h1>Full Stack Developer</h1></div><div class="sider-company"><span class="company-name">示例公司</span></div><div class="job-sec-text">使用 React、TypeScript 和 Node.js 开发业务系统，需要全栈开发经验。</div><button onclick="fetch(\'/must-not-send\')">立即沟通</button>' })
+  })
   const initialRead = await (await fetch(`${attached.origin}/jobs`, { headers: auth })).json()
   assert.equal(initialRead.state, 'ready')
   assert.equal(initialRead.query, '全栈')
@@ -183,7 +191,26 @@ try {
   assert.equal((await state()).protocolCommands['Page.navigate'], 1, 'waiting for results must never reload the page')
   const beforePages = sandbox.pages().length
   const originalVisibility = await controls.evaluate(() => document.visibilityState)
-  const detailResponse = await fetch(`${attached.origin}/inspect-job`, { method: 'POST', headers: { ...auth, 'Content-Type': 'application/json' }, body: JSON.stringify({ readId: inspectRead.readId, url: inspectRead.jobs[0].url }) })
+  const searchBody = JSON.stringify({ query: '产品经理' })
+  const slowSearch = request(`${attached.origin}/search`, {
+    method: 'POST', headers: { ...auth, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(searchBody), Expect: '100-continue' },
+  })
+  const searchResponse = once(slowSearch, 'response', { signal: AbortSignal.timeout(12000) })
+  const headersReceived = once(slowSearch, 'continue', { signal: AbortSignal.timeout(5000) })
+  slowSearch.flushHeaders()
+  await headersReceived
+  const pendingDetail = fetch(`${attached.origin}/inspect-job`, { method: 'POST', headers: { ...auth, 'Content-Type': 'application/json' }, body: JSON.stringify({ readId: inspectRead.readId, url: inspectRead.jobs[0].url }) })
+  try {
+    await detailStarted.promise
+    slowSearch.end(searchBody)
+    const [blockedSearch] = await searchResponse
+    blockedSearch.resume()
+    assert.equal(blockedSearch.statusCode, 409, 'a delayed search must not interrupt a running detail read')
+  } finally {
+    releaseDetail.resolve()
+    slowSearch.destroy()
+  }
+  const detailResponse = await pendingDetail
   const detailResult = await detailResponse.json()
   assert.equal(detailResponse.status, 200, JSON.stringify(detailResult))
   assert.equal(detailResult.matched, true, JSON.stringify(detailResult))

@@ -19,6 +19,7 @@ const { bossPreparationSchema, prepareBossApplications } = await tsImport('../sr
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const bossHost = host => host === 'zhipin.com' || host.endsWith('.zhipin.com')
+const isNavigationInterruption = error => /execution context|context with specified id|aborted by navigation|inspected target navigated/i.test(error?.message ?? '')
 const readMessages = {
   loading: 'BOSS 正在加载岗位，稍后重新读取。',
   empty: 'BOSS 显示暂无相关岗位，可以换关键词或在官网调整筛选。',
@@ -72,7 +73,6 @@ export async function createBossPreview({ port = 4327, fixture = false, headless
   const viewReady = () => !!viewPage() && !viewPage().isClosed() && (phase === 'connected' || !!deliveries.currentPage())
   let frameOwner
   let capturePending
-  let liveFrameAt = 0
   let phase = 'disconnected', connecting = false, closing = false, nextTabId = 0
   const safeLocation = address => { const url = new URL(address); return url.protocol === 'about:' ? 'about:blank' : url.origin + url.pathname }
   const noteBlocked = (address, method) => {
@@ -132,16 +132,21 @@ export async function createBossPreview({ port = 4327, fixture = false, headless
       if (req.method === 'POST' && /^\/simulation\/[a-f0-9-]{36}\/stop$/.test(req.url)) { simulations.stop(req.url.split('/')[2]); reply(202, { ok: true }); return }
       if (req.method === 'GET' && req.url === '/live-frame') {
         const requestedPage = viewPage()
-        const switching = () => reply(409, { code: 'FRAME_SWITCH', error: '正在切换本批岗位页面，保留上一帧' })
-        if (!viewReady() && deliveries.currentPage()) { switching(); return }
-        if (!viewReady() || !bossHost(new URL(viewPage().url()).hostname)) { reply(503, { error: 'BOSS 页面未连接，画面更新已停止' }); return }
+        const address = requestedPage?.url()
+        const switched = () => requestedPage !== viewPage() || address !== requestedPage?.url()
+        const switching = () => reply(409, { code: 'FRAME_SWITCH', error: '正在切换 BOSS 页面，保留上一帧' })
+        if (deliveries.currentPage() && (!viewReady() || address === 'about:blank')) { switching(); return }
+        if (!viewReady() || !bossHost(new URL(address).hostname)) { reply(503, { error: 'BOSS 页面未连接，画面更新已停止' }); return }
         // Demand-driven, shared between viewers. Never navigate or focus the tab.
-        if (!capturePending && (!frame || frameOwner !== viewPage() || Date.now() - liveFrameAt >= 750)) {
-          capturePending = captureFrame().then(() => { liveFrameAt = Date.now() }).finally(() => { capturePending = undefined })
+        if (!capturePending && (!frame || frameOwner !== requestedPage || Date.now() - frameAt >= 750)) {
+          capturePending = captureFrame().finally(() => { capturePending = undefined })
         }
         try { await capturePending }
-        catch (failure) { if (requestedPage !== viewPage() || requestedPage.isClosed()) { switching(); return } throw failure }
-        if (requestedPage !== viewPage() || frameOwner !== viewPage()) { switching(); return }
+        catch (failure) {
+          if (switched() || isNavigationInterruption(failure)) { switching(); return }
+          throw failure
+        }
+        if (switched() || frameOwner !== requestedPage) { switching(); return }
         if (!viewReady() || !frame || !bossHost(new URL(viewPage().url()).hostname)) { reply(503, { error: '页面已变化，请等待 BOSS 页面就绪后重新开始预览' }); return }
         res.writeHead(200, { 'Content-Type': 'image/jpeg' }); res.end(frame); return
       }
@@ -219,12 +224,16 @@ export async function createBossPreview({ port = 4327, fixture = false, headless
       }
       if (req.method === 'POST' && req.url === '/search') {
         if (!attach || phase !== 'connected' || !page || page.isClosed() || inputBusy) throw new Error('请先选择 BOSS 页面')
+        const source = page
         let body = ''; for await (const chunk of req) { body += chunk; if (body.length > 2000) throw new Error('搜索词过长') }
         const query = JSON.parse(body).query
         if (typeof query !== 'string' || !query.trim() || query.length > 120) throw new Error('请填写不超过 120 字的岗位方向')
+        if (inputBusy || phase !== 'connected' || source !== page || source.isClosed()) {
+          reply(409, { error: '当前浏览器页面有其他操作，请稍后重新搜索。' }); return
+        }
         inputBusy = true; lastRead = undefined
         try {
-          const source = page, keyword = query.trim()
+          const keyword = query.trim()
           await source.searchJobs(keyword)
           const deadline = Date.now() + 4000
           let result
@@ -327,7 +336,7 @@ export async function createBossPreview({ port = 4327, fixture = false, headless
     const loading = { state: 'loading', query: expectedQuery ?? '', jobs: [], message: readMessages.loading }
     if (source !== page || source.isClosed()) throw new Error('已切换 BOSS 标签页，请重新读取。')
     const result = await source.evaluate(readBossJobList).catch(error => {
-      if (expectedQuery && /execution context|context with specified id|aborted by navigation/i.test(error.message)) return null
+      if (expectedQuery && isNavigationInterruption(error)) return null
       throw error
     })
     if (source !== page || address !== source.url() || result?.address !== address) return loading
@@ -408,7 +417,7 @@ export async function createBossPreview({ port = 4327, fixture = false, headless
     page.on('framenavigated', target => {
       if (page !== targetPage || target !== targetPage.mainFrame()) return
       lastRead = undefined
-      frame = undefined; liveFrameAt = 0
+      frame = undefined
       navigations.push(safeLocation(target.url())); if (navigations.length > 10) navigations.shift()
     })
     page.on('request', request => {
