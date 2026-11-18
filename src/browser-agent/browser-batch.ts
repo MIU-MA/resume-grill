@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { simulationBatchSchema, type BrowserRun, type BrowserTask, type SimulationBatch } from '../domain/browser-application.ts'
+import { simulationBatchSchema, type BrowserRun, type BrowserRunSummary, type BrowserTask, type SimulationBatch } from '../domain/browser-application.ts'
 type Options = { mode: BrowserRun['mode']; tasks?: (batch: SimulationBatch) => BrowserTask[]; execute: (batch: SimulationBatch, run: BrowserRun, save: (value: BrowserRun) => Promise<void>, stopped: () => boolean) => Promise<void> }
 export function validateBrowserBatch(value: unknown) {
   const batch = simulationBatchSchema.parse(value)
@@ -50,6 +50,26 @@ export function createBrowserBatch(directory: string, options: Options) {
   }
   let admission = Promise.resolve()
   return {
+    async recent(): Promise<BrowserRunSummary[]> {
+      const entries = await readdir(directory, { withFileTypes: true }).catch(error => {
+        if (error.code === 'ENOENT') return []
+        throw error
+      })
+      const summaries: BrowserRunSummary[] = []
+      for (const entry of entries) {
+        if (!entry.isFile() || !/^[a-f0-9-]{36}\.json$/.test(entry.name)) continue
+        const id = entry.name.slice(0, -5)
+        const current = active.get(id)?.run
+        const run = current ?? (await load(id))?.run
+        if (!run || run.id !== id || run.mode !== options.mode) continue
+        summaries.push({
+          id, createdAt: run.createdAt, state: current || run.state !== 'running' ? run.state : 'paused',
+          total: run.tasks.length, verified: run.tasks.filter(task => task.state === 'verified').length,
+          companies: [...new Set(run.tasks.map(task => task.company))],
+        })
+      }
+      return summaries.sort((a, b) => b.createdAt - a.createdAt || a.id.localeCompare(b.id)).slice(0, 10)
+    },
     start(value: unknown) { const result = admission.catch(() => undefined).then(() => begin(value)); admission = result.then(() => undefined, () => undefined); return result },
     async status(id: string) { const current = active.get(id); if (current) { if (current.run.state !== 'running') await current.done?.catch(() => {}); return current.run } const saved = await load(id); if (!saved) throw new Error('没有找到批次'); return recover(saved.run) },
     stop(id: string) { const entry = active.get(id); if (entry) entry.stop = true },

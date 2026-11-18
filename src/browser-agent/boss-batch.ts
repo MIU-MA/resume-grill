@@ -109,7 +109,7 @@ export function createBossBatch(directory: string, current: () => Context | unde
       })().catch(error => { contexts.delete(value.batch.id); onRunning(false); throw error })
       return value.started
     },
-    status: manager.status, stop: manager.stop, close: manager.close,
+    recent: manager.recent, status: manager.status, stop: manager.stop, close: manager.close,
     currentPage() { return live?.currentPage() },
   }
 }

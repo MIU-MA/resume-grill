@@ -12,6 +12,7 @@ export type SimulationBatch = z.infer<typeof simulationBatchSchema>
 export type BrowserStep = { id: string; kind: 'contact' | 'greeting' | 'image'; value: string; state: 'pending' | 'sending' | 'verified' | 'uncertain'; receipt?: string; source?: 'platform'; requestedValue?: string }
 export type BrowserTask = { verifiedAt?: number; url: string; company: string; title: string; state: 'queued' | 'running' | 'verified' | 'failed' | 'uncertain'; error?: string; steps: BrowserStep[] }
 export type BrowserRun = { id: string; mode: 'simulation' | 'boss'; state: 'running' | 'paused' | 'finished' | 'failed'; createdAt: number; updatedAt: number; tasks: BrowserTask[]; error?: string }
+export type BrowserRunSummary = Pick<BrowserRun, 'id' | 'state' | 'createdAt'> & { total: number; verified: number; companies: string[] }
 export const BROWSER_TASK_LABELS = { queued: '未执行', running: '执行中', verified: '已核验（模拟）', failed: '执行失败', uncertain: '结果待核对' } as const
 
 export type BossBatchPreview = { id: string; batchId: string; expiresAt: number; greetingMode?: 'platform'; jobs: SimulationBatch['jobs']; images: Omit<SimulationBatch['images'][number], 'base64'>[]; skipped: { url: string; title: string; reason: string }[] }

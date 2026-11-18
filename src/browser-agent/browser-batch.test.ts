@@ -33,3 +33,26 @@ it('退出后的任务只恢复为待核对，不隐式执行；新实例也不�
   expect(execute).not.toHaveBeenCalled()
   await restored.close()
 })
+
+it('新连接可列出原目录中的真实批次，崩溃前的运行状态只能显示为暂停', async () => {
+  const path = await directory(), completed = batch(), interrupted = batch()
+  const manager = createBrowserBatch(path, { mode: 'boss', execute: async (_batch, run, save) => {
+    if (run.id === completed.id) {
+      run.state = 'finished'; run.tasks[0].state = 'verified'
+    }
+    await save(run)
+  } })
+  const clock = vi.spyOn(Date, 'now').mockReturnValue(1000)
+  try {
+    await manager.start(completed); await manager.close()
+    clock.mockReturnValue(2000)
+    await manager.start(interrupted); await manager.close()
+  } finally { clock.mockRestore() }
+  const execute = vi.fn()
+  const restored = createBrowserBatch(path, { mode: 'boss', execute })
+  expect(await restored.recent()).toEqual([
+    { id: interrupted.id, createdAt: expect.any(Number), state: 'paused', total: 1, verified: 0, companies: ['测试公司'] },
+    { id: completed.id, createdAt: expect.any(Number), state: 'finished', total: 1, verified: 1, companies: ['测试公司'] },
+  ])
+  expect(execute).not.toHaveBeenCalled()
+})

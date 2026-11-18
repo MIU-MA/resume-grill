@@ -26,7 +26,7 @@
 | 岗位整理 | 网页提取、多职位选择、CSV／TSV 与招聘正文导入 |
 | AI 找岗位 | 交给 AI 动态读取官网、关键词搜索、失败自动换源；按简历核对匹配依据，支持暂停、继续与重试 |
 | 邮箱投递 | 只填邮箱直接投递；可根据 JD 核对修改、生成岗位版 PDF 并随邮件发送 |
-| BOSS 投递（实验） | 复用简历、读取岗位与完整 JD；整批确认后核对官网默认招呼、发送简历图片、去重并写回记录；ego 已完成两家小公司的招呼与图片实测 |
+| BOSS 投递 | 搜索岗位、读取 JD、将原 PDF 转成图片；一次确认后逐个投递，核对招呼与图片回执，可从新标签页查看最近批次 |
 | 官网填写 | 独立扩展填写、资料复用、附件上传、批量任务与多段经历 |
 | 投递记录 | 邮件状态、官网／内推／手动登记；列表与漏斗看板、下一轮面试类型、增删改查与撤销 |
 | 岗位详情 | 集中查看 JD、投递附件快照、邮件内容、岗位练习与真实面试笔记 |
@@ -68,13 +68,13 @@ npm run dev
 
 读取官网或发送邮件时，将启动命令换成 `npm run dev:local`，按页面提示连接本机。扩展安装、模型配置和部署步骤见[使用说明](docs/getting-started.md)。
 
-BOSS 投递另运行 `npm run boss:ego`（需先安装并登录 ego）或 `npm run boss:preview`（连接 Chrome），打开终端输出的工作台链接。支持 PDF 自动生图、批次核对和继续未执行岗位；实测范围见 [BOSS 实验说明](docs/boss-preview.md)。
+BOSS 投递另运行 `npm run boss:ego`（ego）或 `npm run boss:preview`（Chrome），打开终端输出的工作台链接。连接并登录 BOSS 后，选简历、搜索并勾选岗位，再点「准备投递 → 核对本批投递」。整批确认后，BOSS 发送账号默认招呼，工作台发送简历图片并写回投递记录。
 
-当前为 Beta。官网填写的覆盖范围见[适配记录](docs/website-adaptation.md)，最终申请由你核对提交。BOSS 已验证 ego 中的真实招呼与图片回执，未知页面或不明确回执会暂停，尚不保证所有页面版本可用。语音输入取决于浏览器支持。数据主要保存在本机，清理站点数据前请备份。
+换标签页后，用本机服务输出的工作台链接进入「BOSS 投递 → 查看最近批次」，选中批次即可查看结果。查看历史只需连接本机服务。 [BOSS 投递说明](docs/boss-preview.md)
 
 ## 文档
 
-[使用与配置](docs/getting-started.md) · [邮箱投递](docs/email-applications.md) · [官网扩展](docs/website-automation.md) · [招聘目录](docs/career-directory.md) · [参与开发](CONTRIBUTING.md)
+[使用与配置](docs/getting-started.md) · [邮箱投递](docs/email-applications.md) · [官网扩展](docs/website-automation.md) · [官网适配](docs/website-adaptation.md) · [招聘目录](docs/career-directory.md) · [参与开发](CONTRIBUTING.md)
 
 代码入口在 `src/application/`，业务按模块放在 `src/features/`。投递模块分为职位 `jobs/`、邮件 `mail/`、官网填写 `website/` 和记录 `history/`；AI 找岗位独立放在 `job-assistant/`。模块职责见 [目录说明](src/features/README.md)，开发约定见 [AGENTS.md](AGENTS.md)。
 

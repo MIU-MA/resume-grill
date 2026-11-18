@@ -63,6 +63,19 @@ it('刷新即使没有草稿也恢复批次，记录保存失败只允许重新�
   expect(vi.mocked(bossRequest).mock.calls.every(call => call[1] === `/boss-batch/${run.id}`)).toBe(true)
 })
 
+it('新标签页可从执行器打开历史批次，无需连接招聘页，也不会触发发送', async () => {
+  vi.mocked(bossRequest).mockImplementation(async (_connection, path) => path === '/boss-batches'
+    ? [{ id: run.id, state: run.state, createdAt: run.createdAt, total: 1, verified: 1, companies: [draft.company] }]
+    : run)
+  await act(async () => root.render(createElement(BossBatchPanel, { connection, connected: false, drafts: [], images, onRunning })))
+  const recent = [...host.querySelectorAll('button')].find(button => button.textContent === '查看最近批次')!
+  await act(async () => recent.click())
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="最近批次"] button')!.click())
+  expect(host.textContent).toContain('批次已结束 · 结果已写入本机记录')
+  expect(vi.mocked(bossRequest).mock.calls).toEqual([[connection, '/boss-batches'], [connection, `/boss-batch/${run.id}`]])
+  expect(sessionStorage.getItem('boss-browser:live-batch:v1')).toBe(run.id)
+})
+
 it('从原批次继续剩余岗位会先展示新预览，不自动确认，也不需要重选简历', async () => {
   const step = { id: 'contact', kind: 'contact' as const, value: draft.url, state: 'pending' as const }
   const paused: BrowserRun = { ...run, state: 'paused', tasks: [{ ...draft, state: 'queued', steps: [step] }] }
