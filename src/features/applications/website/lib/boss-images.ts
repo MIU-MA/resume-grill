@@ -1,4 +1,6 @@
 import { bossPreparationSchema } from './boss-preparation'
+import { encodeAttachment } from '../../mail/lib/mail-attachment'
+import type { SimulationBatch } from '@/domain/browser-application'
 export async function describeBossImages(files: File[]) {
   if (files.length > 3 || files.some(file => !file.size || file.size > 5 * 1024 * 1024) || files.reduce((sum, file) => sum + file.size, 0) > 10 * 1024 * 1024) throw new Error('最多 3 张图片，单张不超过 5 MB，合计不超过 10 MB。')
   const images = await Promise.all(files.map(async file => {
@@ -14,4 +16,12 @@ export async function describeBossImages(files: File[]) {
     return { name: file.name, size: file.size, type: file.type as 'image/png' | 'image/jpeg', width, height, sha256 }
   }))
   return bossPreparationSchema.shape.images.parse(images)
+}
+
+export async function encodeBossImages(files: File[]): Promise<SimulationBatch['images']> {
+  const metadata = await describeBossImages(files)
+  return Promise.all(files.map(async (file, index) => {
+    const { name, type, sha256 } = metadata[index]
+    return { name, type, sha256, base64: await encodeAttachment(file) }
+  }))
 }

@@ -23,10 +23,6 @@ export function groupCandidates(
   return [...groups.entries()]
 }
 
-export function isSkillSection(sourceSection: string): boolean {
-  return /技能|技术|能力|skills?|competenc/i.test(sourceSection)
-}
-
 export function includeReviewLine(candidates: ReviewCandidate[], section: ParsedResumeSection, lineNumber: number): ReviewCandidate[] {
   const line = section.lines.find(line => line.lineNumber === lineNumber)
   if (!line || ['general', 'profile', 'education', 'awards', 'selfReview'].includes(section.kind)) return candidates

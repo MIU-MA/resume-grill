@@ -22,7 +22,7 @@ beforeEach(() => {
   vi.mocked(loadBossWorkspace).mockResolvedValue(undefined)
   vi.mocked(bossRequest).mockImplementation(async (_connection, path, body) => {
     if (path === '/status') return { ready: true, phase: 'connected', tabs: [], error: '' }
-    if (path === '/jobs') return { readId: 'read', jobs }
+    if (path === '/jobs' || path === '/search') return { state: 'ready', query: '全栈', readId: 'read', jobs }
     if (path === '/prepare') return prepareBossApplications(jobs, bossPreparationSchema.parse(body))
     return { ok: true }
   })
@@ -52,6 +52,27 @@ it('简历更新后不恢复旧版本招呼语', async () => {
   await act(async () => root.render(createElement(BossWorkbench)))
   expect(host.textContent).toContain('简历版本已变化')
   expect(host.querySelector('textarea')).toBeNull()
+})
+
+it('搜索后读取官网结果，但不会采用上一个关键词的列表', async () => {
+  await act(async () => root.render(createElement(BossWorkbench)))
+  const target = host.querySelector<HTMLInputElement>('input[placeholder^="例如"]')!
+  await input(target, '产品经理')
+  await act(async () => button('官网搜索').click())
+  expect(bossRequest).toHaveBeenCalledWith(expect.anything(), '/search', { query: '产品经理' })
+  expect(host.textContent).toContain('正在切换搜索结果')
+  expect(host.textContent).not.toContain('选择岗位')
+  await input(target, '全栈')
+  await act(async () => button('官网搜索').click())
+  expect(host.textContent).toContain('选择岗位 · 1')
+})
+
+it('旧版服务还在运行时，提示重启服务并使用新连接', async () => {
+  await act(async () => root.render(createElement(BossWorkbench)))
+  vi.mocked(bossRequest).mockResolvedValueOnce({ readId: 'old', jobs })
+  await act(async () => button('读取岗位').click())
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain('请重启本机 BOSS 服务')
+  expect(host.textContent).not.toContain('选择岗位')
 })
 
 it('选择原 PDF 后准备投递会自动带入图片，不要求用户手动截图上传', async () => {

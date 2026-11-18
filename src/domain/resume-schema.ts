@@ -49,13 +49,7 @@ export type MasteryPoint = z.infer<typeof masteryPointSchema>
 export const testPrioritySchema = z.enum(['high', 'medium', 'low'])
 export type TestPriority = z.infer<typeof testPrioritySchema>
 
-export const TEST_PRIORITY_LABELS: Record<TestPriority, string> = {
-  high: '重点练习',
-  medium: '建议练习',
-  low: '有空再练',
-}
-
-export const compactClaimSchema = z.object({
+const compactClaimSchema = z.object({
   candidateIndex: z.number().int().nonnegative(),
   category: claimCategorySchema,
   capability: z.string().max(40),
@@ -63,7 +57,6 @@ export const compactClaimSchema = z.object({
   initialQuestion: z.string().max(120),
   trapPoints: z.array(z.string().max(40)).max(2),
 })
-export type CompactClaim = z.infer<typeof compactClaimSchema>
 
 export const compactAnalysisSchema = z.object({
   candidate: z.string(),
@@ -71,7 +64,6 @@ export const compactAnalysisSchema = z.object({
   summary: z.string().max(100),
   claims: z.array(compactClaimSchema).min(1).max(6),
 })
-export type CompactAnalysis = z.infer<typeof compactAnalysisSchema>
 
 export function repairCompactAnalysis(value: unknown, maxClaims = 6): unknown {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return value
@@ -111,7 +103,7 @@ function truncateText(value: unknown, max: number): unknown {
   return typeof value === 'string' ? value.slice(0, max) : value
 }
 
-export const llmResumeClaimSchema = z.object({
+const llmResumeClaimSchema = z.object({
   content: z.string(),
   title: z.string(),
   category: claimCategorySchema,
@@ -124,7 +116,7 @@ export const llmResumeClaimSchema = z.object({
   trapPoints: z.array(z.string()).optional().default([]),
   testPriority: testPrioritySchema.optional().default('medium'),
 })
-export type LlmResumeClaim = z.infer<typeof llmResumeClaimSchema>
+type LlmResumeClaim = z.infer<typeof llmResumeClaimSchema>
 
 export const resumeClaimSchema = llmResumeClaimSchema.extend({
   id: z.string().min(1),
@@ -194,12 +186,3 @@ export const resumeAnalysisSchema = z.object({
   claims: z.array(resumeClaimSchema).min(1),
 })
 export type ResumeAnalysis = z.infer<typeof resumeAnalysisSchema>
-
-export const llmAnalysisSchema = z.object({
-  candidate: z.string(),
-  role: z.string(),
-  summary: z.string(),
-  claims: z.array(llmResumeClaimSchema).min(1),
-  jobMatch: jobMatchSchema.optional(),
-})
-export type LlmAnalysis = z.infer<typeof llmAnalysisSchema>

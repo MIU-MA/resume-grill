@@ -69,6 +69,7 @@ try {
     throw new Error('iframe did not render the changed browser pixels')
   })
   const jobs = await (await fetch(`${preview.origin}/jobs`, { headers: auth })).json()
+  assert.equal(jobs.state, 'ready', jobs.error ?? jobs.message)
   assert.equal(jobs.jobs.length, 2, 'nested job cards must not duplicate results')
   assert.equal(jobs.jobs[0].title, '全栈开发')
   assert.equal(jobs.jobs[0].url, 'https://www.zhipin.com/job_detail/fixture-one.html')
@@ -153,7 +154,33 @@ try {
   assert.equal((await state()).protocolCommands['Page.reload'],undefined)
 
   await sandbox.route('https://www.zhipin.com/job_detail/**', route => route.fulfill({ contentType: 'text/html; charset=utf-8', body: '<meta charset="utf-8"><div class="job-banner"><h1>Full Stack Developer</h1></div><div class="sider-company"><span class="company-name">示例公司</span></div><div class="job-sec-text">使用 React、TypeScript 和 Node.js 开发业务系统，需要全栈开发经验。</div><button onclick="fetch(\'/must-not-send\')">立即沟通</button>' }))
-  const inspectRead = await (await fetch(`${attached.origin}/jobs`, { headers: auth })).json()
+  const initialRead = await (await fetch(`${attached.origin}/jobs`, { headers: auth })).json()
+  assert.equal(initialRead.state, 'ready')
+  assert.equal(initialRead.query, '全栈')
+  const originalBody = await page.locator('body').innerHTML()
+  for (const [state, markup] of [
+    ['loading', '<main aria-busy="true">正在加载</main>'],
+    ['empty', '<main>暂无相关职位</main>'],
+    ['login', '<main>请先登录后查看</main>'],
+    ['verification', '<dialog open>请完成安全验证</dialog>' + originalBody],
+    ['unsupported', '<main>未知页面结构</main>'],
+  ]) {
+    await page.locator('body').evaluate((body, value) => { body.innerHTML = value }, markup)
+    const read = await (await fetch(`${attached.origin}/jobs`, { headers: auth })).json()
+    assert.equal(read.state, state)
+    assert.equal(read.readId, undefined)
+    assert.deepEqual(read.jobs, [])
+  }
+  await page.locator('body').evaluate((body, value) => {
+    body.innerHTML = '<main aria-busy="true">正在加载</main>'
+    setTimeout(() => { body.innerHTML = value }, 700)
+  }, originalBody)
+  const inspectRead = await (await fetch(`${attached.origin}/search`, {
+    method: 'POST', headers: { ...auth, 'Content-Type': 'application/json' }, body: JSON.stringify({ query: '全栈' }),
+  })).json()
+  assert.equal(inspectRead.state, 'ready')
+  assert.equal(inspectRead.query, '全栈')
+  assert.equal((await state()).protocolCommands['Page.navigate'], 1, 'waiting for results must never reload the page')
   const beforePages = sandbox.pages().length
   const originalVisibility = await controls.evaluate(() => document.visibilityState)
   const detailResponse = await fetch(`${attached.origin}/inspect-job`, { method: 'POST', headers: { ...auth, 'Content-Type': 'application/json' }, body: JSON.stringify({ readId: inspectRead.readId, url: inspectRead.jobs[0].url }) })

@@ -34,6 +34,7 @@ it('明确使用官网默认招呼且不追加草稿，确认前不创建执行�
   await act(async () => (host.querySelector('input[type=checkbox]') as HTMLInputElement).click())
   await act(async () => start.click())
   expect(bossRequest).toHaveBeenCalledWith(connection, '/boss-batch/confirm', { id: 'preview-1', confirmed: true, defaultGreetingAccepted: true })
+  expect(saveBossBatch).toHaveBeenCalledTimes(1)
   expect(saveBossBatch).toHaveBeenCalledWith(run)
 })
 
@@ -57,7 +58,7 @@ it('刷新即使没有草稿也恢复批次，记录保存失败只允许重新�
   sessionStorage.setItem('boss-browser:live-batch:v1', run.id)
   vi.mocked(saveBossBatch).mockRejectedValue(new Error('空间不足'))
   await render([])
-  expect(host.textContent).toContain('尚未写入本机投递记录')
+  expect(host.textContent).toContain('执行状态未能写入本机记录')
   const retry = [...host.querySelectorAll('button')].find(button => button.textContent === '重新读取执行状态')!
   await act(async () => retry.click())
   expect(vi.mocked(bossRequest).mock.calls.every(call => call[1] === `/boss-batch/${run.id}`)).toBe(true)

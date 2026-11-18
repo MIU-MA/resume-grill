@@ -1,6 +1,7 @@
 import { createServer } from 'node:http'
 import { randomBytes, timingSafeEqual } from 'node:crypto'
 import { readFile, mkdir } from 'node:fs/promises'
+import { setTimeout as wait } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
 import { chromium } from 'playwright-core'
@@ -12,11 +13,19 @@ const { runBossComposer, inspectBossComposerDocument } = await tsImport('../src/
 const { createBossDraftSession } = await tsImport('../src/browser-agent/boss-draft-session.ts', import.meta.url)
 const { inspectBossDetail } = await tsImport('../src/browser-agent/boss-inspection.ts', import.meta.url)
 const { chromeDebugEndpoint } = await tsImport('../src/browser-agent/chrome-connection.ts', import.meta.url)
+const { readBossJobList } = await tsImport('../src/browser-agent/boss-job-list.ts', import.meta.url)
 const { BossBrowserReader } = await tsImport('../src/browser-agent/boss-reader.ts', import.meta.url)
 const { bossPreparationSchema, prepareBossApplications } = await tsImport('../src/features/applications/website/lib/boss-preparation.ts', import.meta.url)
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const bossHost = host => host === 'zhipin.com' || host.endsWith('.zhipin.com')
+const readMessages = {
+  loading: 'BOSS 正在加载岗位，稍后重新读取。',
+  empty: 'BOSS 显示暂无相关岗位，可以换关键词或在官网调整筛选。',
+  login: '请先在 BOSS 登录，然后重新读取。',
+  verification: 'BOSS 要求安全验证，请在官网完成后重新读取。',
+  unsupported: '未识别到岗位列表，请打开 BOSS 搜索结果页后重新读取。',
+}
 
 export { chromeDebugEndpoint }
 
@@ -214,8 +223,19 @@ export async function createBossPreview({ port = 4327, fixture = false, headless
         const query = JSON.parse(body).query
         if (typeof query !== 'string' || !query.trim() || query.length > 120) throw new Error('请填写不超过 120 字的岗位方向')
         inputBusy = true; lastRead = undefined
-        try { await page.searchJobs(query.trim()) } finally { inputBusy = false }
-        reply(200, { ok: true }); return
+        try {
+          const source = page, keyword = query.trim()
+          await source.searchJobs(keyword)
+          const deadline = Date.now() + 4000
+          let result
+          do {
+            result = await readJobs(source, keyword)
+            if (result.state !== 'loading' && result.state !== 'unsupported') break
+            if (Date.now() >= deadline) break
+            await wait(300)
+          } while (!res.destroyed)
+          reply(200, result); return
+        } finally { inputBusy = false }
       }
       if (req.method === 'POST' && req.url === '/capture') {
         if (!viewReady()) throw new Error('请先选择 BOSS 页面')
@@ -279,8 +299,8 @@ export async function createBossPreview({ port = 4327, fixture = false, headless
         for await (const chunk of req) { size += chunk.length; if (size > 128 * 1024) throw new Error('简历文字过长，请保留相关经历'); chunks.push(chunk) }
         const input = bossPreparationSchema.parse(JSON.parse(Buffer.concat(chunks).toString('utf8')))
         if (lastRead !== snapshot || input.readId !== snapshot.id || snapshot.page !== page || snapshot.url !== page.url()) throw new Error('岗位列表已变化，请重新拉取后准备')
-        const currentJobs = await collectJobs()
-        if (lastRead !== snapshot || phase !== 'connected' || JSON.stringify(currentJobs) !== JSON.stringify(snapshot.jobs)) throw new Error('岗位列表已变化，请重新拉取后准备')
+        const current = await page.evaluate(readBossJobList)
+        if (lastRead !== snapshot || phase !== 'connected' || current.address !== snapshot.url || current.state !== 'ready' || JSON.stringify(current.jobs) !== JSON.stringify(snapshot.jobs)) throw new Error('岗位列表已变化，请重新拉取后准备')
         const enrichedJobs = snapshot.jobs.map(job => {
           const detail = snapshot.details?.get(job.url)
           return detail?.matched && !detail.blockers.length ? { ...job, description: detail.description, descriptionSource: 'detail' } : job
@@ -295,36 +315,26 @@ export async function createBossPreview({ port = 4327, fixture = false, headless
       }
       if (req.method === 'GET' && req.url === '/jobs') {
         if (phase !== 'connected' || !page || page.isClosed()) throw new Error('请先选择 BOSS 页面并开始预览')
-        const source = page, address = page.url()
-        const jobs = await collectJobs()
-        const text = await source.locator('body').innerText({ timeout: 3000 })
-        if (source !== page || address !== page.url()) throw new Error('读取期间页面已变化，请等待搜索完成后重新读取')
-        const snapshot = { id: randomBytes(12).toString('hex'), page: source, url: address, jobs }
-        lastRead = snapshot
-        reply(200, { readId: snapshot.id, jobs, needsLogin: /扫码登录|登录后查看|登录\/注册/.test(text), needsVerification: /安全验证|滑动验证|请完成验证/.test(text) }); return
+        if (inputBusy) { reply(409, { error: '请等待当前浏览器操作结束后重新读取。' }); return }
+        reply(200, await readJobs(page)); return
       }
       reply(404, { error: '没有此操作' })
     } catch (error) { reply(400, { error: error?.issues?.[0]?.message ?? (error instanceof Error ? error.message : '验证失败') }) }
   })
   await new Promise((done, reject) => { server.once('error', reject); server.listen(port, '127.0.0.1', done) })
-  async function collectJobs() {
-    return page.locator('.job-card-wrapper, .job-card-box, .job-card-wrap').evaluateAll(cards => {
-          const seen = new Set()
-          return cards.map(card => {
-          const link = card.querySelector('a[href*="/job_detail/"]')
-          if (!link) return null
-          card = link.closest('li') ?? card
-          const url = new URL(link.href)
-          if (url.protocol !== 'https:' || !(url.hostname === 'zhipin.com' || url.hostname.endsWith('.zhipin.com'))) return null
-          const href = url.origin + url.pathname
-          if (seen.has(href)) return null
-          const title = ((card.querySelector('.job-name, .job-title, [class*=job-name], [class*=job-title]') ?? link).getAttribute('title') || (card.querySelector('.job-name, .job-title, [class*=job-name], [class*=job-title]') ?? link).textContent || '').trim().replace(/[\uE000-\uF8FF].*$/s, '').replace(/\s*\d+(?:\.\d+)?[-–]\d+(?:\.\d+)?[Kk万千].*$/s, '').trim()
-          if (!title) return null
-          seen.add(href)
-          const salary = card.querySelector('.salary')?.textContent?.trim() ?? ''
-          return { title, company: card.querySelector('.company-name, a[href*="/gongsi/"]')?.textContent?.trim() ?? '', salary: /[\uE000-\uF8FF]/.test(salary) ? '' : salary, url: href, description: (card.querySelector('.job-desc, .job-info, .job-labels, .tag-list')?.textContent ?? card.innerText).trim().slice(0, 1200) }
-          }).filter(Boolean).slice(0, 30)
-        })
+  async function readJobs(source, expectedQuery) {
+    const address = source.url()
+    const loading = { state: 'loading', query: expectedQuery ?? '', jobs: [], message: readMessages.loading }
+    if (source !== page || source.isClosed()) throw new Error('已切换 BOSS 标签页，请重新读取。')
+    const result = await source.evaluate(readBossJobList).catch(error => {
+      if (expectedQuery && /execution context|context with specified id|aborted by navigation/i.test(error.message)) return null
+      throw error
+    })
+    if (source !== page || address !== source.url() || result?.address !== address) return loading
+    const { query, state, jobs } = result
+    if (expectedQuery && query !== expectedQuery && state !== 'login' && state !== 'verification') return loading
+    lastRead = state === 'ready' ? { id: randomBytes(12).toString('hex'), page: source, url: address, jobs } : undefined
+    return lastRead ? { state, query, readId: lastRead.id, jobs } : { state, query, jobs, message: readMessages[state] }
   }
   async function captureFrame() {
     const target = viewPage()

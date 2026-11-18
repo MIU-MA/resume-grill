@@ -24,7 +24,7 @@ export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Pa
   }
   const active = () => { if (!chat || chat.isClosed()) throw new Error('本批会话页面已关闭'); return chat }
   const inspectConversation = async () => {
-    try { return await active().evaluate(bossDeliveryDom, { action: 'inspect', text: '' }) }
+    try { return await active().evaluate(bossDeliveryDom, { action: 'inspect' }) }
     catch (error) {
       // Navigation can replace the document while a read is in flight.
       if (error instanceof Error && /execution context was destroyed|cannot find (?:default )?context/i.test(error.message)) return undefined
@@ -32,7 +32,7 @@ export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Pa
     }
   }
   const openConversation = async (task: BrowserTask) => {
-    await active().evaluate(bossDeliveryDom, { action: 'open-chat', text: '', expectedJobUrl: task.url })
+    await active().evaluate(bossDeliveryDom, { action: 'open-chat', expectedJobUrl: task.url })
     const state = await wait(async () => {
       const state = await inspectConversation()
       if (!state) return
@@ -66,15 +66,15 @@ export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Pa
     },
     async checkRecipient(task) {
       if (task.url !== currentUrl || !chat || chat.isClosed()) return false
-      const state = await chat.evaluate(bossDeliveryDom, { action: 'inspect', text: '' })
+      const state = await chat.evaluate(bossDeliveryDom, { action: 'inspect' })
       if (state.jobLinks.some(url => url !== task.url)) return false
       return contactVerified ? state.editors === 1 && (state.url === task.url || !!recipientKey && state.recipientKey === recipientKey) : state.url === task.url
     },
     async send(task, step) {
       if (step.kind === 'contact') {
-        beforeContact = new Set((await active().evaluate(bossDeliveryDom, { action: 'inspect', text: '' })).outgoingTexts.map(message => message.id))
+        beforeContact = new Set((await active().evaluate(bossDeliveryDom, { action: 'inspect' })).outgoingTexts.map(message => message.id))
         await claimContact(task.url)
-        await active().evaluate(bossDeliveryDom, { action: 'contact', text: '', expectedJobUrl: task.url })
+        await active().evaluate(bossDeliveryDom, { action: 'contact', expectedJobUrl: task.url })
         const verified = await wait(async () => {
           const popup = jobPage ? await browser.ownedChatPopup(jobPage) : undefined
           if (popup) chat = popup
@@ -105,13 +105,13 @@ export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Pa
       page.on('response', response)
       try {
         if (!await adapter.checkRecipient(task)) throw new Error('上传前会话已变化，未上传图片')
-        const baseline = await page.evaluate(bossDeliveryDom, { action: 'receipts', text: '' })
+        const baseline = await page.evaluate(bossDeliveryDom, { action: 'receipts' })
         if (baseline.imagePreviews) throw new Error('会话已有待发送的图片，请先处理原草稿')
         const before = new Set(baseline.images)
         await page.attachImage(file)
         let confirmTried = false
         const id = await wait(async () => {
-          const state = await page.evaluate(bossDeliveryDom, { action: 'receipts', text: '', assetUrls: assets })
+          const state = await page.evaluate(bossDeliveryDom, { action: 'receipts', assetUrls: assets })
           const uploaded = state.verifiedImages.find(url => !before.has(url))
           if (uploaded) return uploaded
           // Local blob bytes only prove that a preview exists. Require a successful
@@ -119,7 +119,7 @@ export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Pa
           if (!confirmTried && Date.now() - began > 1000) {
             confirmTried = true
             // No thumbnail is normal for auto-send image inputs. Never retry file injection.
-            await page.evaluate(bossDeliveryDom, { action: 'confirm-image', text: '', ...(recipientKey ? { expectedRecipientKey: recipientKey } : { expectedJobUrl: task.url }) }).catch(() => undefined)
+            await page.evaluate(bossDeliveryDom, { action: 'confirm-image', ...(recipientKey ? { expectedRecipientKey: recipientKey } : { expectedJobUrl: task.url }) }).catch(() => undefined)
           }
           return undefined
         }, '图片未获得发送回执，可能已上传；已停止，不能自动重发', 12000)
@@ -130,7 +130,7 @@ export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Pa
       let observed = '尚未读到会话消息'
       const message = await wait(async () => {
         if (!await adapter.checkRecipient(task)) throw new Error('自动招呼核对前会话已变化')
-        const state = await active().evaluate(bossDeliveryDom, { action: 'receipts', text: '' })
+        const state = await active().evaluate(bossDeliveryDom, { action: 'receipts' })
         const added = state.outgoingTexts.filter(value => !beforeContact.has(value.id) && !value.id.startsWith('text:') && value.delivered)
         observed = `读到 ${state.outgoingTexts.length} 条己方消息，${added.length} 条新增且已送达`
         if (added.length > 1) throw new Error('出现多条自动消息，已暂停，不追加文字')

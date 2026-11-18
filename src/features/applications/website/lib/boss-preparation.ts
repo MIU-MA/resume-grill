@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { matchesJob, searchKeywords } from '../../../../domain/job-search.ts'
 
-export type BossJob = { title: string; company: string; salary: string; url: string; description?: string; descriptionSource?: 'detail' }
+import type { BossJob } from '../../../../domain/boss-search.ts'
 
 export const bossPreparationSchema = z.object({
   readId: z.string().min(1),

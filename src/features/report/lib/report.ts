@@ -1,4 +1,4 @@
-import { CLAIM_CATEGORY_LABELS, MASTERY_DIMENSION_LABELS, type ResumeAnalysis } from '@/domain/resume-schema'
+import { CLAIM_CATEGORY_LABELS, type ResumeAnalysis } from '@/domain/resume-schema'
 import { PRIORITY_META } from '@/domain/risk'
 import type { InterviewSession } from '@/domain/interview-schema'
 import { deriveBlindSpots } from '@/domain/blind-spots'
@@ -17,29 +17,6 @@ function reportHeader(title: string, analysis: ResumeAnalysis) {
   appendJobMatch(lines, analysis)
   if (analysis.diagnosis) lines.push(buildDiagnosisReport(analysis.diagnosis), '')
   return lines
-}
-
-export function buildReport(analysis: ResumeAnalysis): string {
-  const lines = reportHeader('面试练习清单', analysis)
-
-  for (const claim of analysis.claims) {
-    const prio = PRIORITY_META[claim.testPriority]
-    lines.push(
-      `## ${claim.title}`,
-      '',
-      `- 类型：${CLAIM_CATEGORY_LABELS[claim.category]}`,
-      `- 练习主题：${claim.capability}`,
-      `- 简历原文：${claim.content}`,
-      `- 练习顺序：${prio.label}`,
-      `- 回答时需要讲清：`,
-    )
-    claim.masteryPoints.forEach((mp) => {
-      lines.push(`  - [${MASTERY_DIMENSION_LABELS[mp.dimension]}] ${mp.point} (${mp.importance})`)
-    })
-    lines.push('')
-  }
-
-  return lines.join('\n')
 }
 
 export function buildFullReport(analysis: ResumeAnalysis, sessions: Record<string, InterviewSession[]>, masteredBlindSpotIds: string[] = []): string {
@@ -176,10 +153,6 @@ function downloadFile(filename: string, content: string, type: string) {
 
 export function downloadText(filename: string, content: string) {
   downloadFile(filename, content, 'text/markdown;charset=utf-8')
-}
-
-export function downloadReport(analysis: ResumeAnalysis) {
-  downloadText(`练习清单-${analysis.candidate}.md`, buildReport(analysis))
 }
 
 export function downloadFullReport(analysis: ResumeAnalysis, sessions: Record<string, InterviewSession[]>, masteredBlindSpotIds: string[] = []) {

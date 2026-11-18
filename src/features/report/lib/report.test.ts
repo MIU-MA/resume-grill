@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildFullReport, buildReport } from './report'
+import { buildFullReport } from './report'
 import type { ResumeAnalysis } from '@/domain/resume-schema'
 import type { InterviewSession } from '@/domain/interview-schema'
 import { createBlindSpotId } from '../../../domain/blind-spots'
@@ -42,20 +42,20 @@ it('导出复盘时保留反问、目的和后续澄清提示', () => {
   expect(report).toContain('听完后：确认约束再分享经历')
 })
 
-describe('buildReport', () => {
+describe('buildFullReport', () => {
   it('包含候选人与来源', () => {
-    const report = buildReport(analysis)
+    const report = buildFullReport(analysis, {})
     expect(report).toContain('姓名：张明 · 销售')
     expect(report).toContain('来源文件：resume.txt')
   })
   it('包含简历原文、主要考察与类型标签', () => {
-    const report = buildReport(analysis)
+    const report = buildFullReport(analysis, {})
     expect(report).toContain('季度销售额提升 30%')
     expect(report).toContain('练习主题：销售业绩达成能力')
     expect(report).toContain('项目成果')
   })
   it('输出练习顺序', () => {
-    const report = buildReport(analysis)
+    const report = buildFullReport(analysis, {})
     expect(report).toContain('练习顺序：重点练习')
     expect(report).not.toContain('面试风险')
     expect(report).not.toContain('被追问概率')

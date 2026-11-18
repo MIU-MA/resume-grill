@@ -205,7 +205,7 @@ class BossReadPage extends EventEmitter {
     await this.attach()
     // Reviewed batch clicks may open a chat window. Ordinary reads and draft
     // filling do not receive a browser user gesture.
-    const userGesture = !!arg && typeof arg === 'object' && 'action' in arg && ['contact', 'send', 'confirm-image'].includes(String(arg.action))
+    const userGesture = !!arg && typeof arg === 'object' && 'action' in arg && ['contact', 'confirm-image'].includes(String(arg.action))
     const data = await this.browser.command('Runtime.evaluate', { expression: `(() => { const __name = value => value; return (${fn.toString()})(${JSON.stringify(arg) ?? 'undefined'}) })()`, returnByValue: true, awaitPromise: true, userGesture }, this.sessionId)
     if (data.exceptionDetails) throw new Error(data.exceptionDetails.exception?.description || '页面读取失败')
     return data.result.value
@@ -241,7 +241,8 @@ class BossReadPage extends EventEmitter {
     const city = new URL(this.url()).searchParams.get('city')
     url.searchParams.set('city', city && /^\d{9}$/.test(city) ? city : '100010000')
     if (this.url() === url.href) return
-    await this.browser.command('Page.navigate', { url: url.href }, this.sessionId)
+    const navigation = await this.browser.command('Page.navigate', { url: url.href }, this.sessionId)
+    if (navigation.errorText) throw new Error('BOSS 搜索页未能打开，请检查浏览器网络。')
   }
   event(message: ProtocolMessage) {
     const data = message.params

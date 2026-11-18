@@ -1,4 +1,4 @@
-type Input = { action: 'inspect' | 'contact' | 'open-chat' | 'send' | 'receipts' | 'confirm-image'; text: string; assetUrls?: string[]; expectedRecipientKey?: string; expectedJobUrl?: string }
+type Input = { action: 'inspect' | 'contact' | 'open-chat' | 'receipts' | 'confirm-image'; assetUrls?: string[]; expectedRecipientKey?: string; expectedJobUrl?: string }
 type DeliveryGuard = { interrupted: boolean; recipients?: WeakMap<HTMLElement, string>; contactChat?: string }
 
 /** Image-only picker: attachment pickers that also accept documents are not chat images. */
@@ -52,7 +52,6 @@ export async function bossDeliveryDom(input: Input) {
     const text = content.innerText.trim()
     return text ? [{ id: node.getAttribute('data-mid') || node.getAttribute('data-message-id') || `text:${index}`, text, delivered: !!node.querySelector('.message-status.status-delivery, .message-status.status-read') }] : []
   })
-  const texts = outgoingTexts.filter(value => norm(value.text) === norm(input.text)).map(value => value.id)
   const images = outgoing.flatMap(node => [...node.querySelectorAll<HTMLImageElement>('img')]).filter(node => node.complete && node.naturalWidth > 0).map(node => node.currentSrc || node.src)
   const jobLinks = [...document.querySelectorAll<HTMLAnchorElement>('.chat-header a[href*="/job_detail/"], .chat-job-info a[href*="/job_detail/"], .chat-job-card a[href*="/job_detail/"]')].map(node => { const url = new URL(node.href); return url.origin + url.pathname })
   const modern = [...document.querySelectorAll<HTMLElement>('.friend-content.selected')].filter(visible)
@@ -86,13 +85,6 @@ export async function bossDeliveryDom(input: Input) {
     // unlike clicking "立即沟通" again it never repeats friend/add or a greeting.
     location.assign(destination)
   }
-  if (input.action === 'send') {
-    if (texts.length) throw new Error('已有相同招呼语，已停止以避免重复发送')
-    if (editors.length !== 1 || send.length !== 1) throw new Error('输入框或发送按钮不唯一，未发送')
-    const text = editors[0] instanceof HTMLTextAreaElement ? editors[0].value : editors[0].innerText
-    if (norm(text) !== norm(input.text)) throw new Error('输入框内容与已核对招呼语不一致，未发送')
-    send[0].click()
-  }
   if (input.action === 'confirm-image') {
     if (imagePreviews.length !== 1) throw new Error('未识别到唯一图片预览，不能确认发送')
     const preview = imagePreviews[0].closest('.image-preview, .picture-preview, .img-preview')
@@ -109,5 +101,5 @@ export async function bossDeliveryDom(input: Input) {
       if (input.assetUrls.some(asset => { try { const value = new URL(asset); return value.origin === url.origin && value.pathname === url.pathname } catch { return false } })) verifiedImages.push(src)
     }
   }
-  return { url: location.origin + location.pathname, recipientKey, editors: editors.length, sendButtons: sendButtons.length, contactButtons: contact.length, canOpenChat: !!destination, texts, outgoingTexts, images, imagePreviews: imagePreviews.length, verifiedImages, jobLinks }
+  return { url: location.origin + location.pathname, recipientKey, editors: editors.length, sendButtons: sendButtons.length, canOpenChat: !!destination, outgoingTexts, images, imagePreviews: imagePreviews.length, verifiedImages, jobLinks }
 }

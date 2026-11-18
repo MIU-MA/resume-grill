@@ -34,3 +34,24 @@ export function rateLimit(key: string): RateLimitResult {
 export function withTimeout(ms: number): AbortSignal {
   return AbortSignal.timeout(ms)
 }
+
+export async function readLimitedJson(request: Request, maxBytes: number): Promise<unknown> {
+  if (Number(request.headers.get('content-length')) > maxBytes) throw new RangeError('请求内容过大')
+  const reader = request.body?.getReader()
+  if (!reader) throw new Error('缺少请求内容')
+  const chunks: Uint8Array[] = []
+  let size = 0
+  try {
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      size += value.byteLength
+      if (size > maxBytes) {
+        await reader.cancel()
+        throw new RangeError('请求内容过大')
+      }
+      chunks.push(value)
+    }
+  } finally { reader.releaseLock() }
+  return JSON.parse(Buffer.concat(chunks).toString('utf8'))
+}

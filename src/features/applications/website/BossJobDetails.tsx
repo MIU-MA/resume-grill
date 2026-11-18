@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import type { BossInspection } from '@/domain/boss-inspection'
-import type { BossJob } from './lib/boss-preparation'
+import type { BossJob } from '@/domain/boss-search'
 import { bossRequest, type BossConnection } from './lib/boss-client'
 
 export function BossJobDetails({ connection, readId, jobs, disabled, onBusy, onChanged }: { connection: BossConnection | null; readId: string; jobs: BossJob[]; disabled: boolean; onBusy: (busy: boolean) => void; onChanged: () => void }) {

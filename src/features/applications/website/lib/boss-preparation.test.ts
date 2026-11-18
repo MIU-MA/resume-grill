@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { bossPreparationSchema, prepareBossApplications, type BossJob } from './boss-preparation'
+import { bossPreparationSchema, prepareBossApplications } from './boss-preparation'
+
+import type { BossJob } from '@/domain/boss-search'
 
 const jobs: BossJob[] = [
   { title: 'Full Stack Developer', company: '示例公司', salary: '10-15K', url: 'https://www.zhipin.com/job_detail/one.html', description: 'React TypeScript Node.js' },

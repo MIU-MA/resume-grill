@@ -13,9 +13,8 @@ import { bossRequest, restoreBossConnection, type BossConnection, type BossStatu
 import { loadBossWorkspace, saveBossWorkspace, type BossDraft } from './lib/boss-workspace-storage'
 import { describeBossImages } from './lib/boss-images'
 import { renderResumePdfImages } from '@/features/resume/lib/pdf-images'
-import type { BossJob, prepareBossApplications } from './lib/boss-preparation'
-
-type ReadResult = { readId: string; jobs: BossJob[]; needsLogin?: boolean; needsVerification?: boolean }
+import type { BossJobRead } from '@/domain/boss-search'
+import type { prepareBossApplications } from './lib/boss-preparation'
 
 export function BossWorkbench() {
   const [connection, setConnection] = useState<BossConnection | null>(null)
@@ -23,7 +22,7 @@ export function BossWorkbench() {
   const [resumes, setResumes] = useState<ResumeDocument[]>([])
   const [resumeId, setResumeId] = useState('')
   const [target, setTarget] = useState('')
-  const [read, setRead] = useState<ReadResult | null>(null)
+  const [read, setRead] = useState<Extract<BossJobRead, { state: 'ready' }> | null>(null)
   const [selected, setSelected] = useState<string[]>([])
   const [drafts, setDrafts] = useState<BossDraft[]>([])
   const [images, setImages] = useState<File[]>([])
@@ -80,6 +79,24 @@ export function BossWorkbench() {
     return bossRequest<T>(connection, path, body)
   }
   const invalidate = () => { setDrafts([]); setNotice('') }
+  const readJobs = (query?: string) => run(async () => {
+    setRead(null); setSelected([]); invalidate()
+    const result = query
+      ? await request<BossJobRead>('/search', { query })
+      : await request<BossJobRead>('/jobs')
+    if (!result.state) throw new Error('请重启本机 BOSS 服务，再打开终端新输出的工作台链接。')
+    if (result.state === 'ready') {
+      if (query && query !== result.query) {
+        setNotice('BOSS 正在切换搜索结果，列表出现后可点「读取岗位」。')
+        return
+      }
+      setRead(result)
+      setSelected(result.jobs.map(job => job.url))
+      return
+    }
+    if (result.state === 'login' || result.state === 'verification' || result.state === 'unsupported') throw new Error(result.message)
+    setNotice(result.message)
+  })
   const prepare = () => run(async () => {
     if (!read) return
     let attachments = images
@@ -101,7 +118,10 @@ export function BossWorkbench() {
       <section className="grid gap-4 border border-line p-4 md:grid-cols-2">
         <label className="space-y-2 text-label"><span>已有简历</span><select className={inputClass} value={resumeId} disabled={!ready || busy} onChange={event => { setResumeId(event.target.value); setImages([]); invalidate() }}>{!resumes.length && <option value="">先在简历库导入简历</option>}{resumes.map(item => <option key={item.id} value={item.id}>{item.sourceFile}</option>)}</select></label>
         <label className="space-y-2 text-label"><span>想找什么岗位</span><input className={inputClass} value={target} maxLength={120} disabled={busy} placeholder="例如：全栈开发、产品经理" onChange={event => { setTarget(event.target.value); setRead(null); setSelected([]); invalidate() }} /></label>
-        <div className="flex flex-wrap items-center gap-2 md:col-span-2"><Button variant="secondary" disabled={busy || !status?.ready || !target.trim()} onClick={() => void run(async () => { setRead(null); invalidate(); await request('/search', { query: target.trim() }); setNotice('官网搜索已打开，待岗位列表出现后点击读取岗位。') })}>官网搜索</Button><Button disabled={busy || !status?.ready} onClick={() => void run(async () => { invalidate(); setRead(null); const value = await request<ReadResult>('/jobs'); if (value.needsLogin || value.needsVerification) throw new Error('请先在官网完成登录或验证。'); setRead(value); setSelected(value.jobs.map(job => job.url)); if (!value.jobs.length) setNotice('当前页未读到岗位，请打开官网搜索结果列表。') })}>读取岗位</Button><span className="text-meta text-text-tertiary">只在点击搜索时打开官网，不自动刷新页面。</span></div>
+        <div className="flex flex-wrap items-center gap-2 md:col-span-2">
+          <Button disabled={busy || !status?.ready || !target.trim()} onClick={() => void readJobs(target.trim())}>官网搜索</Button>
+          <Button variant="secondary" disabled={busy || !status?.ready} onClick={() => void readJobs()}>读取岗位</Button>
+        </div>
       </section>
       <BossLivePreview connection={connection} connected={!!status?.ready} />
       {read && <section className="border border-line"><h2 className="border-b border-line px-4 py-3 text-section font-medium">选择岗位 · {read.jobs.length}</h2><div className="max-h-72 divide-y divide-line overflow-y-auto">{read.jobs.map(job => <label key={job.url} className="flex items-start gap-3 p-3 text-body"><input type="checkbox" className="mt-1" checked={selected.includes(job.url)} disabled={busy} onChange={event => { setSelected(items => event.target.checked ? [...items, job.url] : items.filter(url => url !== job.url)); invalidate() }} /><span className="flex-1">{job.title}<span className="ml-3 text-label text-text-secondary">{job.company}</span></span><a href={job.url} target="_blank" rel="noreferrer" className="text-label underline">查看官网</a></label>)}</div></section>}

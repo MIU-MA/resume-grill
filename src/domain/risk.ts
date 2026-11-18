@@ -16,10 +16,6 @@ export const PRIORITY_META: Record<TestPriority, PriorityMeta> = {
   low: { level: 'low', label: '有空再练', description: '内容比较清楚，可以稍后再练', color: 'green' },
 }
 
-export function claimPriority(claim: ResumeClaim): PriorityMeta {
-  return PRIORITY_META[claim.testPriority]
-}
-
 export type AuditStats = {
   claimCount: number
   highCount: number
@@ -81,9 +77,7 @@ export function summarizeClaimProgress(
   claims: ResumeClaim[],
   sessions: Record<string, InterviewSession[]>,
   preparedClaimIds: string[],
-  overrides: Record<string, TestPriority> = {},
 ): Record<string, ClaimProgress> {
-  void overrides
   const prepared = new Set(preparedClaimIds)
   const progress: Record<string, ClaimProgress> = {}
   for (const claim of claims) {

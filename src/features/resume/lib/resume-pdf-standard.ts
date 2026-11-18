@@ -4,7 +4,7 @@ import type { RESUME_PAGE, ResumePdfArtifact, PdfTextBlock } from './resume-pdf'
 import type { PdfPhotoBox } from './resume-photo'
 import type { resumePdfSource } from './resume-pdf-offsets'
 import { resumeDocumentParagraphs } from './resume-docx'
-import { resumePdfTypography, type ResumePdfFit } from './resume-pdf-fit'
+import { resumePdfTypography, wrapPdfText, type ResumePdfFit } from './resume-pdf-fit'
 
 export function renderStandardResume(document: PDFDocument, font: PDFFont, source: ReturnType<typeof resumePdfSource>, template: ResumeTemplateId, pageSize: typeof RESUME_PAGE, firstPage: PDFPage, photoBox: PdfPhotoBox | undefined, fit: ResumePdfFit): ResumePdfArtifact['pages'] {
   const typography = resumePdfTypography(fit)
@@ -64,20 +64,7 @@ export function renderStandardResume(document: PDFDocument, font: PDFFont, sourc
     const left = besidePhoto ? photoBox.textLeft : sidebar ? heading ? margin : margin + 90 : margin + (template === 'modern' && heading ? 9 : 0)
     const availableWidth = besidePhoto ? photoBox.textWidth : sidebar ? heading ? 74 : contentWidth - 90 : contentWidth - (left - margin)
     if (sidebar && !heading && sidebarStart !== null) { top = sidebarStart; sidebarStart = null }
-    const lines: string[] = []
-    let line = ''
-    // Use embedded font metrics; the preview renders these same bytes, with no CSS wrapping.
-    const tokens = paragraph.text.replace(/\t/g, '    ').match(/[A-Za-z0-9]+(?:[._+/@:-][A-Za-z0-9]+)*|./gu) ?? []
-    for (const token of tokens) {
-      if (line && font.widthOfTextAtSize(line + token, size) > availableWidth) { lines.push(line); line = '' }
-      if (font.widthOfTextAtSize(token, size) <= availableWidth) { line += token; continue }
-      // Unusually long URLs still need to wrap within the printable page width.
-      for (const character of Array.from(token)) {
-        if (line && font.widthOfTextAtSize(line + character, size) > availableWidth) { lines.push(line); line = character }
-        else line += character
-      }
-    }
-    lines.push(line)
+    const lines = wrapPdfText(paragraph.text, font, size, availableWidth)
     const paragraphHeight = lines.length * lineHeight + before + after
     const reserve = heading || entry ? lineHeight + before + after + typography.leading(10.5, 16) : Math.min(paragraphHeight, height - margin * 2)
     if (top + reserve > height - margin && top > margin) nextPage()

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { groundedDiagnosisSchema, sortDiagnosisIssues } from '@/domain/resume-diagnosis'
 import { DIAGNOSIS_SYSTEM_PROMPT, buildDiagnosisUserPrompt, buildDemoDiagnosis } from '@/features/resume/lib/resume-diagnosis'
-import { MAX_RAWTEXT, getClientIp, rateLimit, withTimeout } from '@/lib/server-limits'
+import { MAX_RAWTEXT, getClientIp, rateLimit, readLimitedJson, withTimeout } from '@/lib/server-limits'
 import { llmStructured, resolveLlmConfig } from '@/providers/openai-compatible'
 
 export const runtime = 'nodejs'
@@ -22,36 +22,13 @@ const requestSchema = z.object({
 const json = (body: unknown, status = 200, headers: Record<string, string> = {}) =>
   NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store', ...headers } })
 
-async function readBody(request: Request) {
-  if (Number(request.headers.get('content-length')) > MAX_BODY_BYTES) throw new RangeError('请求内容过大')
-  const reader = request.body?.getReader()
-  if (!reader) throw new Error('缺少请求内容')
-  const chunks: Uint8Array[] = []
-  let total = 0
-  try {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      total += value.byteLength
-      if (total > MAX_BODY_BYTES) {
-        await reader.cancel()
-        throw new RangeError('请求内容过大')
-      }
-      chunks.push(value)
-    }
-  } finally {
-    reader.releaseLock()
-  }
-  return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown
-}
-
 export async function POST(request: Request) {
   const limit = rateLimit(getClientIp(request))
   if (!limit.ok) return json({ error: `请求过于频繁，请 ${limit.retryAfter} 秒后重试` }, 429, { 'Retry-After': String(limit.retryAfter) })
 
   let body: z.infer<typeof requestSchema>
   try {
-    body = requestSchema.parse(await readBody(request))
+    body = requestSchema.parse(await readLimitedJson(request, MAX_BODY_BYTES))
   } catch (error) {
     return json({ error: error instanceof RangeError ? '请求内容过大，请缩短简历或岗位描述。' : `请提供有效简历（最多 ${MAX_RAWTEXT} 字）、岗位描述（最多 12000 字）和完整模型配置。` }, error instanceof RangeError ? 413 : 400)
   }

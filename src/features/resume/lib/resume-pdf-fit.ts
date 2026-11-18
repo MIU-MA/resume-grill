@@ -1,4 +1,5 @@
 import type { ResumePdfArtifact } from './resume-pdf'
+import type { PDFFont } from 'pdf-lib'
 
 export type ResumePdfFit = { fontScale: number; spacingScale: number; measureOnly?: boolean }
 
@@ -18,4 +19,19 @@ export function resumePdfTypography(fit: ResumePdfFit) {
   const space = (base: number) => base * fit.spacingScale * fit.fontScale
   const leading = (baseSize: number, baseLeading: number) => Math.max(size(baseSize) * 1.12, size(baseSize) + space(baseLeading - baseSize))
   return { size, space, leading }
+}
+
+export function wrapPdfText(text: string, font: PDFFont, size: number, width: number) {
+  const fits = (value: string) => font.widthOfTextAtSize(value, size) <= width
+  const lines: string[] = []
+  let line = ''
+  for (const token of text.replace(/\t/g, '    ').match(/[A-Za-z0-9]+(?:[._+/@:-][A-Za-z0-9]+)*|./gu) ?? []) {
+    if (line && !fits(line + token)) { lines.push(line); line = '' }
+    if (fits(token)) { line += token; continue }
+    for (const character of token) {
+      if (line && !fits(line + character)) { lines.push(line); line = '' }
+      line += character
+    }
+  }
+  return [...lines, line]
 }

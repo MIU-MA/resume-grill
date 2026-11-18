@@ -4,7 +4,7 @@ import type { ResumeTemplateId } from '@/domain/resume-template'
 import type { RESUME_PAGE, ResumePdfArtifact } from './resume-pdf'
 import type { resumePdfSource } from './resume-pdf-offsets'
 import { resumeEntries, resumeEntryColumns, resumeLayoutParagraphs, type ResumeLayoutParagraph } from './resume-pdf-entries'
-import { resumePdfTypography, type ResumePdfFit } from './resume-pdf-fit'
+import { resumePdfTypography, wrapPdfText, type ResumePdfFit } from './resume-pdf-fit'
 
 type DesignId = Extract<ResumeTemplateId, 'meowth' | 'brilliant' | 'persian' | 'typst'>
 export function isDesignedResumeTemplate(template: ResumeTemplateId): template is DesignId {
@@ -47,20 +47,7 @@ export function renderDesignedResume(document: PDFDocument, font: PDFFont, sourc
   function ensureSpace(space: number) {
     if (top > margin && top + space > bottom) nextPage()
   }
-  function wrap(text: string, size: number, available: number): string[] {
-    const lines: string[] = []
-    let line = ''
-    for (const token of text.replace(/\t/g, '    ').match(/[A-Za-z0-9]+(?:[._+/@:-][A-Za-z0-9]+)*|./gu) ?? []) {
-      if (line && font.widthOfTextAtSize(line + token, size) > available) { lines.push(line); line = '' }
-      if (font.widthOfTextAtSize(token, size) <= available) { line += token; continue }
-      for (const character of Array.from(token)) {
-        if (line && font.widthOfTextAtSize(line + character, size) > available) { lines.push(line); line = '' }
-        line += character
-      }
-    }
-    lines.push(line)
-    return lines
-  }
+  const wrap = (text: string, size: number, width: number) => wrapPdfText(text, font, size, width)
   function drawLine(text: string, x: number, y: number, size: number, color: RGB, bold: boolean) {
     if (fit.measureOnly) return
     if (bold) page.pushOperators(pushGraphicsState(), setTextRenderingMode(2), setLineWidth(size > 20 ? .2 : .12))

@@ -20,7 +20,7 @@ try {
   if (!before.ready) { console.log(JSON.stringify({ ready: false, phase: before.phase, error: before.error || '', hint: '请在工作台连接 Chrome 并选择 BOSS 岗位列表页；脚本不会代替你授权。' })); process.exitCode = 2 }
   else {
     const read = await request('/jobs')
-    if (read.needsLogin || read.needsVerification) throw new Error('列表页需要登录或验证，请先在官网处理')
+    if (read.state !== 'ready') throw new Error(read.message ?? '未读到岗位列表')
     const job = read.jobs.find(item => item.company && item.title)
     if (!job) throw new Error('当前页没有可核对公司和标题的岗位卡片，请选择岗位列表页')
     const result = await request('/inspect-job', { readId: read.readId, url: job.url })
