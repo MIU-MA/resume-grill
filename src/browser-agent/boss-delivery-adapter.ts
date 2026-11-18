@@ -23,10 +23,19 @@ export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Pa
     release?.(); await held?.catch(() => {}); jobPage = chat = undefined; release = undefined; held = undefined
   }
   const active = () => { if (!chat || chat.isClosed()) throw new Error('本批会话页面已关闭'); return chat }
+  const inspectConversation = async () => {
+    try { return await active().evaluate(bossDeliveryDom, { action: 'inspect', text: '' }) }
+    catch (error) {
+      // Navigation can replace the document while a read is in flight.
+      if (error instanceof Error && /execution context was destroyed|cannot find (?:default )?context/i.test(error.message)) return undefined
+      throw error
+    }
+  }
   const openConversation = async (task: BrowserTask) => {
     await active().evaluate(bossDeliveryDom, { action: 'open-chat', text: '', expectedJobUrl: task.url })
     const state = await wait(async () => {
-      const state = await active().evaluate(bossDeliveryDom, { action: 'inspect', text: '' })
+      const state = await inspectConversation()
+      if (!state) return
       if (state.jobLinks.some(url => url !== task.url)) throw new Error('沟通页的岗位链接不一致，已停止')
       return state.url === 'https://www.zhipin.com/web/geek/chat' && state.editors === 1 && state.sendButtons === 1 && !!state.recipientKey ? state : undefined
     }, '完整沟通页未就绪，未再次点击沟通', 20000)
@@ -64,13 +73,14 @@ export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Pa
     async send(task, step) {
       if (step.kind === 'contact') {
         beforeContact = new Set((await active().evaluate(bossDeliveryDom, { action: 'inspect', text: '' })).outgoingTexts.map(message => message.id))
-        await active().evaluate(bossDeliveryDom, { action: 'contact', text: '' })
+        await active().evaluate(bossDeliveryDom, { action: 'contact', text: '', expectedJobUrl: task.url })
         const verified = await wait(async () => {
           const popup = jobPage ? await browser.ownedChatPopup(jobPage) : undefined
           if (popup) chat = popup
-          const state = await active().evaluate(bossDeliveryDom, { action: 'inspect', text: '' })
+          const state = await inspectConversation()
+          if (!state) return
           if (state.jobLinks.some(url => url !== task.url)) throw new Error('沟通页的岗位链接不一致，已停止')
-          if (state.url === task.url && state.editors === 1 && state.canOpenChat && !state.outgoingTexts.length) {
+          if (state.url === task.url && state.editors === 1 && state.canOpenChat) {
             return openConversation(task)
           }
           return state.editors === 1 && state.sendButtons === 1 && (state.url === task.url || !!state.recipientKey) ? state : undefined

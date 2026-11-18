@@ -8,7 +8,7 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, 'innerText', { configurable: true, get() { return this.textContent ?? '' } })
   document.body.innerHTML = '<div class="chat-editor"><textarea>已核对的招呼语</textarea><button>发送</button></div>'
 })
-afterEach(() => { document.body.innerHTML = ''; delete (HTMLElement.prototype as unknown as Record<string, unknown>).innerText; vi.restoreAllMocks(); vi.unstubAllGlobals() })
+afterEach(() => { document.body.innerHTML = ''; delete (window as unknown as Record<string, unknown>).__resumeGrillBatchGuard; delete (HTMLElement.prototype as unknown as Record<string, unknown>).innerText; vi.restoreAllMocks(); vi.unstubAllGlobals() })
 it('只发送与核对文本一致的内容，重复正文不再点击', async () => {
   const send = vi.fn(); document.querySelector('button')!.onclick = send
   await bossDeliveryDom({ action: 'send', text: '已核对的招呼语', expectedJobUrl: url })
@@ -64,6 +64,22 @@ it('岗位页的简易输入框只沿官网链接打开完整会话，不再次�
   await bossDeliveryDom({ action: 'open-chat', text: '', expectedJobUrl: url })
   expect(assign).toHaveBeenCalledWith('https://www.zhipin.com/web/geek/chat?id=recruiter&jobId=fixture&securityId=website-token')
   expect(click).not.toHaveBeenCalled()
+})
+
+it('点击沟通后按钮消失时仍能打开本岗位会话，同时拒绝改指其他收件人', async () => {
+  const assign = vi.fn(); vi.stubGlobal('location', { origin: 'https://www.zhipin.com', pathname: '/job_detail/fixture.html', href: url, assign })
+  document.body.innerHTML = '<a redirect-url="/web/geek/chat?id=original&amp;jobId=fixture">立即沟通</a>'
+  const button = document.querySelector('a')!
+  button.onclick = () => button.remove()
+  await bossDeliveryDom({ action: 'contact', text: '', expectedJobUrl: url })
+  expect((await bossDeliveryDom({ action: 'inspect', text: '' })).canOpenChat).toBe(true)
+  document.body.innerHTML = '<a redirect-url="/web/geek/chat?id=other&amp;jobId=fixture">继续沟通</a>'
+  await expect(bossDeliveryDom({ action: 'open-chat', text: '', expectedJobUrl: url })).rejects.toThrow('未跳转')
+  expect(assign).not.toHaveBeenCalled()
+  document.body.innerHTML = ''
+  await bossDeliveryDom({ action: 'open-chat', text: '', expectedJobUrl: url })
+  expect(assign).toHaveBeenCalledOnce()
+  expect(assign).toHaveBeenCalledWith('https://www.zhipin.com/web/geek/chat?id=original&jobId=fixture')
 })
 
 it.each(['/web/geek/chat?id=recruiter&jobId=other', 'https://outside.invalid/web/geek/chat?id=recruiter&jobId=fixture', '/web/geek/chat?jobId=fixture'])('拒绝不是本岗位的沟通地址 %s', async redirect => {
