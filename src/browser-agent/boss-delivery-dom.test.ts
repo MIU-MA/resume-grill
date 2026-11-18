@@ -39,6 +39,19 @@ it('真实页面的图片入口与 PDF/Word 附件入口分开，多个图片入
   expect(() => findBossImageInput()).toThrow('不唯一')
 })
 
+it('确认图片只点击图片对话框的按钮，不提交聊天框里的文字草稿', async () => {
+  const sendDraft = vi.fn(), sendImage = vi.fn()
+  document.querySelector('button')!.onclick = sendDraft
+  document.body.insertAdjacentHTML('beforeend', '<div class="image-preview"><img src="blob:preview"></div>')
+  await expect(bossDeliveryDom({ action: 'confirm-image', text: '' })).rejects.toThrow('图片专用')
+  expect(sendDraft).not.toHaveBeenCalled()
+  document.querySelector('.image-preview')!.outerHTML = '<div role="dialog"><div class="image-preview"><img src="blob:preview"></div><button>发送</button></div>'
+  document.querySelector<HTMLButtonElement>('[role="dialog"] button')!.onclick = sendImage
+  await bossDeliveryDom({ action: 'confirm-image', text: '' })
+  expect(sendImage).toHaveBeenCalledOnce()
+  expect(sendDraft).not.toHaveBeenCalled()
+})
+
 it('识别真实 item-myself 气泡，不包含时间及已读状态，不把对方消息作为回执', async () => {
   document.body.insertAdjacentHTML('beforeend', '<li class="message-item item-friend"><div class="message-content">已核对的招呼语</div></li><li class="message-item item-myself" data-mid="real-style"><div class="item-time">10:00</div><div class="message-content"><span class="text">已核对的招呼语</span><span>已读</span></div></li>')
   expect((await bossDeliveryDom({ action: 'receipts', text: '已核对的招呼语' })).texts).toEqual(['real-style'])

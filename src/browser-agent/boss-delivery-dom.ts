@@ -28,6 +28,7 @@ export async function bossDeliveryDom(input: Input) {
   const editors = [...document.querySelectorAll<HTMLElement>('#chat-input, .chat-input[contenteditable="true"], .chat-editor textarea, .startchat-dialog textarea, .dialog-wrap textarea')].filter(visible)
   const sendButtons = [...document.querySelectorAll<HTMLElement>('button, .btn-send, .send-message')].filter(node => visible(node) && norm(node.innerText) === '发送')
   const send = sendButtons.filter(enabled)
+  const imagePreviews = [...document.querySelectorAll('.image-preview img, .picture-preview img, .chat-editor .img-preview img')].filter(visible)
   const contact = [...document.querySelectorAll<HTMLElement>('a, button, .btn-startchat')].filter(node => visible(node) && enabled(node) && /^(立即沟通|继续沟通)$/.test(norm(node.innerText)))
   const chatDestination = (value: string | null | undefined) => {
     if (!value) return undefined
@@ -93,9 +94,13 @@ export async function bossDeliveryDom(input: Input) {
     send[0].click()
   }
   if (input.action === 'confirm-image') {
-    const previews = [...document.querySelectorAll('.image-preview img, .picture-preview img, .chat-editor .img-preview img')].filter(visible)
-    if (previews.length !== 1 || send.length !== 1) throw new Error('未识别到唯一图片预览，不能确认发送')
-    send[0].click()
+    if (imagePreviews.length !== 1) throw new Error('未识别到唯一图片预览，不能确认发送')
+    const preview = imagePreviews[0].closest('.image-preview, .picture-preview, .img-preview')
+    const scope = preview?.closest('dialog, [role="dialog"], .dialog-wrap, .chat-editor') ?? preview
+    const buttons = send.filter(button => scope?.contains(button))
+    const hasDraft = editors.some(editor => scope?.contains(editor) && norm(editor instanceof HTMLTextAreaElement ? editor.value : editor.innerText))
+    if (buttons.length !== 1 || hasDraft) throw new Error('未识别到图片专用的发送入口')
+    buttons[0].click()
   }
   const verifiedImages: string[] = []
   if (input.action === 'receipts' && input.assetUrls?.length) {
@@ -104,5 +109,5 @@ export async function bossDeliveryDom(input: Input) {
       if (input.assetUrls.some(asset => { try { const value = new URL(asset); return value.origin === url.origin && value.pathname === url.pathname } catch { return false } })) verifiedImages.push(src)
     }
   }
-  return { url: location.origin + location.pathname, recipientKey, editors: editors.length, sendButtons: sendButtons.length, contactButtons: contact.length, canOpenChat: !!destination, texts, outgoingTexts, images, verifiedImages, jobLinks }
+  return { url: location.origin + location.pathname, recipientKey, editors: editors.length, sendButtons: sendButtons.length, contactButtons: contact.length, canOpenChat: !!destination, texts, outgoingTexts, images, imagePreviews: imagePreviews.length, verifiedImages, jobLinks }
 }

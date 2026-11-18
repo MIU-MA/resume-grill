@@ -6,7 +6,7 @@ import { inspectBossDetail } from './boss-inspection.ts'
 import { bossDeliveryDom } from './boss-delivery-dom.ts'
 
 type Page = Parameters<Parameters<BossBrowserReader['withJobPage']>[2]>[0]
-export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Page, files: Map<string, string>) {
+export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Page, files: Map<string, string>, claimContact: (url: string) => Promise<void>) {
   let jobPage: Page | undefined, chat: Page | undefined, release: (() => void) | undefined, held: Promise<unknown> | undefined
   let contactVerified = false
   let currentUrl = ''
@@ -73,6 +73,7 @@ export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Pa
     async send(task, step) {
       if (step.kind === 'contact') {
         beforeContact = new Set((await active().evaluate(bossDeliveryDom, { action: 'inspect', text: '' })).outgoingTexts.map(message => message.id))
+        await claimContact(task.url)
         await active().evaluate(bossDeliveryDom, { action: 'contact', text: '', expectedJobUrl: task.url })
         const verified = await wait(async () => {
           const popup = jobPage ? await browser.ownedChatPopup(jobPage) : undefined
@@ -104,7 +105,9 @@ export function createBossDeliveryAdapter(browser: BossBrowserReader, source: Pa
       page.on('response', response)
       try {
         if (!await adapter.checkRecipient(task)) throw new Error('上传前会话已变化，未上传图片')
-        const before = new Set((await page.evaluate(bossDeliveryDom, { action: 'receipts', text: '' })).images)
+        const baseline = await page.evaluate(bossDeliveryDom, { action: 'receipts', text: '' })
+        if (baseline.imagePreviews) throw new Error('会话已有待发送的图片，请先处理原草稿')
+        const before = new Set(baseline.images)
         await page.attachImage(file)
         let confirmTried = false
         const id = await wait(async () => {

@@ -76,6 +76,33 @@ it('新标签页可从执行器打开历史批次，无需连接招聘页，也�
   expect(sessionStorage.getItem('boss-browser:live-batch:v1')).toBe(run.id)
 })
 
+it('恢复不到旧批次时可清除当前标签页的旧编号并准备新批次', async () => {
+  sessionStorage.setItem('boss-browser:live-batch:v1', run.id)
+  vi.mocked(bossRequest).mockRejectedValue(new Error('没有找到批次'))
+  await render()
+  const close = [...host.querySelectorAll('button')].find(button => button.textContent === '关闭批次详情')!
+  await act(async () => close.click())
+  expect(sessionStorage.getItem('boss-browser:live-batch:v1')).toBeNull()
+  expect(host.querySelector('button')?.disabled).toBe(false)
+  expect(vi.mocked(bossRequest).mock.calls).toEqual([[connection, `/boss-batch/${run.id}`]])
+})
+
+it('确认请求的结果不明时关闭旧确认，改为读取同一批次', async () => {
+  const preview: BossBatchPreview = { id: 'pending-response', greetingMode: 'platform', batchId: run.id, expiresAt: Date.now() + 120000, jobs: [draft], images: [], skipped: [] }
+  vi.mocked(bossRequest).mockImplementation(async (_connection, path) => {
+    if (path === '/boss-batch/preview') return preview
+    if (path === '/boss-batch/confirm') throw new Error('请求超时')
+    return run
+  })
+  await render()
+  await act(async () => host.querySelector('button')!.click())
+  await act(async () => (host.querySelector('input[type=checkbox]') as HTMLInputElement).click())
+  await act(async () => [...host.querySelectorAll('button')].find(button => button.textContent === '确认并开始批量投递')!.click())
+  expect(host.querySelector('input[type=checkbox]')).toBeNull()
+  expect(host.textContent).toContain('批次已结束')
+  expect(vi.mocked(bossRequest).mock.calls.map(call => call[1])).toEqual(['/boss-batch/preview', '/boss-batch/confirm', `/boss-batch/${run.id}`])
+})
+
 it('从原批次继续剩余岗位会先展示新预览，不自动确认，也不需要重选简历', async () => {
   const step = { id: 'contact', kind: 'contact' as const, value: draft.url, state: 'pending' as const }
   const paused: BrowserRun = { ...run, state: 'paused', tasks: [{ ...draft, state: 'queued', steps: [step] }] }
